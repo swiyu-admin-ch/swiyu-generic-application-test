@@ -1,0 +1,18 @@
+{
+  "client_id": "${VERIFIER_DID}",
+  "client_name#en": "Development Demo Verifier",
+  "client_name#fr": "Vérificateur de démonstration de développement",
+  "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",
+  "client_name#de-CH": "Entwickligs-Demo-Verifizier",
+  "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
+  "client_name": "DEV Demo Verifier (Base)",
+  "logo_uri": "www.example.com/logo.png",
+  "logo_uri#fr": "www.example.com/logo_fr.png",
+  "vp_formats": {
+    "jwt_vp": {
+      "alg": [
+        "ES256"
+      ]
+    }
+  }
+}
