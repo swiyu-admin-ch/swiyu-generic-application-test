@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Configuration;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
@@ -12,7 +12,7 @@ import org.testcontainers.utility.MountableFile;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
-@Configuration
+@UtilityClass
 public class IssuerContainerConfig {
     public static final String DEFAULT_IMAGE_NAME = "ghcr.io/swiyu-admin-ch/swiyu-issuer:main";
 
@@ -20,11 +20,11 @@ public class IssuerContainerConfig {
             Network network,
             PostgreSQLContainer<?> dbContainer,
             IssuerConfig config,
-            MockServerContainer mockServer) {
+            MockServerContainer mockServer,
+            String imageName) {
 
-        return new GenericContainer<>(DEFAULT_IMAGE_NAME)
+        return new GenericContainer<>(imageName)
                 .withExposedPorts(8080)
-                // did:tdw:QmejrSkusQgeM6FfA23L6NPoLy3N8aaiV6X5Ysvb47WSj8:identifier-reg-r.trust-infra.swiyu.admin.ch:api:v1:did:ff8eb859-6996-4e51-a976-be1ca584c124
                 .withEnv("ISSUER_ID", config.getIssuerDid())
                 .withEnv("TOKEN_TTL", "600")
                 .withEnv("OPENID_CONFIG_FILE", "classpath:example_openid.json")
@@ -44,16 +44,12 @@ public class IssuerContainerConfig {
                 .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString())
                 .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                 .withEnv("ENABLE_JWT_AUTH", "false")
-                // .withEnv("APPLICATION_VCTMETADATAFILES_DEFAULT", "file:///tmp/vct.json")
                 .withEnv("APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA", "classpath:example_oca.json")
                 .withEnv("APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA", "classpath:example_json_schema.json")
                 .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, DBContainerConfig.ISSUER_DB_SCHEMA))
                 .withEnv("POSTGRES_USER", dbContainer.getUsername())
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                 .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
-                .withEnv("LOGGING_LEVEL_CH_ADMIN_BJ_SWIYU", "DEBUG")
-                .withEnv("LOGGING_LEVEL_CH_ADMIN_BIT_EID", "DEBUG")
-                .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)
                 .withNetworkAliases("swiyu_issuer")

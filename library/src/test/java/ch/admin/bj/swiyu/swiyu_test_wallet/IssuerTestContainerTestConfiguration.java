@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -41,9 +42,16 @@ public class IssuerTestContainerTestConfiguration {
     }
 
     @Bean
-    public GenericContainer<?> issuerContainer(Network network, PostgreSQLContainer<?> dbContainer, IssuerConfig config, MockServerContainer mockServer) {
+    public GenericContainer<?> issuerContainer(
+            Network network,
+            PostgreSQLContainer<?> dbContainer,
+            IssuerConfig config,
+            MockServerContainer mockServer,
+            IssuerImageConfig issuerImageConfig) {
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer);
+        var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
+
+        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName);
 
         container.start();
 

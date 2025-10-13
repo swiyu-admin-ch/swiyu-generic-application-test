@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
@@ -30,6 +32,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Import(CompleteEnvironmentTestConfiguration.class)
 class WalletTest {
 
+    @Autowired
+    IssuerImageConfig issuerImageConfig;
+    @Autowired
+    VerifierImageConfig verifierImageConfig;
     @Autowired
     IssuerConfig issuerConfig;
     @Autowired

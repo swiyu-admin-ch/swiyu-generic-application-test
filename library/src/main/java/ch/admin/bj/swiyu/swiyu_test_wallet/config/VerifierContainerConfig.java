@@ -20,7 +20,8 @@ public class VerifierContainerConfig {
     public static GenericContainer createVerifierContainer(
             Network network,
             PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
-            IssuerConfig config) {
+            IssuerConfig config,
+            String imageName) {
         return new GenericContainer(DEFAULT_IMAGE_NAME)
                 .withExposedPorts(8080)
                 .withEnv("VERIFIER_DID", config.getIssuerDid())

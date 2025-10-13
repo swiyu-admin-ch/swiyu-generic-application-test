@@ -3,8 +3,10 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.GenericContainer;
@@ -42,9 +44,15 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public GenericContainer<?> issuerContainer(Network network, PostgreSQLContainer<?> dbContainer, IssuerConfig config, MockServerContainer mockServer) {
+    public GenericContainer<?> issuerContainer(Network network,
+                                               PostgreSQLContainer<?> dbContainer,
+                                               IssuerConfig config,
+                                               MockServerContainer mockServer,
+                                               IssuerImageConfig issuerImageConfig) {
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer);
+        var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
+
+        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName);
 
         container.start();
 
@@ -59,9 +67,14 @@ public class CompleteEnvironmentTestConfiguration {
 
 
     @Bean
-    public GenericContainer<?> verifierContainer(Network network, PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer, IssuerConfig config) {
+    public GenericContainer<?> verifierContainer(Network network,
+                                                 PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
+                                                 IssuerConfig config,
+                                                 VerifierImageConfig verifierImageConfig) {
 
-        var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config);
+        var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
+
+        var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config, imageName);
 
         container.start();
 
