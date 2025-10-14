@@ -1,0 +1,31 @@
+name: Run E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      issuer-image-tag:
+        description: 'Issuer Docker image tag'
+        required: false
+        default: 'latest'
+      verifier-image-tag:
+        description: 'Verifier Docker image tag'
+        required: false
+        default: 'latest'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ISSUER_IMAGE_TAG: ${{ github.event.inputs['issuer-image-tag'] }}
+      VERIFIER_IMAGE_TAG: ${{ github.event.inputs['verifier-image-tag'] }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Build and verify with Maven
+        run: mvn --batch-mode verify
