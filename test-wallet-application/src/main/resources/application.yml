@@ -10,4 +10,4 @@ application:
     image-tag: "${ISSUER_IMAGE_TAG:latest}"
   verifier:
     base-image: "ghcr.io/swiyu-admin-ch/swiyu-verifier"
-    image-tag: "${VERIFIER_IMAGE_TAG:latest}"
+    image-tag: "${VERIFIER_IMAGE_TAG:main}"

@@ -17,6 +17,10 @@ import java.util.List;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.getVerificationKeyMultibase;
 import static java.util.Objects.isNull;
 
+/**
+ * Copied from didtoolbox-java <a href="https://github.com/swiyu-admin-ch/didtoolbox-java">...</a>
+ * Should be replaced with didtoolbox-java
+ */
 @UtilityClass
 public class DidLogUtil {
 

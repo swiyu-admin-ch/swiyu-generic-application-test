@@ -39,15 +39,8 @@ public class VerificationRequests {
         return new CreateVerificationManagement()
                 .acceptedIssuerDids(null)
                 .jwtSecuredAuthorizationRequest(false)
+                .responseMode(CreateVerificationManagement.ResponseModeEnum.POST)
                 .presentationDefinition(presentation);
-    }
-
-    public String createDefaultRequestString(boolean withKeyBinding) {
-        try {
-            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private static FormatAlgorithm es256Format() {
@@ -60,5 +53,13 @@ public class VerificationRequests {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(null)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);
+    }
+
+    public String createDefaultRequestString(boolean withKeyBinding) {
+        try {
+            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

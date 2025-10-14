@@ -4,12 +4,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>ch.admin.bj.swiyu</groupId>
-        <artifactId>swiyu-test-wallet-parent</artifactId>
+        <artifactId>swiyu-generic-application-test</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>swiyu-test-wallet-application</artifactId>
+    <artifactId>test-wallet-application</artifactId>
     <packaging>jar</packaging>
-    <name>swiyu-test-wallet-application</name>
+    <name>test-wallet-application</name>
     <description>Main application module for Swiyu Wallet</description>
     <properties>
         <java.version>21</java.version>

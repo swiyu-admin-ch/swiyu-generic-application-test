@@ -5,6 +5,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import io.ipfs.multibase.Base58;
+import lombok.experimental.UtilityClass;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 
 import java.io.IOException;
@@ -22,6 +23,11 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.NamedParameterSpec;
 import java.util.Arrays;
 
+/**
+ * Copied from didtoolbox-java <a href="https://github.com/swiyu-admin-ch/didtoolbox-java">...</a>
+ * Should be replaced with didtoolbox-java
+ */
+@UtilityClass
 public class KeyUtil {
 
     public static String getVerificationKeyMultibase(byte[] publicKeyEncoded) {

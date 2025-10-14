@@ -15,14 +15,13 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 public class VerifierContainerConfig {
 
     public static final String VERIFIER_NAME = "swiyu_verifier";
-    public static final String DEFAULT_IMAGE_NAME = "ghcr.io/swiyu-admin-ch/swiyu-verifier:main";
 
     public static GenericContainer createVerifierContainer(
             Network network,
             PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
             IssuerConfig config,
             String imageName) {
-        return new GenericContainer(DEFAULT_IMAGE_NAME)
+        return new GenericContainer(imageName)
                 .withExposedPorts(8080)
                 .withEnv("VERIFIER_DID", config.getIssuerDid())
                 .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")

@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.ipfs.multibase.Base58;
+import lombok.experimental.UtilityClass;
 import org.erdtman.jcs.JsonCanonicalizer;
 
 import java.io.IOException;
@@ -19,6 +20,11 @@ import java.util.HexFormat;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateSignature;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.getVerificationKeyMultibase;
 
+/**
+ * Copied from didtoolbox-java <a href="https://github.com/swiyu-admin-ch/didtoolbox-java">...</a>
+ * Should be replaced with didtoolbox-java
+ */
+@UtilityClass
 public class JCSHasherUtil {
     public static final String DATA_INTEGRITY_PROOF = "DataIntegrityProof";
     public static final String EDDSA_JCS_2022 = "eddsa-jcs-2022";
