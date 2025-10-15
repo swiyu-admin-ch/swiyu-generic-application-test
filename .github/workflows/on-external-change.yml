@@ -1,0 +1,102 @@
+# File: .github/workflows/on-external-change.yml  (in swiyu-generic-application-test)
+name: External Repo Change Trigger
+
+on:
+  repository_dispatch:
+    types: [verifier-updated, issuer-updated]
+  workflow_dispatch:
+
+concurrency:
+  group: external-change-${{ github.event_name }}-${{ github.event.client_payload.repo || 'manual' }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-and-run:
+    name: Prepare Images and Run Tests
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REPO: ${{ github.event.client_payload.repo }}
+      SOURCE_REF: ${{ github.event.client_payload.ref }}
+      SOURCE_SHA: ${{ github.event.client_payload.sha }}
+    steps:
+      - name: Show incoming dispatch payload
+        run: |
+          echo "Event type: $GITHUB_EVENT_NAME"
+          echo "Source repo: $SOURCE_REPO"
+          echo "Ref: $SOURCE_REF"
+          echo "SHA: $SOURCE_SHA"
+          echo 'Raw event JSON:'
+          cat $GITHUB_EVENT_PATH | sed 's/token": ".*"/token": "***"/'
+
+      - name: "Determine container images (simple: updated=main, other=latest)"
+        id: images
+        run: |
+          set -euo pipefail
+          UPDATED_REPO="$SOURCE_REPO"
+          if [ -z "$UPDATED_REPO" ]; then
+            echo "Manual run or missing repo in payload. Using both :latest." >&2
+            UPDATED_REPO="manual"
+          fi
+
+          ISSUER_BASE="ghcr.io/swiyu-admin-ch/swiyu-issuer"
+          VERIFIER_BASE="ghcr.io/swiyu-admin-ch/swiyu-verifier"
+
+          UPDATED_TAG="main"   # Always use the 'main' tag from triggering repo
+          OTHER_TAG="latest"   # Always use 'latest' from the other repo
+
+          case "$UPDATED_REPO" in
+            swiyu-verifier)
+              VERIFIER_IMAGE="$VERIFIER_BASE:$UPDATED_TAG"
+              ISSUER_IMAGE="$ISSUER_BASE:$OTHER_TAG"
+              ;;
+            swiyu-issuer)
+              ISSUER_IMAGE="$ISSUER_BASE:$UPDATED_TAG"
+              VERIFIER_IMAGE="$VERIFIER_BASE:$OTHER_TAG"
+              ;;
+            *)
+              ISSUER_IMAGE="$ISSUER_BASE:latest"
+              VERIFIER_IMAGE="$VERIFIER_BASE:latest"
+              ;;
+          esac
+
+          echo "Issuer image:  $ISSUER_IMAGE"
+          echo "Verifier image: $VERIFIER_IMAGE"
+
+          echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
+          echo "issuer_image=$ISSUER_IMAGE" >> $GITHUB_OUTPUT
+          echo "verifier_image=$VERIFIER_IMAGE" >> $GITHUB_OUTPUT
+
+      - name: (Optional) Validate images exist (HEAD request)
+        continue-on-error: true
+        run: |
+          for img in "$ISSUER_IMAGE" "$VERIFIER_IMAGE"; do
+            repo_tag="${img#ghcr.io/}"
+            repo="${repo_tag%%:*}"
+            tag="${repo_tag##*:}"
+            echo "Checking image $img"
+            curl -fsSL -o /dev/null -H "Accept: application/vnd.oci.image.index.v1+json" \
+              "https://ghcr.io/v2/$repo/manifests/$tag" && echo " -> exists" || echo " -> NOT FOUND (ensure it is pushed)"
+          done
+
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Run Maven verify (example)
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+
+      - name: Summary
+        run: |
+          {
+            echo "### External Change Pipeline";
+            echo "Triggered by: $SOURCE_REPO";
+            echo "Issuer image: $ISSUER_IMAGE";
+            echo "Verifier image: $VERIFIER_IMAGE";
+          } >> $GITHUB_STEP_SUMMARY
