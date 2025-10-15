@@ -7,8 +7,8 @@ import ch.admin.bj.swiyu.gen.issuer.model.NonceResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,9 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 
 
 public class Wallet {
@@ -52,6 +52,30 @@ public class Wallet {
         this.restClient = restClient;
         this.context = context;
         this.verifierContext = verifierContext;
+    }
+
+    private static String decryptJWE(RSAKey jwk, String encryptedVerifiableCredential) {
+        try {
+            JWEObject jweObject = JWEObject.parse(encryptedVerifiableCredential);
+            jweObject.decrypt(new RSADecrypter(jwk));
+            return jweObject.getPayload().toString();
+        } catch (JOSEException | ParseException e) {
+            throw new RuntimeException("Unable to parse encrypted issuer credentials", e);
+        }
+    }
+
+    private static String getPresentationSubmissionPayload() {
+        return toJsonNode("""
+                {
+                        "id": "test_ldp_vc_presentation_definition",
+                        "definition_id": "test_ldp_vc",
+                        "descriptor_map": [{
+                            "id": "test_descriptor",
+                            "format": "vc+sd-jwt",
+                            "path": "$"
+                        }]
+                    }
+                """).toString();
     }
 
     public WalletEntry createEmptyWalletEntry() {
@@ -199,7 +223,6 @@ public class Wallet {
         return credentialResponse;
     }
 
-
     private JsonObject postDeferredCredentialRequest(WalletEntry walletEntry) {
         if (walletEntry.getTransactionId() == null) {
             throw new IllegalStateException("Transaction ID is not set in wallet entry.");
@@ -291,28 +314,21 @@ public class Wallet {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
-    private static String decryptJWE(RSAKey jwk, String encryptedVerifiableCredential) {
-        try {
-            JWEObject jweObject = JWEObject.parse(encryptedVerifiableCredential);
-            jweObject.decrypt(new RSADecrypter(jwk));
-            return jweObject.getPayload().toString();
-        } catch (JOSEException | ParseException e) {
-            throw new RuntimeException("Unable to parse encrypted issuer credentials", e);
-        }
-    }
+    public void respondToVerificationV2(RequestObject requestObject, String token, String tokenId) {
 
-    public JsonNode getVctDetailsFromVctAsUrl(WalletEntry walletEntry) {
-        var vctUri = walletEntry.getVctUri();
-        String bodyAsString = restClient.get().uri(vctUri).exchange((req, resp) -> {
-            var body = resp.bodyTo(String.class);
-            assertThat(resp.getStatusCode().value())
-                    .withFailMessage("url: %s%nbody: %s".formatted(vctUri, body))
-                    .isEqualTo(200);
-            return body;
-        });
+        var vpToken = Map.of(tokenId, List.of(token));
 
-        return toJsonNode(bodyAsString);
+        MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+        formData.add("vp_token", new Gson().toJson(vpToken));
 
+        var response = restClient.post()
+                .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header("SWIYU-API-Version", "2")
+                .body(formData)
+                .retrieve()
+                .toBodilessEntity();
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
 //    public void rejectVerificationRequest(VerificationRequestDetails verificationDetails) {
@@ -331,17 +347,17 @@ public class Wallet {
 //        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
 //    }
 
-    private static String getPresentationSubmissionPayload() {
-        return toJsonNode("""
-                {
-                        "id": "test_ldp_vc_presentation_definition",
-                        "definition_id": "test_ldp_vc",
-                        "descriptor_map": [{
-                            "id": "test_descriptor",
-                            "format": "vc+sd-jwt",
-                            "path": "$"
-                        }]
-                    }
-                """).toString();
+    public JsonNode getVctDetailsFromVctAsUrl(WalletEntry walletEntry) {
+        var vctUri = walletEntry.getVctUri();
+        String bodyAsString = restClient.get().uri(vctUri).exchange((req, resp) -> {
+            var body = resp.bodyTo(String.class);
+            assertThat(resp.getStatusCode().value())
+                    .withFailMessage("url: %s%nbody: %s".formatted(vctUri, body))
+                    .isEqualTo(200);
+            return body;
+        });
+
+        return toJsonNode(bodyAsString);
+
     }
 }

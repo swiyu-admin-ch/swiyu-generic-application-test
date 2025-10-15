@@ -130,4 +130,19 @@ class WalletTest {
 
         wallet.respondToVerification(verificationDetails, res);
     }
+
+    @Test
+    void verifiyDCQLReuqest_thenSuccess() {
+        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+
+        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
+
+        var deepLink = verifierManager.createDCQLVerificationRequest();
+
+        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+
+        wallet.respondToVerificationV2(verificationDetails, res, verificationDetails.getDcqlQuery().getCredentials().getFirst().getId());
+    }
 }
