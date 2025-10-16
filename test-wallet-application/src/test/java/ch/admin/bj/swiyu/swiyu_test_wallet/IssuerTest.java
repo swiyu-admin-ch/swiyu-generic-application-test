@@ -9,7 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -47,7 +47,7 @@ class IssuerTest {
     private BusinessIssuer issuerManager;
     private IssuanceService issuanceService;
 
-    @BeforeEach
+    @BeforeAll
     void setup() {
         issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
         issuerManager = new BusinessIssuer(issuerConfig);
