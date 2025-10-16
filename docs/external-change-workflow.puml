@@ -1,0 +1,112 @@
+@startuml ExternalChangeSequence
+' Title
+title External Repository Change Trigger (repository_dispatch Workflow)
+
+actor Developer as Dev
+participant "swiyu-verifier\nRepository" as VerifierRepo
+participant "swiyu-issuer\nRepository" as IssuerRepo
+participant "GitHub Actions\n(swiyu-verifier)" as VerifierCI
+participant "GitHub Actions\n(swiyu-issuer)" as IssuerCI
+participant "GitHub API" as GHAPI
+participant "swiyu-generic-application-test\nWorkflow: on-external-change" as TargetWF
+collections "GHCR Registry" as GHCR
+participant "Maven Tests" as Tests
+
+== Change in Verifier ==
+Dev -> VerifierRepo: push / merge to main
+VerifierRepo -> VerifierCI: trigger push workflow
+VerifierCI -> GHCR: Build & push image tag=main (optionally refresh latest)
+VerifierCI -> GHAPI: POST /repos/.../dispatches\n event_type=verifier-updated\n client_payload.repo=swiyu-verifier
+GHAPI -> TargetWF: repository_dispatch (verifier-updated)
+TargetWF -> TargetWF: Decide images\nVerifier = :main\nIssuer = :latest
+TargetWF -> GHCR: (optional) HEAD manifest verifier:main
+TargetWF -> GHCR: (optional) HEAD manifest issuer:latest
+TargetWF -> Tests: mvn verify -Dverifier.image=...:main -Dissuer.image=...:latest
+Tests --> TargetWF: Result (Success/Fail)
+
+== Change in Issuer ==
+Dev -> IssuerRepo: push / merge to main
+IssuerRepo -> IsSsuerCI: trigger push workflow
+IssuerCI -> GHCR: Build & push image tag=main (optionally refresh latest)
+IssuerCI -> GHAPI: POST /repos/.../dispatches\n event_type=issuer-updated\n client_payload.repo=swiyu-issuer
+GHAPI -> TargetWF: repository_dispatch (issuer-updated)
+TargetWF -> TargetWF: Decide images\nIssuer = :main\nVerifier = :latest
+TargetWF -> GHCR: (optional) HEAD manifest issuer:main
+TargetWF -> GHCR: (optional) HEAD manifest verifier:latest
+TargetWF -> Tests: mvn verify -Dissuer.image=...:main -Dverifier.image=...:latest
+Tests --> TargetWF: Result
+
+== Manual Start ==
+Dev -> TargetWF: workflow_dispatch (no repo payload)
+TargetWF -> TargetWF: Fallback both :latest
+TargetWF -> Tests: mvn verify -Dissuer.image=:latest -Dverifier.image=:latest
+
+note over TargetWF
+Concurrency group:
+ external-change-${event_name}-${repo|manual}
+=> parallel runs separated for issuer / verifier
+end note
+
+@enduml
+
+' ------------------------------------------------------
+' Activity Diagram (Image Selection Logic Overview)
+' ------------------------------------------------------
+@startuml ExternalChangeActivity
+start
+:Input: event_type, client_payload.repo;
+if (Manual run?\n(SOURCE_REPO empty)) then (Yes)
+  :issuer=latest;\nverifier=latest;
+  --> [Continue]
+else (No)
+  if (SOURCE_REPO == swiyu-verifier) then (Yes)
+    :verifier_tag = main;\nissuer_tag = latest;
+  else (No)
+    if (SOURCE_REPO == swiyu-issuer) then (Yes)
+      :issuer_tag = main;\nverifier_tag = latest;
+    else (No)
+      :issuer_tag = latest;\nverifier_tag = latest;\nnote right
+Unknown repo
+Fallback
+end note
+    endif
+  endif
+endif
+:Optional: HEAD check\nimage exists? (ignore errors);
+:Checkout repo & Java setup;
+:Run mvn verify\nwith -Dissuer.image & -Dverifier.image;
+:Publish summary;
+stop
+@enduml
+
+' ------------------------------------------------------
+' Component / Deployment Sketch (Optional)
+' ------------------------------------------------------
+@startuml ExternalChangeComponents
+skinparam componentStyle rectangle
+
+rectangle "swiyu-verifier" as VR {
+  component "Push Workflow" as VRWF
+  component "Image (tags: main, latest)" as VRIMG
+}
+rectangle "swiyu-issuer" as IR {
+  component "Push Workflow" as IRWF
+  component "Image (tags: main, latest)" as IRIMG
+}
+cloud "GitHub API" as API
+folder "swiyu-generic-application-test" as Target {
+  component "on-external-change.yml" as TargetWF2
+  component "Maven Tests" as MVN
+}
+collections GHCR
+
+VRWF --> GHCR : push image main
+IRWF --> GHCR : push image main
+VRWF --> API : repository_dispatch\n(verifier-updated)
+IRWF --> API : repository_dispatch\n(issuer-updated)
+API --> TargetWF2 : repository_dispatch event
+TargetWF2 --> GHCR : Pull chosen tags
+TargetWF2 --> MVN : mvn verify
+
+@enduml
+
