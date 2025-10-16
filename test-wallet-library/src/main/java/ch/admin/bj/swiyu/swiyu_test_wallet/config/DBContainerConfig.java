@@ -17,8 +17,7 @@ public class DBContainerConfig {
     public static PostgreSQLContainer createPostgreSQLContainer(Network network) {
         return new PostgreSQLContainer<>(
                 DockerImageName
-                        .parse("docker-hub.nexus.bit.admin.ch/postgres:15.8")
-                        .asCompatibleSubstituteFor("postgres:15.8"))
+                        .parse("postgres:15.14-alpine3.21"))
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)))
                 .withNetwork(network)
                 .withDatabaseName(DB_NAME)
