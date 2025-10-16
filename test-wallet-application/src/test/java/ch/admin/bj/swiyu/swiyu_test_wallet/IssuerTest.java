@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -122,5 +123,18 @@ class IssuerTest {
         assertThat(openIdConfig.getIssuer()).startsWith("http://default-issuer-url.admin.ch");
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
+    }
+
+    @AfterAll
+    void tearDown() {
+        if (dbTestContainer != null) {
+            dbTestContainer.stop();
+        }
+        if (mockServer != null) {
+            mockServer.stop();
+        }
+        if (issuerContainer != null) {
+            issuerContainer.stop();
+        }
     }
 }

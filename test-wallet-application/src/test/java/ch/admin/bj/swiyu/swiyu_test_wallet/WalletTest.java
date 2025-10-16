@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -144,5 +145,21 @@ class WalletTest {
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
         wallet.respondToVerificationV2(verificationDetails, res, verificationDetails.getDcqlQuery().getCredentials().getFirst().getId());
+    }
+
+    @AfterAll
+    void tearDown() {
+        if (dbTestContainer != null) {
+            dbTestContainer.stop();
+        }
+        if (mockServer != null) {
+            mockServer.stop();
+        }
+        if (issuerContainer != null) {
+            issuerContainer.stop();
+        }
+        if (verifierContainer != null) {
+            verifierContainer.stop();
+        }
     }
 }
