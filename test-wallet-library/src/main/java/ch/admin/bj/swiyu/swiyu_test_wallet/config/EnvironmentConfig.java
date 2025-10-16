@@ -14,7 +14,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256
 
 @UtilityClass
 public class EnvironmentConfig {
-    public static IssuerConfig createIssueraConfig(URI identifierRegistryUrl) {
+    public static IssuerConfig createIssuerConfig(String mockServerUri, URI identifierRegistryUrl) {
         KeyPair assertKeys = generateEC256KeyPair();
         KeyPair authKeys = generateEC256KeyPair();
 
@@ -29,7 +29,7 @@ public class EnvironmentConfig {
                 .issuerRegistryEntry(identifierRegistryUrl.toString())
                 .issuerDid(issuerDid)
                 .issuerDidLog(didLog)
-                .mockServerUri("https://mockserver:1080")
+                .mockServerUri(mockServerUri)
                 .issuerAssertKeyId(issuerDid + "#assert-key-01")
                 .issuerAuthKeyId(issuerDid + "#assert-key-01")
                 .issuerAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))

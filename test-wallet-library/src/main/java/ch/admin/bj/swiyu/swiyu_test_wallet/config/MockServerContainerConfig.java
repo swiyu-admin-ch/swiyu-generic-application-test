@@ -7,12 +7,10 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.createMockServerClient;
-
 @UtilityClass
 public class MockServerContainerConfig {
 
-    public static MockServerContainer createAndStartMockServerContainer(Network network, IssuerConfig config) {
+    public static MockServerContainer createAndStartMockServerContainer(Network network) {
         DockerImageName imageName = DockerImageName
                 .parse("mockserver/mockserver")
                 .withTag("5.14.0");
@@ -24,8 +22,6 @@ public class MockServerContainerConfig {
                 .withNetworkAliases("mockserver");
 
         container.start();
-
-        createMockServerClient(container, config);
 
         return container;
     }
