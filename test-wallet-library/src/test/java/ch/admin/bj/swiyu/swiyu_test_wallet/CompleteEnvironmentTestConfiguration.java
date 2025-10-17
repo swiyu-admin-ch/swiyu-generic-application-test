@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +24,11 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @TestConfiguration(proxyBeanMethods = false)
 @Profile("!external")
 public class CompleteEnvironmentTestConfiguration {
+
+    @Autowired
+    IssuerImageConfig issuerImageConfig;
+    @Autowired
+    VerifierImageConfig verifierImageConfig;
 
     @Bean
     public IssuerConfig issuerConfig() {
@@ -49,8 +55,7 @@ public class CompleteEnvironmentTestConfiguration {
     public GenericContainer<?> issuerContainer(Network network,
                                                PostgreSQLContainer<?> dbContainer,
                                                IssuerConfig config,
-                                               MockServerContainer mockServer,
-                                               IssuerImageConfig issuerImageConfig) {
+                                               MockServerContainer mockServer) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
@@ -71,8 +76,7 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public GenericContainer<?> verifierContainer(Network network,
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
-                                                 IssuerConfig config,
-                                                 VerifierImageConfig verifierImageConfig) {
+                                                 IssuerConfig config) {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 

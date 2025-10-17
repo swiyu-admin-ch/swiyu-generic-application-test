@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestClient;
@@ -29,7 +30,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Testcontainers
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Import(CompleteEnvironmentTestConfiguration.class)
+@Import({CompleteEnvironmentTestConfiguration.class, ExternalEnvironmentTestConfiguration.class})
 class WalletTest {
 
     @Autowired
@@ -38,9 +39,9 @@ class WalletTest {
     VerifierImageConfig verifierImageConfig;
     @Autowired
     IssuerConfig issuerConfig;
-    @Autowired
+    @Autowired(required = false)
     GenericContainer<?> issuerContainer;
-    @Autowired
+    @Autowired(required = false)
     GenericContainer<?> verifierContainer;
     @Autowired
     PostgreSQLContainer<?> dbTestContainer;
@@ -50,15 +51,39 @@ class WalletTest {
     private BusinessIssuer issuerManager;
     private VerifierManager verifierManager;
 
+    @Value("${ISSUER_HOST:localhost}")
+    String issuerHostEnv;
+    @Value("${ISSUER_PORT:8081}")
+    int issuerPortEnv;
+    @Value("${VERIFIER_HOST:localhost}")
+    String verifierHostEnv;
+    @Value("${VERIFIER_PORT:8082}")
+    int verifierPortEnv;
+
     @BeforeEach
     void setup() {
-        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
+        String issuerHost;
+        int issuerPort;
+        String verifierHost;
+        int verifierPort;
+        if (issuerContainer != null && verifierContainer != null) {
+            issuerHost = issuerContainer.getHost();
+            issuerPort = issuerContainer.getMappedPort(8080);
+            verifierHost = verifierContainer.getHost();
+            verifierPort = verifierContainer.getMappedPort(8080);
+        } else {
+            issuerHost = issuerHostEnv;
+            issuerPort = issuerPortEnv;
+            verifierHost = verifierHostEnv;
+            verifierPort = verifierPortEnv;
+        }
+        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerHost, issuerPort)).toString());
         issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
+        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierHost, verifierPort)).toString());
         issuerManager.createStatusList(100000, 2);
         RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
+        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerHost, Integer.toString(issuerPort));
+        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierHost, Integer.toString(verifierPort));
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
     }
