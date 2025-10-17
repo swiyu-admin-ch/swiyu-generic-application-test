@@ -34,8 +34,6 @@ jobs:
   cross-test:
     name: combo-${{ matrix.combo.name }}
     runs-on: ubuntu-latest
-    # Job runs if schedule OR selection is all OR selection equals the matrix combo name
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +44,7 @@ jobs:
           - name: verifier-main_vs_issuer-latest
             ISSUER_TAG: latest
             VERIFIER_TAG: main
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
