@@ -141,6 +141,7 @@ class WalletTest {
         var verificationDetails = wallet.getVerificationDetails(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
+        assert verificationDetails.getDcqlQuery() != null;
         wallet.respondToVerificationV2(verificationDetails, res, verificationDetails.getDcqlQuery().getCredentials().getFirst().getId());
     }
 }

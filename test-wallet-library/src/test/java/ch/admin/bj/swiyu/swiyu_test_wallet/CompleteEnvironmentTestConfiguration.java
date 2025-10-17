@@ -52,8 +52,7 @@ public class CompleteEnvironmentTestConfiguration {
                                                PostgreSQLContainer<?> dbContainer,
                                                IssuerConfig config,
                                                MockServerContainer mockServer,
-                                               IssuerImageConfig issuerImageConfig,
-                                               MockServerClient mockServerClient) {
+                                               IssuerImageConfig issuerImageConfig) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 

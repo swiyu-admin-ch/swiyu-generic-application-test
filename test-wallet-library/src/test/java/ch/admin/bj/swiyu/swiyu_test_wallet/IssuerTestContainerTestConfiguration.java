@@ -51,12 +51,7 @@ public class IssuerTestContainerTestConfiguration {
             PostgreSQLContainer<?> dbContainer,
             IssuerConfig config,
             MockServerContainer mockServer,
-            IssuerImageConfig issuerImageConfig,
-            MockServerClient mockServerClient) {
-
-//        if (!mockServer.isHealthy() || !mockServerClient.hasStarted()) {
-//            throw new RuntimeException("MockServerClient is not started");
-//        }
+            IssuerImageConfig issuerImageConfig) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
