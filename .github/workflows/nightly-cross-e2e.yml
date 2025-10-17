@@ -1,0 +1,84 @@
+# Nightly cross-tag E2E tests: issuer(main) vs verifier(latest) AND verifier(main) vs issuer(latest)
+# Simplified (Variant A): rely on default GitHub notifications only. No issue creation.
+name: Nightly Cross E2E
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      selection:
+        description: 'Combinations? (all, issuer-main_vs_verifier-latest, verifier-main_vs_issuer-latest)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - issuer-main_vs_verifier-latest
+          - verifier-main_vs_issuer-latest
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nightly-cross-e2e
+  cancel-in-progress: false
+
+env:
+  ISSUER_BASE: ghcr.io/swiyu-admin-ch/swiyu-issuer
+  VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
+  DEV_MENTIONS: '@team-placeholder'  # (Optional) still usable if you later re-add notifications
+
+jobs:
+  cross-test:
+    name: combo-${{ matrix.combo.name }}
+    runs-on: ubuntu-latest
+    # Job runs if schedule OR selection is all OR selection equals the matrix combo name
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        combo:
+          - name: issuer-main_vs_verifier-latest
+            ISSUER_TAG: main
+            VERIFIER_TAG: latest
+          - name: verifier-main_vs_issuer-latest
+            ISSUER_TAG: latest
+            VERIFIER_TAG: main
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Resolve images
+        id: images
+        run: |
+          set -euo pipefail
+          ISSUER_IMAGE="$ISSUER_BASE:${{ matrix.combo.ISSUER_TAG }}"
+          VERIFIER_IMAGE="$VERIFIER_BASE:${{ matrix.combo.VERIFIER_TAG }}"
+          echo "Issuer image:  $ISSUER_IMAGE"
+          echo "Verifier image: $VERIFIER_IMAGE"
+          echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
+
+      - name: Run Maven verify (cross combo)
+        run: |
+          mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+
+      - name: Summary (always)
+        if: always()
+        run: |
+          {
+            echo "### Nightly Cross E2E: ${{ matrix.combo.name }}";
+            echo "Selection: ${{ github.event.inputs.selection || 'schedule' }}";
+            echo "Issuer image:  $ISSUER_IMAGE";
+            echo "Verifier image: $VERIFIER_IMAGE";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
