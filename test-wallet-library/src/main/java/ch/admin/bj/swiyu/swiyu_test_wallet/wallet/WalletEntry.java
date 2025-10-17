@@ -1,20 +1,18 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonObject;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
@@ -40,7 +38,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @Slf4j
 public class WalletEntry {
     public static final String CREDENTIAL_OFFER_KEY_AND_EQUAL = "credential_offer=";
-    private final RestClient restClient;
+    private final Wallet wallet;
     private final KeyPair keyPair;
     private final ECKey proofPublicJwk;
     private URI issuerVCDeepLink;
@@ -54,9 +52,10 @@ public class WalletEntry {
     private RSAKey encrypterJwk;
     private JsonNode vctDetails;
     private UUID transactionId;
+    private ECKey ephemeralEncryptionKey;
 
-    public WalletEntry(RestClient restClient) {
-        this.restClient = restClient;
+    public WalletEntry(final Wallet wallet) {
+        this.wallet = wallet;
         keyPair = ECCryptoSupport.generateECKeyPair();
         proofPublicJwk = new ECKey.Builder(Curve.P_256, (java.security.interfaces.ECPublicKey) keyPair.getPublic())
                 .keyID("key-a")
@@ -138,6 +137,20 @@ public class WalletEntry {
         }
     }
 
+    public boolean isEncryptionEnabled() {
+        final IssuerCredentialRequestEncryption req = issuerMetadata.getCredentialRequestEncryption();
+
+        return (req != null && req.getEncryptionRequired()) || wallet.isEncryptionPreferred();
+    }
+
+    public RestClient getRestClient() {
+        if (wallet == null) {
+            throw new IllegalStateException("wallet not set.");
+        }
+
+        return wallet.getRestClient();
+    }
+
     public URI getIssuerTokenUri() {
         if (issuerWellKnownConfiguration == null) {
             throw new IllegalStateException("issuer well known configuration not set.");
@@ -209,4 +222,37 @@ public class WalletEntry {
         var payload = SdJwtSupport.extractPayload(vc);
         return payload.get("vct").asText();
     }
+
+    public void generateEphemeralEncryptionKey() {
+        try {
+            final ECKey key = new ECKeyGenerator(Curve.P_256)
+                    .algorithm(JWEAlgorithm.ECDH_ES)
+                    .keyUse(KeyUse.ENCRYPTION)
+                    .generate();
+            this.setEphemeralEncryptionKey(key);
+        } catch (Exception e) {
+            throw new RuntimeException("Error during ephemeral encryption key", e);
+        }
+    }
+
+    public CredentialResponseEncryption createCredentialResponseEncryption() {
+        if (issuerMetadata == null) {
+            throw new IllegalStateException("issuer metadata not set");
+        }
+
+        if (ephemeralEncryptionKey == null) {
+            generateEphemeralEncryptionKey();
+        }
+
+        var encryptionMetadata = issuerMetadata.getCredentialResponseEncryption();
+
+        var responseEncryption = new CredentialResponseEncryption();
+        responseEncryption.setAlg(encryptionMetadata.getAlgValuesSupported().getFirst());
+        responseEncryption.setEnc(encryptionMetadata.getEncValuesSupported().getFirst());
+        responseEncryption.setJwk(ephemeralEncryptionKey.toPublicJWK().toJSONObject());
+
+        return responseEncryption;
+    }
+
+
 }

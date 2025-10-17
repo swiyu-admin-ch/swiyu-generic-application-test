@@ -12,6 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.BeforeAll;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,5 +146,25 @@ class WalletTest {
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
         wallet.respondToVerificationV2(verificationDetails, res, verificationDetails.getDcqlQuery().getCredentials().getFirst().getId());
+    }
+
+    @Test
+    @Tag("issuer")
+    @Tag("verifier")
+    void payloadEncryptedIssuanceAndVerificationFlow_thenSuccess() {
+        wallet.setEncryptionPreferred(true);
+
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+
+        final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        AssertionsForClassTypes.assertThat(entry.getCredentialOffer()).isNotNull();
+
+        final String deeplink = verifierManager.createVerificationRequest(true);
+
+        final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
+
+        wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
+
+        verifierManager.verifyState();
     }
 }
