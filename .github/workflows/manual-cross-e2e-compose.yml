@@ -29,26 +29,16 @@ env:
   VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
 
 jobs:
-  cross-test-compose:
-    name: compose-${{ matrix.combo.name }}
+  issuer-main_vs_verifier-latest:
+    name: issuer-main_vs_verifier-latest
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        combo:
-          - name: issuer-main_vs_verifier-latest
-            ISSUER_TAG: main
-            VERIFIER_TAG: latest
-          - name: verifier-main_vs_issuer-latest
-            ISSUER_TAG: latest
-            VERIFIER_TAG: main
+    if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-main_vs_verifier-latest' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -56,7 +46,6 @@ jobs:
           cache: maven
 
       - name: Docker login GHCR (read)
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -64,22 +53,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve images
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         id: images
         run: |
           set -euo pipefail
-          ISSUER_IMAGE="$ISSUER_BASE:${{ matrix.combo.ISSUER_TAG }}"
-          VERIFIER_IMAGE="$VERIFIER_BASE:${{ matrix.combo.VERIFIER_TAG }}"
-          echo "Issuer image:  $ISSUER_IMAGE"
-          echo "Verifier image: $VERIFIER_IMAGE"
+          ISSUER_IMAGE="${ISSUER_BASE}:main"
+          VERIFIER_IMAGE="${VERIFIER_BASE}:latest"
           echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
+          echo "Issuer image:  $ISSUER_IMAGE" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: $VERIFIER_IMAGE" >> $GITHUB_STEP_SUMMARY
 
       - name: Start ephemeral environment (Compose)
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         run: |
           set -euo pipefail
-          export PROJECT_NAME="e2e_${{ matrix.combo.name }}_${{ github.run_id }}"
+          export PROJECT_NAME="e2e_issuer-main_vs_verifier-latest_${{ github.run_id }}"
           echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
           cat > docker-compose.e2e.yml <<'EOF'
           services:
@@ -168,7 +155,6 @@ jobs:
           docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps
 
       - name: Health checks (issuer & verifier)
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         run: |
           set -euo pipefail
           for svc in issuer verifier; do
@@ -187,23 +173,20 @@ jobs:
               exit 1
             fi
           done
-          echo "DID_RUN=true" >> $GITHUB_ENV
 
       - name: Run Maven verify (external profile)
-        if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
         env:
           SPRING_PROFILES_ACTIVE: external
           ISSUER_HOST: localhost
           ISSUER_PORT: 8081
           VERIFIER_HOST: localhost
           VERIFIER_PORT: 8082
-          ISSUER_IMAGE_TAG: ${{ matrix.combo.ISSUER_TAG }}
-          VERIFIER_IMAGE_TAG: ${{ matrix.combo.VERIFIER_TAG }}
-        run: |
-          mvn -B -pl test-wallet-application -am verify
+          ISSUER_IMAGE_TAG: main
+          VERIFIER_IMAGE_TAG: latest
+        run: mvn -B -pl test-wallet-application -am verify
 
       - name: Collect logs
-        if: ${{ always() && (github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name) }}
+        if: always()
         run: |
           mkdir -p logs
           docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs issuer > logs/issuer.log || true
@@ -213,24 +196,24 @@ jobs:
           docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps > logs/compose-ps.txt || true
 
       - name: Collect Surefire reports
-        if: ${{ always() && (github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name) }}
+        if: always()
         run: |
           mkdir -p surefire-reports
           find . -type f -path "*/target/surefire-reports/*" -print -exec cp --parents {} surefire-reports/ \; || true
           echo "Collected $(find surefire-reports -type f | wc -l) report files"
 
       - name: Upload test & logs artifacts
-        if: ${{ always() && (github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name) }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: compose-artifacts-${{ matrix.combo.name }}
+          name: compose-artifacts-issuer-main_vs_verifier-latest
           path: |
             logs/
             surefire-reports/
           retention-days: 14
 
       - name: Teardown (always)
-        if: ${{ always() && (github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name) }}
+        if: always()
         run: |
           set -e
           docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml down -v || true
@@ -238,17 +221,210 @@ jobs:
       - name: Summary (always)
         if: always()
         run: |
-          status="skipped"
-          if [ "${DID_RUN:-}" = "true" ]; then status="executed"; fi
           {
-            echo "### Manual Cross E2E (Compose): ${{ matrix.combo.name }}";
+            echo "### Manual Cross E2E (Compose) issuer-main_vs_verifier-latest";
             echo "Selection input: ${{ github.event.inputs.selection }}";
-            echo "Execution status: $status";
-            if [ "$status" = "executed" ]; then
-              echo "Issuer image (compose):  $ISSUER_IMAGE";
-              echo "Verifier image (compose): $VERIFIER_IMAGE";
-              echo "Issuer image tag (tests):  ${{ matrix.combo.ISSUER_TAG }}";
-              echo "Verifier image tag (tests): ${{ matrix.combo.VERIFIER_TAG }}";
+            echo "Issuer image (compose):  $ISSUER_IMAGE";
+            echo "Verifier image (compose): $VERIFIER_IMAGE";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  verifier-main_vs_issuer-latest:
+    name: verifier-main_vs_issuer-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == 'verifier-main_vs_issuer-latest' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Docker login GHCR (read)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve images
+        id: images
+        run: |
+          set -euo pipefail
+          ISSUER_IMAGE="${ISSUER_BASE}:latest"
+          VERIFIER_IMAGE="${VERIFIER_BASE}:main"
+          echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
+          echo "Issuer image:  $ISSUER_IMAGE" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: $VERIFIER_IMAGE" >> $GITHUB_STEP_SUMMARY
+
+      - name: Start ephemeral environment (Compose)
+        run: |
+          set -euo pipefail
+          export PROJECT_NAME="e2e_verifier-main_vs_issuer-latest_${{ github.run_id }}"
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          cat > docker-compose.e2e.yml <<'EOF'
+          services:
+            db:
+              image: docker-hub.nexus.bit.admin.ch/postgres:15.8
+              environment:
+                POSTGRES_DB: swiyu_db
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: postgres
+              healthcheck:
+                test: ["CMD", "pg_isready", "-U", "postgres"]
+                interval: 5s
+                timeout: 3s
+                retries: 15
+            mockserver:
+              image: mockserver/mockserver:5.14.0
+              ports:
+                - "1080:1080"
+              environment:
+                MOCKSERVER_SERVER_PORT: 1080
+            issuer:
+              image: ${ISSUER_IMAGE}
+              depends_on:
+                - db
+                - mockserver
+              ports:
+                - "8081:8080"
+              environment:
+                ISSUER_ID: did:example:issuer123
+                TOKEN_TTL: "600"
+                OPENID_CONFIG_FILE: classpath:example_openid.json
+                METADATA_CONFIG_FILE: file:///tmp/issuer-metadata.json
+                EXTERNAL_URL: http://default-issuer-url.admin.ch
+                DID_SDJWT_VERIFICATION_METHOD: did:example:issuer123#sdjwt
+                OFFER_VALIDITY_SECONDS: "2592000"
+                DID_STATUS_LIST_VERIFICATION_METHOD: did:example:issuer123#status
+                SWIYU_STATUS_REGISTRY_TOKEN_URL: http://mockserver:1080/openid-connect/token
+                SWIYU_STATUS_REGISTRY_API_URL: http://mockserver:1080
+                SWIYU_PARTNER_ID: partner
+                SWIYU_STATUS_REGISTRY_CUSTOMER_KEY: key
+                SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET: secret
+                SWIYU_STATUS_REGISTRY_ACCESS_TOKEN: access
+                SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN: refresh
+                STATUS_LIST_KEY: placeholder-status-key
+                SDJWT_KEY: placeholder-sdjwt-key
+                SPRING_APPLICATION_NAME: swiyu-demo-issuer-service
+                ENABLE_JWT_AUTH: "false"
+                APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA: classpath:example_oca.json
+                APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA: classpath:example_json_schema.json
+                POSTGRES_JDBC: jdbc:postgresql://db:5432/swiyu_db?currentSchema=swiyu_issuer
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: postgres
+                VERIFICATION_PROOF_TIME_WINDOW_S: "10"
+                JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit
+              volumes:
+                - ./test-wallet-library/src/main/resources/issuer/metadata.json:/tmp/issuer-metadata.json:ro
+                - ./test-wallet-application/src/main/resources/truststore.jks:/app/certs/truststore.jks:ro
+            verifier:
+              image: ${VERIFIER_IMAGE}
+              depends_on:
+                - db
+                - mockserver
+              ports:
+                - "8082:8080"
+              environment:
+                VERIFIER_DID: did:example:verifier123
+                OPENID_CLIENT_METADATA_FILE: file:///tmp/verifier-metadata.json
+                EXTERNAL_URL: http://default-verifier-url.admin.ch
+                DID_STATUS_LIST_VERIFICATION_METHOD: did:example:issuer123#status
+                SIGNING_KEY: placeholder-signing-key
+                APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0: mockserver
+                ACCEPTED_STATUS_LIST_HOSTS: http://mockserver:1080
+                client_id_scheme: did
+                LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT: DEBUG
+                MANAGEMENT_HEALTH_KUBERNETES_ENABLED: "false"
+                MANAGEMENT_INFO_KUBERNETES_ENABLED: "false"
+                POSTGRES_JDBC: jdbc:postgresql://db:5432/swiyu_db?currentSchema=swiyu_verifier
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: postgres
+                JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit
+              volumes:
+                - ./test-wallet-library/src/main/resources/verifier/metadata.json:/tmp/verifier-metadata.json:ro
+                - ./test-wallet-application/src/main/resources/truststore.jks:/app/certs/truststore.jks:ro
+          EOF
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml up -d
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps
+
+      - name: Health checks (issuer & verifier)
+        run: |
+          set -euo pipefail
+          for svc in issuer verifier; do
+            PORT=$([ "$svc" = verifier ] && echo 8082 || echo 8081)
+            echo "Checking $svc on port $PORT" >&2
+            success=false
+            for i in $(seq 1 60); do
+              if curl -fsS http://localhost:$PORT/actuator/health >/dev/null 2>&1; then
+                echo "$svc healthy"; success=true; break
+              fi
+              sleep 2
+            done
+            if [ "$success" != true ]; then
+              echo "Service $svc did not become healthy" >&2
+              docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs $svc || true
+              exit 1
             fi
+          done
+
+      - name: Run Maven verify (external profile)
+        env:
+          SPRING_PROFILES_ACTIVE: external
+          ISSUER_HOST: localhost
+          ISSUER_PORT: 8081
+          VERIFIER_HOST: localhost
+          VERIFIER_PORT: 8082
+          ISSUER_IMAGE_TAG: latest
+          VERIFIER_IMAGE_TAG: main
+        run: mvn -B -pl test-wallet-application -am verify
+
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p logs
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs issuer > logs/issuer.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs verifier > logs/verifier.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs db > logs/db.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs mockserver > logs/mockserver.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps > logs/compose-ps.txt || true
+
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p surefire-reports
+          find . -type f -path "*/target/surefire-reports/*" -print -exec cp --parents {} surefire-reports/ \; || true
+          echo "Collected $(find surefire-reports -type f | wc -l) report files"
+
+      - name: Upload test & logs artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-artifacts-verifier-main_vs_issuer-latest
+          path: |
+            logs/
+            surefire-reports/
+          retention-days: 14
+
+      - name: Teardown (always)
+        if: always()
+        run: |
+          set -e
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml down -v || true
+
+      - name: Summary (always)
+        if: always()
+        run: |
+          {
+            echo "### Manual Cross E2E (Compose) verifier-main_vs_issuer-latest";
+            echo "Selection input: ${{ github.event.inputs.selection }}";
+            echo "Issuer image (compose):  $ISSUER_IMAGE";
+            echo "Verifier image (compose): $VERIFIER_IMAGE";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY

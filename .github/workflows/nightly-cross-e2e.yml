@@ -28,56 +28,62 @@ concurrency:
 env:
   ISSUER_BASE: ghcr.io/swiyu-admin-ch/swiyu-issuer
   VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
-  DEV_MENTIONS: '@team-placeholder'  # (Optional) still usable if you later re-add notifications
 
 jobs:
-  cross-test:
-    name: combo-${{ matrix.combo.name }}
+  issuer-main_vs_verifier-latest:
+    name: issuer-main_vs_verifier-latest
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        combo:
-          - name: issuer-main_vs_verifier-latest
-            ISSUER_TAG: main
-            VERIFIER_TAG: latest
-          - name: verifier-main_vs_issuer-latest
-            ISSUER_TAG: latest
-            VERIFIER_TAG: main
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-main_vs_verifier-latest' }}
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 21
-          cache: maven
-
-      - name: Resolve images
-        id: images
+            distribution: temurin
+            java-version: 21
+            cache: maven
+      - name: Prepare images
         run: |
-          set -euo pipefail
-          ISSUER_IMAGE="$ISSUER_BASE:${{ matrix.combo.ISSUER_TAG }}"
-          VERIFIER_IMAGE="$VERIFIER_BASE:${{ matrix.combo.VERIFIER_TAG }}"
-          echo "Issuer image:  $ISSUER_IMAGE"
-          echo "Verifier image: $VERIFIER_IMAGE"
-          echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
-
-      - name: Run Maven verify (cross combo)
-        run: |
-          mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
-
-      - name: Summary (always)
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:main" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:latest" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:main" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
         if: always()
         run: |
           {
-            echo "### Nightly Cross E2E: ${{ matrix.combo.name }}";
-            echo "Selection: ${{ github.event.inputs.selection || 'schedule' }}";
-            echo "Issuer image:  $ISSUER_IMAGE";
-            echo "Verifier image: $VERIFIER_IMAGE";
+            echo "### issuer-main_vs_verifier-latest";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  verifier-main_vs_issuer-latest:
+    name: verifier-main_vs_issuer-latest
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'verifier-main_vs_issuer-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+            distribution: temurin
+            java-version: 21
+            cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:latest" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:main" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:main" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### verifier-main_vs_issuer-latest";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
