@@ -1,11 +1,16 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialResponseEncryption;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.ToString;
 
 import java.net.URI;
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
@@ -13,6 +18,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @ToString
 public class IssuerMetadata {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final JsonObject data;
 
     public IssuerMetadata(JsonObject rawMetadata) {
@@ -60,4 +66,29 @@ public class IssuerMetadata {
 
         return toUri(data.get("nonce_endpoint").getAsString());
     }
+
+    public IssuerCredentialResponseEncryption getCredentialResponseEncryption() {
+        return parseEncryptionObject("credential_response_encryption", IssuerCredentialResponseEncryption.class);
+    }
+
+    public IssuerCredentialRequestEncryption getCredentialRequestEncryption() {
+        return parseEncryptionObject("credential_request_encryption", IssuerCredentialRequestEncryption.class);
+    }
+
+    private <T> T parseEncryptionObject(String key, Class<T> clazz) {
+        if (!data.has(key) || !data.get(key).isJsonObject()) {
+            return null;
+        }
+        try {
+            Map<String, Object> map = MAPPER.readValue(
+                    data.getAsJsonObject(key).toString(),
+                    new TypeReference<>() {
+                    }
+            );
+            return MAPPER.convertValue(map, clazz);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse " + key + " as " + clazz.getSimpleName(), e);
+        }
+    }
+
 }
