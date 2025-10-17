@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.testcontainers.containers.GenericContainer;
@@ -38,19 +39,33 @@ class IssuerTest {
     IssuerConfig issuerConfig;
     @Autowired
     MockServerContainer mockServer;
-    @Autowired
+    @Autowired(required = false)
     GenericContainer<?> issuerContainer;
     @Autowired
     PostgreSQLContainer<?> dbTestContainer;
+
+    @Value("${ISSUER_HOST:localhost}")
+    String issuerHostEnv;
+    @Value("${ISSUER_PORT:8081}")
+    int issuerPortEnv;
 
     private BusinessIssuer issuerManager;
     private IssuanceService issuanceService;
 
     @BeforeEach
     void setup() {
-        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
+        String issuerHost;
+        int issuerPort;
+        if (issuerContainer != null) {
+            issuerHost = issuerContainer.getHost();
+            issuerPort = issuerContainer.getMappedPort(8080);
+        } else {
+            issuerHost = issuerHostEnv;
+            issuerPort = issuerPortEnv;
+        }
+        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerHost, issuerPort)).toString());
         issuerManager = new BusinessIssuer(issuerConfig);
-        issuanceService = new IssuanceService(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
+        issuanceService = new IssuanceService(toUri("http://%s:%s".formatted(issuerHost, issuerPort)).toString());
         issuerManager.createStatusList(100000, 2);
     }
 

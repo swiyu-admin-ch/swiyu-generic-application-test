@@ -1,0 +1,171 @@
+# Manual cross-tag E2E with ephemeral Compose environment
+# Variant A: spin up issuer & verifier via docker compose before running tests, then teardown.
+name: Manual Cross E2E (Compose)
+
+on:
+  workflow_dispatch:
+    inputs:
+      selection:
+        description: 'Combinations? (all, issuer-main_vs_verifier-latest, verifier-main_vs_issuer-latest)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - issuer-main_vs_verifier-latest
+          - verifier-main_vs_issuer-latest
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: manual-cross-e2e-compose
+  cancel-in-progress: false
+
+env:
+  ISSUER_BASE: ghcr.io/swiyu-admin-ch/swiyu-issuer
+  VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
+
+jobs:
+  cross-test-compose:
+    name: compose-${{ matrix.combo.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ github.event.inputs.selection == 'all' || github.event.inputs.selection == matrix.combo.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        combo:
+          - name: issuer-main_vs_verifier-latest
+            ISSUER_TAG: main
+            VERIFIER_TAG: latest
+          - name: verifier-main_vs_issuer-latest
+            ISSUER_TAG: latest
+            VERIFIER_TAG: main
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Docker login GHCR (read)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve images
+        id: images
+        run: |
+          set -euo pipefail
+          ISSUER_IMAGE="$ISSUER_BASE:${{ matrix.combo.ISSUER_TAG }}"
+          VERIFIER_IMAGE="$VERIFIER_BASE:${{ matrix.combo.VERIFIER_TAG }}"
+          echo "Issuer image:  $ISSUER_IMAGE"
+          echo "Verifier image: $VERIFIER_IMAGE"
+          echo "ISSUER_IMAGE=$ISSUER_IMAGE" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=$VERIFIER_IMAGE" >> $GITHUB_ENV
+
+      - name: Start ephemeral environment (Compose)
+        run: |
+          set -euo pipefail
+          export PROJECT_NAME="e2e_${{ matrix.combo.name }}_${{ github.run_id }}"
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
+          cat > docker-compose.e2e.yml <<'EOF'
+          services:
+            issuer:
+              image: ${ISSUER_IMAGE}
+              ports:
+                - "8081:8080"
+              restart: unless-stopped
+            verifier:
+              image: ${VERIFIER_IMAGE}
+              ports:
+                - "8082:8080"
+              restart: unless-stopped
+          EOF
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml up -d
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps
+
+      - name: Health checks
+        run: |
+          set -euo pipefail
+          for svc in issuer verifier; do
+            PORT=$([ "$svc" = verifier ] && echo 8082 || echo 8081)
+            echo "Checking $svc on port $PORT" >&2
+            success=false
+            for i in $(seq 1 40); do
+              if curl -fsS http://localhost:$PORT/actuator/health >/dev/null 2>&1; then
+                echo "$svc healthy"; success=true; break
+              fi
+              sleep 2
+            done
+            if [ "$success" != true ]; then
+              echo "Service $svc did not become healthy" >&2
+              exit 1
+            fi
+          done
+
+      - name: Run Maven verify (external profile)
+        env:
+          SPRING_PROFILES_ACTIVE: external
+          ISSUER_HOST: localhost
+          ISSUER_PORT: 8081
+          VERIFIER_HOST: localhost
+          VERIFIER_PORT: 8082
+          ISSUER_IMAGE_TAG: ${{ matrix.combo.ISSUER_TAG }}
+          VERIFIER_IMAGE_TAG: ${{ matrix.combo.VERIFIER_TAG }}
+        run: |
+          mvn -B verify
+
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p logs
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs issuer > logs/issuer.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml logs verifier > logs/verifier.log || true
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml ps > logs/compose-ps.txt || true
+
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p surefire-reports
+          find . -type f -path "*/target/surefire-reports/*" -print -exec cp --parents {} surefire-reports/ \; || true
+          echo "Collected $(find surefire-reports -type f | wc -l) report files"
+
+      - name: Upload test & logs artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-artifacts-${{ matrix.combo.name }}
+          path: |
+            logs/
+            surefire-reports/
+          retention-days: 14
+
+      - name: Teardown (always)
+        if: always()
+        run: |
+          set -e
+          docker compose -p "$PROJECT_NAME" -f docker-compose.e2e.yml down -v || true
+
+      - name: Summary (always)
+        if: always()
+        run: |
+          {
+            echo "### Manual Cross E2E (Compose): ${{ matrix.combo.name }}";
+            echo "Selection: ${{ github.event.inputs.selection }}";
+            echo "Issuer image (compose):  $ISSUER_IMAGE";
+            echo "Verifier image (compose): $VERIFIER_IMAGE";
+            echo "Issuer image tag (tests):  ${{ matrix.combo.ISSUER_TAG }}";
+            echo "Verifier image tag (tests): ${{ matrix.combo.VERIFIER_TAG }}";
+            echo "Profile: external";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
