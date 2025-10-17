@@ -23,8 +23,9 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 public class IssuerTestContainerTestConfiguration {
 
     @Bean
-    public IssuerConfig issuerConfig(MockServerContainer mockServer) {
+    public IssuerConfig issuerConfig() {
         var id = UUID.randomUUID();
+        // MockServer runs HTTP on 1080 by default; use the internal network alias
         var mockServerUri = "https://mockserver:1080";
         return EnvironmentConfig.createIssuerConfig(mockServerUri, toUri("%s/api/v1/did/%s".formatted(mockServerUri, id)));
     }
@@ -50,7 +51,12 @@ public class IssuerTestContainerTestConfiguration {
             PostgreSQLContainer<?> dbContainer,
             IssuerConfig config,
             MockServerContainer mockServer,
-            IssuerImageConfig issuerImageConfig) {
+            IssuerImageConfig issuerImageConfig,
+            MockServerClient mockServerClient) {
+
+//        if (!mockServer.isHealthy() || !mockServerClient.hasStarted()) {
+//            throw new RuntimeException("MockServerClient is not started");
+//        }
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
@@ -62,14 +68,14 @@ public class IssuerTestContainerTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer(Network network) {
+    public MockServerContainer mockServer2(Network network) {
 
-        return MockServerContainerConfig.createAndStartMockServerContainer(network);
+        return MockServerContainerConfig.createAndStartMockServerContainer(network, 1080);
     }
 
     @Bean
-    public MockServerClient mockServerClient(MockServerContainer mockServer, IssuerConfig issuerConfig) {
+    public MockServerClient mockServerClient(MockServerContainer mockServer2, IssuerConfig issuerConfig) {
 
-        return createMockServerClient(mockServer, issuerConfig);
+        return createMockServerClient(mockServer2, issuerConfig);
     }
 }
