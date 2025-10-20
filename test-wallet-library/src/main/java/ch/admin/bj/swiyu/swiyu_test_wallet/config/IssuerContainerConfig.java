@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -14,7 +15,6 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 
 @UtilityClass
 public class IssuerContainerConfig {
-    public static final String DEFAULT_IMAGE_NAME = "ghcr.io/swiyu-admin-ch/swiyu-issuer:main";
 
     public static GenericContainer<?> createIssuerContainer(
             Network network,
@@ -50,6 +50,7 @@ public class IssuerContainerConfig {
                 .withEnv("POSTGRES_USER", dbContainer.getUsername())
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                 .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
+                .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)
                 .withNetworkAliases("swiyu_issuer")

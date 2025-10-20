@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import lombok.Builder;
 import lombok.Data;
@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class IssuerConfig {
 
-    private String mockServerUri = "https://%s:%s".formatted("mockserver", 1080);
+    private String mockServerUri;
     private String swiyuPartnerId;
     private String issuerServiceUrl;
     private String issuerRegistryEntry;

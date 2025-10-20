@@ -18,15 +18,16 @@ public class MockServerContainerConfig {
                 .parse("mockserver/mockserver")
                 .withTag("5.15.0");
 
-        var container = new MockServerContainer(imageName)
-                .withExposedPorts(port)
-                .withNetwork(network)
-                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")))
-                .withNetworkAliases("mockserver")
-                .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60)));
+        try (MockServerContainer container = new MockServerContainer(imageName)) {
+            container.withExposedPorts(port)
+                    .withNetwork(network)
+                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")))
+                    .withNetworkAliases("mockserver")
+                    .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(60)));
 
-        container.start();
+            container.start();
 
-        return container;
+            return container;
+        }
     }
 }
