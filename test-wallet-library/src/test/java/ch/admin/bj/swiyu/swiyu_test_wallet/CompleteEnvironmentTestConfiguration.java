@@ -66,7 +66,7 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public MockServerContainer mockServer(Network network) {
 
-        return MockServerContainerConfig.createAndStartMockServerContainer(network);
+        return MockServerContainerConfig.createAndStartMockServerContainer(network, 1080);
     }
 
     @Bean
@@ -80,7 +80,8 @@ public class CompleteEnvironmentTestConfiguration {
     public GenericContainer<?> verifierContainer(Network network,
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
                                                  IssuerConfig config,
-                                                 VerifierImageConfig verifierImageConfig) {
+                                                 VerifierImageConfig verifierImageConfig,
+                                                 MockServerClient mockServerClient) {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 
