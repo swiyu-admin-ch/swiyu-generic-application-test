@@ -1,0 +1,96 @@
+# Ephemeral E2E environment for local testing (issuer + verifier + postgres + mockserver)
+# Entspricht der im GitHub Workflow generierten Umgebung.
+# Nutzung:
+#   ISSUER_IMAGE_TAG=main VERIFIER_IMAGE_TAG=latest docker compose -f docker-compose.external-e2e.yml up -d
+#   (Tags können über Umgebungsvariablen überschrieben werden.)
+# Danach: Health-Check & mvn verify mit SPRING_PROFILES_ACTIVE=external.
+
+services:
+  db:
+    image: docker-hub.nexus.bit.admin.ch/postgres:15.8
+    environment:
+      POSTGRES_DB: swiyu_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  mockserver:
+    image: mockserver/mockserver:5.14.0
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_SERVER_PORT: 1080
+
+  issuer:
+    image: ghcr.io/swiyu-admin-ch/swiyu-issuer:${ISSUER_IMAGE_TAG:-latest}
+    depends_on:
+      - db
+      - mockserver
+    ports:
+      - "8081:8080"
+    environment:
+      ISSUER_ID: did:example:issuer123
+      TOKEN_TTL: "600"
+      OPENID_CONFIG_FILE: classpath:example_openid.json
+      METADATA_CONFIG_FILE: file:///tmp/issuer-metadata.json
+      EXTERNAL_URL: http://default-issuer-url.admin.ch
+      DID_SDJWT_VERIFICATION_METHOD: did:example:issuer123#sdjwt
+      OFFER_VALIDITY_SECONDS: "2592000"
+      DID_STATUS_LIST_VERIFICATION_METHOD: did:example:issuer123#status
+      SWIYU_STATUS_REGISTRY_TOKEN_URL: http://mockserver:1080/openid-connect/token
+      SWIYU_STATUS_REGISTRY_API_URL: http://mockserver:1080
+      # SWIYU_PARTNER_ID must be a valid UUID (application expects java.util.UUID). Provide via .env or inline. Example UUID used below.
+      SWIYU_PARTNER_ID: ${SWIYU_PARTNER_ID:-00000000-0000-4000-8000-000000000001}
+      SWIYU_STATUS_REGISTRY_CUSTOMER_KEY: key
+      SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET: secret
+      SWIYU_STATUS_REGISTRY_ACCESS_TOKEN: access
+      SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN: refresh
+      STATUS_LIST_KEY: ${STATUS_LIST_KEY:-placeholder-status-key}
+      SDJWT_KEY: ${SDJWT_KEY:-placeholder-sdjwt-key}
+      SPRING_APPLICATION_NAME: swiyu-demo-issuer-service
+      ENABLE_JWT_AUTH: "false"
+      APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA: classpath:example_oca.json
+      APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA: classpath:example_json_schema.json
+      POSTGRES_JDBC: jdbc:postgresql://db:5432/swiyu_db?currentSchema=swiyu_issuer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      VERIFICATION_PROOF_TIME_WINDOW_S: "10"
+      JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit
+    volumes:
+      - ./test-wallet-application/src/test/resources/issuer/metadata.json:/tmp/issuer-metadata.json:ro
+      - ./test-wallet-application/src/main/resources/truststore.jks:/app/certs/truststore.jks:ro
+
+  verifier:
+    image: ghcr.io/swiyu-admin-ch/swiyu-verifier:${VERIFIER_IMAGE_TAG:-latest}
+    depends_on:
+      - db
+      - mockserver
+    ports:
+      - "8082:8080"
+    environment:
+      VERIFIER_DID: did:example:verifier123
+      OPENID_CLIENT_METADATA_FILE: file:///tmp/verifier-metadata.json
+      EXTERNAL_URL: http://default-verifier-url.admin.ch
+      DID_STATUS_LIST_VERIFICATION_METHOD: did:example:issuer123#status
+      SIGNING_KEY: ${SIGNING_KEY:-placeholder-signing-key}
+      APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0: mockserver
+      ACCEPTED_STATUS_LIST_HOSTS: http://mockserver:1080
+      client_id_scheme: did
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT: DEBUG
+      MANAGEMENT_HEALTH_KUBERNETES_ENABLED: "false"
+      MANAGEMENT_INFO_KUBERNETES_ENABLED: "false"
+      POSTGRES_JDBC: jdbc:postgresql://db:5432/swiyu_db?currentSchema=swiyu_verifier
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit
+    volumes:
+      - ./test-wallet-library/src/main/resources/verifier/metadata.json:/tmp/verifier-metadata.json:ro
+      - ./test-wallet-application/src/main/resources/truststore.jks:/app/certs/truststore.jks:ro
+
+networks:
+  default:
+    name: swiyu-e2e-net

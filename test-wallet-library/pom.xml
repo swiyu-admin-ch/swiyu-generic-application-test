@@ -88,6 +88,11 @@
             <artifactId>mockserver-client-java</artifactId>
             <version>5.14.0</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>
