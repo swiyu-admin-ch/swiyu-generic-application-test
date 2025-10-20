@@ -28,6 +28,26 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+/**
+ * Integration tests for {@link Wallet} exercising end-to-end SD-JWT credential issuance (immediate & deferred),
+ * selective disclosure presentation creation for bound credentials, and verification flows (standard & DCQL-based)
+ * against containerized issuer and verifier services.
+ *
+ * Happy-path scenarios:
+ * <ul>
+ *   <li><b>unboundNotDeferredCredential_thenSuccess</b>: Immediate issuance & verification of an unbound credential.</li>
+ *   <li><b>unboundDeferredCredential_thenSuccess</b>: Deferred issuance (transaction id) of an unbound credential.</li>
+ *   <li><b>createBoundCredential_thenSuccess</b>: Immediate issuance of a bound credential with selective disclosure presentation.</li>
+ *   <li><b>createDeferredBoundCredential_thenSuccess</b>: Deferred issuance of a bound credential.</li>
+ *   <li><b>verifiyDCQLReuqest_thenSuccess</b>: DCQL-based verification using V2 response API (method name typos preserved).</li>
+ * </ul>
+ * Notes:
+ * <ul>
+ *   <li>A large status list (size 100000, bit length 2) is created once for revocation/status embedding.</li>
+ *   <li>Bound credentials require constructing a derived presentation; unbound credentials can be sent as-is.</li>
+ *   <li>Method name typos are retained to avoid breaking historical reports or tooling references.</li>
+ * </ul>
+ */
 class WalletTest {
 
     @Autowired
@@ -48,6 +68,10 @@ class WalletTest {
     private BusinessIssuer issuerManager;
     private VerifierManager verifierManager;
 
+    /**
+     * One-time setup: resolve dynamic container ports, configure helper facades, create status list
+     * and instantiate wallet with resolved issuer & verifier contexts.
+     */
     @BeforeAll
     void setup() {
         issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
@@ -61,6 +85,10 @@ class WalletTest {
         wallet = new Wallet(restClient, issuerContext, verifierContext);
     }
 
+    /**
+     * Immediate issuance of an unbound credential followed by verification.
+     * Flow: offer -> collect -> verification request -> respond with full SD-JWT -> verifier state check.
+     */
     @Test
     void unboundNotDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -77,6 +105,10 @@ class WalletTest {
         verifierManager.verifyState();
     }
 
+    /**
+     * Deferred issuance of an unbound credential.
+     * Flow: deferred offer -> collect txn id -> issuer READY -> fetch credential -> verification.
+     */
     @Test
     void unboundDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
@@ -96,6 +128,10 @@ class WalletTest {
         wallet.respondToVerification(verificationDetails, entry.getVerifiableCredential());
     }
 
+    /**
+     * Immediate issuance of a bound credential requiring a selective disclosure presentation.
+     * Flow: offer -> collect -> verification request -> build presentation -> respond.
+     */
     @Test
     void createBoundCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -110,6 +146,9 @@ class WalletTest {
         wallet.respondToVerification(verificationDetails, res);
     }
 
+    /**
+     * Deferred issuance of a bound credential combining deferred retrieval and presentation construction.
+     */
     @Test
     void createDeferredBoundCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
@@ -129,6 +168,10 @@ class WalletTest {
         wallet.respondToVerification(verificationDetails, res);
     }
 
+    /**
+     * DCQL-based verification request. Verifier supplies a DCQL query specifying credential requirements; wallet
+     * constructs a compliant presentation and responds via V2 endpoint variant. (Method name retains typos intentionally.)
+     */
     @Test
     void verifiyDCQLReuqest_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
