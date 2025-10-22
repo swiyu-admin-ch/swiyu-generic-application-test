@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
@@ -20,6 +21,9 @@ import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import java.sql.*;
+
 
 import java.util.List;
 
@@ -48,18 +52,33 @@ class WalletTest {
     private Wallet wallet;
     private BusinessIssuer issuerManager;
     private VerifierManager verifierManager;
+    private StatusList currentStatusList;
+    private Connection connection;
 
     @BeforeAll
-    void setup() {
+    void setup() throws Exception {
         issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
         issuerManager = new BusinessIssuer(issuerConfig);
         verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        issuerManager.createStatusList(100000, 2);
+        currentStatusList = issuerManager.createStatusList(100000, 2);
         RestClient restClient = RestClient.builder().build();
         ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
         ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
+
+        String jdbcUrl = dbTestContainer.getJdbcUrl();
+        String username = dbTestContainer.getUsername();
+        String password = dbTestContainer.getPassword();
+
+        connection = DriverManager.getConnection(jdbcUrl, username, password);
+    }
+
+    @AfterAll
+    void tearDown() throws Exception {
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+        }
     }
 
     @BeforeEach
@@ -173,7 +192,7 @@ class WalletTest {
 
     @Test
     @Tag("issuer")
-    void batchIssuanceFlow_thenSuccess() {
+    void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
         wallet.setEncryptionPreferred(true);
@@ -183,6 +202,49 @@ class WalletTest {
         var batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
 
         assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+
+        //currentStatusList
+
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("""
+            SELECT id, next_free_index, max_length, uri 
+            FROM swiyu_issuer.status_list 
+            ORDER BY created_at ASC
+        """);
+
+        System.out.println("---- Status List ----");
+        List<Integer> nextFreeIndexes = new java.util.ArrayList<>();
+
+        while (rs.next()) {
+            int nextFreeIndex = rs.getInt("next_free_index");
+            System.out.println("id=" + rs.getString("id")
+                    + " | next_free_index=" + nextFreeIndex
+                    + " | max_length=" + rs.getInt("max_length")
+                    + " | uri=" + rs.getString("uri"));
+            nextFreeIndexes.add(nextFreeIndex);
+        }
+        rs.close();
+        stmt.close();
+
+        // 🔍 Analyse des indexes : vérifier qu’ils ne forment pas une séquence continue
+        if (nextFreeIndexes.size() > 1) {
+            boolean isSequential = true;
+            for (int i = 1; i < nextFreeIndexes.size(); i++) {
+                if (nextFreeIndexes.get(i) - nextFreeIndexes.get(i - 1) != 1) {
+                    isSequential = false;
+                    break;
+                }
+            }
+
+            System.out.println("Sequential pattern detected: " + isSequential);
+
+            // ❌ Le test échoue si les indexes sont séquentiels (i.e. non aléatoires)
+            AssertionsForClassTypes.assertThat(isSequential)
+                    .as("Batch VC indexes should not be assigned as a continuous block — expected random sampling")
+                    .isFalse();
+        } else {
+            System.out.println("⚠️ Only one status_list entry found — cannot verify batch randomness.");
+        }
     }
 
 }
