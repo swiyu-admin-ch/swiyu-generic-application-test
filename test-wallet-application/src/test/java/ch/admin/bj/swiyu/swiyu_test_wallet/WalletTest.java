@@ -11,11 +11,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.*;
 import org.assertj.core.api.AssertionsForClassTypes;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -23,6 +20,8 @@ import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -61,6 +60,11 @@ class WalletTest {
         ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
+    }
+
+    @BeforeEach
+    void beforeEach() {
+        wallet.setEncryptionPreferred(false);
     }
 
     @Test
@@ -166,4 +170,19 @@ class WalletTest {
 
         verifierManager.verifyState();
     }
+
+    @Test
+    @Tag("issuer")
+    void batchIssuanceFlow_thenSuccess() {
+        final int batchSize = 3;
+
+        wallet.setEncryptionPreferred(true);
+
+        var response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+
+        var batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
+
+        assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+    }
+
 }

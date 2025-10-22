@@ -5,7 +5,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
-import org.mockserver.client.MockServerClient;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.GenericContainer;
@@ -16,7 +15,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.createPostgreSQLContainer;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.createMockServerClient;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
@@ -25,9 +23,7 @@ public class IssuerTestContainerTestConfiguration {
     @Bean
     public IssuerConfig issuerConfig() {
         var id = UUID.randomUUID();
-        // MockServer runs HTTP on 1080 by default; use the internal network alias
-        var mockServerUri = "https://mockserver:1080";
-        return EnvironmentConfig.createIssuerConfig(mockServerUri, toUri("%s/api/v1/did/%s".formatted(mockServerUri, id)));
+        return EnvironmentConfig.createIssueraConfig(toUri("https://mockserver:1080/api/v1/did/" + id));
     }
 
     @Bean
@@ -63,14 +59,8 @@ public class IssuerTestContainerTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer2(Network network) {
+    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig) {
 
-        return MockServerContainerConfig.createAndStartMockServerContainer(network, 1080);
-    }
-
-    @Bean
-    public MockServerClient mockServerClient(MockServerContainer mockServer2, IssuerConfig issuerConfig) {
-
-        return createMockServerClient(mockServer2, issuerConfig);
+        return MockServerContainerConfig.createAndStartMockServerContainer(network, issuerConfig);
     }
 }
