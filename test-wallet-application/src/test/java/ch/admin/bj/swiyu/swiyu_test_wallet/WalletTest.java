@@ -56,7 +56,7 @@ class WalletTest {
     private StatusList currentStatusList;
 
     @BeforeAll
-    void setup() throws Exception {
+    void setup() {
         issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
         issuerManager = new BusinessIssuer(issuerConfig);
         verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
