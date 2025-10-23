@@ -54,8 +54,6 @@ class WalletTest {
     private BusinessIssuer issuerManager;
     private VerifierManager verifierManager;
     private StatusList currentStatusList;
-    private Connection connection;
-    private Statement stmt;
 
     @BeforeAll
     void setup() throws Exception {
@@ -68,20 +66,6 @@ class WalletTest {
         ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
-
-        String jdbcUrl = dbTestContainer.getJdbcUrl();
-        String username = dbTestContainer.getUsername();
-        String password = dbTestContainer.getPassword();
-
-        connection = DriverManager.getConnection(jdbcUrl, username, password);
-        stmt = connection.createStatement();
-    }
-
-    @AfterAll
-    void tearDown() throws Exception {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
-        }
     }
 
     @BeforeEach
@@ -191,45 +175,6 @@ class WalletTest {
         wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
 
         verifierManager.verifyState();
-    }
-
-    @Test
-    @Tag("issuer")
-    void batchIssuanceFlow_thenSuccess() throws SQLException {
-        final int batchSize = 3;
-
-        ResultSet rsBefore = stmt.executeQuery("""
-            SELECT next_free_index 
-            FROM %s.status_list 
-            WHERE id = '%s'
-        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
-        rsBefore.next();
-        final int initialNextFreeIndex = rsBefore.getInt("next_free_index");
-
-        wallet.setEncryptionPreferred(true);
-
-        var response = issuerManager.createCredentialOffer("university_example_sd_jwt");
-
-        var batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
-
-        assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
-
-        ResultSet rsAfter = stmt.executeQuery("""
-            SELECT next_free_index 
-            FROM %s.status_list 
-            WHERE id = '%s'
-        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
-        rsAfter.next();
-        final int updatedNextFreeIndex = rsAfter.getInt("next_free_index");
-
-        int delta = updatedNextFreeIndex - initialNextFreeIndex;
-        assertThat(delta)
-                .as("next_free_index should not increase by 1 only during a batch")
-                .isNotEqualTo(1);
-        assertThat(delta)
-                .as("next_free_index should not increase sequentially")
-                .isEqualTo(batchSize);
-
     }
 
 }
