@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -54,6 +55,7 @@ class WalletTest {
     private VerifierManager verifierManager;
     private StatusList currentStatusList;
     private Connection connection;
+    private Statement stmt;
 
     @BeforeAll
     void setup() throws Exception {
@@ -72,6 +74,7 @@ class WalletTest {
         String password = dbTestContainer.getPassword();
 
         connection = DriverManager.getConnection(jdbcUrl, username, password);
+        stmt = connection.createStatement();
     }
 
     @AfterAll
@@ -195,6 +198,14 @@ class WalletTest {
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
+        ResultSet rsBefore = stmt.executeQuery("""
+            SELECT next_free_index 
+            FROM %s.status_list 
+            WHERE id = '%s'
+        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
+        rsBefore.next();
+        final int initialNextFreeIndex = rsBefore.getInt("next_free_index");
+
         wallet.setEncryptionPreferred(true);
 
         var response = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -203,48 +214,22 @@ class WalletTest {
 
         assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
 
-        //currentStatusList
+        ResultSet rsAfter = stmt.executeQuery("""
+            SELECT next_free_index 
+            FROM %s.status_list 
+            WHERE id = '%s'
+        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
+        rsAfter.next();
+        final int updatedNextFreeIndex = rsAfter.getInt("next_free_index");
 
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("""
-            SELECT id, next_free_index, max_length, uri 
-            FROM swiyu_issuer.status_list 
-            ORDER BY created_at ASC
-        """);
+        int delta = updatedNextFreeIndex - initialNextFreeIndex;
+        assertThat(delta)
+                .as("next_free_index should not increase by 1 only during a batch")
+                .isNotEqualTo(1);
+        assertThat(delta)
+                .as("next_free_index should not increase sequentially")
+                .isEqualTo(batchSize);
 
-        System.out.println("---- Status List ----");
-        List<Integer> nextFreeIndexes = new java.util.ArrayList<>();
-
-        while (rs.next()) {
-            int nextFreeIndex = rs.getInt("next_free_index");
-            System.out.println("id=" + rs.getString("id")
-                    + " | next_free_index=" + nextFreeIndex
-                    + " | max_length=" + rs.getInt("max_length")
-                    + " | uri=" + rs.getString("uri"));
-            nextFreeIndexes.add(nextFreeIndex);
-        }
-        rs.close();
-        stmt.close();
-
-        // 🔍 Analyse des indexes : vérifier qu’ils ne forment pas une séquence continue
-        if (nextFreeIndexes.size() > 1) {
-            boolean isSequential = true;
-            for (int i = 1; i < nextFreeIndexes.size(); i++) {
-                if (nextFreeIndexes.get(i) - nextFreeIndexes.get(i - 1) != 1) {
-                    isSequential = false;
-                    break;
-                }
-            }
-
-            System.out.println("Sequential pattern detected: " + isSequential);
-
-            // ❌ Le test échoue si les indexes sont séquentiels (i.e. non aléatoires)
-            AssertionsForClassTypes.assertThat(isSequential)
-                    .as("Batch VC indexes should not be assigned as a continuous block — expected random sampling")
-                    .isFalse();
-        } else {
-            System.out.println("⚠️ Only one status_list entry found — cannot verify batch randomness.");
-        }
     }
 
 }

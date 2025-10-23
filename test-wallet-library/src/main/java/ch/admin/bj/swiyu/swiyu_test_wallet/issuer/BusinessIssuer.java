@@ -43,7 +43,7 @@ public class BusinessIssuer {
 
         statusList = statusListApi.createStatusList(statusListCreate);
 
-        return statusListApi.createStatusList(statusListCreate);
+        return statusList;
     }
 
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId) {
