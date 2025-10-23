@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreateConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 

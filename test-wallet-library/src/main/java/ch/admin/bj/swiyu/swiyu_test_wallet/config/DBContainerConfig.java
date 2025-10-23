@@ -15,17 +15,18 @@ public class DBContainerConfig {
     public static final String VERIFIER_DB_SCHEMA = "swiyu_verifier";
 
     public static PostgreSQLContainer createPostgreSQLContainer(Network network) {
-        return new PostgreSQLContainer<>(
+        try (PostgreSQLContainer container = new PostgreSQLContainer<>(
                 DockerImageName
-                        .parse("postgres:15.14-alpine3.21"))
-                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)))
-                .withNetwork(network)
-                .withDatabaseName(DB_NAME)
-                .withNetworkAliases(DB_NAME);
+                        .parse("postgres:15.14-alpine3.21"))) {
+            container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)));
+            container.withNetwork(network);
+            container.withDatabaseName(DB_NAME);
+            container.withNetworkAliases(DB_NAME);
+            return container;
+        }
     }
 
     public static String getJdbcUrl(PostgreSQLContainer<?> dbContainer, String schema) {
         return String.format("jdbc:postgresql://%s:5432/%s?currentSchema=%s", DB_NAME, dbContainer.getDatabaseName(), schema);
     }
-
 }

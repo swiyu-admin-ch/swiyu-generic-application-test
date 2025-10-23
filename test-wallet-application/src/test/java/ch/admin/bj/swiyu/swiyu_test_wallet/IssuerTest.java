@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import org.junit.jupiter.api.BeforeAll;
