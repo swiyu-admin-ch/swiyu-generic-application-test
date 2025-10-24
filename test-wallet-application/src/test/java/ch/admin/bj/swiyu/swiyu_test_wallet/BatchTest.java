@@ -92,6 +92,7 @@ class BatchTest {
 
     @Test
     @Tag("issuer")
+    @Disabled("Random status list index not merged yet")
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
@@ -134,6 +135,7 @@ class BatchTest {
 
     @Test
     @Tag("issuer")
+    @Disabled("Random status list index not merged yet")
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
         final int statusListLength = 2;
