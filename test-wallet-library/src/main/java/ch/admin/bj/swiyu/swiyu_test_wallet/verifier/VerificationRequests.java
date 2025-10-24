@@ -17,7 +17,7 @@ public class VerificationRequests {
 
     public static final String DEFAULT_ALG = "ES256";
 
-    public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding) {
+    public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding, final boolean encrypted) {
 
         Constraint lastNameConstraint = new Constraint()
                 .addFieldsItem(new Field()
@@ -39,7 +39,7 @@ public class VerificationRequests {
         return new CreateVerificationManagement()
                 .acceptedIssuerDids(null)
                 .jwtSecuredAuthorizationRequest(false)
-                .responseMode(CreateVerificationManagement.ResponseModeEnum.POST)
+                .responseMode(encrypted ? CreateVerificationManagement.ResponseModeEnum.POST_JWT : CreateVerificationManagement.ResponseModeEnum.POST)
                 .presentationDefinition(presentation);
     }
 
@@ -57,7 +57,7 @@ public class VerificationRequests {
 
     public String createDefaultRequestString(boolean withKeyBinding) {
         try {
-            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
+            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding, false));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

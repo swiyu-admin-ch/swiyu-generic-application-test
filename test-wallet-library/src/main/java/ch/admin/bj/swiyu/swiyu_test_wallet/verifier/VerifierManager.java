@@ -28,13 +28,17 @@ public class VerifierManager {
     }
 
     public String createVerificationRequest() {
-        CreateVerificationManagement request = createDefaultRequest(true);
+        return createVerificationRequest(false);
+    }
+
+    public String createVerificationRequest(final boolean encrypted) {
+        CreateVerificationManagement request = createDefaultRequest(true, encrypted);
 
         return createVerificationRequest(request).getVerificationDeeplink();
     }
 
-    public String createDCQLVerificationRequest() {
-        CreateVerificationManagement request = createDefaultRequest(true);
+    public String createDCQLVerificationRequest(final boolean encrypted) {
+        CreateVerificationManagement request = createDefaultRequest(true, encrypted);
 
         DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto().vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01")).typeValues(null);
         DcqlClaimDto claim = new DcqlClaimDto().path(List.of("type")).id(null).values(null);
@@ -45,6 +49,10 @@ public class VerifierManager {
         request.setDcqlQuery(dcqlQuery);
 
         return createVerificationRequest(request).getVerificationDeeplink();
+    }
+
+    public String createDCQLVerificationRequest() {
+        return createDCQLVerificationRequest(false);
     }
 
     public ManagementResponse createVerificationRequest(CreateVerificationManagement request) {
