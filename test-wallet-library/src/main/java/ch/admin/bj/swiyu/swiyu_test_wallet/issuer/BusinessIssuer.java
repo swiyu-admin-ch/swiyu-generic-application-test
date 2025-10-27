@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.api.CredentialApiApi;
 import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferRequest;
+import ch.admin.bj.swiyu.gen.issuer.model.CreateCredentialOfferRequest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate;
@@ -49,7 +49,7 @@ public class BusinessIssuer {
         CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
         credentialOfferMetadataDto.setDeferred(false);
 
-        var offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
+        var offer = createCreateCredentialRequest(supportedMetadataId, credentialOfferMetadataDto);
 
         return createCredential(offer);
     }
@@ -58,12 +58,12 @@ public class BusinessIssuer {
         CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
         credentialOfferMetadataDto.setDeferred(true);
 
-        var offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
+        var offer = createCreateCredentialRequest(supportedMetadataId, credentialOfferMetadataDto);
 
         return createCredential(offer);
     }
 
-    public CredentialWithDeeplinkResponse createCredential(CredentialOfferRequest offer) {
+    public CredentialWithDeeplinkResponse createCredential(CreateCredentialOfferRequest offer) {
         return credentialApi.createCredential1(offer);
     }
 
@@ -81,8 +81,8 @@ public class BusinessIssuer {
         return (Map<String, Object>) actuatorApi.health();
     }
 
-    private CredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata) {
-        CredentialOfferRequest offer = new CredentialOfferRequest();
+    private CreateCredentialOfferRequest createCreateCredentialRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata) {
+        CreateCredentialOfferRequest offer = new CreateCredentialOfferRequest();
         offer.setCredentialSubjectData(CredentialOffer.defaultSubjectData());
         offer.setStatusLists(List.of(statusList.getStatusRegistryUrl()));
         offer.setCredentialMetadata(credentialMetadata);

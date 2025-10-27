@@ -1,9 +1,10 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialConfiguration;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadataWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -48,8 +49,8 @@ public class WalletEntry {
     private Map<String, Object> credentialConfigurationsSupported;
     private OpenIdConfiguration issuerWellKnownConfiguration;
     private OAuthToken token;
-    private IssuerMetadata issuerMetadata;
-    private JsonObject credentialConfigurationSupported;
+    private IssuerMetadataWallet issuerMetadata;
+    private CredentialConfiguration credentialConfigurationSupported;
     private String issuerSdJwt;
     private RSAKey encrypterJwk;
     private JsonNode vctDetails;

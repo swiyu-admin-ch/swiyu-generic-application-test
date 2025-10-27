@@ -1,13 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialEndpointRequest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialResponseEncryption;
-import ch.admin.bj.swiyu.gen.issuer.model.DeferredCredentialEndpointRequest;
-import ch.admin.bj.swiyu.gen.issuer.model.NonceResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadataWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,10 +11,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEObject;
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.ECDHDecrypter;
+import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.RSADecrypter;
-import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.*;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jwt.EncryptedJWT;
+import com.nimbusds.jwt.JWTClaimsSet;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +47,7 @@ public class Wallet {
     private final RestClient restClient;
     private final ServiceLocationContext context;
     private final ServiceLocationContext verifierContext;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Wallet(RestClient restClient, ServiceLocationContext context, ServiceLocationContext verifierContext) {
         this.restClient = restClient;
@@ -83,13 +84,18 @@ public class Wallet {
     }
 
     public WalletEntry collectOffer(URI offerDeepLink) {
+        var walletEntry = collectOffer(offerDeepLink, true);
+        return walletEntry;
+    }
+
+    public WalletEntry collectOffer(URI offerDeepLink, boolean useEncryption) {
         var walletEntry = new WalletEntry(restClient);
         walletEntry.receiveDeepLinkAndValidateIt(context.getContextualizedUri(offerDeepLink));
         walletEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletEntry));
         walletEntry.setToken(collectToken(walletEntry));
         walletEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletEntry));
         walletEntry.setCredentialConfigurationSupported();
-        walletEntry.setIssuerSdJwt(getVerifiableCredentialFromIssuer(walletEntry));
+        walletEntry.setIssuerSdJwt(getVerifiableCredentialFromIssuer(walletEntry, useEncryption));
         return walletEntry;
     }
 
@@ -101,7 +107,7 @@ public class Wallet {
         walletEntry.setToken(collectToken(walletEntry));
         walletEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletEntry));
         walletEntry.setCredentialConfigurationSupported();
-        var deferredCredentialTransactionIdResponse = postCredentialRequest(walletEntry);
+        var deferredCredentialTransactionIdResponse = postCredentialRequest(walletEntry, true);
 
         assertThat(deferredCredentialTransactionIdResponse)
                 .isNotNull();
@@ -126,20 +132,15 @@ public class Wallet {
                 .body(OpenIdConfiguration.class);
     }
 
-    public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
+    public IssuerMetadataWallet getIssuerWellKnownMetadata(WalletEntry walletEntry) {
         var issuerUri = context.getContextualizedUri(walletEntry.getIssuerUri());
         var issuerMetadataUri = issuerUri.resolve("oid4vci/.well-known/openid-credential-issuer");
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> rawMetadata = restClient.get()
+        return restClient.get()
                 .uri(issuerMetadataUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
-                .body(Map.class);
-
-        JsonObject metadata = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
-
-        return new IssuerMetadata(metadata);
+                .body(IssuerMetadataWallet.class);
     }
 
     public OAuthToken collectToken(WalletEntry walletEntry) {
@@ -167,8 +168,8 @@ public class Wallet {
         return response.getBody();
     }
 
-    public String getVerifiableCredentialFromIssuer(WalletEntry walletEntry) {
-        var bodyAsJson = postCredentialRequest(walletEntry);
+    public String getVerifiableCredentialFromIssuer(WalletEntry walletEntry, boolean useEncryption) {
+        var bodyAsJson = postCredentialRequest(walletEntry, useEncryption);
 
         assertThat(bodyAsJson.get("format").getAsString()).isEqualTo(VC_SD_JWT);
         assertThat(bodyAsJson.get("credential")).isNotNull();
@@ -176,7 +177,7 @@ public class Wallet {
         return bodyAsJson.get("credential").getAsString();
     }
 
-    private JsonObject postCredentialRequest(WalletEntry walletEntry) {
+    private JsonObject postCredentialRequest(WalletEntry walletEntry, boolean useEncryption) {
         var credentialConfigurationSupported = walletEntry.getCredentialConfigurationSupported();
 
         var credentialUri = walletEntry.getIssuerCredentialUri();
@@ -184,17 +185,56 @@ public class Wallet {
         var request = new CredentialEndpointRequest();
         request.setFormat(VC_SD_JWT);
 
-        if (credentialConfigurationSupported.has("proof_types_supported")) {
+        if (credentialConfigurationSupported.getProofTypesSupported() !=null) {
             var proof = walletEntry.createProof().toJwt();
             Map<String, Object> proofMap = Map.of("proof_type", "jwt", "jwt", proof);
             request.setProof(proofMap);
         }
 
         String requestPayload = null;
-        try {
-            requestPayload = new ObjectMapper().writeValueAsString(request);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+        ECKey responseEncryptionKey = null;
+        if (useEncryption) {
+            try {
+                // Check if our hardcoded assumptions are correct to prevent arcane errors
+                var credentialResponseEncryptionMetadata = walletEntry.getIssuerMetadata().getCredentialResponseEncryption();
+                assertThat(credentialResponseEncryptionMetadata).isNotNull();
+                assertThat(credentialResponseEncryptionMetadata.getAlgValuesSupported()).as("We use hardcoded ECDH-ES").contains("ECDH-ES");
+                assertThat(credentialResponseEncryptionMetadata.getEncValuesSupported()).as("We use hardcoded A128GCM").contains("A128GCM");
+                // Tell the Issuer what encryption we expect in the response
+                responseEncryptionKey = new ECKeyGenerator(Curve.P_256).keyID("HolderEncryptionKey")
+                    .keyUse(KeyUse.ENCRYPTION)
+                    .generate();
+                var credentialResponseEncryption = new CredentialResponseEncryption();
+                credentialResponseEncryption.setAlg("ECDH-ES");
+                credentialResponseEncryption.setEnc("A128GCM");
+                credentialResponseEncryption.setJwk(responseEncryptionKey.toPublicJWK().toJSONObject());
+                request.setCredentialResponseEncryption(credentialResponseEncryption);
+
+                // Encrypt our request
+                // Check if our hardcoded assumptions are correct
+                var credentialRequestEncryptionMetadata = walletEntry.getIssuerMetadata().getCredentialRequestEncryption();
+                assertThat(credentialRequestEncryptionMetadata).isNotNull();
+                assertThat(credentialRequestEncryptionMetadata.getEncValuesSupported()).as("We use hardcoded A128GCM").contains("A128GCM");
+                JWKSet issuerEncryptionKeySet = JWKSet.parse(credentialRequestEncryptionMetadata.getJwks());
+                assertThat(issuerEncryptionKeySet).isNotNull().as("We expect there to be only a singular public EC Key").extracting(keySet -> keySet.size()).isEqualTo(1);
+                ECKey issuerPublicEncryptionKey = JWKSet.parse(credentialRequestEncryptionMetadata.getJwks()).getKeys().getFirst().toECKey();
+                EncryptedJWT encryptedRequest = new EncryptedJWT(new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM).compressionAlgorithm(CompressionAlgorithm.DEF).keyID(
+                        issuerPublicEncryptionKey.getKeyID()).build(), JWTClaimsSet.parse(new ObjectMapper().writeValueAsString(request)));
+                encryptedRequest.encrypt(new ECDHEncrypter(issuerPublicEncryptionKey));
+                requestPayload = encryptedRequest.serialize();
+            } catch (JOSEException e) {
+                throw new RuntimeException(e);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                requestPayload = new ObjectMapper().writeValueAsString(request);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
         String bearerToken = token.getAccessToken();
 
@@ -214,12 +254,29 @@ public class Wallet {
                         .formatted(credentialUri, responseStatusCode, bodyAsString, requestPayload))
                 .isIn(List.of(200, 202));
 
-        var credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
+        JsonObject credentialResponse;
+        if (useEncryption) {
+            // Decrypt
+            try {
+                EncryptedJWT encryptedResponse = EncryptedJWT.parse(bodyAsString);
+                encryptedResponse.decrypt(new ECDHDecrypter(responseEncryptionKey));
+                credentialResponse = JsonParser.parseString(objectMapper.writeValueAsString(encryptedResponse.getJWTClaimsSet().toJSONObject())).getAsJsonObject();
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            } catch (JOSEException e) {
+                throw new RuntimeException(e);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+        } else {
+            credentialResponse = JsonParser.parseString(bodyAsString)
+                    .getAsJsonObject();
+        }
 
         if (nonNull(credentialResponse.get("credential"))) {
             walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
         }
-
         return credentialResponse;
     }
 
@@ -267,7 +324,7 @@ public class Wallet {
     private CredentialResponseEncryption createCredentialResponseEncryption(RSAKey encrypterJwk) {
         var credentialResponseEncryption = new CredentialResponseEncryption();
         if (encrypterJwk != null) {
-            credentialResponseEncryption.setAlg("RSA-OAEP-256");
+            credentialResponseEncryption.setAlg("A128GCM");
             credentialResponseEncryption.setEnc("A256GCM");
             credentialResponseEncryption.setJwk(Map.of(
                     "kty", encrypterJwk.getKeyType().getValue(),

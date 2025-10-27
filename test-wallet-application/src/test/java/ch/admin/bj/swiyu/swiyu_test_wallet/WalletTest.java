@@ -14,6 +14,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -132,11 +134,12 @@ class WalletTest {
      * Immediate issuance of a bound credential requiring a selective disclosure presentation.
      * Flow: offer -> collect -> verification request -> build presentation -> respond.
      */
-    @Test
-    void createBoundCredential_thenSuccess() {
+    @ParameterizedTest
+    @ValueSource(booleans =  {true, false})
+    void createBoundCredential_thenSuccess(boolean useEncryption) {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()), useEncryption);
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         var deepLink = verifierManager.createVerificationRequest();
