@@ -92,50 +92,22 @@ class BatchTest {
 
     @Test
     @Tag("issuer")
-    @Disabled("Random status list index not merged yet")
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
-        final StatusList currentStatusList = issuerManager.createStatusList(batchSize, 2);
+        issuerManager.createStatusList(batchSize, 2);
 
         wallet.setEncryptionPreferred(true);
-
-        ResultSet rsBefore = stmt.executeQuery(""" 
-                SELECT next_free_index
-                FROM %s.status_list
-                WHERE id = '%s'
-        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
-        rsBefore.next();
-        final int initialNextFreeIndex = rsBefore.getInt("next_free_index");
 
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
         final WalletBatchEntry batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
 
         assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
-
-        final ResultSet rsAfter = stmt.executeQuery(""" 
-                SELECT next_free_index
-                FROM %s.status_list
-                WHERE id = '%s'
-        """.formatted(DBContainerConfig.ISSUER_DB_SCHEMA, currentStatusList.getId()));
-        rsAfter.next();
-        final int updatedNextFreeIndex = rsAfter.getInt("next_free_index");
-
-        int deltaFreeIndex = updatedNextFreeIndex - initialNextFreeIndex;
-
-        assertThat(deltaFreeIndex)
-                .as("next_free_index should not increase by 1 only during a batch")
-                .isNotEqualTo(1);
-
-        assertThat(deltaFreeIndex)
-                .as("next_free_index should not increase sequentially")
-                .isEqualTo(batchSize);
     }
 
     @Test
     @Tag("issuer")
-    @Disabled("Random status list index not merged yet")
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
         final int statusListLength = 2;
@@ -156,7 +128,7 @@ class BatchTest {
 
         assertThat(ex.getMessage())
                 .as("Expected message to contain Bad Request and detail about max length exceeded")
-                .contains(String.format("\"detail\":\"Max length %d exceeded for status list", statusListLength));
+                .contains("\"detail\":\"Too few status indexes remain in status list");
     }
 
 }
