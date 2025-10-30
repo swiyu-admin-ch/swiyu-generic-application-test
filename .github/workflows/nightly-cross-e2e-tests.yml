@@ -57,6 +57,15 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-dev_vs_verifier-dev Test Report
+          path: '**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
       - name: Summary
         if: always()
         run: |
@@ -88,6 +97,15 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-staging_vs_verifier-staging Test Report
+          path: '**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
       - name: Summary
         if: always()
         run: |
@@ -119,6 +137,15 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-rc_vs_verifier-rc Test Report
+          path: '**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
       - name: Summary
         if: always()
         run: |
@@ -150,6 +177,15 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-stable_vs_verifier-stable Test Report
+          path: '**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
       - name: Summary
         if: always()
         run: |
