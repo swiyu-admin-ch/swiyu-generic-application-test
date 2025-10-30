@@ -56,6 +56,8 @@ jobs:
           echo "VERIFIER_IMAGE=${VERIFIER_BASE}:dev" >> $GITHUB_ENV
           echo "Issuer image:  ${ISSUER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
           echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Collect Surefire reports
