@@ -1,6 +1,6 @@
 # Nightly branch-specific E2E tests:
 # Runs nightly (schedule) regardless of default branch.
-# Uses dev branch code for dev/staging combos and stable branch code for rc/stable combos.
+# Separate jobs per combination + one aggregated report job at the end.
 # Manual dispatch: select specific combination or 'all'.
 name: Nightly Cross E2E
 
@@ -58,12 +58,24 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
-      - name: Test Report
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: issuer-dev_vs_verifier-dev Test Report
-          path: '**/surefire-reports/TEST-*.xml'
+          path: 'collected/**/surefire-reports/TEST-*.xml'
           reporter: java-junit
           fail-on-error: false
           list-tests: failed
@@ -98,12 +110,24 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
-      - name: Test Report
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: issuer-staging_vs_verifier-staging Test Report
-          path: '**/surefire-reports/TEST-*.xml'
+          path: 'collected/**/surefire-reports/TEST-*.xml'
           reporter: java-junit
           fail-on-error: false
           list-tests: failed
@@ -138,12 +162,24 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
-      - name: Test Report
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: issuer-rc_vs_verifier-rc Test Report
-          path: '**/surefire-reports/TEST-*.xml'
+          path: 'collected/**/surefire-reports/TEST-*.xml'
           reporter: java-junit
           fail-on-error: false
           list-tests: failed
@@ -178,12 +214,24 @@ jobs:
           echo "Verifier image: ${VERIFIER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
-      - name: Test Report
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: issuer-stable_vs_verifier-stable Test Report
-          path: '**/surefire-reports/TEST-*.xml'
+          path: 'collected/**/surefire-reports/TEST-*.xml'
           reporter: java-junit
           fail-on-error: false
           list-tests: failed
@@ -194,3 +242,46 @@ jobs:
             echo "### issuer-stable_vs_verifier-stable";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
+
+  aggregated-cross-report:
+    name: Aggregated Cross Test Report
+    runs-on: ubuntu-latest
+    needs:
+      - issuer-dev_vs_verifier-dev
+      - issuer-staging_vs_verifier-staging
+      - issuer-rc_vs_verifier-rc
+      - issuer-stable_vs_verifier-stable
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
+    steps:
+      - name: Checkout (for context)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Aggregated Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Cross E2E Aggregated Test Report
+          path: 'artifacts/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Aggregated Summary
+        if: always()
+        run: |
+          {
+            echo "### Aggregated Cross E2E Job Results";
+            echo "- issuer-dev_vs_verifier-dev: ${{ needs.issuer-dev_vs_verifier-dev.result }}";
+            echo "- issuer-staging_vs_verifier-staging: ${{ needs.issuer-staging_vs_verifier-staging.result }}";
+            echo "- issuer-rc_vs_verifier-rc: ${{ needs.issuer-rc_vs_verifier-rc.result }}";
+            echo "- issuer-stable_vs_verifier-stable: ${{ needs.issuer-stable_vs_verifier-stable.result }}";
+          } >> $GITHUB_STEP_SUMMARY
+      - name: Fail if any combination failed
+        if: ${{ needs.issuer-dev_vs_verifier-dev.result == 'failure' || needs.issuer-staging_vs_verifier-staging.result == 'failure' || needs.issuer-rc_vs_verifier-rc.result == 'failure' || needs.issuer-stable_vs_verifier-stable.result == 'failure' }}
+        run: |
+          echo "At least one combination failed." >&2
+          exit 1
