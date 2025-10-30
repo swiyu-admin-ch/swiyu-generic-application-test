@@ -1,6 +1,7 @@
 # Nightly branch-specific E2E tests:
-# On dev branch: issuer:dev vs verifier:dev AND issuer:staging vs verifier:staging
-# On stable branch: issuer:rc vs verifier:rc AND issuer:stable vs verifier:stable
+# Runs nightly (schedule) regardless of default branch.
+# Uses dev branch code for dev/staging combos and stable branch code for rc/stable combos.
+# Manual dispatch: select specific combination or 'all'.
 name: Nightly Cross E2E
 
 on:
@@ -36,7 +37,7 @@ jobs:
   issuer-dev_vs_verifier-dev:
     name: issuer-dev_vs_verifier-dev
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' ) }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' }}
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4
@@ -67,7 +68,7 @@ jobs:
   issuer-staging_vs_verifier-staging:
     name: issuer-staging_vs_verifier-staging
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' ) }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' }}
     steps:
       - name: Checkout dev branch
         uses: actions/checkout@v4
@@ -98,7 +99,7 @@ jobs:
   issuer-rc_vs_verifier-rc:
     name: issuer-rc_vs_verifier-rc
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' ) }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' }}
     steps:
       - name: Checkout stable branch
         uses: actions/checkout@v4
@@ -129,7 +130,7 @@ jobs:
   issuer-stable_vs_verifier-stable:
     name: issuer-stable_vs_verifier-stable
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' ) }}
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
     steps:
       - name: Checkout stable branch
         uses: actions/checkout@v4
