@@ -246,6 +246,7 @@ jobs:
   aggregated-cross-report:
     name: Aggregated Cross Test Report
     runs-on: ubuntu-latest
+    if: always()
     needs:
       - issuer-dev_vs_verifier-dev
       - issuer-staging_vs_verifier-staging
