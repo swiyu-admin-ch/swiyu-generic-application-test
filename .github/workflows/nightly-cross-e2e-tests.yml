@@ -251,7 +251,6 @@ jobs:
       - issuer-staging_vs_verifier-staging
       - issuer-rc_vs_verifier-rc
       - issuer-stable_vs_verifier-stable
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
     steps:
       - name: Checkout (for context)
         uses: actions/checkout@v4
