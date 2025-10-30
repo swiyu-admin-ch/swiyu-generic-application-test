@@ -52,12 +52,12 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:dev" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:dev" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
           echo "ISSUER_IMAGE_TAG=dev" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Collect Surefire reports
@@ -106,10 +106,12 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:staging" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:staging" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Collect Surefire reports
@@ -158,10 +160,12 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:rc" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:rc" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Collect Surefire reports
@@ -210,10 +214,12 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:stable" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:stable" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Collect Surefire reports
