@@ -24,6 +24,7 @@ on:
 permissions:
   contents: read
   actions: read
+  checks: write  # allow dorny/test-reporter to create check runs
 
 concurrency:
   group: nightly-cross-e2e
