@@ -1,4 +1,6 @@
-# Nightly cross-tag E2E tests: issuer(main) vs verifier(latest) AND verifier(main) vs issuer(latest) AND issuer(main) vs verifier(main) AND issuer(latest) vs verifier(latest)
+# Nightly branch-specific E2E tests:
+# On dev branch: issuer:dev vs verifier:dev AND issuer:staging vs verifier:staging
+# On stable branch: issuer:rc vs verifier:rc AND issuer:stable vs verifier:stable
 name: Nightly Cross E2E
 
 on:
@@ -7,16 +9,16 @@ on:
   workflow_dispatch:
     inputs:
       selection:
-        description: 'Combinations? (all, issuer-main_vs_verifier-latest, verifier-main_vs_issuer-latest, issuer-main_vs_verifier-main, issuer-latest_vs_verifier-latest)'
+        description: 'Combinations? (all, issuer-dev_vs_verifier-dev, issuer-staging_vs_verifier-staging, issuer-rc_vs_verifier-rc, issuer-stable_vs_verifier-stable)'
         required: false
         default: 'all'
         type: choice
         options:
           - all
-          - issuer-main_vs_verifier-latest
-          - verifier-main_vs_issuer-latest
-          - issuer-main_vs_verifier-main
-          - issuer-latest_vs_verifier-latest
+          - issuer-dev_vs_verifier-dev
+          - issuer-staging_vs_verifier-staging
+          - issuer-rc_vs_verifier-rc
+          - issuer-stable_vs_verifier-stable
 
 permissions:
   contents: read
@@ -31,13 +33,15 @@ env:
   VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
 
 jobs:
-  issuer-main_vs_verifier-latest:
-    name: issuer-main_vs_verifier-latest
+  issuer-dev_vs_verifier-dev:
+    name: issuer-dev_vs_verifier-dev
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-main_vs_verifier-latest' }}
+    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' ) }}
     steps:
-      - name: Checkout
+      - name: Checkout dev branch
         uses: actions/checkout@v4
+        with:
+          ref: dev
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -46,27 +50,29 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:main" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:latest" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:main" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:dev" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:dev" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Summary
         if: always()
         run: |
           {
-            echo "### issuer-main_vs_verifier-latest";
+            echo "### issuer-dev_vs_verifier-dev";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
 
-  verifier-main_vs_issuer-latest:
-    name: verifier-main_vs_issuer-latest
+  issuer-staging_vs_verifier-staging:
+    name: issuer-staging_vs_verifier-staging
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'verifier-main_vs_issuer-latest' }}
+    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' ) }}
     steps:
-      - name: Checkout
+      - name: Checkout dev branch
         uses: actions/checkout@v4
+        with:
+          ref: dev
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -75,27 +81,29 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:latest" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:main" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:main" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:staging" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:staging" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Summary
         if: always()
         run: |
           {
-            echo "### verifier-main_vs_issuer-latest";
+            echo "### issuer-staging_vs_verifier-staging";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
 
-  issuer-main_vs_verifier-main:
-    name: issuer-main_vs_verifier-main
+  issuer-rc_vs_verifier-rc:
+    name: issuer-rc_vs_verifier-rc
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-main_vs_verifier-main' }}
+    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' ) }}
     steps:
-      - name: Checkout
+      - name: Checkout stable branch
         uses: actions/checkout@v4
+        with:
+          ref: stable
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -104,27 +112,29 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:main" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:main" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:main" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:main" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:rc" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:rc" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Summary
         if: always()
         run: |
           {
-            echo "### issuer-main_vs_verifier-main";
+            echo "### issuer-rc_vs_verifier-rc";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
 
-  issuer-latest_vs_verifier-latest:
-    name: issuer-latest_vs_verifier-latest
+  issuer-stable_vs_verifier-stable:
+    name: issuer-stable_vs_verifier-stable
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-latest_vs_verifier-latest' }}
+    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' ) }}
     steps:
-      - name: Checkout
+      - name: Checkout stable branch
         uses: actions/checkout@v4
+        with:
+          ref: stable
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -133,16 +143,16 @@ jobs:
           cache: maven
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE=${ISSUER_BASE}:latest" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:latest" >> $GITHUB_ENV
-          echo "Issuer image:  ${ISSUER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image: ${VERIFIER_BASE}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:stable" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:stable" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
       - name: Summary
         if: always()
         run: |
           {
-            echo "### issuer-latest_vs_verifier-latest";
+            echo "### issuer-stable_vs_verifier-stable";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
