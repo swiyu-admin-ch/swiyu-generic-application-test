@@ -56,6 +56,7 @@ jobs:
           echo "VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
           echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_DEV" >> $GITHUB_ENV
           echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
           echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
@@ -110,6 +111,7 @@ jobs:
           echo "VERIFIER_IMAGE_TAG=staging" >> $GITHUB_ENV
           echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STAGING" >> $GITHUB_ENV
           echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
           echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
@@ -164,6 +166,7 @@ jobs:
           echo "VERIFIER_IMAGE_TAG=rc" >> $GITHUB_ENV
           echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_RC" >> $GITHUB_ENV
           echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
           echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
@@ -218,6 +221,7 @@ jobs:
           echo "VERIFIER_IMAGE_TAG=stable" >> $GITHUB_ENV
           echo "ISSUER_IMAGE=${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
           echo "VERIFIER_IMAGE=${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STABLE" >> $GITHUB_ENV
           echo "Issuer image:  ${ISSUER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
           echo "Verifier image: ${VERIFIER_BASE}:${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
