@@ -1,0 +1,158 @@
+# Nightly branch-specific E2E tests:
+# On dev branch: issuer:dev vs verifier:dev AND issuer:staging vs verifier:staging
+# On stable branch: issuer:rc vs verifier:rc AND issuer:stable vs verifier:stable
+name: Nightly Cross E2E
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      selection:
+        description: 'Combinations? (all, issuer-dev_vs_verifier-dev, issuer-staging_vs_verifier-staging, issuer-rc_vs_verifier-rc, issuer-stable_vs_verifier-stable)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - issuer-dev_vs_verifier-dev
+          - issuer-staging_vs_verifier-staging
+          - issuer-rc_vs_verifier-rc
+          - issuer-stable_vs_verifier-stable
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nightly-cross-e2e
+  cancel-in-progress: false
+
+env:
+  ISSUER_BASE: ghcr.io/swiyu-admin-ch/swiyu-issuer
+  VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
+
+jobs:
+  issuer-dev_vs_verifier-dev:
+    name: issuer-dev_vs_verifier-dev
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' ) }}
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:dev" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:dev" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:dev" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-dev_vs_verifier-dev";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-staging_vs_verifier-staging:
+    name: issuer-staging_vs_verifier-staging
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/dev' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' ) }}
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:staging" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:staging" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:staging" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-staging_vs_verifier-staging";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-rc_vs_verifier-rc:
+    name: issuer-rc_vs_verifier-rc
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' ) }}
+    steps:
+      - name: Checkout stable branch
+        uses: actions/checkout@v4
+        with:
+          ref: stable
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:rc" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:rc" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:rc" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-rc_vs_verifier-rc";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-stable_vs_verifier-stable:
+    name: issuer-stable_vs_verifier-stable
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/stable' && ( github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' ) }}
+    steps:
+      - name: Checkout stable branch
+        uses: actions/checkout@v4
+        with:
+          ref: stable
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE=${ISSUER_BASE}:stable" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE=${VERIFIER_BASE}:stable" >> $GITHUB_ENV
+          echo "Issuer image:  ${ISSUER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image: ${VERIFIER_BASE}:stable" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-stable_vs_verifier-stable";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
