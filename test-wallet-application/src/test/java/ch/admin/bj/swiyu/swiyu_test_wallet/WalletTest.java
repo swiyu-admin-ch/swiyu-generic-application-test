@@ -101,7 +101,6 @@ class WalletTest {
      * Flow: offer -> collect -> verification request -> respond with full SD-JWT -> verifier state check.
      */
     @Test
-    @Disabled("Temporary for fix workflow")
     void unboundNotDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
@@ -122,7 +121,6 @@ class WalletTest {
      * Flow: deferred offer -> collect txn id -> issuer READY -> fetch credential -> verification.
      */
     @Test
-    @Disabled("Temporary for fix workflow")
     void unboundDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
 
@@ -204,7 +202,6 @@ class WalletTest {
     @Test
     @Tag("issuer")
     @Tag("verifier")
-    @Disabled("Temporary for fix workflow")
     void payloadEncryptedIssuanceAndVerificationFlow_thenSuccess() {
         wallet.setEncryptionPreferred(true);
 
