@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -158,6 +159,31 @@ public class Wallet {
                 .body(Map.class);
 
         JsonObject metadata = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
+
+        return new IssuerMetadata(metadata);
+    }
+
+    public IssuerMetadata getIssuerWellKnownMetadataSigned(WalletEntry walletEntry) {
+        final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
+        final URI issuerMetadataUri = UriComponentsBuilder
+                .fromUri(issuerUri)
+                .pathSegment(".well-known", "openid-configuration")
+                .build()
+                .toUri();
+
+        final String jwt = restClient.get()
+                .uri(issuerMetadataUri)
+                .header(HttpHeaders.CONTENT_TYPE, "application/jwt") // SHOULD BE ACCEPT
+                .retrieve()
+                .body(String.class);
+
+        assertThat(jwt).isNotBlank();
+        assertThat(JwtSupport.isCompactJwt(jwt))
+                .withFailMessage("Expected a compact JWS format (header.payload.signature), but got: %s", jwt)
+                .isTrue();
+
+        final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
+        final JsonObject metadata = new Gson().fromJson(payload.toString(), JsonObject.class);
 
         return new IssuerMetadata(metadata);
     }

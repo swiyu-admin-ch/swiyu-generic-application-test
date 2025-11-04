@@ -26,6 +26,7 @@ public class IssuerContainerConfig {
         return new GenericContainer<>(imageName)
                 .withExposedPorts(8080)
                 .withEnv("ISSUER_ID", config.getIssuerDid())
+                .withEnv("APPLICATION_SIGNED_METADATA_ENABLED", "true")
                 .withEnv("TOKEN_TTL", "600")
                 .withEnv("OPENID_CONFIG_FILE", "classpath:example_openid.json")
                 .withEnv("METADATA_CONFIG_FILE", "file:///tmp/metadata.json")
