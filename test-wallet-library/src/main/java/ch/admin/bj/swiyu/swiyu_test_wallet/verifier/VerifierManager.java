@@ -55,6 +55,26 @@ public class VerifierManager {
         return createDCQLVerificationRequest(false);
     }
 
+    public CreateVerificationManagement createVerificationRequestObject() {
+        CreateVerificationManagement request = createDefaultRequest(true, false);
+
+        return request;
+    }
+
+    public CreateVerificationManagement createDCQLVerificationRequestObject() {
+        CreateVerificationManagement request = createDefaultRequest(true, false);
+
+        DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto().vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01")).typeValues(null);
+        DcqlClaimDto claim = new DcqlClaimDto().path(List.of("type")).id(null).values(null);
+        DcqlCredentialDto credential = new DcqlCredentialDto().id("VerifiableCredential").format("vc+sd-jwt").meta(meta).claims(List.of(claim)).claimSets(null).requireCryptographicHolderBinding(true);
+
+        DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
+
+        request.setDcqlQuery(dcqlQuery);
+
+        return request;
+    }
+
     public ManagementResponse createVerificationRequest(CreateVerificationManagement request) {
         managementResponse = managementApi.createVerification(request);
 
