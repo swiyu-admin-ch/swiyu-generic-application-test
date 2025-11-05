@@ -121,7 +121,7 @@ public class WalletEntry {
         }
 
         String cNonce = token.getcNonce();
-        String credentialIssuerURI = credentialOffer.getCredentialIssuerUriAsString();
+        String credentialIssuerURI = credentialOffer.getCredentialBaseIssuerUriAsString();
         return new JwtProof(credentialIssuerURI, cNonce, proofPublicJwk, keyPair);
     }
 

@@ -59,4 +59,9 @@ public class SdJwtSupport {
                 .sorted()
                 .toList();
     }
+
+    public static String extractIssuer(String sdjwt) {
+        JsonNode payload = extractPayload(sdjwt);
+        return payload.has("iss") ? payload.get("iss").asText() : null;
+    }
 }

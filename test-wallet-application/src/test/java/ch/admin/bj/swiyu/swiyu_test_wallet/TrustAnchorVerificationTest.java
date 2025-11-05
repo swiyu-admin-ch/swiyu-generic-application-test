@@ -7,10 +7,13 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -70,36 +73,48 @@ class TrustAnchorVerificationTest {
         issuerManager.createStatusList(10000, 2);
     }
 
-    @Test
+    @ParameterizedTest(name = "Successful verification through a valid Trust Anchor – SWIYU API v{0}")
+    @CsvSource({"1", "2"})
     @Tag("verifier")
     @Tag("trust-anchor")
     @XrayTest(
-            key = "EID-3001",
-            summary = "Verifier accepts credential trusted via Trust Anchor",
+            key = "EIDOMNI-195",
+            summary = "Successful verification through a valid Trust Anchor",
             description = """
-                Validate that a verifier accepts a credential issued by an issuer 
-                trusted through a configured Trust Anchor.
-
-                Steps:
-                1. Configure a Trust Anchor with a valid trust statement linking to the issuer.
-                2. Issue a credential from the trusted issuer.
-                3. Create a verification request using the Trust Anchor.
-                4. Present the credential through the wallet.
-                5. Verify that the process completes successfully.
-                """
+            This parameterized test validates that a verifier successfully accepts a credential 
+            issued by a trusted issuer when verified via a configured Trust Anchor.
+            
+            It runs for both SWIYU API versions:
+             - Version 1: standard verification (OID4VP)
+             - Version 2: DCQL-based verification (OID4VP v2)
+             
+            Steps:
+            1. Configure a Trust Anchor linked to the credential issuer.
+            2. Issue a credential from this trusted issuer.
+            3. Create a verification request using the chosen SWIYU API version.
+            4. Present the credential through the wallet.
+            5. Verify that the verification succeeds (state == SUCCESS).
+            """
     )
-    void verificationWithValidTrustAnchor_thenSuccess() {
+    void verificationWithValidTrustAnchor_thenSuccess(final int swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        final TrustAnchor anchor = new TrustAnchor()
-                .did("did:example:root")
-                .trustRegistryUri("https://trust-reg.trust-infra.swiyu-int.admin.ch");
+        final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
 
-        final CreateVerificationManagement request = new CreateVerificationManagement()
-                .trustAnchors(List.of(anchor))
-                .jwtSecuredAuthorizationRequest(false);
+        CreateVerificationManagement request = null;
+        if (swiyuApiVersion == 1) {
+            request = verifierManager.createVerificationRequestObject();
+        } else if (swiyuApiVersion == 2) {
+            request = verifierManager.createDCQLVerificationRequestObject();
+        } else {
+            throw new IllegalStateException("Invalid swiyu api version");
+        }
+        final TrustAnchor anchor = new TrustAnchor()
+                .did(did)
+                .trustRegistryUri("trust-reg.trust-infra.swiyu-int.admin.ch");
+        request.addTrustAnchorsItem(anchor);
 
         final ManagementResponse managementResponse = verifierManager.createVerificationRequest(request);
         assertThat(managementResponse).isNotNull();
@@ -115,42 +130,56 @@ class TrustAnchorVerificationTest {
         assertThat(result.getPresentationDefinition()).isNotNull();
     }
 
-    @Test
+    @ParameterizedTest(name = "Verification rejected when issuer not trusted via Trust Anchor – SWIYU API v{0}")
+    @CsvSource({"1", "2"})
     @Tag("verifier")
     @Tag("trust-anchor")
     @XrayTest(
-            key = "EID-3002",
-            summary = "Verifier rejects credential not trusted via Trust Anchor",
+            key = "EIDOMNI-397",
+            summary = "Verification rejected when issuer not trusted via Trust Anchor",
             description = """
-                Ensure that a verifier rejects a credential from an issuer 
-                not included in the Trust Anchor’s trust chain.
+            This test ensures that a DCQL-based verification request fails when the issuer
+            is not trusted through the provided Trust Anchor.
 
-                Steps:
-                1. Configure a Trust Anchor without any trust statement for the issuer.
-                2. Issue a credential from an untrusted issuer.
-                3. Create a verification request referencing the Trust Anchor.
-                4. Present the credential through the wallet.
-                5. Verify that the process fails with 'issuer_not_accepted'.
-                """
+            Steps:
+            1. Configure a Trust Anchor that has no trust statement linking to the issuer.
+            2. Issue a credential from an untrusted issuer.
+            3. Create a DCQL verification request referencing the untrusted Trust Anchor.
+            4. Present the credential through the wallet.
+            5. Verify that the process fails with an 'issuer_not_accepted' or equivalent error.
+            """
     )
-    void verificationWithUntrustedIssuer_thenFails() {
+    void verificationWithUntrustedIssuer_thenFails(final int swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
 
+        final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
+
+        CreateVerificationManagement request = null;
+        if (swiyuApiVersion == 1) {
+            request = verifierManager.createVerificationRequestObject();
+        } else if (swiyuApiVersion == 2) {
+            request = verifierManager.createDCQLVerificationRequestObject();
+        } else {
+            throw new IllegalStateException("Invalid swiyu api version");
+        }
         final TrustAnchor anchor = new TrustAnchor()
-                .did("did:example:root")
-                .trustRegistryUri("https://trust-reg.trust-infra.swiyu-int.admin.ch");
-
-        final CreateVerificationManagement request = new CreateVerificationManagement()
-                .trustAnchors(List.of(anchor))
-                .jwtSecuredAuthorizationRequest(false);
+                .did(did)
+                .trustRegistryUri("fake-reg.trust-infra.swiyu-int.admin.ch");
+        request.addTrustAnchorsItem(anchor);
 
         final ManagementResponse managementResponse = verifierManager.createVerificationRequest(request);
-        var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
+        assertThat(managementResponse).isNotNull();
+        assertThat(managementResponse.getVerificationDeeplink()).isNotBlank();
 
+        var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
         wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
 
-        final ManagementResponse result = verifierManager.createVerificationRequest(request); // requery
-        assertThat(result.getState()).isNotEqualTo(VerificationStatus.SUCCESS);
+        final ManagementResponse result = verifierManager.verifyState();
+
+        assertThat(result.getState())
+                .isNotEqualTo(VerificationStatus.SUCCESS)
+                .as("Verification should fail for an issuer not trusted via the Trust Anchor");
     }
 }

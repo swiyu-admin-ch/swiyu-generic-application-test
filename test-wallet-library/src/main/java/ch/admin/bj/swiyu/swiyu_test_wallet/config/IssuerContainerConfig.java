@@ -52,6 +52,8 @@ public class IssuerContainerConfig {
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                 .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
                 .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
+                .withEnv("WEBHOOK_CALLBACK_URI", "http://%s:%d/callback".formatted(mockServer.getNetworkAliases().get(0), 1080))
+                .withEnv("WEBHOOK_INTERVAL", "100")
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)
                 .withNetworkAliases("swiyu_issuer")

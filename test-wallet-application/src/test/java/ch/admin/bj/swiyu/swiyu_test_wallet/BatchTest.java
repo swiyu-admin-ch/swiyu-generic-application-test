@@ -28,7 +28,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.sql.*;
 
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -95,15 +97,21 @@ class BatchTest {
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
-        issuerManager.createStatusList(batchSize, 2);
+        issuerManager.createStatusList(10000, 2);
 
         wallet.setEncryptionPreferred(true);
 
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
         final WalletBatchEntry batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
 
         assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+
+        List<Integer> indexes = getUsedIndexesFromDb();
+
+        assertThat(areSequential(indexes))
+                .as("Indexes in status_list should not be strictly sequential")
+                .isFalse();
     }
 
     @Test
@@ -129,6 +137,35 @@ class BatchTest {
         assertThat(ex.getMessage())
                 .as("Expected message to contain Bad Request and detail about max length exceeded")
                 .contains("\"detail\":\"Too few status indexes remain in status list");
+    }
+
+    private boolean areSequential(final List<Integer> indexes) {
+        if (indexes.size() < 2) return false;
+        
+        final List<Integer> sorted = indexes.stream().sorted().collect(Collectors.toList());
+        for (int i = 1; i < sorted.size(); i++) {
+            if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
+        }
+
+        return true;
+    }
+
+    private List<Integer> getUsedIndexesFromDb() throws SQLException {
+        final List<Integer> indexes = new ArrayList<>();
+
+        final String query = """
+            SELECT index
+            FROM swiyu_issuer.credential_offer_status
+            ORDER BY index ASC
+        """;
+
+        try (ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                indexes.add(rs.getInt("index"));
+            }
+        }
+
+        return indexes;
     }
 
 }
