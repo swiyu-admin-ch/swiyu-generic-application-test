@@ -38,6 +38,7 @@ class BatchTest {
     IssuerImageConfig issuerImageConfig;
     @Autowired
     VerifierImageConfig verifierImageConfig;
+    @Autowired
     IssuerConfig issuerConfig;
     @Autowired
     GenericContainer<?> issuerContainer;
