@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
+import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -8,11 +9,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.*;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
 import org.mockserver.verify.VerificationTimes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,26 +22,36 @@ import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockserver.verify.VerificationTimes.once;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class RandomizedIndexTest {
 
-    @Autowired IssuerImageConfig issuerImageConfig;
-    @Autowired VerifierImageConfig verifierImageConfig;
-    @Autowired IssuerConfig issuerConfig;
-    @Autowired GenericContainer<?> issuerContainer;
-    @Autowired GenericContainer<?> verifierContainer;
-    @Autowired PostgreSQLContainer<?> dbTestContainer;
-    @Autowired MockServerContainer mockServer;
+    @Autowired
+    IssuerImageConfig issuerImageConfig;
+    @Autowired
+    VerifierImageConfig verifierImageConfig;
+    @Autowired
+    IssuerConfig issuerConfig;
+    @Autowired
+    GenericContainer<?> issuerContainer;
+    @Autowired
+    GenericContainer<?> verifierContainer;
+    @Autowired
+    PostgreSQLContainer<?> dbTestContainer;
+    @Autowired
+    MockServerContainer mockServer;
 
     private Wallet wallet;
     private BusinessIssuer issuerManager;
@@ -85,7 +94,26 @@ class RandomizedIndexTest {
     }
 
     @Test
-    @Tag("issuer")
+    @XrayTest(
+            key = "EIDOMNI-410",
+            summary = "Batch issuance with randomized status list index allocation",
+            description = """
+                    This test validates that status list index allocation behaves as expected during mixed single and batch SD-JWT 
+                    credential issuance. The test ensures that indexes used for status entries are not sequential even when combining 
+                    individual and batch credential creation through the OID4VCI issuance flow.
+                    
+                    Steps:
+                    1. The issuer creates a status list with a defined maximum length and configuration.
+                    2. The issuer issues one SD-JWT credential and stores its index in the status list.
+                    3. The wallet collects the single credential offer.
+                    4. The issuer performs a batch issuance of SD-JWT credentials (multiple credentials per offer).
+                    5. The wallet collects all batch credentials.
+                    6. The database is queried for all used indexes.
+                    7. The test asserts that the number of credentials matches the expected count and that indexes are not sequential.
+                    """
+    )
+    //@ComponentTest("issuer")
+    @Tag("issuance")
     void fullBatchFlow_withRandomIndexes() throws Exception {
         final int statusListLength = 10000;
         issuerManager.createStatusList(statusListLength, 2);
@@ -114,7 +142,25 @@ class RandomizedIndexTest {
     }
 
     @Test
-    @Tag("issuer")
+    @XrayTest(
+            key = "EIDOMNI-408",
+            summary = "Concurrent batch issuance over a large status list",
+            description = """
+                    This test validates the behavior of concurrent SD-JWT credential batch issuance when operating over a large 
+                    status list. It ensures that multiple parallel issuance operations correctly allocate unique indexes without 
+                    collisions or sequential patterns.
+                    
+                    Steps:
+                    1. The issuer creates a large status list configured for token status entries.
+                    2. Multiple concurrent threads are launched, each performing a batch issuance of SD-JWT credentials.
+                    3. Each batch offer is collected by the wallet.
+                    4. After all threads complete, the database is queried for all used indexes.
+                    5. The test asserts that the total number of issued credentials matches the expected total and that indexes are 
+                       non-sequential across batches.
+                    """
+    )
+    //@ComponentTest("issuer")
+    @Tag("batch-issuance")
     void multipleConcurrentBatches_largeStatusList() throws Exception {
         final int statusListLength = 10000;
         final int batchCount = 10;
@@ -151,7 +197,25 @@ class RandomizedIndexTest {
     }
 
     @Test
-    @Tag("issuer")
+    @XrayTest(
+            key = "EIDOMNI-411",
+            summary = "Concurrent batch issuance with to small status list capacity",
+            description = """
+                    This test validates the issuer's behavior when handling concurrent batch SD-JWT issuance requests under 
+                    constrained status list capacity. It verifies that issuance succeeds up to available index capacity and that 
+                    excess requests are properly constrained by configuration.
+                    
+                    Steps:
+                    1. The issuer creates a small status list with limited capacity.
+                    2. Multiple concurrent threads are launched, each initiating a batch issuance request for SD-JWT credentials.
+                    3. Each batch offer is collected by the wallet.
+                    4. The system waits for all batch operations to complete.
+                    5. The database is queried to verify that the number of issued credentials matches the expected limit.
+                    6. The test ensures that issuance stops once the list capacity is reached.
+                    """
+    )
+    //@ComponentTest("issuer")
+    @Tag("batch-issuance")
     void multipleConcurrentBatches_smallStatusList() throws Exception {
         final int statusListLength = 20;
         final int batchCount = 10;

@@ -1,10 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
+import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
-import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
@@ -13,9 +10,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.*;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -26,8 +21,6 @@ import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.sql.*;
-
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,7 +38,6 @@ class BatchTest {
     IssuerImageConfig issuerImageConfig;
     @Autowired
     VerifierImageConfig verifierImageConfig;
-    @Autowired
     IssuerConfig issuerConfig;
     @Autowired
     GenericContainer<?> issuerContainer;
@@ -93,7 +85,26 @@ class BatchTest {
     }
 
     @Test
-    @Tag("issuer")
+    @XrayTest(
+            key = "EIDOMNI-388",
+            summary = "Successful SD-JWT batch issuance flow",
+            description = """
+                    This test validates that the issuer successfully performs a batch issuance of multiple SD-JWT credentials 
+                    in a single offer, ensuring that all issued credentials receive non-sequential status list indexes. 
+                    The flow follows the OID4VCI issuance process with encryption enabled.
+                    
+                    Steps:
+                    1. The issuer initializes a status list with a defined capacity and bit configuration.
+                    2. The wallet indicates encryption preference for credential issuance responses.
+                    3. The issuer creates a credential offer for an unbound SD-JWT credential.
+                    4. The wallet collects the offer in batch mode and retrieves multiple SD-JWT credentials.
+                    5. The system queries the status list to extract all used indexes.
+                    6. The test verifies that the number of issued credentials matches the requested batch size and that 
+                       indexes are not strictly sequential across the batch.
+                    """
+    )
+    //@ComponentTest("issuer")
+    @Tag("batch-issuance")
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
@@ -115,7 +126,24 @@ class BatchTest {
     }
 
     @Test
-    @Tag("issuer")
+    @XrayTest(
+            key = "EIDOMNI-395",
+            summary = "Batch issuance rejected when status list capacity exceeded",
+            description = """
+                    This test ensures that the issuer correctly rejects a batch SD-JWT issuance request when the 
+                    number of credentials to be issued exceeds the remaining capacity of the configured status list.
+                    
+                    Steps:
+                    1. The issuer creates a status list with limited capacity (e.g., length 2).
+                    2. The wallet enables encryption preference for issuance.
+                    3. The issuer attempts to create a credential offer for an SD-JWT credential.
+                    4. The wallet requests to collect multiple credentials in a batch exceeding the status list capacity.
+                    5. The issuer responds with an HTTP 400 Bad Request.
+                    6. The test validates that the error message indicates insufficient available status indexes.
+                    """
+    )
+    //@ComponentTest("issuer")
+    @Tag("batch-issuance")
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
         final int statusListLength = 2;
@@ -141,7 +169,7 @@ class BatchTest {
 
     private boolean areSequential(final List<Integer> indexes) {
         if (indexes.size() < 2) return false;
-        
+
         final List<Integer> sorted = indexes.stream().sorted().collect(Collectors.toList());
         for (int i = 1; i < sorted.size(); i++) {
             if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
@@ -154,10 +182,10 @@ class BatchTest {
         final List<Integer> indexes = new ArrayList<>();
 
         final String query = """
-            SELECT index
-            FROM swiyu_issuer.credential_offer_status
-            ORDER BY index ASC
-        """;
+                    SELECT index
+                    FROM swiyu_issuer.credential_offer_status
+                    ORDER BY index ASC
+                """;
 
         try (ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {

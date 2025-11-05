@@ -12,4 +12,5 @@ import org.springframework.test.context.ActiveProfiles;
         classes = SwiyuTestWalletApplication.class
 )
 @ActiveProfiles("systemtests")
-public class BaseTest { }
+public class BaseTest {
+}
