@@ -203,7 +203,7 @@ class PayloadEncryptionTest {
     @ParameterizedTest
     @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
-            key = "EIDOMNI-451",
+            key = "EIDOMNI-456",
             summary = "Verifier denied an encrypted presentation that was encrypted with the wrong key",
             description = """
                     This test validates the negative path of the wallet sending a encrypted presentation but not with the expected key
