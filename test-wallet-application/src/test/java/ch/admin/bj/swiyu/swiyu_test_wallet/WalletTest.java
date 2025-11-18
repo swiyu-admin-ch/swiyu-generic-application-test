@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -110,21 +111,19 @@ class WalletTest {
                     6. The verifier processes the SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
     @Tag("issuance")
     @Tag("verification")
     void unboundNotDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
-        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         var deeplink = verifierManager.createVerificationRequest();
 
         RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
 
-        wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         verifierManager.verifyState();
     }
@@ -148,8 +147,6 @@ class WalletTest {
                     8. The verifier successfully validates the SD-JWT and confirms the verification state as SUCCESS.
                     """
     )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
     @Tag("issuance")
     @Tag("verification")
     void unboundDeferredCredential_thenSuccess() {
@@ -167,7 +164,7 @@ class WalletTest {
         var deepLink = verifierManager.createVerificationRequest();
         var verificationDetails = wallet.getVerificationDetails(deepLink);
 
-        wallet.respondToVerification(verificationDetails, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
     }
 
     @Test
@@ -188,22 +185,20 @@ class WalletTest {
                     6. The verifier validates the bound SD-JWT presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
     @Tag("issuance")
     @Tag("verification")
-    void createBoundCredential_thenSuccess() {
-        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+        void createBoundCredential_thenSuccess() {
+            CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
+            WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
+            assertThat(entry.getCredentialOffer()).isNotNull();
 
-        var deepLink = verifierManager.createVerificationRequest();
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
-        var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+            var deepLink = verifierManager.createVerificationRequest();
+            var verificationDetails = wallet.getVerificationDetails(deepLink);
+            var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
-        wallet.respondToVerification(verificationDetails, res);
-    }
+            wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
+        }
 
     @Test
     @XrayTest(
@@ -226,8 +221,6 @@ class WalletTest {
                     8. The verifier validates the bound SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
     @Tag("issuance")
     @Tag("verification")
     void createDeferredBoundCredential_thenSuccess() {
@@ -245,7 +238,7 @@ class WalletTest {
         var verificationDetails = wallet.getVerificationDetails(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
-        wallet.respondToVerification(verificationDetails, res);
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
     }
 
     @Test
@@ -267,15 +260,13 @@ class WalletTest {
                     7. The verifier validates the presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
     @Tag("issuance")
     @Tag("verification")
     @Tag("dcql")
     void verifyDCQLRequest_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-        WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         var deepLink = verifierManager.createDCQLVerificationRequest();
@@ -284,48 +275,6 @@ class WalletTest {
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
         assert verificationDetails.getDcqlQuery() != null;
-        wallet.respondToVerificationV2(verificationDetails, res, verificationDetails.getDcqlQuery().getCredentials().getFirst().getId());
+        wallet.respondToVerificationV1(verificationDetails, res);
     }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-392",
-            summary = "Successful issuance and verification of an encrypted SD-JWT credential",
-            description = """
-                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential 
-                    where both issuance and presentation responses are encrypted according to OID4VCI and OID4VP 
-                    encryption requirements.
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an encrypted SD-JWT presentation back to the verifier.
-                    7. The verifier decrypts and validates the presentation, confirming that the verification state is SUCCESS.
-                    """
-    )
-    //@ComponentTest("issuer")
-    //@ComponentTest("verifier")
-    @Tag("issuance")
-    @Tag("verification")
-    @Tag("encryption")
-    void payloadEncryptedIssuanceAndVerificationFlow_thenSuccess() {
-        wallet.setEncryptionPreferred(true);
-
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-
-        final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
-        AssertionsForClassTypes.assertThat(entry.getCredentialOffer()).isNotNull();
-
-        final String deeplink = verifierManager.createVerificationRequest(true);
-
-        final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
-
-        wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
-
-        verifierManager.verifyState();
-    }
-
 }

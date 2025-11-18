@@ -104,7 +104,6 @@ class BatchTest {
                        indexes are not strictly sequential across the batch.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("batch-issuance")
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
@@ -115,7 +114,7 @@ class BatchTest {
 
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
-        final WalletBatchEntry batchEntry = wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
+        final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
 
         assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
 
@@ -143,7 +142,6 @@ class BatchTest {
                     6. The test validates that the error message indicates insufficient available status indexes.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("batch-issuance")
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
@@ -156,7 +154,7 @@ class BatchTest {
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
             final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-            wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
+            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
         });
 
         assertThat(ex.getStatusCode().value())

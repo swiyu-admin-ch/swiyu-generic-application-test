@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
+import ch.admin.bj.swiyu.gen.verifier.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.verifier.api.VerifierManagementApiApi;
 import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.verifier.model.CreateVerificationManagement;
@@ -12,6 +13,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.createDefaultRequest;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -20,11 +22,13 @@ public class VerifierManager {
 
     private final VerifierManagementApiApi managementApi;
     private ManagementResponse managementResponse;
+    private final ActuatorApi actuatorApi;
 
     public VerifierManager(String issuerServiceUrl) {
         RestClient restClient = RestClient.builder().build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
         managementApi = new VerifierManagementApiApi(apiClient);
+        actuatorApi = new ActuatorApi(apiClient);
     }
 
     public String createVerificationRequest() {
@@ -81,12 +85,20 @@ public class VerifierManager {
         return managementResponse;
     }
 
-    public ManagementResponse verifyState() {
+    public Map<String, Object> health() {
+        return (Map<String, Object>) actuatorApi.health();
+    }
+
+    public ManagementResponse verifyState(final VerificationStatus status) {
 
         managementResponse = managementApi.getVerification(managementResponse.getId());
 
-        assertThat(managementResponse.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        assertThat(managementResponse.getState()).isEqualTo(status);
 
         return managementResponse;
+    }
+
+    public ManagementResponse verifyState() {
+        return  verifyState(VerificationStatus.SUCCESS);
     }
 }
