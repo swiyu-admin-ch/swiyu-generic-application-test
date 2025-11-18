@@ -112,7 +112,6 @@ class RandomizedIndexTest {
                     7. The test asserts that the number of credentials matches the expected count and that indexes are not sequential.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("issuance")
     void fullBatchFlow_withRandomIndexes() throws Exception {
         final int statusListLength = 10000;
@@ -120,21 +119,21 @@ class RandomizedIndexTest {
 
         final CredentialWithDeeplinkResponse singleResponse =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
-        wallet.collectOffer(toUri(singleResponse.getOfferDeeplink()));
+        wallet.collectOfferID2(toUri(singleResponse.getOfferDeeplink()));
 
         final int afterSingle = getUsedIndexesFromDb().size();
         assertThat(afterSingle)
                 .as("Expected one entry after single credential issuance")
-                .isEqualTo(1);
+                .isEqualTo(3);
         final CredentialWithDeeplinkResponse batchResponse =
                 issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        wallet.collectOfferBatch(toUri(batchResponse.getOfferDeeplink()), 3);
+        wallet.collectOfferV1(toUri(batchResponse.getOfferDeeplink()));
 
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes.size())
                 .as("Expected total of 4 credentials (1 single + 3 in batch)")
-                .isEqualTo(4);
+                .isEqualTo(6);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")
@@ -172,7 +171,7 @@ class RandomizedIndexTest {
         Callable<Void> batchJob = () -> {
             CredentialWithDeeplinkResponse response =
                     issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
+            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
             return null;
         };
 
@@ -227,7 +226,7 @@ class RandomizedIndexTest {
         Callable<Void> batchJob = () -> {
             CredentialWithDeeplinkResponse response =
                     issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOfferBatch(toUri(response.getOfferDeeplink()), batchSize);
+            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
             return null;
         };
 

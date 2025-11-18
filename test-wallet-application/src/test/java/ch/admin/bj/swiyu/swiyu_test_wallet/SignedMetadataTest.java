@@ -11,22 +11,27 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
+import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -88,8 +93,7 @@ class SignedMetadataTest {
                     5. The retrieved metadata is valid and contains expected OID4VCI fields.
                     """
     )
-    //@ComponentTest("issuer")
-    @Tag("batch-issuance")
+    @Tag("signed-metadata")
     void shouldSuccessfullyValidateSignedMetadata() {
         var walletEntry = wallet.createWalletEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -103,5 +107,44 @@ class SignedMetadataTest {
         final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadataSigned(walletEntry);
 
         assertThat(metadata).isNotNull();
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-453",
+            summary = "Reject a signed metadata request if the tenant id does not exist",
+            description = """
+                     This test validates that issuer reject a request of a signed metadata of a none existed tenant id.
+                     1. The wallet requests issuer metadata with Accept: application/jwt using none existing tenant id.
+                     2. The issuer respond a NOT FOUND.
+                    """
+    )
+    @Tag("signed-metadata")
+    @Disabled("Bug reported in ticket EIDOMNI-446")
+    void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
+        final WalletEntry walletEntry = wallet.createWalletEntry();
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final String deeplink = response.getOfferDeeplink();
+
+        walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
+
+        walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
+        walletEntry.setToken(wallet.collectToken(walletEntry));
+
+        final UUID randomID = UUID.randomUUID();
+        final Pattern pattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+        final Matcher matcher = pattern.matcher(walletEntry.getIssuerUri().toString());
+        final URI modifiedUri = URI.create(matcher.replaceAll(randomID.toString()));
+
+        final WalletEntry modifiedWalletEntry = Mockito.spy(walletEntry);
+        Mockito.doReturn(modifiedUri)
+                .when(modifiedWalletEntry)
+                .getIssuerUri();
+
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
+                wallet.getIssuerWellKnownMetadataSigned(modifiedWalletEntry)
+        );
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
     }
 }

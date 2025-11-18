@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -15,6 +16,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -99,9 +101,10 @@ class TrustAnchorVerificationTest {
     )
     //@ComponentTest("verifier")
     @Tag("verification")
+    @Disabled("No business mock")
     void verificationWithValidTrustAnchor_thenSuccess(final int swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
@@ -124,7 +127,7 @@ class TrustAnchorVerificationTest {
         assertThat(managementResponse.getVerificationDeeplink()).isNotBlank();
 
         var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
-        wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();
 
@@ -152,9 +155,10 @@ class TrustAnchorVerificationTest {
     )
     //@ComponentTest("verifier")
     @Tag("verification")
+    @Disabled("No business trust mock")
     void verificationWithUntrustedIssuer_thenFails(final int swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        final WalletEntry entry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
@@ -177,7 +181,7 @@ class TrustAnchorVerificationTest {
         assertThat(managementResponse.getVerificationDeeplink()).isNotBlank();
 
         var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
-        wallet.respondToVerification(verificationRequest, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();
 

@@ -3,8 +3,10 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -12,13 +14,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
-import com.nimbusds.jose.crypto.RSADecrypter;
-import com.nimbusds.jose.jwk.*;
-import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpHeaders;
@@ -30,14 +28,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
-import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
@@ -65,24 +58,12 @@ public class Wallet {
         this.encryptionPreferred = encryptionPreferred;
     }
 
-    private static String decryptJWE(RSAKey jwk, String encryptedVerifiableCredential) {
-        try {
-            JWEObject jweObject = JWEObject.parse(encryptedVerifiableCredential);
-            jweObject.decrypt(new RSADecrypter(jwk));
-            return jweObject.getPayload().toString();
-        } catch (JOSEException | ParseException e) {
-            throw new RuntimeException("Unable to parse encrypted issuer credentials", e);
-        }
+    public WalletEntry createWalletEntry() {
+        return new WalletEntry(this);
     }
 
-    private static String decryptJWE(ECKey walletEphemeralKey, String encryptedResponse) {
-        try {
-            JWEObject jweObject = JWEObject.parse(encryptedResponse);
-            jweObject.decrypt(new ECDHDecrypter(walletEphemeralKey));
-            return jweObject.getPayload().toString();
-        } catch (JOSEException | ParseException e) {
-            throw new RuntimeException("Unable to decrypt ECDH-ES issuer credential response", e);
-        }
+    public WalletBatchEntry createWalletBatchEntry() {
+        return new WalletBatchEntry(this);
     }
 
     private static String getPresentationSubmissionPayload() {
@@ -99,21 +80,6 @@ public class Wallet {
                 """).toString();
     }
 
-    public WalletEntry createWalletEntry() {
-        return new WalletEntry(this);
-    }
-
-    public WalletEntry collectOffer(URI offerDeepLink) {
-        final WalletEntry walletEntry = createWalletEntry();
-        walletEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
-        walletEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletEntry));
-        walletEntry.setToken(collectToken(walletEntry));
-        walletEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletEntry));
-        walletEntry.setCredentialConfigurationSupported();
-        walletEntry.setIssuerSdJwt(getVerifiableCredentialFromIssuer(walletEntry));
-        return walletEntry;
-    }
-
     public WalletEntry collectTransactionIdFromDeferredOffer(URI issuerDeepLink) {
         var walletEntry = createWalletEntry();
 
@@ -122,7 +88,7 @@ public class Wallet {
         walletEntry.setToken(collectToken(walletEntry));
         walletEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletEntry));
         walletEntry.setCredentialConfigurationSupported();
-        var deferredCredentialTransactionIdResponse = postCredentialRequest(walletEntry);
+        var deferredCredentialTransactionIdResponse = postCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
 
         assertThat(deferredCredentialTransactionIdResponse)
                 .isNotNull();
@@ -173,7 +139,7 @@ public class Wallet {
 
         final String jwt = restClient.get()
                 .uri(issuerMetadataUri)
-                .header(HttpHeaders.CONTENT_TYPE, "application/jwt") // SHOULD BE ACCEPT
+                .header(HttpHeaders.ACCEPT, "application/jwt")
                 .retrieve()
                 .body(String.class);
 
@@ -213,25 +179,8 @@ public class Wallet {
         return response.getBody();
     }
 
-    public String getVerifiableCredentialFromIssuer(WalletEntry walletEntry) {
-        var bodyAsJson = postCredentialRequest(walletEntry);
-
-        if (walletEntry.isEncryptionEnabled()) {
-            assertThat(bodyAsJson).isNotNull();
-
-            final JsonElement credentialsElement = bodyAsJson.get("credentials");
-            assertThat(credentialsElement).isNotNull();
-            assertThat(credentialsElement.isJsonArray()).isTrue();
-
-            final JsonArray credentialsArray = credentialsElement.getAsJsonArray();
-            assertThat(credentialsArray.size()).isGreaterThan(0);
-
-            final JsonObject firstCredential = credentialsArray.get(0).getAsJsonObject();
-            assertThat(firstCredential.has("credential")).isTrue();
-
-            return firstCredential.get("credential").getAsString();
-
-        }
+    public String getVerifiableCredentialFromIssuerID2(WalletEntry walletEntry) {
+        var bodyAsJson = postCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
 
         assertThat(bodyAsJson.get("format").getAsString()).isEqualTo(VC_SD_JWT);
         assertThat(bodyAsJson.get("credential")).isNotNull();
@@ -239,8 +188,8 @@ public class Wallet {
         return bodyAsJson.get("credential").getAsString();
     }
 
-    public List<String> getVerifiableCredentialFromIssuer(WalletBatchEntry batchEntry) {
-        var response = postCredentialRequest(batchEntry);
+    public List<String> getVerifiableCredentialFromIssuerV1(WalletBatchEntry batchEntry) {
+        var response = postCredentialRequest(SwiyuApiVersionConfig.V1, batchEntry);
 
         assertThat(response).isNotNull();
         var credentialsElement = response.get("credentials");
@@ -257,156 +206,6 @@ public class Wallet {
         }
 
         return issued;
-    }
-
-
-    private JsonObject postCredentialRequest(final WalletEntry walletEntry) {
-        final boolean isBatch = walletEntry instanceof WalletBatchEntry;
-        final boolean isEncryptionEnabled = walletEntry.isEncryptionEnabled();
-
-        final URI credentialUri = walletEntry.getIssuerCredentialUri();
-        final OAuthToken token = walletEntry.getToken();
-        final String bearerToken = token.getAccessToken();
-
-        String requestPayload;
-        ResponseEntity<String> response;
-
-        if (isBatch) {
-            final WalletBatchEntry batchEntry = (WalletBatchEntry) walletEntry;
-
-            var metadata = walletEntry.getIssuerMetadata();
-            var proofsDto = new ProofsDto();
-            proofsDto.setJwt(batchEntry.getProofsAsJwt());
-
-            walletEntry.generateEphemeralEncryptionKey();
-
-            var encryptionMetadata = metadata.getCredentialResponseEncryption();
-            var responseEncryption = new CredentialResponseEncryption();
-            responseEncryption.setAlg(encryptionMetadata.getAlgValuesSupported().getFirst());
-            responseEncryption.setEnc(encryptionMetadata.getEncValuesSupported().getFirst());
-            responseEncryption.setJwk(walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject());
-
-            var credentialConfigId = walletEntry.getCredentialOffer().getCredentialConfiguraionId();
-            var requestV2 = new CredentialEndpointRequestV2()
-                    .credentialConfigurationId(credentialConfigId)
-                    .proofs(proofsDto);
-
-            if (walletEntry.isEncryptionEnabled()) {
-                requestV2.credentialResponseEncryption(responseEncryption);
-            }
-
-            try {
-                requestPayload = new ObjectMapper().writeValueAsString(requestV2);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException("Cannot serialize payload credential", ex);
-            }
-
-            if (walletEntry.isEncryptionEnabled()) {
-                requestPayload = encryptCredentialRequest(walletEntry, requestPayload);
-            }
-
-            response = restClient.post()
-                    .uri(issuerContext.getContextualizedUri(credentialUri))
-                    .header(HttpHeaders.CONTENT_TYPE, walletEntry.isEncryptionEnabled() ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
-                    .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                    .header("SWIYU-API-Version", "2")
-                    .body(requestPayload)
-                    .retrieve()
-                    .toEntity(String.class);
-
-        } else if (isEncryptionEnabled) {
-            final IssuerMetadata metadata = walletEntry.getIssuerMetadata();
-            final ProofsDto proofsDto = new ProofsDto();
-            final String proof = walletEntry.createProof().toJwt();
-            proofsDto.setJwt(List.of(proof));
-
-            walletEntry.generateEphemeralEncryptionKey();
-
-            var encryptionMetadata = metadata.getCredentialResponseEncryption();
-
-            final CredentialResponseEncryption responseEncryption = new CredentialResponseEncryption();
-            responseEncryption.setAlg(encryptionMetadata.getAlgValuesSupported().getFirst());
-            responseEncryption.setEnc(encryptionMetadata.getEncValuesSupported().getFirst());
-            responseEncryption.setJwk(walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject());
-
-            var credentialConfigId = walletEntry.getCredentialOffer().getCredentialConfiguraionId();
-            var requestV2 = new CredentialEndpointRequestV2()
-                    .credentialConfigurationId(credentialConfigId)
-                    .proofs(proofsDto)
-                    .credentialResponseEncryption(responseEncryption);
-
-            try {
-                requestPayload = new ObjectMapper().writeValueAsString(requestV2);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException("Cannot serialize payload credential", ex);
-            }
-
-            requestPayload = encryptCredentialRequest(walletEntry, requestPayload);
-
-            response = restClient.post()
-                    .uri(issuerContext.getContextualizedUri(credentialUri))
-                    .header(HttpHeaders.CONTENT_TYPE, "application/jwt")
-                    .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                    .header("SWIYU-API-Version", "2")
-                    .body(requestPayload)
-                    .retrieve()
-                    .toEntity(String.class);
-
-        } else {
-            var credentialConfigurationSupported = walletEntry.getCredentialConfigurationSupported();
-            var request = new CredentialEndpointRequest();
-            request.setFormat(VC_SD_JWT);
-
-            if (credentialConfigurationSupported.has("proof_types_supported")) {
-                var proof = walletEntry.createProof().toJwt();
-                Map<String, Object> proofMap = Map.of("proof_type", "jwt", "jwt", proof);
-                request.setProof(proofMap);
-            }
-
-            try {
-                requestPayload = new ObjectMapper().writeValueAsString(request);
-            } catch (JsonProcessingException ex) {
-                throw new RuntimeException("Cannot serialize payload credential", ex);
-            }
-
-            response = restClient.post()
-                    .uri(issuerContext.getContextualizedUri(credentialUri))
-                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                    .body(requestPayload)
-                    .retrieve()
-                    .toEntity(String.class);
-        }
-
-        int responseStatusCode = response.getStatusCode().value();
-        String bodyAsString = response.getBody();
-
-        assertThat(responseStatusCode)
-                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], request [encrypted=%s, batch=%s]"
-                        .formatted(credentialUri, responseStatusCode, bodyAsString, isEncryptionEnabled, isBatch))
-                .isIn(List.of(200, 202));
-
-        if (isEncryptionEnabled) {
-            try {
-                bodyAsString = decryptJWE(walletEntry.getEphemeralEncryptionKey(), bodyAsString);
-            } catch (Exception e) {
-                throw new RuntimeException("Error during decryption", e);
-            }
-        }
-
-        final JsonObject credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
-
-        if (isBatch) {
-            final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
-            credentials.forEach(c -> {
-                final String credential = c.getAsJsonObject().get("credential").getAsString();
-                ((WalletBatchEntry) walletEntry).addIssuedCredential(credential);
-            });
-        } else if (credentialResponse.has("credential")) {
-            walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
-        }
-
-        return credentialResponse;
     }
 
     private JsonObject postDeferredCredentialRequest(WalletEntry walletEntry) {
@@ -491,22 +290,6 @@ public class Wallet {
         }
     }
 
-
-    private CredentialResponseEncryption createCredentialResponseEncryption(RSAKey encrypterJwk) {
-        var credentialResponseEncryption = new CredentialResponseEncryption();
-        if (encrypterJwk != null) {
-            credentialResponseEncryption.setAlg("ECDH-E");
-            credentialResponseEncryption.setEnc("A256GCM");
-            credentialResponseEncryption.setJwk(Map.of(
-                    "kty", encrypterJwk.getKeyType().getValue(),
-                    "e", encrypterJwk.getPublicExponent().toString(),
-                    "n", encrypterJwk.getModulus().toString()
-            ));
-        }
-
-        return credentialResponseEncryption;
-    }
-
     public JsonObject getCredentialFromTransactionId(WalletEntry walletEntry) {
         return postDeferredCredentialRequest(walletEntry);
     }
@@ -525,105 +308,130 @@ public class Wallet {
                 .body(RequestObject.class);
     }
 
-    public void respondToVerification(RequestObject requestObject, String token) {
+    public void respondToVerification(final SwiyuApiVersionConfig apiVersion, RequestObject requestObject, String token) {
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            respondToVerificationV1(requestObject, token);
+            return;
+        }
+        respondToVerificationID2(requestObject, token);
+    }
 
-        var submission = getPresentationSubmissionPayload();
+    public void respondToVerificationID2(RequestObject requestObject, String token) {
+        final boolean isEncrypted = requestObject.getResponseMode() == RequestObject.ResponseModeEnum.POST_JWT;
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        final String submission = getPresentationSubmissionPayload();
+        final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
 
-        if (requestObject.getResponseMode() == RequestObject.ResponseModeEnum.POST_JWT) {
+        if (isEncrypted) {
             final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
-            final ECKey verifierKey = new ECKey.Builder(
-                    Curve.parse(jsonWebKey.getCrv()),
-                    new Base64URL(jsonWebKey.getX()),
-                    new Base64URL(jsonWebKey.getY())
-            )
-            .keyID(jsonWebKey.getKid())
-            .build();
-
+            jsonWebKey.setAlg("ECDH-ES");
+            jsonWebKey.setUse("enc");
             final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
+
+            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
             final EncryptionMethod encryptionMethod = EncryptionMethod.parse(encAlg);
 
-            final JWEHeader jweHeader = new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, encryptionMethod)
-                    .keyID(verifierKey.getKeyID())
+            final JWEHeader jweHeader = new JWEHeader.Builder(JWEAlgorithm.parse(jsonWebKey.getAlg()), encryptionMethod)
+                    .contentType("JWT")
+                    .keyID(verifierPublicKey.getKeyID())
                     .build();
-            final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .claim("presentation_submission", submission)
-                    .claim("vp_token", token)
-                    .build();
-            final JWEObject jweObject = new JWEObject(jweHeader, claimsSet.toPayload());
+
+            final Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("vp_token", token);
+            payload.put("presentation_submission", submission);
+
+            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(payload));
             try {
-                jweObject.encrypt(new ECDHEncrypter(verifierKey.toECKey()));
+                jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
             } catch (JOSEException e) {
-                throw new RuntimeException("Failed to encrypt VP token response", e);
+                throw new RuntimeException("Failed to encrypt VP token response (ID2)", e);
             }
+
             formData.add("response", jweObject.serialize());
         } else {
             formData.add("presentation_submission", submission);
             formData.add("vp_token", token);
         }
 
-        var response = restClient.post()
+        final var response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .headers(headers -> {
+                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+                    headers.add("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue());
+                })
                 .body(formData)
                 .retrieve()
                 .toBodilessEntity();
+
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
-    public void respondToVerificationV2(RequestObject requestObject, String token, String tokenId) {
+    public void respondToVerificationV1(final RequestObject requestObject, final String token) {
+        final boolean isEncrypted = requestObject.getResponseMode() == RequestObject.ResponseModeEnum.POST_JWT;
 
-        var vpToken = Map.of(tokenId, List.of(token));
+        final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
+        final Map<String, List<String>> vpToken = Map.of(tokenId, List.of(token));
 
-        MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
-        formData.add("vp_token", new Gson().toJson(vpToken));
+        final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 
-        var response = restClient.post()
+        if (isEncrypted) {
+            final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
+            jsonWebKey.setAlg("ECDH-ES");
+            jsonWebKey.setUse("enc");
+            final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
+
+            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
+            final EncryptionMethod encryptionMethod = EncryptionMethod.parse(encAlg);
+
+            final JWEHeader jweHeader = new JWEHeader.Builder(JWEAlgorithm.parse(jsonWebKey.getAlg()), encryptionMethod)
+                    .contentType("JWT")
+                    .keyID(verifierPublicKey.getKeyID())
+                    .build();
+
+            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(Map.of("vp_token", vpToken)));
+            try {
+                jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
+            } catch (JOSEException e) {
+                throw new RuntimeException("Failed to encrypt VP token response (V1)", e);
+            }
+
+            formData.add("response", jweObject.serialize());
+        } else {
+            formData.add("vp_token", new Gson().toJson(vpToken));
+        }
+
+        final ResponseEntity<Void> response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .header("SWIYU-API-Version", "2")
+                .headers(headers -> {
+                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+                    headers.add("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                })
                 .body(formData)
                 .retrieve()
                 .toBodilessEntity();
+
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
-//    public void rejectVerificationRequest(VerificationRequestDetails verificationDetails) {
-//        var target = verificationDetails.getOid4vpResponseUri();
-//        var formData = new LinkedMultiValueMap<String, String>();
-//        formData.add("error", "client_rejected");
-//
-//        var response = restClient.post()
-//                .uri(target)
-//                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-//                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-//                .body(formData)
-//                .retrieve()
-//                .toBodilessEntity();
-//
-//        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-//    }
-
-    public JsonNode getVctDetailsFromVctAsUrl(WalletEntry walletEntry) {
-        var vctUri = walletEntry.getVctUri();
-        String bodyAsString = restClient.get().uri(vctUri).exchange((req, resp) -> {
-            var body = resp.bodyTo(String.class);
-            assertThat(resp.getStatusCode().value())
-                    .withFailMessage("url: %s%nbody: %s".formatted(vctUri, body))
-                    .isEqualTo(200);
-            return body;
-        });
-
-        return toJsonNode(bodyAsString);
-
+    public WalletEntry collectOffer(final SwiyuApiVersionConfig apiVersion, final URI offerDeepLink) {
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            return collectOfferV1(offerDeepLink);
+        }
+        return collectOfferID2(offerDeepLink);
     }
 
-    public WalletBatchEntry createWalletBatchEntry() {
-        return new WalletBatchEntry(this);
+    public WalletEntry collectOfferID2(URI offerDeepLink) {
+        final WalletEntry walletEntry = createWalletEntry();
+        walletEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
+        walletEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletEntry));
+        walletEntry.setToken(collectToken(walletEntry));
+        walletEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletEntry));
+        walletEntry.setCredentialConfigurationSupported();
+        walletEntry.setIssuerSdJwt(getVerifiableCredentialFromIssuerID2(walletEntry));
+        return walletEntry;
     }
 
-    public WalletBatchEntry collectOfferBatch(URI offerDeepLink, int holderCount) {
+    public WalletBatchEntry collectOfferV1(URI offerDeepLink) {
         var entry = createWalletBatchEntry();
         entry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
@@ -631,11 +439,150 @@ public class Wallet {
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
         entry.setCredentialConfigurationSupported();
 
-        entry.generateHolderKeys(holderCount);
+        entry.generateHolderKeys(3);
         entry.createProofs();
 
-        getVerifiableCredentialFromIssuer(entry);
+        getVerifiableCredentialFromIssuerV1(entry);
 
         return entry;
+    }
+
+    private JsonObject postCredentialRequest(final SwiyuApiVersionConfig apiVersion, final WalletEntry walletEntry) {
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            return postCredentialRequestV1((WalletBatchEntry) walletEntry);
+        }
+        return postCredentialRequestID2(walletEntry);
+    }
+
+    private JsonObject postCredentialRequestID2(final WalletEntry walletEntry) {
+        final URI credentialUri = walletEntry.getIssuerCredentialUri();
+        final OAuthToken token = walletEntry.getToken();
+        final String bearerToken = token.getAccessToken();
+
+        String requestPayload;
+        ResponseEntity<String> response;
+
+
+        var credentialConfigurationSupported = walletEntry.getCredentialConfigurationSupported();
+        var request = new CredentialEndpointRequest();
+        request.setFormat(VC_SD_JWT);
+
+        if (credentialConfigurationSupported.has("proof_types_supported")) {
+            var proof = walletEntry.createProof().toJwt();
+            Map<String, Object> proofMap = Map.of("proof_type", "jwt", "jwt", proof);
+            request.setProof(proofMap);
+        }
+
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(request);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Cannot serialize payload credential", ex);
+        }
+
+        response = restClient.post()
+                .uri(issuerContext.getContextualizedUri(credentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
+                .body(requestPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+        int responseStatusCode = response.getStatusCode().value();
+        String bodyAsString = response.getBody();
+
+        assertThat(responseStatusCode)
+                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], request"
+                        .formatted(credentialUri, responseStatusCode, bodyAsString))
+                .isIn(List.of(200, 202));
+
+        final JsonObject credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
+
+        if (credentialResponse.has("credential")) {
+            walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
+        }
+
+        return credentialResponse;
+    }
+
+    private JsonObject postCredentialRequestV1(final WalletBatchEntry walletEntry) {
+        final boolean encryptionEnabled = walletEntry.isEncryptionEnabled();
+        final URI credentialUri = walletEntry.getIssuerCredentialUri();
+        final OAuthToken token = walletEntry.getToken();
+        final String bearerToken = token.getAccessToken();
+
+        // 1. Prepare Proofs
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(walletEntry.getProofsAsJwt());
+
+        // 2. Build request object
+        var metadata = walletEntry.getIssuerMetadata();
+        var requestDto = new CredentialEndpointRequestV2()
+                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+
+        // 3. If encryption is enabled, prepare ephemeral key and encryption metadata
+        if (encryptionEnabled) {
+            walletEntry.generateEphemeralEncryptionKey();
+
+            var encryptionMetadata = metadata.getCredentialResponseEncryption();
+            var responseEncryption = new CredentialResponseEncryption()
+                    .alg(encryptionMetadata.getAlgValuesSupported().getFirst())
+                    .enc(encryptionMetadata.getEncValuesSupported().getFirst())
+                    .jwk(walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject());
+
+            requestDto.credentialResponseEncryption(responseEncryption);
+        }
+
+        // 4. Serialize payload
+        final String requestPayload;
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Failed to serialize credential request payload", ex);
+        }
+
+        // 5. Encrypt if needed
+        final String finalPayload = encryptionEnabled
+                ? encryptCredentialRequest(walletEntry, requestPayload)
+                : requestPayload;
+
+        // 6. Send request
+        final ResponseEntity<String> response = restClient.post()
+                .uri(issuerContext.getContextualizedUri(credentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, encryptionEnabled ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .body(finalPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+        // 7. Validate response
+        int responseCode = response.getStatusCode().value();
+        String responseBody = response.getBody();
+        assertThat(responseCode)
+                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], encryption=%s"
+                        .formatted(credentialUri, responseCode, responseBody, encryptionEnabled))
+                .isIn(List.of(200, 202));
+
+        // 8. Decrypt if necessary
+        if (encryptionEnabled) {
+            try {
+                JWESupport.assertIsJWE(responseBody);
+                responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+            } catch (Exception e) {
+                throw new RuntimeException("Error decrypting credential response", e);
+            }
+        }
+
+        // 9. Parse response and update wallet entry
+        final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+        final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
+        credentials.forEach(c -> {
+            final String credential = c.getAsJsonObject().get("credential").getAsString();
+            walletEntry.addIssuedCredential(credential);
+        });
+
+        return credentialResponse;
     }
 }

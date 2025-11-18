@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -20,6 +19,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.util.Map;
+
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,8 +32,6 @@ class IssuerTest {
 
     @Autowired
     IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
     @Autowired
     IssuerConfig issuerConfig;
     @Autowired
@@ -68,12 +67,9 @@ class IssuerTest {
                     3. The test asserts that the health status equals UP, confirming successful initialization.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("infrastructure")
     void issuerManagementShouldBeHealthy() {
-
-        var health = issuerManager.health();
-
+        final Map<String, Object> health = issuerManager.health();
         assertThat(health)
                 .isNotNull()
                 .containsEntry("status", "UP");
@@ -96,7 +92,6 @@ class IssuerTest {
                     5. The test asserts that the pre-authorized code is present and unique from the management ID.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("issuance")
     void offerDeepLinkWithSDJwt() {
 
@@ -137,7 +132,6 @@ class IssuerTest {
                     4. The SD-JWT credential configuration 'university_example_sd_jwt' is verified to be included.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("issuance")
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
@@ -164,7 +158,6 @@ class IssuerTest {
                     4. The test asserts compliance with expected OID4VCI configuration.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("issuance")
     void validateConfiguration() {
         var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
@@ -191,7 +184,6 @@ class IssuerTest {
                     4. The test confirms that the configuration aligns with OID4VCI authorization flow expectations.
                     """
     )
-    //@ComponentTest("issuer")
     @Tag("issuance")
     void validateOAuthAuthorizationServer() {
         OpenIdConfiguration openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
