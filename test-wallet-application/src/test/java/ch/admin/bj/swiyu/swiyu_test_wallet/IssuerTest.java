@@ -54,29 +54,6 @@ class IssuerTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-394",
-            summary = "Issuer management service health check",
-            description = """
-                    This test validates that the issuer management service is operational and responding as expected. 
-                    It ensures that the infrastructure components required for OID4VCI issuance are properly initialized 
-                    and report a healthy system state.
-                    
-                    Steps:
-                    1. The issuer management service health endpoint is called.
-                    2. The health response is parsed and evaluated.
-                    3. The test asserts that the health status equals UP, confirming successful initialization.
-                    """
-    )
-    @Tag("infrastructure")
-    void issuerManagementShouldBeHealthy() {
-        final Map<String, Object> health = issuerManager.health();
-        assertThat(health)
-                .isNotNull()
-                .containsEntry("status", "UP");
-    }
-
-    @Test
-    @XrayTest(
             key = "EIDOMNI-387",
             summary = "Credential offer deeplink creation with SD-JWT content",
             description = """

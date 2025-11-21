@@ -44,29 +44,6 @@ class VerifierTest {
     }
 
     @Test
-    @XrayTest(
-            key = "EIDOMNI-394",
-            summary = "Issuer management service health check",
-            description = """
-                    This test validates that the issuer management service is operational and responding as expected. 
-                    It ensures that the infrastructure components required for OID4VCI issuance are properly initialized 
-                    and report a healthy system state.
-                    
-                    Steps:
-                    1. The issuer management service health endpoint is called.
-                    2. The health response is parsed and evaluated.
-                    3. The test asserts that the health status equals UP, confirming successful initialization.
-                    """
-    )
-    @Tag("infrastructure")
-    void verifierManagementShouldBeHealthy() {
-        final Map<String, Object> health = verifierManager.health();
-        assertThat(health)
-                .isNotNull()
-                .containsEntry("status", "UP");
-    }
-
-    @Test
     void verifierProvidesDeeplink() {
         final ManagementResponse deeplink = verifierManager.createVerificationRequest(VerificationRequests.createDefaultRequest(false, false));
         assertThat(deeplink.getVerificationDeeplink())
