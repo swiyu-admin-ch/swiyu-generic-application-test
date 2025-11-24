@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -79,7 +80,7 @@ class TrustAnchorVerificationTest {
     }
 
     @ParameterizedTest(name = "Successful verification through a valid Trust Anchor – SWIYU API v{0}")
-    @CsvSource({"1", "2"})
+    @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
             key = "EIDOMNI-195",
             summary = "Successful verification through a valid Trust Anchor",
@@ -102,31 +103,29 @@ class TrustAnchorVerificationTest {
     //@ComponentTest("verifier")
     @Tag("verification")
     @Disabled("No business mock")
-    void verificationWithValidTrustAnchor_thenSuccess(final int swiyuApiVersion) {
+    void verificationWithValidTrustAnchor_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
 
-        CreateVerificationManagement request = null;
-        if (swiyuApiVersion == 1) {
-            request = verifierManager.createVerificationRequestObject();
-        } else if (swiyuApiVersion == 2) {
-            request = verifierManager.createDCQLVerificationRequestObject();
-        } else {
-            throw new IllegalStateException("Invalid swiyu api version");
-        }
         final TrustAnchor anchor = new TrustAnchor()
                 .did(did)
                 .trustRegistryUri("trust-reg.trust-infra.swiyu-int.admin.ch");
-        request.addTrustAnchorsItem(anchor);
+        String deeplink = null;
+        if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
+            deeplink = verifierManager.verificationRequest()
+                    .trustAnchor(anchor)
+                    .create();
+        } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
+            deeplink = verifierManager.verificationRequest()
+                    .trustAnchor(anchor)
+                    .withDCQL()
+                    .create();
+        }
 
-        final ManagementResponse managementResponse = verifierManager.createVerificationRequest(request);
-        assertThat(managementResponse).isNotNull();
-        assertThat(managementResponse.getVerificationDeeplink()).isNotBlank();
-
-        var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
+        var verificationRequest = wallet.getVerificationDetails(deeplink);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();
@@ -137,7 +136,7 @@ class TrustAnchorVerificationTest {
     }
 
     @ParameterizedTest(name = "Verification rejected when issuer not trusted via Trust Anchor – SWIYU API v{0}")
-    @CsvSource({"1", "2"})
+    @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
             key = "EIDOMNI-397",
             summary = "Verification rejected when issuer not trusted via Trust Anchor",
@@ -156,31 +155,29 @@ class TrustAnchorVerificationTest {
     //@ComponentTest("verifier")
     @Tag("verification")
     @Disabled("No business trust mock")
-    void verificationWithUntrustedIssuer_thenFails(final int swiyuApiVersion) {
+    void verificationWithUntrustedIssuer_thenFails(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
         final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
 
-        CreateVerificationManagement request = null;
-        if (swiyuApiVersion == 1) {
-            request = verifierManager.createVerificationRequestObject();
-        } else if (swiyuApiVersion == 2) {
-            request = verifierManager.createDCQLVerificationRequestObject();
-        } else {
-            throw new IllegalStateException("Invalid swiyu api version");
-        }
         final TrustAnchor anchor = new TrustAnchor()
                 .did(did)
                 .trustRegistryUri("fake-reg.trust-infra.swiyu-int.admin.ch");
-        request.addTrustAnchorsItem(anchor);
+        String deeplink = null;
+        if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
+            deeplink = verifierManager.verificationRequest()
+                    .trustAnchor(anchor)
+                    .create();
+        } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
+            deeplink = verifierManager.verificationRequest()
+                    .trustAnchor(anchor)
+                    .withDCQL()
+                    .create();
+        }
 
-        final ManagementResponse managementResponse = verifierManager.createVerificationRequest(request);
-        assertThat(managementResponse).isNotNull();
-        assertThat(managementResponse.getVerificationDeeplink()).isNotBlank();
-
-        var verificationRequest = wallet.getVerificationDetails(managementResponse.getVerificationDeeplink());
+        var verificationRequest = wallet.getVerificationDetails(deeplink);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();

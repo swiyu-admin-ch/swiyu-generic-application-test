@@ -118,9 +118,16 @@ class PayloadEncryptionTest {
         log.info("Verifier creating verification request requiring encryption");
         String deeplink = null;
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
-            deeplink = verifierManager.createVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .encrypted()
+                    .create();
         } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
-            deeplink = verifierManager.createDCQLVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .withDCQL()
+                    .encrypted()
+                    .create();
         }
 
         final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
@@ -170,9 +177,16 @@ class PayloadEncryptionTest {
         log.info("Verifier creating verification request requiring encryption");
         String deeplink = null;
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
-            deeplink = verifierManager.createVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .encrypted()
+                    .create();
         } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
-            deeplink = verifierManager.createDCQLVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .withDCQL()
+                    .encrypted()
+                    .create();
         }
 
         final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
@@ -203,7 +217,7 @@ class PayloadEncryptionTest {
     @ParameterizedTest
     @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
-            key = "EIDOMNI-456",
+            key = "EIDOMNI-461",
             summary = "Verifier denied an encrypted presentation that was encrypted with the wrong key",
             description = """
                     This test validates the negative path of the wallet sending a encrypted presentation but not with the expected key
@@ -229,9 +243,16 @@ class PayloadEncryptionTest {
         log.info("Verifier creating verification request requiring encryption");
         String deeplink = null;
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
-            deeplink = verifierManager.createVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .encrypted()
+                    .create();
         } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
-            deeplink = verifierManager.createDCQLVerificationRequest(true);
+            deeplink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(entry.getIssuerDid())
+                    .withDCQL()
+                    .encrypted()
+                    .create();
         }
 
         final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);

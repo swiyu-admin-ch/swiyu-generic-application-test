@@ -3,13 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 import ch.admin.bj.swiyu.gen.verifier.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.verifier.api.VerifierManagementApiApi;
 import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
-import ch.admin.bj.swiyu.gen.verifier.model.CreateVerificationManagement;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlCredentialDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlCredentialMetaDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
-import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
-import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
+import ch.admin.bj.swiyu.gen.verifier.model.*;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -31,52 +25,80 @@ public class VerifierManager {
         actuatorApi = new ActuatorApi(apiClient);
     }
 
-    public String createVerificationRequest() {
-        return createVerificationRequest(false);
+    public VerificationRequestBuilder verificationRequest() {
+        return new VerificationRequestBuilder();
     }
 
-    public String createVerificationRequest(final boolean encrypted) {
-        CreateVerificationManagement request = createDefaultRequest(true, encrypted);
+    public class VerificationRequestBuilder {
+        private final CreateVerificationManagement request;
 
-        return createVerificationRequest(request).getVerificationDeeplink();
-    }
+        public VerificationRequestBuilder() {
+            this.request = createDefaultRequest(true);
+        }
 
-    public String createDCQLVerificationRequest(final boolean encrypted) {
-        CreateVerificationManagement request = createDefaultRequest(true, encrypted);
+        public VerificationRequestBuilder acceptedIssuerDids(List<String> dids) {
+            request.acceptedIssuerDids(dids);
+            return this;
+        }
 
-        DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto().vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01")).typeValues(null);
-        DcqlClaimDto claim = new DcqlClaimDto().path(List.of("type")).id(null).values(null);
-        DcqlCredentialDto credential = new DcqlCredentialDto().id("VerifiableCredential").format("vc+sd-jwt").meta(meta).claims(List.of(claim)).claimSets(null).requireCryptographicHolderBinding(true);
+        public VerificationRequestBuilder trustAnchors(List<TrustAnchor> trustAnchors) {
+            request.trustAnchors(trustAnchors);
+            return this;
+        }
 
-        DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
+        public VerificationRequestBuilder acceptedIssuerDid(final String did) {
+            request.addAcceptedIssuerDidsItem(did);
+            return this;
+        }
 
-        request.setDcqlQuery(dcqlQuery);
+        public VerificationRequestBuilder trustAnchor(TrustAnchor trustAnchor) {
+            request.addTrustAnchorsItem(trustAnchor);
+            return this;
+        }
 
-        return createVerificationRequest(request).getVerificationDeeplink();
-    }
+        public VerificationRequestBuilder encrypted() {
+            request.responseMode(CreateVerificationManagement.ResponseModeEnum.POST_JWT);
+            return this;
+        }
 
-    public String createDCQLVerificationRequest() {
-        return createDCQLVerificationRequest(false);
-    }
+        public VerificationRequestBuilder unencrypted() {
+            request.responseMode(CreateVerificationManagement.ResponseModeEnum.POST);
+            return this;
+        }
 
-    public CreateVerificationManagement createVerificationRequestObject() {
-        CreateVerificationManagement request = createDefaultRequest(true, false);
+        public VerificationRequestBuilder withDCQL() {
+            DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
+                    .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
+                    .typeValues(null);
+            DcqlClaimDto claim = new DcqlClaimDto()
+                    .path(List.of("type"))
+                    .id(null)
+                    .values(null);
+            DcqlCredentialDto credential = new DcqlCredentialDto()
+                    .id("VerifiableCredential")
+                    .format("vc+sd-jwt")
+                    .meta(meta)
+                    .claims(List.of(claim))
+                    .claimSets(null)
+                    .requireCryptographicHolderBinding(true);
 
-        return request;
-    }
+            DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
+            request.setDcqlQuery(dcqlQuery);
+            return this;
+        }
 
-    public CreateVerificationManagement createDCQLVerificationRequestObject() {
-        CreateVerificationManagement request = createDefaultRequest(true, false);
+        public CreateVerificationManagement build() {
+            return request;
+        }
 
-        DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto().vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01")).typeValues(null);
-        DcqlClaimDto claim = new DcqlClaimDto().path(List.of("type")).id(null).values(null);
-        DcqlCredentialDto credential = new DcqlCredentialDto().id("VerifiableCredential").format("vc+sd-jwt").meta(meta).claims(List.of(claim)).claimSets(null).requireCryptographicHolderBinding(true);
+        public ManagementResponse createManagementResponse() {
+            return managementApi.createVerification(request);
+        }
 
-        DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
-
-        request.setDcqlQuery(dcqlQuery);
-
-        return request;
+        public String create() {
+            managementResponse = createManagementResponse();
+            return managementResponse.getVerificationDeeplink();
+        }
     }
 
     public ManagementResponse createVerificationRequest(CreateVerificationManagement request) {

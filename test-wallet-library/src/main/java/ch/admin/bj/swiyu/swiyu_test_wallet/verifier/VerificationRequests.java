@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 
+import java.util.List;
 import java.util.UUID;
 
 @UtilityClass
@@ -17,7 +18,7 @@ public class VerificationRequests {
 
     public static final String DEFAULT_ALG = "ES256";
 
-    public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding, final boolean encrypted) {
+    public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding) {
 
         Constraint lastNameConstraint = new Constraint()
                 .addFieldsItem(new Field()
@@ -38,8 +39,9 @@ public class VerificationRequests {
 
         return new CreateVerificationManagement()
                 .acceptedIssuerDids(null)
+                .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
-                .responseMode(encrypted ? CreateVerificationManagement.ResponseModeEnum.POST_JWT : CreateVerificationManagement.ResponseModeEnum.POST)
+                .responseMode(CreateVerificationManagement.ResponseModeEnum.POST)
                 .presentationDefinition(presentation);
     }
 
@@ -57,7 +59,7 @@ public class VerificationRequests {
 
     public String createDefaultRequestString(boolean withKeyBinding) {
         try {
-            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding, false));
+            return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

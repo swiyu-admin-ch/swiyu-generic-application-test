@@ -175,6 +175,12 @@ public class WalletEntry {
         return credentialOffer.getCredentialIssuerUri();
     }
 
+    public String getIssuerDid() {
+        var vc = getVerifiableCredential();
+        var payload = SdJwtSupport.extractPayload(vc);
+        return payload.get("iss").asText();
+    }
+
     public URI getIssuerCredentialUri() {
         if (issuerMetadata == null) {
             throw new IllegalStateException("issuer metadata is not set.");

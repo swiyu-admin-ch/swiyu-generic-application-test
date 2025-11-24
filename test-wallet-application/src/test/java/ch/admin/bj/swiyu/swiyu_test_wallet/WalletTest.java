@@ -24,6 +24,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.util.List;
+
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -119,7 +121,9 @@ class WalletTest {
         WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        var deeplink = verifierManager.createVerificationRequest();
+        var deeplink = verifierManager.verificationRequest()
+                .acceptedIssuerDid(entry.getIssuerDid())
+                .create();
 
         RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
 
@@ -161,7 +165,9 @@ class WalletTest {
 
         assertThat(result.get("credential")).isNotNull();
 
-        var deepLink = verifierManager.createVerificationRequest();
+        var deepLink = verifierManager.verificationRequest()
+                .acceptedIssuerDid(entry.getIssuerDid())
+                .create();;
         var verificationDetails = wallet.getVerificationDetails(deepLink);
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
@@ -193,7 +199,7 @@ class WalletTest {
             WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
             assertThat(entry.getCredentialOffer()).isNotNull();
 
-            var deepLink = verifierManager.createVerificationRequest();
+            var deepLink = verifierManager.verificationRequest().acceptedIssuerDid(entry.getIssuerDid()).create();
             var verificationDetails = wallet.getVerificationDetails(deepLink);
             var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
@@ -234,7 +240,9 @@ class WalletTest {
         var result = wallet.getCredentialFromTransactionId(entry);
         assertThat(result.get("credential")).isNotNull();
 
-        var deepLink = verifierManager.createVerificationRequest();
+        var deepLink = verifierManager.verificationRequest()
+                .acceptedIssuerDid(entry.getIssuerDid())
+                .create();
         var verificationDetails = wallet.getVerificationDetails(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
@@ -269,7 +277,10 @@ class WalletTest {
         WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        var deepLink = verifierManager.createDCQLVerificationRequest();
+        var deepLink = verifierManager.verificationRequest()
+                .acceptedIssuerDid(entry.getIssuerDid())
+                .withDCQL()
+                .create();
 
         var verificationDetails = wallet.getVerificationDetails(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
