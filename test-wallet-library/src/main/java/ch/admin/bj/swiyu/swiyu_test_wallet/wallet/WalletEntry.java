@@ -1,6 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.*;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialResponseEncryption;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
+import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -30,8 +33,8 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Getter
 @Setter
@@ -66,7 +69,7 @@ public class WalletEntry {
         if (issuerMetadata == null) {
             throw new IllegalStateException("issuer metadata is not set.");
         }
-        credentialConfigurationSupported =  issuerMetadata.getCredentialConfigurationById(credentialOffer.getCredentialConfiguraionId());
+        credentialConfigurationSupported = issuerMetadata.getCredentialConfigurationById(credentialOffer.getCredentialConfiguraionId());
     }
 
     public void receiveDeepLinkAndValidateIt(URI deepLink) {

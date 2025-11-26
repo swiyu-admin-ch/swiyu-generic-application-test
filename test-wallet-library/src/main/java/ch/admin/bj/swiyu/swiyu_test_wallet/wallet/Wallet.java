@@ -17,6 +17,14 @@ import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWEObject;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpHeaders;
@@ -28,6 +36,10 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.security.interfaces.ECPrivateKey;
 import java.util.*;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
@@ -64,6 +76,14 @@ public class Wallet {
 
     public WalletBatchEntry createWalletBatchEntry() {
         return new WalletBatchEntry(this);
+    }
+
+    public String getIssuerTokenUri(WalletEntry walletEntry) {
+        return walletEntry.getIssuerTokenUri().toString();
+    }
+
+    public String getIssuerCredentialUri(WalletEntry walletEntry) {
+        return walletEntry.getIssuerCredentialUri().toString();
     }
 
     private static String getPresentationSubmissionPayload() {
@@ -170,13 +190,14 @@ public class Wallet {
                 .body(OAuthToken.class);
     }
 
-    public NonceResponse getCNonce(WalletEntry walletEntry) {
+    public ResponseEntity<NonceResponse> getCNonce(WalletEntry walletEntry) {
+        final URI cnonceURI = issuerContext.getContextualizedUri(walletEntry.getIssuerMetadata().getNonceEndpointURI());
         final ResponseEntity<NonceResponse> response = restClient.post()
-                .uri(walletEntry.getIssuerMetadata().getNonceEndpointURI())
+                .uri(cnonceURI)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
                 .toEntity(NonceResponse.class);
-        return response.getBody();
+        return response;
     }
 
     public String getVerifiableCredentialFromIssuerID2(WalletEntry walletEntry) {
@@ -510,17 +531,14 @@ public class Wallet {
         final OAuthToken token = walletEntry.getToken();
         final String bearerToken = token.getAccessToken();
 
-        // 1. Prepare Proofs
         var proofsDto = new ProofsDto();
         proofsDto.setJwt(walletEntry.getProofsAsJwt());
 
-        // 2. Build request object
         var metadata = walletEntry.getIssuerMetadata();
         var requestDto = new CredentialEndpointRequestV2()
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
-        // 3. If encryption is enabled, prepare ephemeral key and encryption metadata
         if (encryptionEnabled) {
             walletEntry.generateEphemeralEncryptionKey();
 
@@ -533,7 +551,6 @@ public class Wallet {
             requestDto.credentialResponseEncryption(responseEncryption);
         }
 
-        // 4. Serialize payload
         final String requestPayload;
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
@@ -541,22 +558,30 @@ public class Wallet {
             throw new RuntimeException("Failed to serialize credential request payload", ex);
         }
 
-        // 5. Encrypt if needed
         final String finalPayload = encryptionEnabled
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
-        // 6. Send request
-        final ResponseEntity<String> response = restClient.post()
+        String doPProofForCredentialRequest = null;
+        if (token.getTokenType() != null && token.getTokenType().equals("DPoP")) {
+            doPProofForCredentialRequest = createDoPProofForCredentialRequest(walletEntry, credentialUri);
+        }
+
+        var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
                 .header(HttpHeaders.CONTENT_TYPE, encryptionEnabled ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+
+        if (doPProofForCredentialRequest != null) {
+            requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
+        }
+
+        final ResponseEntity<String> response = requestBuilder
                 .body(finalPayload)
                 .retrieve()
                 .toEntity(String.class);
 
-        // 7. Validate response
         int responseCode = response.getStatusCode().value();
         String responseBody = response.getBody();
         assertThat(responseCode)
@@ -564,7 +589,6 @@ public class Wallet {
                         .formatted(credentialUri, responseCode, responseBody, encryptionEnabled))
                 .isIn(List.of(200, 202));
 
-        // 8. Decrypt if necessary
         if (encryptionEnabled) {
             try {
                 JWESupport.assertIsJWE(responseBody);
@@ -574,7 +598,6 @@ public class Wallet {
             }
         }
 
-        // 9. Parse response and update wallet entry
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
         final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
@@ -585,4 +608,98 @@ public class Wallet {
 
         return credentialResponse;
     }
+
+    public String getDpopNonce(WalletEntry walletEntry) {
+        ResponseEntity<NonceResponse> response = getCNonce(walletEntry);
+        return response.getHeaders().getFirst("dpop-nonce");
+    }
+
+    public OAuthToken collectTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+        final URI tokenUri = issuerContext.getContextualizedUri(walletEntry.getIssuerTokenUri());
+        final String preAuthorizedCode = walletEntry.getPreAuthorizedCode();
+
+        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "urn:ietf:params:oauth:grant-type:pre-authorized_code");
+        params.add("pre-authorized_code", preAuthorizedCode);
+
+        final ResponseEntity<OAuthToken> response = restClient.post()
+                .uri(tokenUri)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header("DPoP", doPProof)
+                .body(params)
+                .retrieve()
+                .toEntity(OAuthToken.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return response.getBody();
+    }
+
+    public OAuthToken refreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+        final URI tokenUri = issuerContext.getContextualizedUri(walletEntry.getIssuerTokenUri());
+        final String refreshToken = walletEntry.getToken().getRefreshToken();
+
+        assertThat(refreshToken).isNotNull().isNotEmpty();
+
+        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("refresh_token", refreshToken);
+
+        final ResponseEntity<OAuthToken> response = restClient.post()
+                .uri(tokenUri)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header("DPoP", doPProof)
+                .body(params)
+                .retrieve()
+                .toEntity(OAuthToken.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return response.getBody();
+    }
+
+    private String createDoPProofForCredentialRequest(WalletEntry walletEntry, URI credentialUri) {
+        try {
+            String nonce = getDpopNonce(walletEntry);
+
+            String accessToken = walletEntry.getToken().getAccessToken();
+
+            String uri = credentialUri.toString();
+
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                    .type(new JOSEObjectType("dpop+jwt"))
+                    .jwk(walletEntry.getProofPublicJwk())
+                    .build();
+
+            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                    .claim("htm", "POST")
+                    .claim("htu", uri)
+                    .issueTime(new Date())
+                    .jwtID(UUID.randomUUID().toString())
+                    .claim("nonce", nonce);
+
+            if (accessToken != null) {
+                claimsBuilder.claim("ath", hashAccessToken(accessToken));
+            }
+
+            JWTClaimsSet claims = claimsBuilder.build();
+
+            SignedJWT signedJWT = new SignedJWT(header, claims);
+            signedJWT.sign(new ECDSASigner((ECPrivateKey) walletEntry.getKeyPair().getPrivate()));
+            return signedJWT.serialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create DPoP proof for credential request", e);
+        }
+    }
+
+    private String hashAccessToken(String accessToken) {
+        try {
+            var digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(accessToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
+
+
 }

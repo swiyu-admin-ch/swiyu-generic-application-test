@@ -20,6 +20,7 @@ public class WalletBatchEntry extends WalletEntry {
     private final List<ECKey> holderPublicKeys = new ArrayList<>();
     private final List<JwtProof> proofs = new ArrayList<>();
     private final List<String> issuedCredentials = new ArrayList<>();
+    private String currentNonce;
 
     public WalletBatchEntry(Wallet wallet) {
         super(wallet);
@@ -46,10 +47,15 @@ public class WalletBatchEntry extends WalletEntry {
         }
 
         proofs.clear();
+
         for (ECKey pub : holderPublicKeys) {
+            String uniqueNonce = currentNonce != null ?
+                    currentNonce + "-" + UUID.randomUUID().toString() :
+                    getToken().getcNonce();
+
             var proof = new JwtProof(
                     getCredentialOffer().getCredentialIssuerUriAsString(),
-                    getToken().getcNonce(),
+                    uniqueNonce,
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
             );
