@@ -91,4 +91,12 @@ public class IssuerMetadata {
         }
     }
 
+    public int getBatchSize() {
+        JsonObject batch = data.getAsJsonObject("batch_credential_issuance");
+        return batch != null && batch.has("batch_size")
+                ? batch.get("batch_size").getAsInt()
+                : 1;
+    }
+
+
 }

@@ -460,7 +460,7 @@ public class Wallet {
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
         entry.setCredentialConfigurationSupported();
 
-        entry.generateHolderKeys(3);
+        entry.generateHolderKeys();
         entry.createProofs();
 
         getVerifiableCredentialFromIssuerV1(entry);
@@ -666,11 +666,14 @@ public class Wallet {
             String uri = credentialUri.toString();
 
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("dpop+jwt"))
+                    .type(new JOSEObjectType("openid4vci-proof+jwt"))
                     .jwk(walletEntry.getProofPublicJwk())
                     .build();
 
+            String issuerIdentifier = walletEntry.getIssuerMetadata().getIssuerURI();
+
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                    .audience(issuerIdentifier)
                     .claim("htm", "POST")
                     .claim("htu", uri)
                     .issueTime(new Date())
@@ -701,5 +704,46 @@ public class Wallet {
         }
     }
 
+    public void postCredentialRequestWithCustomDPoP(WalletBatchEntry batchEntry, String customDpopProof, URI credentialUri) {
+        final OAuthToken token = batchEntry.getToken();
+        final String bearerToken = token.getAccessToken();
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(batchEntry.getProofsAsJwt());
+        var requestDto = new CredentialEndpointRequestV2()
+                .credentialConfigurationId(batchEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+
+        final String requestPayload;
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Failed to serialize credential request payload", ex);
+        }
+
+        var requestBuilder = restClient.post()
+                .uri(issuerContext.getContextualizedUri(credentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+
+        if (customDpopProof != null) {
+            requestBuilder = requestBuilder.header("DPoP", customDpopProof);
+        }
+
+        final ResponseEntity<String> response = requestBuilder
+                .body(requestPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+        int responseCode = response.getStatusCode().value();
+        String responseBody = response.getBody();
+        assertThat(responseCode)
+                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s]"
+                        .formatted(credentialUri, responseCode, responseBody))
+                .isIn(List.of(200, 202));
+    }
 
 }
+
+
+
