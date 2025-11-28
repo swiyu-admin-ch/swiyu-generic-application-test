@@ -26,7 +26,8 @@ public class WalletBatchEntry extends WalletEntry {
         super(wallet);
     }
 
-    public void generateHolderKeys(int count) {
+    public void generateHolderKeys() {
+        final int count = getIssuerMetadata().getBatchSize();
         holderKeyPairs.clear();
         holderPublicKeys.clear();
 
