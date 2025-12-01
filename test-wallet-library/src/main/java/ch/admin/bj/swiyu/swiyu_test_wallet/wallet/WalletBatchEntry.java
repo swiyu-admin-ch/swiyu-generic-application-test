@@ -55,7 +55,7 @@ public class WalletBatchEntry extends WalletEntry {
                     getToken().getcNonce();
 
             var proof = new JwtProof(
-                    getCredentialOffer().getCredentialIssuerUriAsString(),
+                    getIssuerMetadata().getIssuerURI(),
                     uniqueNonce,
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
@@ -66,6 +66,27 @@ public class WalletBatchEntry extends WalletEntry {
 
     public List<String> getProofsAsJwt() {
         return proofs.stream().map(JwtProof::toJwt).toList();
+    }
+
+    public void setProofsFromJwt(List<JwtProof> proofs) {
+        proofs.clear();
+        for (JwtProof p : proofs) {
+            proofs.add(p);
+        }
+    }
+
+    private static class JwtProofWrapper extends JwtProof {
+        private final String capturedJwt;
+
+        JwtProofWrapper(String jwt) {
+            super(null, null, null, null);
+            this.capturedJwt = jwt;
+        }
+
+        @Override
+        public String toJwt() {
+            return capturedJwt;
+        }
     }
 
     public void addIssuedCredential(String jwt) {
