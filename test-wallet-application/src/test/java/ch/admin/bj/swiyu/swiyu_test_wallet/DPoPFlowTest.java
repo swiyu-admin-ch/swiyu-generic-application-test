@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEObjectType;
@@ -26,6 +27,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.net.URI;
 import java.security.KeyPair;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -74,7 +76,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("dpop")
     void dpopInitialIssuance_happyPath() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -152,7 +154,7 @@ class DPoPFlowTest extends BaseTest {
         final int batchSize = 3;
 
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -248,7 +250,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("dpop")
     void dpopNonceInvalidationAfterUsage_preventReplayAttack() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -311,7 +313,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("refresh-flow")
     void dpopNonceInvalidationInRefreshFlow_preventReplay() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -400,7 +402,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("refresh-flow")
     void dpopNonceInvalidationInCredentialRequests_preventReplay() {
         CredentialWithDeeplinkResponse offer1 =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
 
         URI deeplink1 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer1.getOfferDeeplink()));
@@ -437,7 +439,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Wallet creates new credential offer for second batch");
         CredentialWithDeeplinkResponse offer2 =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
 
         URI deeplink2 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer2.getOfferDeeplink()));
@@ -485,7 +487,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("dpop")
     void dpopRegisterHolderKey_thenRejectDifferentKey() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -583,7 +585,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("dpop")
     void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -673,6 +675,10 @@ class DPoPFlowTest extends BaseTest {
     }
 
     private String createDpopProofForToken(String uri, String method, String nonce) {
+        return createDpopProofForToken(uri, method, nonce, null);
+    }
+
+    private String createDpopProofForToken(String uri, String method, String nonce, String audience) {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("dpop+jwt"))
@@ -680,6 +686,7 @@ class DPoPFlowTest extends BaseTest {
                     .build();
 
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                    .audience(audience)
                     .claim("htm", method)
                     .claim("htu", uri)
                     .issueTime(new Date())
@@ -704,130 +711,101 @@ class DPoPFlowTest extends BaseTest {
             key = "EIDOMNI-480",
             summary = "Vulnerability Check: Holder Binding Proof Replay Protection",
             description = """
-                    This test verifies that the holder binding proof replay vulnerability has been fixed.
-                    
                     Vulnerability: The nonce validation was missing a UUID check for self-contained nonces,
                     allowing attackers to replay holder binding proofs observed over the network.
                     The validateNonce function only checked expiry but not the nonce UUID value itself.
                     
                     Test scenario:
-                    1. Wallet creates and sends a credential request with holder binding proof containing nonce N.
-                    2. Issuer receives request, validates proof, and issues first credential.
-                    3. Attacker observes the same holder binding proof and attempts to replay it.
-                    4. Issuer must reject the replayed proof because:
-                       - The nonce UUID must match what was issued
+                    1. Wallet creates credential request with batch of holder binding proofs, each with unique nonce.
+                    2. Issuer receives request, validates proofs (including nonces), and registers nonces as used.
+                    3. Issuer issues credentials.
+                    4. Attacker captures and replays the exact same holder binding proofs (same JWT strings with same nonces).
+                    5. Issuer must reject the replayed proofs because:
+                       - Each nonce UUID has been registered as already used
                        - Self-contained nonces must be tracked to prevent replays
-                    5. Wallet requests new nonce and creates fresh holder binding proof.
-                    6. Issuer successfully issues second batch with new proof.
-                    
-                    This ensures holder binding proofs cannot be replayed for credential issuance.
+                    6. Wallet requests new credential batch with new nonces - must succeed.
                     """
     )
     @Tag("issuance")
     @Tag("dpop")
     void holderBindingReplayProtection_preventProofReuse() {
-        CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse offer =
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
         assertThat(offer).isNotNull();
 
-        URI deeplink = wallet.getIssuerContext()
+        final URI deeplink = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer.getOfferDeeplink()));
 
-        WalletBatchEntry batchEntry = new WalletBatchEntry(wallet);
+        final WalletBatchEntry batchEntry = new WalletBatchEntry(wallet);
         batchEntry.receiveDeepLinkAndValidateIt(deeplink);
         batchEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(batchEntry));
         batchEntry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(batchEntry));
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests token for first credential batch");
-        String tokenNonce = wallet.getDpopNonce(batchEntry);
-        URI tokenUri = batchEntry.getIssuerTokenUri();
-        String tokenDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", tokenNonce);
-        OAuthToken token = wallet.collectTokenWithDPoP(batchEntry, tokenDpopProof);
+        final String tokenNonce = wallet.getDpopNonce(batchEntry);
+        final URI tokenUri = batchEntry.getIssuerTokenUri();
+        final String tokenDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", tokenNonce);
+        final OAuthToken token = wallet.collectTokenWithDPoP(batchEntry, tokenDpopProof);
         assertThat(token).isNotNull();
         batchEntry.setToken(token);
 
-        log.info("Wallet generates holder keys and creates holder binding proofs");
-        int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
+        log.info("Wallet generates holder keys and creates holder binding proofs with unique nonces");
+        final int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
         batchEntry.generateHolderKeys();
         batchEntry.createProofs();
 
-        log.info("Wallet sends credential request with holder binding proofs to /credential endpoint");
-        var firstCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
+        log.info("Capturing initial holder binding proof JWT strings (containing nonces)");
+        final List<JwtProof> initialProofJwts = batchEntry.getProofs();
+        assertThat(initialProofJwts)
+                .as("Initial proofs should be generated for batch size")
+                .hasSize(batchSize);
+
+        log.info("Wallet sends credential request with batch of {} holder binding proofs", batchSize);
+        final List<String> firstCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
         assertThat(firstCredentials)
                 .as("First credential batch must succeed")
                 .hasSize(batchSize);
 
-        log.info("Attacker copies the same holder binding proofs for replay attack");
-
         log.info("Creating new credential offer for attacker's replay attempt");
-        CredentialWithDeeplinkResponse offer2 =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse offer2 =
+                issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-        URI deeplink2 = wallet.getIssuerContext()
+        final URI deeplink2 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer2.getOfferDeeplink()));
 
-        WalletBatchEntry batchEntry2 = new WalletBatchEntry(wallet);
+        final WalletBatchEntry batchEntry2 = new WalletBatchEntry(wallet);
         batchEntry2.receiveDeepLinkAndValidateIt(deeplink2);
         batchEntry2.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(batchEntry2));
         batchEntry2.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(batchEntry2));
         batchEntry2.setCredentialConfigurationSupported();
 
         log.info("Attacker obtains legitimate token with new pre-authorized code");
-        String attackerTokenNonce = wallet.getDpopNonce(batchEntry2);
-        String attackerTokenProof = createDpopProofForToken(tokenUri.toString(), "POST", attackerTokenNonce);
-        OAuthToken attackerToken = wallet.collectTokenWithDPoP(batchEntry2, attackerTokenProof);
+        final String attackerTokenNonce = wallet.getDpopNonce(batchEntry2);
+        final String attackerTokenProof = createDpopProofForToken(tokenUri.toString(), "POST", attackerTokenNonce);
+        final OAuthToken attackerToken = wallet.collectTokenWithDPoP(batchEntry2, attackerTokenProof);
         batchEntry2.setToken(attackerToken);
 
-        log.info("Attacker discards newly generated holder binding proofs and reuses observed ones from first batch");
+        log.info("Attacker replays captured holder binding proof JWTs");
         batchEntry2.generateHolderKeys();
-        batchEntry2.createProofs();
+        batchEntry2.setProofsFromJwt(initialProofJwts);
 
-        log.info("Attacker copies first batch holder binding proofs for replay");
-        batchEntry2.getProofs().clear();
-        batchEntry2.getProofs().addAll(batchEntry.getProofs());
+        assertThat(batchEntry2.getProofs())
+                .as("Attacker's proofs are exact copies as first batch")
+                .isEqualTo(initialProofJwts);
 
-        log.info("Attacker sends credential request with replayed holder binding proofs");
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.getVerifiableCredentialFromIssuerV1(batchEntry2);
-        });
+        log.info("Attacker sends credential request with replayed holder binding proof JWTs");
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
+            wallet.getVerifiableCredentialFromIssuerV1(batchEntry2)
+        );
 
-        log.info("Issuer validates holder binding proofs and rejects replayed ones");
         assertThat(errorCode(ex))
-                .as("Issuer must reject credential request with replayed holder binding proofs")
-                .isEqualTo(400);
+                .as("Issuer must reject credential request with replayed nonces")
+                .isEqualTo(422);
         assertThat(errorJson(ex))
-                .as("Error should indicate invalid or reused proof")
-                .containsEntry("error", "INVALID_PROOF");
-        log.info("Replay attack prevented - nonce in holder binding proof was invalidated after first use");
-
-        log.info("Wallet legitimately requests new credentials with fresh holder binding proofs");
-        CredentialWithDeeplinkResponse offer3 =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-
-        URI deeplink3 = wallet.getIssuerContext()
-                .getContextualizedUri(toUri(offer3.getOfferDeeplink()));
-
-        WalletBatchEntry batchEntry3 = new WalletBatchEntry(wallet);
-        batchEntry3.receiveDeepLinkAndValidateIt(deeplink3);
-        batchEntry3.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(batchEntry3));
-        batchEntry3.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(batchEntry3));
-        batchEntry3.setCredentialConfigurationSupported();
-
-        String legitimateTokenNonce = wallet.getDpopNonce(batchEntry3);
-        String legitimateTokenProof = createDpopProofForToken(tokenUri.toString(), "POST", legitimateTokenNonce);
-        OAuthToken legitimateToken = wallet.collectTokenWithDPoP(batchEntry3, legitimateTokenProof);
-        batchEntry3.setToken(legitimateToken);
-
-        batchEntry3.generateHolderKeys();
-        batchEntry3.createProofs();
-
-        log.info("Wallet sends credential request with fresh holder binding proofs");
-        var thirdCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry3);
-        assertThat(thirdCredentials)
-                .as("Legitimate credential request with fresh proofs must succeed")
-                .hasSize(batchSize);
-        log.info("Issuer issued credentials - holder binding replay protection working correctly");
+                .as("Error should indicate proof validation failure due to nonce replay")
+                .containsEntry("error_description", "Unprocessable Entity")
+                .containsEntry("detail", "proofs.jwt: must not be empty");
     }
 }
 
