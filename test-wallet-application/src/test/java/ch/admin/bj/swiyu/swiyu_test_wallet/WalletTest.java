@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -13,9 +14,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -24,6 +28,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -287,5 +292,30 @@ class WalletTest {
 
         assert verificationDetails.getDcqlQuery() != null;
         wallet.respondToVerificationV1(verificationDetails, res);
+    }
+
+    @Test
+    void verifyDCQLBatchIssuanceRequest_thenSuccess() {
+        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+
+        WalletBatchEntry entry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1, toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
+
+        for (int i = 0; i < entry.getIssuedCredentials().size(); i++) {
+            var deepLink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withDCQL()
+                    .create();
+
+            verifierManager.verifyState(VerificationStatus.PENDING);
+
+            var verificationDetails = wallet.getVerificationDetails(deepLink);
+            var res = entry.createPresentationForSdJwtIndex(i, verificationDetails);
+
+            assert verificationDetails.getDcqlQuery() != null;
+            wallet.respondToVerificationV1(verificationDetails, res);
+
+            verifierManager.verifyState();
+        }
     }
 }
