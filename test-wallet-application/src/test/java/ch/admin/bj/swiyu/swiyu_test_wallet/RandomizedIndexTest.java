@@ -36,56 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class RandomizedIndexTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
-    MockServerContainer mockServer;
-
-    private Wallet wallet;
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private Connection connection;
-    private Statement stmt;
-    private MockServerClient mockClient;
-
-    @BeforeAll
-    void setup() throws Exception {
-        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-
-        String jdbcUrl = dbTestContainer.getJdbcUrl();
-        String username = dbTestContainer.getUsername();
-        String password = dbTestContainer.getPassword();
-
-        connection = DriverManager.getConnection(jdbcUrl, username, password);
-        stmt = connection.createStatement();
-
-        //mockClient = new MockServerClient(mockServer.getHost(), mockServer.getServerPort());
-    }
-
-    @AfterAll
-    void tearDown() throws Exception {
-        if (connection != null && !connection.isClosed()) connection.close();
-        //if (mockClient != null) mockClient.close();
-    }
+class RandomizedIndexTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() throws SQLException {

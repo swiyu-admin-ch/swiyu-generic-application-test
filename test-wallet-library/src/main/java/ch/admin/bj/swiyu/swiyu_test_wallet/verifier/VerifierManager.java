@@ -4,21 +4,27 @@ import ch.admin.bj.swiyu.gen.verifier.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.verifier.api.VerifierManagementApiApi;
 import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.createDefaultRequest;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 public class VerifierManager {
 
-    private final VerifierManagementApiApi managementApi;
+    private VerifierManagementApiApi managementApi;
     private ManagementResponse managementResponse;
-    private final ActuatorApi actuatorApi;
+    private ActuatorApi actuatorApi;
+    private String issuerServiceUrl;
 
     public VerifierManager(String issuerServiceUrl) {
+        this.issuerServiceUrl = issuerServiceUrl;
         RestClient restClient = RestClient.builder().build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
         managementApi = new VerifierManagementApiApi(apiClient);
@@ -66,6 +72,31 @@ public class VerifierManager {
             return this;
         }
 
+        public VerificationRequestBuilder withUniversity() {
+            boolean withKeyBinding = true;
+
+            Constraint universityConstraint = new Constraint()
+                    .addFieldsItem(new Field().addPathItem("$.type"))
+                    .addFieldsItem(new Field().addPathItem("$.name"))
+                    .addFieldsItem(new Field().addPathItem("$.average_grade"));
+
+            InputDescriptor universityInputDescriptor = new InputDescriptor()
+                    .id(UUID.randomUUID().toString())
+                    .name("University Credential")
+                    .putFormatItem("vc+sd-jwt", withKeyBinding ? es256Format() : es256FormatNoKeyBinding())
+                    .constraints(universityConstraint);
+
+            PresentationDefinition presentation = new PresentationDefinition()
+                    .id(UUID.randomUUID().toString())
+                    .name("University Presentation")
+                    .purpose("Present university degree information")
+                    .format(null)
+                    .addInputDescriptorsItem(universityInputDescriptor);
+
+            request.presentationDefinition(presentation);
+            return this;
+        }
+
         public VerificationRequestBuilder withDCQL() {
             DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
                     .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
@@ -84,6 +115,45 @@ public class VerifierManager {
 
             DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
             request.setDcqlQuery(dcqlQuery);
+            return this;
+        }
+
+        public VerificationRequestBuilder withUniversityDCQL() {
+            DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
+                    .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
+                    .typeValues(List.of(List.of("string"), List.of("string"), List.of("number")));
+            DcqlClaimDto claimType = new DcqlClaimDto()
+                    .path(List.of("type"))
+                    .id(null)
+                    .values(List.of("Bachelor of Science"));
+            DcqlClaimDto claimName = new DcqlClaimDto()
+                    .path(List.of("name"))
+                    .id(null)
+                    .values(null);
+            DcqlClaimDto claimAverageGrade = new DcqlClaimDto()
+                    .path(List.of("average_grade"))
+                    .id(null)
+                    .values(null);
+            DcqlCredentialDto credential = new DcqlCredentialDto()
+                    .id("VerifiableCredential")
+                    .format("vc+sd-jwt")
+                    .meta(meta)
+                    .claims(List.of(claimType, claimName, claimAverageGrade))
+                    .claimSets(null)
+                    .requireCryptographicHolderBinding(true);
+
+            DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
+            request.setDcqlQuery(dcqlQuery);
+
+
+            PresentationDefinition presentation = new PresentationDefinition()
+                    .id(UUID.randomUUID().toString())
+                    .name("string")
+                    .purpose("string")
+                    .format(null);
+
+            request.presentationDefinition(presentation);
+
             return this;
         }
 
@@ -122,5 +192,16 @@ public class VerifierManager {
 
     public ManagementResponse verifyState() {
         return  verifyState(VerificationStatus.SUCCESS);
+    }
+
+    public void intercept(HttpTraceInterceptor interceptor) {
+        var builder = RestClient.builder();
+        builder = builder.requestFactory(
+                        new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
+                .requestInterceptor(interceptor);
+        RestClient restClient = builder.build();
+        var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
+        managementApi = new VerifierManagementApiApi(apiClient);
+        actuatorApi = new ActuatorApi(apiClient);
     }
 }
