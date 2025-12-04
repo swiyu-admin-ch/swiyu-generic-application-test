@@ -21,18 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class VerifierTest {
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    private VerifierManager verifierManager;
-
-    @BeforeAll
-    void setup() throws Exception {
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-    }
-
+class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-463",

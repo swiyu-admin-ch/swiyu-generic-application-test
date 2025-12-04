@@ -2,16 +2,8 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.nimbusds.jose.JOSEException;
@@ -20,18 +12,16 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.AssertionsForClassTypes;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,39 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
-class PayloadEncryptionTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
-    MockServerContainer mockServer;
-    private Wallet wallet;
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private StatusList currentStatusList;
-
-    @BeforeAll
-    void setup() {
-        issuerConfig.setIssuerServiceUrl("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080)));
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        currentStatusList = issuerManager.createStatusList(100000, 2);
-        RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-    }
+class PayloadEncryptionTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() {
@@ -125,7 +83,7 @@ class PayloadEncryptionTest {
         } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
             deeplink = verifierManager.verificationRequest()
                     .acceptedIssuerDid(entry.getIssuerDid())
-                    .withDCQL()
+                    .withUniversityDCQL()
                     .encrypted()
                     .create();
         }

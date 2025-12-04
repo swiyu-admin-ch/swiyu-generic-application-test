@@ -382,7 +382,7 @@ public class Wallet {
                 })
                 .body(formData)
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(String.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
@@ -421,7 +421,7 @@ public class Wallet {
             formData.add("vp_token", new Gson().toJson(vpToken));
         }
 
-        final ResponseEntity<Void> response = restClient.post()
+        final ResponseEntity<String> response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
                     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
@@ -429,7 +429,7 @@ public class Wallet {
                 })
                 .body(formData)
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(String.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }

@@ -36,39 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class SignedMetadataTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
-    MockServerContainer mockServer;
-    private Wallet wallet;
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private StatusList currentStatusList;
-
-    @BeforeAll
-    void setup() {
-        issuerConfig.setIssuerServiceUrl("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080)));
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        currentStatusList = issuerManager.createStatusList(100000, 2);
-        RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-    }
+class SignedMetadataTest extends BaseTest {
 
     @Test
     @XrayTest(

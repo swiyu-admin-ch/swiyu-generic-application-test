@@ -32,53 +32,7 @@ import static org.junit.Assert.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class BatchTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
-    MockServerContainer mockServer;
-    private Wallet wallet;
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private Connection connection;
-    private Statement stmt;
-
-    @BeforeAll
-    void setup() throws Exception {
-        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-
-        String jdbcUrl = dbTestContainer.getJdbcUrl();
-        String username = dbTestContainer.getUsername();
-        String password = dbTestContainer.getPassword();
-
-        connection = DriverManager.getConnection(jdbcUrl, username, password);
-        stmt = connection.createStatement();
-    }
-
-    @AfterAll
-    void tearDown() throws Exception {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
-        }
-    }
+class BatchTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() {

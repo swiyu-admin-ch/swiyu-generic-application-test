@@ -35,49 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class TrustAnchorVerificationTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-
-    @Autowired
-    IssuerConfig issuerConfig;
-
-    @Autowired
-    GenericContainer<?> issuerContainer;
-
-    @Autowired
-    GenericContainer<?> verifierContainer;
-
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-
-    @Autowired
-    MockServerContainer mockServer;
-
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private Wallet wallet;
-
-    @BeforeAll
-    void setup() {
-        final String issuerUrl = "http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080));
-        final String verifierUrl = "http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080));
-
-        issuerConfig.setIssuerServiceUrl(issuerUrl);
-
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(verifierUrl);
-
-        wallet = new Wallet(org.springframework.web.client.RestClient.builder().build(),
-                new ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()),
-                new ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()));
-
-        issuerManager.createStatusList(10000, 2);
-    }
+class TrustAnchorVerificationTest extends BaseTest {
 
     @ParameterizedTest(name = "Successful verification through a valid Trust Anchor – SWIYU API v{0}")
     @EnumSource(SwiyuApiVersionConfig.class)

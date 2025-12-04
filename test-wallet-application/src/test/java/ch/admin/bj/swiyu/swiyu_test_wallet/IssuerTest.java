@@ -28,29 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-class IssuerTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    MockServerContainer mockServer;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-
-    private BusinessIssuer issuerManager;
-    private IssuanceService issuanceService;
-
-    @BeforeAll
-    void setup() {
-        issuerConfig.setIssuerServiceUrl(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        issuerManager = new BusinessIssuer(issuerConfig);
-        issuanceService = new IssuanceService(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        issuerManager.createStatusList(100000, 2);
-    }
+class IssuerTest extends BaseTest {
 
     @Test
     @XrayTest(

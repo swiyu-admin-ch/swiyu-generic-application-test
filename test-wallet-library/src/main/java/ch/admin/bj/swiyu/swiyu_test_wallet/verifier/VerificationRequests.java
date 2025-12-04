@@ -45,13 +45,13 @@ public class VerificationRequests {
                 .presentationDefinition(presentation);
     }
 
-    private static FormatAlgorithm es256Format() {
+    static FormatAlgorithm es256Format() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(DEFAULT_ALG)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);
     }
 
-    private static FormatAlgorithm es256FormatNoKeyBinding() {
+    static FormatAlgorithm es256FormatNoKeyBinding() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(null)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);

@@ -1,30 +1,24 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
-import org.assertj.core.api.AssertionsForClassTypes;
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -52,43 +46,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
  *   <li>Method name typos are retained to avoid breaking historical reports or tooling references.</li>
  * </ul>
  */
-class WalletTest {
-
-    @Autowired
-    IssuerImageConfig issuerImageConfig;
-    @Autowired
-    VerifierImageConfig verifierImageConfig;
-    @Autowired
-    IssuerConfig issuerConfig;
-    @Autowired
-    GenericContainer<?> issuerContainer;
-    @Autowired
-    GenericContainer<?> verifierContainer;
-    @Autowired
-    PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
-    MockServerContainer mockServer;
-    private Wallet wallet;
-    private BusinessIssuer issuerManager;
-    private VerifierManager verifierManager;
-    private StatusList currentStatusList;
-
-    /**
-     * One-time setup: resolve dynamic container ports, configure helper facades, create status list
-     * and instantiate wallet with resolved issuer & verifier contexts.
-     */
-    @BeforeAll
-    void setup() {
-        issuerConfig.setIssuerServiceUrl("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080)));
-        issuerManager = new BusinessIssuer(issuerConfig);
-        verifierManager = new VerifierManager(toUri("http://%s:%s".formatted(verifierContainer.getHost(), verifierContainer.getMappedPort(8080))).toString());
-        currentStatusList = issuerManager.createStatusList(100000, 2);
-        RestClient restClient = RestClient.builder().build();
-        ServiceLocationContext issuerContext = new ServiceLocationContext(issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString());
-        ServiceLocationContext verifierContext = new ServiceLocationContext(verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString());
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-    }
+class WalletTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() {
@@ -159,6 +117,8 @@ class WalletTest {
         WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
+        CredentialInfoResponse cred = issuerManager.getCredentialById(response.getManagementId());
+
         issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
 
         var result = wallet.getCredentialFromTransactionId(entry);
@@ -167,10 +127,19 @@ class WalletTest {
 
         var deepLink = verifierManager.verificationRequest()
                 .acceptedIssuerDid(entry.getIssuerDid())
-                .create();;
+                .create();
+        ;
         var verificationDetails = wallet.getVerificationDetails(deepLink);
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
+
+        issuerManager.getStatusById(response.getManagementId());
+
+        Map<String, Object> credentialStatus = new HashMap<>();
+        credentialStatus.put("average_grade", 4.0);
+        credentialStatus.put("name", "Data Science");
+        credentialStatus.put("type", "Bachelor of Science");
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
     }
 
     @Test
@@ -193,18 +162,18 @@ class WalletTest {
     )
     @Tag("issuance")
     @Tag("verification")
-        void createBoundCredential_thenSuccess() {
-            CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+    void createBoundCredential_thenSuccess() {
+        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
-            WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
-            assertThat(entry.getCredentialOffer()).isNotNull();
+        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
 
-            var deepLink = verifierManager.verificationRequest().acceptedIssuerDid(entry.getIssuerDid()).create();
-            var verificationDetails = wallet.getVerificationDetails(deepLink);
-            var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+        var deepLink = verifierManager.verificationRequest().acceptedIssuerDid(entry.getIssuerDid()).withUniversity().create();
+        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
-            wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
-        }
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
+    }
 
     @Test
     @XrayTest(
@@ -279,7 +248,7 @@ class WalletTest {
 
         var deepLink = verifierManager.verificationRequest()
                 .acceptedIssuerDid(entry.getIssuerDid())
-                .withDCQL()
+                .withUniversityDCQL()
                 .create();
 
         var verificationDetails = wallet.getVerificationDetails(deepLink);
@@ -287,5 +256,30 @@ class WalletTest {
 
         assert verificationDetails.getDcqlQuery() != null;
         wallet.respondToVerificationV1(verificationDetails, res);
+    }
+
+    @Test
+    void verifyDCQLBatchIssuanceRequest_thenSuccess() {
+        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+
+        WalletBatchEntry entry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1, toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
+
+        for (int i = 0; i < entry.getIssuedCredentials().size(); i++) {
+            var deepLink = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withDCQL()
+                    .create();
+
+            verifierManager.verifyState(VerificationStatus.PENDING);
+
+            var verificationDetails = wallet.getVerificationDetails(deepLink);
+            var res = entry.createPresentationForSdJwtIndex(i, verificationDetails);
+
+            assert verificationDetails.getDcqlQuery() != null;
+            wallet.respondToVerificationV1(verificationDetails, res);
+
+            verifierManager.verifyState();
+        }
     }
 }
