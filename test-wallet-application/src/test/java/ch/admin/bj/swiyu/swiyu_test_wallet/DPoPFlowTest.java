@@ -636,17 +636,6 @@ class DPoPFlowTest extends BaseTest {
         log.info("MITM attack prevented - DPoP URI binding working correctly");
     }
 
-    @SuppressWarnings("unchecked")
-    static Map<String, String> errorJson(HttpClientErrorException ex) {
-        return (Map<String, String>) ex.getResponseBodyAs(Map.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    static int errorCode(HttpClientErrorException ex) {
-        return ex.getStatusCode().value();
-    }
-
-
     private String createDpopProofForCredentialRequest(WalletBatchEntry walletEntry, URI uri, String nonce) {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)

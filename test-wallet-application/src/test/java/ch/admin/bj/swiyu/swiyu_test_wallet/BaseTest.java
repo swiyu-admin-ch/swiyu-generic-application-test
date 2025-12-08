@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
@@ -180,5 +181,15 @@ public class BaseTest {
         if (connection != null && !connection.isClosed()) {
             connection.close();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    static Map<String, String> errorJson(HttpClientErrorException ex) {
+        return (Map<String, String>) ex.getResponseBodyAs(Map.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    static int errorCode(HttpClientErrorException ex) {
+        return ex.getStatusCode().value();
     }
 }

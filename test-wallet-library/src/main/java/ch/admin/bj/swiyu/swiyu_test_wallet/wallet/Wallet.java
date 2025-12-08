@@ -36,6 +36,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.security.KeyPair;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -633,6 +634,66 @@ public class Wallet {
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
+    }
+
+    public JsonObject postCredentialRequestWithRefreshToken(WalletBatchEntry walletEntry, String dpopProof) {
+
+        final OAuthToken token = walletEntry.getToken();
+        final String accessToken = token.getAccessToken();
+        final String refreshToken = token.getRefreshToken();
+        final URI credentialUri = issuerContext.getContextualizedUri(walletEntry.getIssuerCredentialUri());
+
+        assertThat(refreshToken)
+                .withFailMessage("Refresh token must not be null when requesting new credential batch")
+                .isNotBlank();
+
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(walletEntry.getProofsAsJwt());
+
+        var requestDto = new CredentialEndpointRequestV2()
+                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+
+        final String requestPayload;
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Cannot serialize credential request payload", ex);
+        }
+
+        var builder = restClient.post()
+                .uri(credentialUri)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + accessToken)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+
+        if (dpopProof != null) {
+            builder = builder.header("DPoP", dpopProof);
+        }
+
+        final ResponseEntity<String> response = builder
+                .body(requestPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+        int code = response.getStatusCode().value();
+        String body = response.getBody();
+
+        assertThat(code)
+                .withFailMessage("Credential request via refresh failed: code=%s body=%s", code, body)
+                .isIn(200, 202);
+
+        final JsonObject credentialResponse = JsonParser.parseString(body).getAsJsonObject();
+
+        if (credentialResponse.has("credentials")) {
+            JsonArray arr = credentialResponse.getAsJsonArray("credentials");
+            arr.forEach(e ->
+                    walletEntry.addIssuedCredential(
+                            e.getAsJsonObject().get("credential").getAsString()
+                    ));
+        }
+
+        return credentialResponse;
     }
 
     public OAuthToken refreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
