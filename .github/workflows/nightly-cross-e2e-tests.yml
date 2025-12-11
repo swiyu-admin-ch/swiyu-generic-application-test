@@ -1,0 +1,291 @@
+# Nightly branch-specific E2E tests:
+# Runs nightly (schedule) regardless of default branch.
+# Separate jobs per combination + one aggregated report job at the end.
+# Manual dispatch: select specific combination or 'all'.
+name: Nightly Cross E2E
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 02:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      selection:
+        description: 'Combinations? (all, issuer-dev_vs_verifier-dev, issuer-staging_vs_verifier-staging, issuer-rc_vs_verifier-rc, issuer-stable_vs_verifier-stable)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - issuer-dev_vs_verifier-dev
+          - issuer-staging_vs_verifier-staging
+          - issuer-rc_vs_verifier-rc
+          - issuer-stable_vs_verifier-stable
+
+permissions:
+  contents: read
+  actions: read
+  checks: write  # allow dorny/test-reporter to create check runs
+
+concurrency:
+  group: nightly-cross-e2e
+  cancel-in-progress: false
+
+env:
+  ISSUER_BASE: ghcr.io/swiyu-admin-ch/swiyu-issuer
+  VERIFIER_BASE: ghcr.io/swiyu-admin-ch/swiyu-verifier
+
+jobs:
+  issuer-dev_vs_verifier-dev:
+    name: issuer-dev_vs_verifier-dev
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-dev_vs_verifier-dev' }}
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_DEV" >> $GITHUB_ENV
+          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B verify
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-dev_vs_verifier-dev Test Report
+          path: 'collected/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-dev_vs_verifier-dev";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-staging_vs_verifier-staging:
+    name: issuer-staging_vs_verifier-staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' }}
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STAGING" >> $GITHUB_ENV
+          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B verify
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-staging_vs_verifier-staging Test Report
+          path: 'collected/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-staging_vs_verifier-staging";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-rc_vs_verifier-rc:
+    name: issuer-rc_vs_verifier-rc
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' }}
+    steps:
+      - name: Checkout stable branch
+        uses: actions/checkout@v4
+        with:
+          ref: stable
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_RC" >> $GITHUB_ENV
+          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B verify
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-rc_vs_verifier-rc Test Report
+          path: 'collected/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-rc_vs_verifier-rc";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  issuer-stable_vs_verifier-stable:
+    name: issuer-stable_vs_verifier-stable
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
+    steps:
+      - name: Checkout stable branch
+        uses: actions/checkout@v4
+        with:
+          ref: stable
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Prepare images
+        run: |
+          echo "ISSUER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "VERIFIER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STABLE" >> $GITHUB_ENV
+          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+      - name: Maven verify
+        run: mvn -B verify
+      - name: Collect Surefire reports
+        if: always()
+        run: |
+          mkdir -p collected/app collected/lib
+          if [ -d test-wallet-application/target/surefire-reports ]; then cp -r test-wallet-application/target/surefire-reports collected/app/; fi
+          if [ -d test-wallet-library/target/surefire-reports ]; then cp -r test-wallet-library/target/surefire-reports collected/lib/; fi
+      - name: Upload reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.job }}
+          path: collected
+      - name: Individual Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: issuer-stable_vs_verifier-stable Test Report
+          path: 'collected/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### issuer-stable_vs_verifier-stable";
+            echo "Result: ${{ job.status }}";
+          } >> $GITHUB_STEP_SUMMARY
+
+  aggregated-cross-report:
+    name: Aggregated Cross Test Report
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - issuer-dev_vs_verifier-dev
+      - issuer-staging_vs_verifier-staging
+      - issuer-rc_vs_verifier-rc
+      - issuer-stable_vs_verifier-stable
+    steps:
+      - name: Checkout (for context)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Aggregated Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Cross E2E Aggregated Test Report
+          path: 'artifacts/**/surefire-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+          list-tests: failed
+      - name: Aggregated Summary
+        if: always()
+        run: |
+          {
+            echo "### Aggregated Cross E2E Job Results";
+            echo "- issuer-dev_vs_verifier-dev: ${{ needs.issuer-dev_vs_verifier-dev.result }}";
+            echo "- issuer-staging_vs_verifier-staging: ${{ needs.issuer-staging_vs_verifier-staging.result }}";
+            echo "- issuer-rc_vs_verifier-rc: ${{ needs.issuer-rc_vs_verifier-rc.result }}";
+            echo "- issuer-stable_vs_verifier-stable: ${{ needs.issuer-stable_vs_verifier-stable.result }}";
+          } >> $GITHUB_STEP_SUMMARY
+      - name: Fail if any combination failed
+        if: ${{ needs.issuer-dev_vs_verifier-dev.result == 'failure' || needs.issuer-staging_vs_verifier-staging.result == 'failure' || needs.issuer-rc_vs_verifier-rc.result == 'failure' || needs.issuer-stable_vs_verifier-stable.result == 'failure' }}
+        run: |
+          echo "At least one combination failed." >&2
+          exit 1
