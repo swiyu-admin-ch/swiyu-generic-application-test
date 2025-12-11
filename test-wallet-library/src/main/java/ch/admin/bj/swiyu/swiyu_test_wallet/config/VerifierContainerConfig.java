@@ -2,11 +2,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import lombok.experimental.UtilityClass;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
@@ -41,7 +39,7 @@ public class VerifierContainerConfig {
                     .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, DBContainerConfig.VERIFIER_DB_SCHEMA))
                     .withEnv("POSTGRES_USER", dbContainer.getUsername())
                     .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
-                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
+                    // .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
                     .withNetwork(network)
                     .withNetworkAliases(VERIFIER_NAME)
                     .withExtraHost("host.docker.internal", "host-gateway")
