@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
 import java.util.UUID;
 
 @UtilityClass
@@ -39,19 +38,18 @@ public class VerificationRequests {
 
         return new CreateVerificationManagement()
                 .acceptedIssuerDids(null)
-                .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
                 .responseMode(CreateVerificationManagement.ResponseModeEnum.POST)
                 .presentationDefinition(presentation);
     }
 
-    static FormatAlgorithm es256Format() {
+    private static FormatAlgorithm es256Format() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(DEFAULT_ALG)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);
     }
 
-    static FormatAlgorithm es256FormatNoKeyBinding() {
+    private static FormatAlgorithm es256FormatNoKeyBinding() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(null)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);

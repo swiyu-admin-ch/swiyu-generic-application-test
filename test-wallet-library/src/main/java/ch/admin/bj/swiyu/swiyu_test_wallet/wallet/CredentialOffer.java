@@ -29,11 +29,6 @@ public class CredentialOffer {
         return toUri(credentialIssuerUri);
     }
 
-    public String getCredentialBaseIssuerUriAsString() {
-        final URI url = this.getCredentialIssuerUri();
-        return String.format("%s://%s", url.getScheme(), url.getHost());
-    }
-
     public String getPreAuthorizedCode() {
         var grants = credentialOfferJson.get("grants").getAsJsonObject();
         var preAuthorizedCode = grants.get("urn:ietf:params:oauth:grant-type:pre-authorized_code").getAsJsonObject();

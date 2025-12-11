@@ -20,7 +20,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   mockServer:
-    image: mockserver/mockserver:5.15.0
+    image: mockserver/mockserver:5.14.0
     ports:
       - 1080:1080
     environment:
