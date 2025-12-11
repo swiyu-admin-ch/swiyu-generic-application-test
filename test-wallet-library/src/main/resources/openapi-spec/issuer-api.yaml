@@ -662,6 +662,47 @@ paths:
                 type: object
 components:
   schemas:
+    IssuerCredentialEncryption:
+      type: object
+      properties:
+        enc_values_supported:
+          type: array
+          items:
+            type: string
+          example: ["A128GCM"]
+        zip_values_supported:
+          type: array
+          items:
+            type: string
+          example: ["DEF"]
+        encryption_required:
+          type: boolean
+          example: true
+      required:
+        - enc_values_supported
+        - encryption_required
+    IssuerCredentialRequestEncryption:
+      allOf:
+        - $ref: '#/components/schemas/IssuerCredentialEncryption'
+        - type: object
+          properties:
+            jwks:
+              type: object
+              description: "JWKS containing issuer’s public encryption keys."
+          required:
+            - jwks
+    IssuerCredentialResponseEncryption:
+      allOf:
+        - $ref: '#/components/schemas/IssuerCredentialEncryption'
+        - type: object
+          properties:
+            alg_values_supported:
+              type: array
+              items:
+                type: string
+              example: ["ECDH-ES"]
+          required:
+            - alg_values_supported
     OauthAccessTokenRequest:
       type: object
       properties:
