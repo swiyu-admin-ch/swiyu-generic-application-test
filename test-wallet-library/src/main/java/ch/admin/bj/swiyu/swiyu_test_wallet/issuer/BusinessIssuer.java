@@ -4,12 +4,10 @@ import ch.admin.bj.swiyu.gen.issuer.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.issuer.api.CredentialApiApi;
 import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferRequest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreateConfig;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -20,13 +18,15 @@ import java.util.UUID;
 @Service
 public class BusinessIssuer {
 
-    private final CredentialApiApi credentialApi;
-    private final StatusListApiApi statusListApi;
-    private final ActuatorApi actuatorApi;
+    private CredentialApiApi credentialApi;
+    private StatusListApiApi statusListApi;
+    private ActuatorApi actuatorApi;
 
     private StatusList statusList;
+    private IssuerConfig issuerConfig;
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
+        this.issuerConfig = issuerConfig;
         RestClient restClient = RestClient.builder().build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
         credentialApi = new CredentialApiApi(apiClient);
@@ -42,7 +42,7 @@ public class BusinessIssuer {
 
         statusList = statusListApi.createStatusList(statusListCreate);
 
-        return statusListApi.createStatusList(statusListCreate);
+        return statusList;
     }
 
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId) {
@@ -72,6 +72,18 @@ public class BusinessIssuer {
         updateVcStatus(id, newState);
     }
 
+    public CredentialInfoResponse getCredentialById(UUID id) {
+        return credentialApi.getCredentialInformation(id);
+    }
+
+    public StatusResponse getStatusById(UUID id) {
+        return credentialApi.getCredentialStatus(id);
+    }
+
+    public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, Map<String, Object> body) {
+        return credentialApi.updateCredentialForDeferredFlow(id, body);
+    }
+
     public void updateVcStatus(UUID id,
                                ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
         credentialApi.updateCredentialStatus(id, newState);
@@ -89,5 +101,17 @@ public class BusinessIssuer {
         offer.setMetadataCredentialSupportedId(List.of(supportedMetadataId));
         offer.setOfferValiditySeconds(86400); // 24h
         return offer;
+    }
+
+    public void intercept(HttpTraceInterceptor interceptor) {
+
+        var builder = RestClient.builder();
+        builder = builder
+                .requestInterceptor(interceptor);
+        RestClient restClient = builder.build();
+        var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
+        credentialApi = new CredentialApiApi(apiClient);
+        statusListApi = new StatusListApiApi(apiClient);
+        actuatorApi = new ActuatorApi(apiClient);
     }
 }

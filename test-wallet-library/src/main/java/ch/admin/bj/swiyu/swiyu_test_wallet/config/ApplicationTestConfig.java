@@ -8,9 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Getter
 @Setter
-@ConfigurationProperties("application.verifier")
-public class VerifierImageConfig {
-
-    private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-verifier";
-    private String imageTag = "latest";
+@ConfigurationProperties("application")
+public class ApplicationTestConfig {
+    private boolean trace = false;
 }
