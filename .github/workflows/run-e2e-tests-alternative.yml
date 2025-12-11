@@ -6,11 +6,11 @@ on:
       issuer-image-tag:
         description: 'Issuer Docker image tag'
         required: false
-        default: 'latest'
+        default: 'stable'
       verifier-image-tag:
         description: 'Verifier Docker image tag'
         required: false
-        default: 'latest'
+        default: 'stable'
 
 jobs:
   build:
