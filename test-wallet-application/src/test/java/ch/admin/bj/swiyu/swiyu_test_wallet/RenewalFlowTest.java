@@ -790,7 +790,6 @@ class RenewalFlowTest extends BaseTest {
 
     private void performRefresh(WalletBatchEntry entry) {
 
-        // 1️⃣ Refresh token
         String nonce = wallet.getCNonce(entry);
         String dpop = DPoPSupport.createDpopProofForToken(
                 entry.getIssuerTokenUri().toString(),
@@ -803,12 +802,10 @@ class RenewalFlowTest extends BaseTest {
         OAuthToken refreshedToken = wallet.collectRefreshTokenWithDPoP(entry, dpop);
         entry.setToken(refreshedToken);
 
-        // 2️⃣ Proofs for credential issuance
         nonce = wallet.getCNonce(entry);
         entry.generateHolderKeys();
         entry.createProofs(nonce);
 
-        // 3️⃣ Credential request → triggers new offer
         nonce = wallet.getDpopNonce(entry);
         dpop = DPoPSupport.createDpopProofForToken(
                 entry.getIssuerCredentialUri().toString(),
@@ -841,6 +838,4 @@ class RenewalFlowTest extends BaseTest {
             }
         }
     }
-
-
 }
