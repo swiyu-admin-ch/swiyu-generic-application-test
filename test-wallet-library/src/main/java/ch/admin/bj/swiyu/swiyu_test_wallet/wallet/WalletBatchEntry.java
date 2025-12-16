@@ -122,8 +122,6 @@ public class WalletBatchEntry extends WalletEntry {
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
             );
             proofs.add(proof);
-
-            log.info("uniqueNonce " + uniqueNonce);
         }
     }
 
@@ -142,8 +140,6 @@ public class WalletBatchEntry extends WalletEntry {
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
             );
             proofs.add(proof);
-
-            log.info("uniqueNonce2 " + uniqueNonce);
         }
     }
 

@@ -70,8 +70,7 @@ public class MockServerClientConfig {
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
 
         mockServerClient.when(request().withMethod("POST").withPath("/callback"))
-                .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
-                        .withBody("{}"));
+                .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
 
         mockServerClient
                 .when(

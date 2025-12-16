@@ -85,44 +85,5 @@
       },
       "statusCode": 200
     }
-  },
-  {
-    "httpRequest" : {
-      "method" : "GET",
-      "path" : "/callback"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
-      },
-      "body" : "{}",
-      "statusCode": 200
-    }
-  },
-  {
-    "httpRequest" : {
-      "method" : "POST",
-      "path" : "/callback"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
-      },
-      "body" : "{}",
-      "statusCode": 200
-    }
-  },
-  {
-    "httpRequest" : {
-      "method" : "POST",
-      "path" : "/renewal"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
-      },
-      "body" : "{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}",
-      "statusCode": 200
-    }
   }
 ]

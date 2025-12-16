@@ -35,59 +35,42 @@ public class DPoPSupport {
             String uri,
             String nonce,
             KeyPair dpopKeyPair,
-            ECKey dpopPublicJwk,
-            String token
-    )  {
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .type(new JOSEObjectType("dpop+jwt"))
-                .jwk(dpopPublicJwk)
-                .build();
-
-        final Date now = new Date();
-        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .jwtID(UUID.randomUUID().toString())
-                .claim("htm", "POST")
-                .claim("htu", uri)
-                .claim("nonce", nonce)
-                .claim("ath", tokenToAth(token))
-                .issueTime(now)
-                .build();
-
-        try {
-            final SignedJWT jwt = new SignedJWT(header, claimsSet);
-            jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
-            return jwt.serialize();
-        } catch (JOSEException e) {
-            throw new RuntimeException("Failed to create DPoP proof", e);
-        }
+            ECKey dpopPublicJwk
+    ) {
+        return createDpopProofForToken(
+                uri,
+                nonce,
+                dpopKeyPair,
+                dpopPublicJwk,
+                null
+        );
     }
-
-
-
-
 
     public static String createDpopProofForToken(
             String uri,
             String nonce,
             KeyPair dpopKeyPair,
-            ECKey dpopPublicJwk
+            ECKey dpopPublicJwk,
+            String token
     ) {
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(new JOSEObjectType("dpop+jwt"))
                 .jwk(dpopPublicJwk)
                 .build();
 
-        Date now = new Date();
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+        final JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
                 .jwtID(UUID.randomUUID().toString())
                 .claim("htm", "POST")
                 .claim("htu", uri)
                 .claim("nonce", nonce)
-                .issueTime(now)
-                .build();
+                .issueTime(new Date());
+
+        if (token != null) {
+            claimsBuilder.claim("ath", tokenToAth(token));
+        }
 
         try {
-            SignedJWT jwt = new SignedJWT(header, claimsSet);
+            final SignedJWT jwt = new SignedJWT(header, claimsBuilder.build());
             jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
             return jwt.serialize();
         } catch (JOSEException e) {

@@ -53,7 +53,7 @@ public class IssuerContainerConfig {
                 .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, DBContainerConfig.ISSUER_DB_SCHEMA))
                 .withEnv("POSTGRES_USER", dbContainer.getUsername())
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
-                .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "100000")
+                .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
                 .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
                 .withEnv("WEBHOOK_CALLBACK_URI", config.getMockServerUri() + "/callback")
                 .withEnv("WEBHOOK_INTERVAL", "100")

@@ -21,7 +21,7 @@ public class MockServerContainerConfig {
         var container = new MockServerContainer(imageName)
                 .withExposedPorts(1080)
                 .withNetwork(network)
-                //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")))
+                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")))
                 .withNetworkAliases("mockserver");
 
         container.start();
