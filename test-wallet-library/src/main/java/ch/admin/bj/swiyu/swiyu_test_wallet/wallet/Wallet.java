@@ -636,16 +636,29 @@ public class Wallet {
         return response.getBody();
     }
 
-    public JsonObject postCredentialRequestWithRefreshToken(WalletBatchEntry walletEntry, String dpopProof) {
+    public OAuthToken collectRefreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+        final URI tokenUri = issuerContext.getContextualizedUri(walletEntry.getIssuerTokenUri());
 
-        final OAuthToken token = walletEntry.getToken();
-        final String accessToken = token.getAccessToken();
-        final String refreshToken = token.getRefreshToken();
+        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("refresh_token", walletEntry.getToken().getRefreshToken());
+
+        final ResponseEntity<OAuthToken> response = restClient.post()
+                .uri(tokenUri)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header("DPoP", doPProof)
+                .body(params)
+                .retrieve()
+                .toEntity(OAuthToken.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return response.getBody();
+    }
+
+    public JsonObject postCredentialRequestWithRefreshToken(WalletBatchEntry walletEntry, final String accessToken, final String dpopProof) {
+
         final URI credentialUri = issuerContext.getContextualizedUri(walletEntry.getIssuerCredentialUri());
-
-        assertThat(refreshToken)
-                .withFailMessage("Refresh token must not be null when requesting new credential batch")
-                .isNotBlank();
 
         var proofsDto = new ProofsDto();
         proofsDto.setJwt(walletEntry.getProofsAsJwt());
