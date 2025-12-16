@@ -191,7 +191,7 @@ public class Wallet {
                 .body(OAuthToken.class);
     }
 
-    public ResponseEntity<NonceResponse> getCNonce(WalletEntry walletEntry) {
+    public ResponseEntity<NonceResponse> getNonce(WalletEntry walletEntry) {
         final URI cnonceURI = issuerContext.getContextualizedUri(walletEntry.getIssuerMetadata().getNonceEndpointURI());
         final ResponseEntity<NonceResponse> response = restClient.post()
                 .uri(cnonceURI)
@@ -199,6 +199,11 @@ public class Wallet {
                 .retrieve()
                 .toEntity(NonceResponse.class);
         return response;
+    }
+
+    public String getCNonce(WalletEntry walletEntry) {
+        final ResponseEntity<NonceResponse> response = getNonce(walletEntry);
+        return response.getBody().getcNonce();
     }
 
     public String getVerifiableCredentialFromIssuerID2(WalletEntry walletEntry) {
@@ -611,7 +616,7 @@ public class Wallet {
     }
 
     public String getDpopNonce(WalletEntry walletEntry) {
-        ResponseEntity<NonceResponse> response = getCNonce(walletEntry);
+        ResponseEntity<NonceResponse> response = getNonce(walletEntry);
         return response.getHeaders().getFirst("dpop-nonce");
     }
 
@@ -684,10 +689,12 @@ public class Wallet {
             builder = builder.header("DPoP", dpopProof);
         }
 
-        final ResponseEntity<String> response = builder
+         var response = builder
                 .body(requestPayload)
                 .retrieve()
                 .toEntity(String.class);
+
+
 
         int code = response.getStatusCode().value();
         String body = response.getBody();
@@ -699,6 +706,7 @@ public class Wallet {
         final JsonObject credentialResponse = JsonParser.parseString(body).getAsJsonObject();
 
         if (credentialResponse.has("credentials")) {
+            walletEntry.getIssuedCredentials().clear();
             JsonArray arr = credentialResponse.getAsJsonArray("credentials");
             arr.forEach(e ->
                     walletEntry.addIssuedCredential(
