@@ -47,7 +47,7 @@ public class IssuerContainerConfig {
                 .withEnv("ENABLE_JWT_AUTH", "false")
                 .withEnv("ENABLE_SIGNED_METADATA", "true")
                 .withEnv("RENEWAL_FLOW_ENABLED", "true")
-                .withEnv("RENWEAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
+                .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
                 .withEnv("APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA", "classpath:example_oca.json")
                 .withEnv("APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA", "classpath:example_json_schema.json")
                 .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, DBContainerConfig.ISSUER_DB_SCHEMA))
