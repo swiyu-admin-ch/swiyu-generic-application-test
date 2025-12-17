@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.BeforeAll;
@@ -18,12 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpErrorAssertions.errorCode;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpErrorAssertions.errorJson;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -283,5 +288,37 @@ class WalletTest extends BaseTest {
 
             verifierManager.verifyState();
         }
+    }
+
+    @Test
+    void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
+        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+
+        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
+        assertThat(entry.getCredentialOffer()).isNotNull();
+
+        var deepLink = verifierManager.verificationRequest()
+                .acceptedIssuerDid(entry.getIssuerDid())
+                .withUniversityDCQL()
+                .create();
+
+        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        var res = entry.getVerifiableCredential();
+
+        assert verificationDetails.getDcqlQuery() != null;
+
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+            wallet.respondToVerificationV1(verificationDetails, res);
+        });
+
+        Assertions.assertThat(errorCode(ex))
+                .isEqualTo(400);
+        Assertions.assertThat(errorJson(ex))
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        "detail", "holder_binding_mismatch",
+                        "error", "invalid_transaction_data",
+                        "error_code", "holder_binding_mismatch",
+                        "error_description", "Missing Holder Key Binding Proof"
+                ));
     }
 }
