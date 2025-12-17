@@ -563,10 +563,10 @@ class RenewalFlowTest extends BaseTest {
                 () -> wallet.collectRefreshTokenWithDPoP(entry, dpop)
         );
 
-        assertThat(errorCode(ex)).isEqualTo(401);
+        assertThat(errorCode(ex)).isEqualTo(400);
         assertThat(errorJson(ex))
-                .containsEntry("error", "Error")
-                .containsEntry("error_description", "Description Message");
+                .containsEntry("error", "INVALID_TOKEN")
+                .containsEntry("error_description", "Invalid refresh token");
     }
 
     @Test
