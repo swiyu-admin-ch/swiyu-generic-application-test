@@ -4,15 +4,18 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.Map;
+
 public class HttpErrorAssertions {
 
-    public static int errorCode(HttpClientErrorException exception) {
-        return exception.getStatusCode().value();
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> errorJson(HttpClientErrorException ex) {
+        return (Map<String, String>) ex.getResponseBodyAs(Map.class);
     }
 
-    public static JsonObject errorJson(HttpClientErrorException exception) {
-        String body = exception.getResponseBodyAsString();
-        return JsonParser.parseString(body).getAsJsonObject();
+    @SuppressWarnings("unchecked")
+    public static int errorCode(HttpClientErrorException ex) {
+        return ex.getStatusCode().value();
     }
 }
 
