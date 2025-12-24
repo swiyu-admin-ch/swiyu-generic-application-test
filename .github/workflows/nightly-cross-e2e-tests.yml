@@ -93,10 +93,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' }}
     steps:
-      - name: Checkout stable branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: stable
+          ref: main
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -146,10 +146,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' }}
     steps:
-      - name: Checkout stable branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: stable
+          ref: main
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -199,10 +199,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
     steps:
-      - name: Checkout stable branch
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: stable
+          ref: main
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
