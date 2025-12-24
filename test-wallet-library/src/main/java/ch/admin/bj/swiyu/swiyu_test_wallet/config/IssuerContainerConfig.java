@@ -17,16 +17,16 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 public class IssuerContainerConfig {
 
     public static GenericContainer<?> createIssuerContainer(
-            Network network,
-            PostgreSQLContainer<?> dbContainer,
-            IssuerConfig config,
-            MockServerContainer mockServer,
-            String imageName) {
+            final Network network,
+            final PostgreSQLContainer<?> dbContainer,
+            final IssuerConfig config,
+            final MockServerContainer mockServer,
+            final String imageName,
+            final IssuerImageConfig issuerImageConfig) {
 
         return new GenericContainer<>(imageName)
                 .withExposedPorts(8080)
                 .withEnv("ISSUER_ID", config.getIssuerDid())
-                .withEnv("APPLICATION_DPOP_ENFORCE", "true")
                 .withEnv("TOKEN_TTL", "600")
                 .withEnv("OPENID_CONFIG_FILE", "classpath:example_openid.json")
                 .withEnv("METADATA_CONFIG_FILE", "file:///tmp/metadata.json")
@@ -50,16 +50,18 @@ public class IssuerContainerConfig {
                 .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
                 .withEnv("APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA", "classpath:example_oca.json")
                 .withEnv("APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA", "classpath:example_json_schema.json")
-                .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, DBContainerConfig.ISSUER_DB_SCHEMA))
+                .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, issuerImageConfig.getDbSchema()))
                 .withEnv("POSTGRES_USER", dbContainer.getUsername())
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                 .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
                 .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
                 .withEnv("WEBHOOK_CALLBACK_URI", config.getMockServerUri() + "/callback")
                 .withEnv("WEBHOOK_INTERVAL", "100")
+                //.withEnv("APPLICATION_DPOP_ENFORCE", "true")
+                .withEnv("APPLICATION_DPOP_ENFORCE", String.valueOf(issuerImageConfig.isEnforceDpop()))
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)
-                .withNetworkAliases("swiyu_issuer")
+                .withNetworkAliases(issuerImageConfig.getNetworkAlias())
                 .withExtraHost("host.docker.internal", "host-gateway")
                 .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("issuer/metadata.json")), "/tmp/metadata.json")
                 .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")

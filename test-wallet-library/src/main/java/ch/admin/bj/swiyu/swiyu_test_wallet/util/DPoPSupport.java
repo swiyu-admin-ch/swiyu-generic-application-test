@@ -2,7 +2,6 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -12,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
@@ -26,9 +26,9 @@ public class DPoPSupport {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(String.format("%s algorithm not found", MESSAGE_DIGEST_ALGORITHM), e);
         }
-        final byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+        final byte[] hash = digest.digest(token.getBytes(StandardCharsets.US_ASCII));
 
-        return Base64.encode(hash).toString();
+        return Base64.getUrlEncoder().encodeToString(hash);
     }
 
     public static String createDpopProofForToken(

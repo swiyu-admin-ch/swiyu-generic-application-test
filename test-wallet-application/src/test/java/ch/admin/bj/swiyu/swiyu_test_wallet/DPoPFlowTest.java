@@ -28,7 +28,6 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -37,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
-
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
@@ -785,7 +783,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Attacker sends credential request with replayed holder binding proof JWTs");
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-            wallet.getVerifiableCredentialFromIssuerV1(batchEntry2)
+                wallet.getVerifiableCredentialFromIssuerV1(batchEntry2)
         );
 
         assertThat(errorCode(ex))

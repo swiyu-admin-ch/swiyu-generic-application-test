@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.GenericContainer;
@@ -20,6 +21,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.creat
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
+@EnableConfigurationProperties({ IssuerImageConfig.class, VerifierImageConfig.class })
 public class CompleteEnvironmentTestConfiguration {
 
     @Bean
@@ -52,7 +54,7 @@ public class CompleteEnvironmentTestConfiguration {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName);
+        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig);
 
         container.start();
 
@@ -74,7 +76,7 @@ public class CompleteEnvironmentTestConfiguration {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 
-        var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config, imageName);
+        var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config, imageName, verifierImageConfig);
 
         container.start();
 

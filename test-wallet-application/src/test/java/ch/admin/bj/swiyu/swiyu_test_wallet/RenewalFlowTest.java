@@ -17,6 +17,7 @@ import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.security.KeyPair;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@ActiveProfiles({"issuer-strict"})
 class RenewalFlowTest extends BaseTest {
 
     private KeyPair dpopKeyPair;
@@ -824,11 +826,11 @@ class RenewalFlowTest extends BaseTest {
 
     private int countOffersForManagement(UUID managementId) throws SQLException {
 
-        String sql = """
+        final String sql = """
                 SELECT COUNT(*)
-                FROM swiyu_issuer.credential_offer
+                FROM %s.credential_offer
                 WHERE credential_management_id = ?
-                """;
+                """.formatted(issuerImageConfig.getDbSchema());
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setObject(1, managementId);
