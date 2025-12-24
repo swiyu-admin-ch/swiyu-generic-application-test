@@ -93,10 +93,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' }}
     steps:
-      - name: Checkout dev branch
+      - name: Checkout stable branch
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: stable
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
