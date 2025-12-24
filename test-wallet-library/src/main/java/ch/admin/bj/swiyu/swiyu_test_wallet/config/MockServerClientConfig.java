@@ -69,6 +69,39 @@ public class MockServerClientConfig {
                 .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
 
+        mockServerClient.when(request().withMethod("POST").withPath("/callback"))
+                .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
+
+        mockServerClient
+                .when(
+                        request()
+                                .withMethod("POST")
+                                .withPath("/renewal")
+                )
+                .respond(
+                        response()
+                                .withStatusCode(200)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("""
+                {
+                  "metadata_credential_supported_id": ["university_example_sd_jwt"],
+                  "credential_subject_data": {
+                    "name": "Data Science",
+                    "type": "Bachelor of Science",
+                    "average_grade": "5.33"
+                  },
+                  "credential_metadata": {
+                    "vct#integrity": "sha256-0000000000000000000000000000000000000000000="
+                  },
+                  "credential_valid_from": "2025-01-01T00:00:00Z",
+                  "credential_valid_until": "2026-01-01T00:00:00Z",
+                  "status_lists": [
+                  ]
+                }
+            """)
+                );
+
+
         return mockServerClient;
     }
 

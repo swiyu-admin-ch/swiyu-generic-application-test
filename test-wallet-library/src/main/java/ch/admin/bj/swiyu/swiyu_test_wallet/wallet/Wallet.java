@@ -36,6 +36,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.security.KeyPair;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -190,7 +191,7 @@ public class Wallet {
                 .body(OAuthToken.class);
     }
 
-    public ResponseEntity<NonceResponse> getCNonce(WalletEntry walletEntry) {
+    public ResponseEntity<NonceResponse> getNonce(WalletEntry walletEntry) {
         final URI cnonceURI = issuerContext.getContextualizedUri(walletEntry.getIssuerMetadata().getNonceEndpointURI());
         final ResponseEntity<NonceResponse> response = restClient.post()
                 .uri(cnonceURI)
@@ -198,6 +199,11 @@ public class Wallet {
                 .retrieve()
                 .toEntity(NonceResponse.class);
         return response;
+    }
+
+    public String getCNonce(WalletEntry walletEntry) {
+        final ResponseEntity<NonceResponse> response = getNonce(walletEntry);
+        return response.getBody().getcNonce();
     }
 
     public String getVerifiableCredentialFromIssuerID2(WalletEntry walletEntry) {
@@ -610,7 +616,7 @@ public class Wallet {
     }
 
     public String getDpopNonce(WalletEntry walletEntry) {
-        ResponseEntity<NonceResponse> response = getCNonce(walletEntry);
+        ResponseEntity<NonceResponse> response = getNonce(walletEntry);
         return response.getHeaders().getFirst("dpop-nonce");
     }
 
@@ -633,6 +639,82 @@ public class Wallet {
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
+    }
+
+    public OAuthToken collectRefreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+        final URI tokenUri = issuerContext.getContextualizedUri(walletEntry.getIssuerTokenUri());
+
+        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("refresh_token", walletEntry.getToken().getRefreshToken());
+
+        final ResponseEntity<OAuthToken> response = restClient.post()
+                .uri(tokenUri)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header("DPoP", doPProof)
+                .body(params)
+                .retrieve()
+                .toEntity(OAuthToken.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return response.getBody();
+    }
+
+    public JsonObject postCredentialRequestWithRefreshToken(WalletBatchEntry walletEntry, final String accessToken, final String dpopProof) {
+
+        final URI credentialUri = issuerContext.getContextualizedUri(walletEntry.getIssuerCredentialUri());
+
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(walletEntry.getProofsAsJwt());
+
+        var requestDto = new CredentialEndpointRequestV2()
+                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+
+        final String requestPayload;
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException("Cannot serialize credential request payload", ex);
+        }
+
+        var builder = restClient.post()
+                .uri(credentialUri)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + accessToken)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+
+        if (dpopProof != null) {
+            builder = builder.header("DPoP", dpopProof);
+        }
+
+         var response = builder
+                .body(requestPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+
+
+        int code = response.getStatusCode().value();
+        String body = response.getBody();
+
+        assertThat(code)
+                .withFailMessage("Credential request via refresh failed: code=%s body=%s", code, body)
+                .isIn(200, 202);
+
+        final JsonObject credentialResponse = JsonParser.parseString(body).getAsJsonObject();
+
+        if (credentialResponse.has("credentials")) {
+            walletEntry.getIssuedCredentials().clear();
+            JsonArray arr = credentialResponse.getAsJsonArray("credentials");
+            arr.forEach(e ->
+                    walletEntry.addIssuedCredential(
+                            e.getAsJsonObject().get("credential").getAsString()
+                    ));
+        }
+
+        return credentialResponse;
     }
 
     public OAuthToken refreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {

@@ -15,6 +15,9 @@ public class IssuerImageConfig {
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-issuer";
     private String imageTag = "latest";
 
+    private String surname = "default";
+    private boolean enforceDpop = false;
+
     // set dynamically
     private String mockServerUri;
     private String swiyuPartnerId;
@@ -26,4 +29,12 @@ public class IssuerImageConfig {
     private String issuerAuthKeyId;
     private String issuerAssertKeyPemString;
     private String issuerAuthKeyPemString;
+
+    public String getDbSchema() {
+        return String.format("%s_%s", DBContainerConfig.ISSUER_DB_SCHEMA, getSurname());
+    }
+
+    public String getNetworkAlias() {
+        return String.format("swiyu_issuer_%s", getSurname());
+    }
 }

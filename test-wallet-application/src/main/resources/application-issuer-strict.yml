@@ -1,0 +1,4 @@
+application:
+  issuer:
+    surname: "strict"
+    enforce-dpop: true

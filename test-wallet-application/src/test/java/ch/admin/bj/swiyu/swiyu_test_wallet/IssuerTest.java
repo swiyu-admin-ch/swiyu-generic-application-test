@@ -2,24 +2,13 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;

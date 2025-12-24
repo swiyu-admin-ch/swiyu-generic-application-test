@@ -2,25 +2,17 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import org.junit.jupiter.api.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -136,9 +128,9 @@ class BatchTest extends BaseTest {
 
         final String query = """
                     SELECT index
-                    FROM swiyu_issuer.credential_offer_status
+                    FROM %s.credential_offer_status
                     ORDER BY index ASC
-                """;
+                """.formatted(issuerImageConfig.getDbSchema());
 
         try (ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -148,5 +140,4 @@ class BatchTest extends BaseTest {
 
         return indexes;
     }
-
 }

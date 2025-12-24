@@ -10,6 +10,7 @@ import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,11 @@ public class BusinessIssuer {
 
     public StatusResponse getStatusById(UUID id) {
         return credentialApi.getCredentialStatus(id);
+    }
+
+    public void verifyStatus(final UUID id, final CredentialStatusType credentialStatusType) {
+        final StatusResponse response = getStatusById(id);
+        assertThat(response.getStatus()).isEqualTo(credentialStatusType);
     }
 
     public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, Map<String, Object> body) {
