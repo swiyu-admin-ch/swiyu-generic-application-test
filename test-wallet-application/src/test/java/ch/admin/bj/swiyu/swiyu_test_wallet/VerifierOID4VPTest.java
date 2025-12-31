@@ -14,7 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class VerifierOID4VPTest extends BaseTest {
     @Test
     @XrayTest(
-            key = "UCV_O1",
             summary = "Wallet retrieves a signed OID4VP request object from verifier",
             description = """
                     Validate that the verifier exposes a signed OpenID Connect
@@ -85,7 +84,6 @@ public class VerifierOID4VPTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "UCV_O1",
             summary = "Wallet retrieves a signed OID4VP request object from verifier",
             description = """
                     Validate that the verifier exposes a signed OpenID Connect
