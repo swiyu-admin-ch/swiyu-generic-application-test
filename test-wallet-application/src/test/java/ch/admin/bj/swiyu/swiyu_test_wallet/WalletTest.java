@@ -166,8 +166,7 @@ class WalletTest extends BaseTest {
     @Tag("issuance")
     @Tag("verification")
     void createBoundCredential_thenSuccess() throws InterruptedException {
-        Thread.sleep(3000);
-        int before = countIssuerCallbacks();
+        int before = awaitStableIssuerCallbacks();
 
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
@@ -180,7 +179,7 @@ class WalletTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
         final String res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
-        before = countVerifierCallbacks();
+        before = awaitStableVerifierCallbacks();
 
         wallet.respondToVerification(
                 SwiyuApiVersionConfig.ID2,

@@ -32,9 +32,11 @@ import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntSupplier;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
@@ -98,6 +100,14 @@ public class BaseTest {
                 .length;
     }
 
+    protected int awaitStableVerifierCallbacks() {
+        return awaitStableCount(this::countVerifierCallbacks);
+    }
+
+    protected int awaitStableIssuerCallbacks() {
+        return awaitStableCount(this::countIssuerCallbacks);
+    }
+
     protected void awaitNVerifierCallback(final int before, final int n) {
         await().untilAsserted(() ->
                 assertThat(countVerifierCallbacks())
@@ -127,6 +137,22 @@ public class BaseTest {
     protected void awaitNoneIssuerCallback(final int before) {
         awaitNIssuerCallback(before, 0);
     }
+
+    protected int awaitStableCount(final IntSupplier counter) {
+        final AtomicInteger previous = new AtomicInteger(-1);
+
+        await()
+                .pollInterval(Duration.ofMillis(200))
+                .atMost(Duration.ofSeconds(3))
+                .until(() -> {
+                    int current = counter.getAsInt();
+                    int last = previous.getAndSet(current);
+                    return last == current;
+                });
+
+        return previous.get();
+    }
+
 
 
 

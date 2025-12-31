@@ -127,7 +127,7 @@ class VerifierTest extends BaseTest {
             return null;
         }).when(spyWallet).respondToVerificationID2(Mockito.any(RequestObject.class), Mockito.anyString());
 
-        final int before = countVerifierCallbacks();
+        final int before = awaitStableVerifierCallbacks();
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
                 spyWallet.respondToVerification(
@@ -168,7 +168,7 @@ class VerifierTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
         final String res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
-        final int before = countVerifierCallbacks();
+        final int before = awaitStableVerifierCallbacks();
 
         // Spy wallet to simulate missing presentation_submission
         final Wallet spyWallet = Mockito.spy(wallet);
