@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -35,7 +36,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
@@ -66,7 +72,8 @@ public class BaseTest {
     @Autowired
     protected PostgreSQLContainer<?> dbTestContainer;
     @Autowired
-    protected MockServerContainer mockServer;
+    protected MockServerContainer mockServerContainer;
+    protected MockServerClient mockServerClient;
 
     protected Connection connection;
     protected Wallet wallet;
@@ -78,6 +85,50 @@ public class BaseTest {
     protected Statement stmt;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
+
+    protected int countVerifierCallbacks() {
+        return mockServerClient
+                .retrieveRecordedRequests(request().withPath(VERIFIER_CALLBACK_PATH))
+                .length;
+    }
+
+    protected int countIssuerCallbacks() {
+        return mockServerClient
+                .retrieveRecordedRequests(request().withPath(ISSUER_CALLBACK_PATH))
+                .length;
+    }
+
+    protected void awaitNVerifierCallback(final int before, final int n) {
+        await().untilAsserted(() ->
+                assertThat(countVerifierCallbacks())
+                        .isEqualTo(before + n)
+        );
+    }
+
+    protected void awaitOneVerifierCallback(final int before) {
+        awaitNVerifierCallback(before, 1);
+    }
+
+    protected void awaitNoneVerifierCallback(final int before) {
+        awaitNVerifierCallback(before, 0);
+    }
+
+    protected void awaitNIssuerCallback(final int before, final int n) {
+        await().untilAsserted(() ->
+                assertThat(countIssuerCallbacks())
+                        .isEqualTo(before + n)
+        );
+    }
+
+    protected void awaitOneIssuerCallback(final int before) {
+        awaitNIssuerCallback(before, 1);
+    }
+
+    protected void awaitNoneIssuerCallback(final int before) {
+        awaitNIssuerCallback(before, 0);
+    }
+
+
 
     @BeforeAll
     void setup() throws Exception {
@@ -115,6 +166,14 @@ public class BaseTest {
         restClient = RestClient.builder().build();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
+    }
+
+    @BeforeEach
+    void setupMockServerVerificationClient() {
+        mockServerClient = new MockServerClient(
+                mockServerContainer.getHost(),
+                mockServerContainer.getServerPort()
+        );
     }
 
     @BeforeEach

@@ -11,6 +11,10 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
+import java.net.URI;
+
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass
@@ -55,9 +59,9 @@ public class IssuerContainerConfig {
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                 .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
                 .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
-                .withEnv("WEBHOOK_CALLBACK_URI", config.getMockServerUri() + "/callback")
+                .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(
+                        ISSUER_CALLBACK_PATH).toString())
                 .withEnv("WEBHOOK_INTERVAL", "100")
-                //.withEnv("APPLICATION_DPOP_ENFORCE", "true")
                 .withEnv("APPLICATION_DPOP_ENFORCE", String.valueOf(issuerImageConfig.isEnforceDpop()))
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)

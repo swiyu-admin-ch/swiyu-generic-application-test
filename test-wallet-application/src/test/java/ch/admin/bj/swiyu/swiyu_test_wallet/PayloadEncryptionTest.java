@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.nimbusds.jose.JOSEException;
@@ -88,7 +89,7 @@ class PayloadEncryptionTest extends BaseTest {
                     .create();
         }
 
-        final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
+        final RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
 
         final OpenidClientMetadataDto metadata = verificationRequest.getClientMetadata();
         final JsonWebKey webKey = metadata.getJwks().getKeys().getFirst();
@@ -147,7 +148,7 @@ class PayloadEncryptionTest extends BaseTest {
                     .create();
         }
 
-        final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
+        final RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
 
         assertThat(verificationRequest.getResponseMode()).isEqualTo(RequestObject.ResponseModeEnum.POST_JWT);
 
@@ -213,7 +214,7 @@ class PayloadEncryptionTest extends BaseTest {
                     .create();
         }
 
-        final RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
+        final RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
 
         assertThat(verificationRequest.getResponseMode()).isEqualTo(RequestObject.ResponseModeEnum.POST_JWT);
 

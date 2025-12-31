@@ -14,6 +14,9 @@ public class VerifierImageConfig {
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-verifier";
     private String imageTag = "latest";
 
+    private String swiyuPartnerId;
+
+
     private String surname = "default";
 
     public String getDbSchema() {

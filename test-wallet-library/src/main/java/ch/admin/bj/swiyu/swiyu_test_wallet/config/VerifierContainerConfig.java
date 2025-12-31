@@ -10,6 +10,9 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
+import java.net.URI;
+
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass
@@ -22,34 +25,33 @@ public class VerifierContainerConfig {
             String imageName,
             VerifierImageConfig verifierImageConfig) {
 
-        try (var container = new GenericContainer(imageName)) {
-            return container
-                    .withExposedPorts(8080)
-                    .withEnv("VERIFIER_DID", config.getIssuerDid())
-                    .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
-                    .withEnv("EXTERNAL_URL", "http://default-verifier-url.admin.ch")
-                    .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
-                    .withEnv("SIGNING_KEY", config.getIssuerAuthKeyPemString())
-                    .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
-                    .withEnv("ACCEPTED_STATUS_LIST_HOSTS", config.getMockServerUri())
-                    .withEnv("client_id_scheme", "did")
-                    .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
-                    .withEnv("ACCEPTED_STATUS_LIST_HOSTS", "swiyu-demo-verifier-service")
-                    .withEnv("MANAGEMENT_HEALTH_KUBERNETES_ENABLED", "false")
-                    .withEnv("MANAGEMENT_INFO_KUBERNETES_ENABLED", "false")
-                    .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, verifierImageConfig.getDbSchema()))
-                    .withEnv("POSTGRES_USER", dbContainer.getUsername())
-                    .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
-                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
-                    .withNetwork(network)
-                    .withNetworkAliases(verifierImageConfig.getNetworkAlias())
-                    .withExtraHost("host.docker.internal", "host-gateway")
-                    .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("verifier/metadata.json")), "/tmp/metadata.json")
-                    .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
-                    // .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("verifier/cacert.crt")), "/certs-app/cacert.crt")
-                    .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
-                    .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
-                    .dependsOn(dbContainer);
-        }
+        return new GenericContainer<>(imageName)
+                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
+                .withExposedPorts(8080)
+                .withEnv("VERIFIER_DID", config.getIssuerDid())
+                .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
+                .withEnv("EXTERNAL_URL", "http://default-verifier-url.admin.ch")
+                .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
+                .withEnv("SIGNING_KEY", config.getIssuerAuthKeyPemString())
+                .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
+                .withEnv("ACCEPTED_STATUS_LIST_HOSTS", config.getMockServerUri())
+                .withEnv("client_id_scheme", "did")
+                .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
+                .withEnv("ACCEPTED_STATUS_LIST_HOSTS", "swiyu-demo-verifier-service")
+                .withEnv("MANAGEMENT_HEALTH_KUBERNETES_ENABLED", "false")
+                .withEnv("MANAGEMENT_INFO_KUBERNETES_ENABLED", "false")
+                .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, verifierImageConfig.getDbSchema()))
+                .withEnv("POSTGRES_USER", dbContainer.getUsername())
+                .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
+                .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
+                .withEnv("WEBHOOK_INTERVAL", "100")
+                .withNetwork(network)
+                .withNetworkAliases(verifierImageConfig.getNetworkAlias())
+                .withExtraHost("host.docker.internal", "host-gateway")
+                .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("verifier/metadata.json")), "/tmp/metadata.json")
+                .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
+                .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
+                .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
+                .dependsOn(dbContainer);
     }
 }

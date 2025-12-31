@@ -28,6 +28,9 @@ import static org.mockserver.model.HttpResponse.response;
 @UtilityClass
 public class MockServerClientConfig {
 
+    public static final String ISSUER_CALLBACK_PATH = "/callbacks/issuer";
+    public static final String VERIFIER_CALLBACK_PATH = "/callbacks/issuer";
+
     public static MockServerClient createMockServerClient(MockServerContainer mockServer, IssuerConfig issuerConfig) {
 
         MockServerClient mockServerClient = new MockServerClient(
@@ -69,7 +72,10 @@ public class MockServerClientConfig {
                 .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
 
-        mockServerClient.when(request().withMethod("POST").withPath("/callback"))
+        mockServerClient.when(request().withMethod("POST").withPath(ISSUER_CALLBACK_PATH))
+                .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
+
+        mockServerClient.when(request().withMethod("POST").withPath(VERIFIER_CALLBACK_PATH))
                 .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
 
         mockServerClient

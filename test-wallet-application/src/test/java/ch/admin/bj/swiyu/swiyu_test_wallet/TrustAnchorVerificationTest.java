@@ -2,10 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.verifier.model.CreateVerificationManagement;
-import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
-import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
-import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
+import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -22,6 +19,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.runner.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -83,7 +81,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                     .create();
         }
 
-        var verificationRequest = wallet.getVerificationDetails(deeplink);
+        final RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();
@@ -135,7 +133,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                     .create();
         }
 
-        var verificationRequest = wallet.getVerificationDetails(deeplink);
+        final RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
         final ManagementResponse result = verifierManager.verifyState();
