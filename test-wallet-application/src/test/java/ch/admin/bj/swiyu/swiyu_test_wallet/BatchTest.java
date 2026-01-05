@@ -50,7 +50,8 @@ class BatchTest extends BaseTest {
                        indexes are not strictly sequential across the batch.
                     """
     )
-    @Tag("batch-issuance")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
@@ -88,7 +89,8 @@ class BatchTest extends BaseTest {
                     6. The test validates that the error message indicates insufficient available status indexes.
                     """
     )
-    @Tag("batch-issuance")
+    @Tag("uci_i1")
+    @Tag("edge_case")
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
         final int statusListLength = 2;

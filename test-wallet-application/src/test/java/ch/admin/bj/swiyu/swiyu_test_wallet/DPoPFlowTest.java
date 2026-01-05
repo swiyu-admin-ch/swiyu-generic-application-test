@@ -70,8 +70,8 @@ class DPoPFlowTest extends BaseTest {
                     7. Issuer successfully issues credentials.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void dpopInitialIssuance_happyPath() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -145,9 +145,8 @@ class DPoPFlowTest extends BaseTest {
                     10. Wallet uses the refreshed access_token on /credential (V1) and receives credentials.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
-    @Tag("refresh-flow")
+    @Tag("uci_i2")
+    @Tag("happy_path")
     void dpopRefreshFlow_happyPath() {
         final int batchSize = 3;
 
@@ -244,8 +243,8 @@ class DPoPFlowTest extends BaseTest {
                     without any protection.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
+    @Tag("uci_i2")
+    @Tag("edge_case")
     void dpopNonceInvalidationAfterUsage_preventReplayAttack() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -306,9 +305,8 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance renewal requests cannot be replayed.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
-    @Tag("refresh-flow")
+    @Tag("uci_i2")
+    @Tag("edge_case")
     void dpopNonceInvalidationInRefreshFlow_preventReplay() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -395,9 +393,8 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance cannot be exploited through nonce replay.
                     """
     )
-    @Tag("batch-issuance")
-    @Tag("dpop")
-    @Tag("refresh-flow")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void dpopNonceInvalidationInCredentialRequests_preventReplay() {
         CredentialWithDeeplinkResponse offer1 =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -481,8 +478,8 @@ class DPoPFlowTest extends BaseTest {
                     MUST be rejected by the issuer.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
+    @Tag("uci_i2")
+    @Tag("edge_case")
     void dpopRegisterHolderKey_thenRejectDifferentKey() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -579,8 +576,8 @@ class DPoPFlowTest extends BaseTest {
                     This verifies RFC 9449: DPoP URI binding prevents MITM reuse of tokens on different endpoints.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
+    @Tag("uci_i1")
+    @Tag("edge_case")
     void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -713,8 +710,8 @@ class DPoPFlowTest extends BaseTest {
                     6. Wallet requests new credential batch with new nonces - must succeed.
                     """
     )
-    @Tag("issuance")
-    @Tag("dpop")
+    @Tag("uci_i1")
+    @Tag("edge_case")
     void holderBindingReplayProtection_preventProofReuse() {
         final CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");

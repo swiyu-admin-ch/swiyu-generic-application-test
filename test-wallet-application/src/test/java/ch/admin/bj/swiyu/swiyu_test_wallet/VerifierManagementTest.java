@@ -276,10 +276,10 @@ public class VerifierManagementTest extends BaseTest {
     @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
             key = "EIDOMNI-552",
-            summary = "Business verifier retrieves verification result without webhook",
+            summary = "Business verifier retrieves verification result",
             description = """
                     Validate that a verifier can retrieve the verification result
-                    after a successful verification when no webhook callback is used.
+                    after a successful verification.
                     """
     )
     @Tag("ucv_m3")

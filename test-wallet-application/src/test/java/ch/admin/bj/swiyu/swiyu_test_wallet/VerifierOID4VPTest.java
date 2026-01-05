@@ -14,14 +14,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class VerifierOID4VPTest extends BaseTest {
     @Test
     @XrayTest(
+            key = "EIDOMNI-554",
             summary = "Wallet retrieves a signed OID4VP request object from verifier",
             description = """
                     Validate that the verifier exposes a signed OpenID Connect
                     request object containing the verification query and response information.
                     """
     )
-    @Tag("oid4vp")
-    @Tag("UCV_O1")
+    @Tag("ucv_o1")
     @Tag("happy_path")
     void walletFetchesSignedRequestObject_thenSuccess() {
 
@@ -84,14 +84,14 @@ public class VerifierOID4VPTest extends BaseTest {
 
     @Test
     @XrayTest(
+            key = "EIDOMNI-555",
             summary = "Wallet retrieves a signed OID4VP request object from verifier",
             description = """
                     Validate that the verifier exposes a signed OpenID Connect
                     request object containing the verification query and response information.
                     """
     )
-    @Tag("oid4vp")
-    @Tag("UCV_O1")
+    @Tag("ucv_o1")
     @Tag("happy_path")
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 

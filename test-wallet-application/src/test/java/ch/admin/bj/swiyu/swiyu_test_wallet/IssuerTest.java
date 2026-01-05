@@ -36,7 +36,8 @@ class IssuerTest extends BaseTest {
                     5. The test asserts that the pre-authorized code is present and unique from the management ID.
                     """
     )
-    @Tag("issuance")
+    @Tag("uci_ex_1")
+    @Tag("happy_path")
     void offerDeepLinkWithSDJwt() {
 
         var credentialDetails = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -76,7 +77,8 @@ class IssuerTest extends BaseTest {
                     4. The SD-JWT credential configuration 'university_example_sd_jwt' is verified to be included.
                     """
     )
-    @Tag("issuance")
+    @Tag("uci_m1")
+    @Tag("happy_path")
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
@@ -102,7 +104,8 @@ class IssuerTest extends BaseTest {
                     4. The test asserts compliance with expected OID4VCI configuration.
                     """
     )
-    @Tag("issuance")
+    @Tag("uci_w1")
+    @Tag("happy_path")
     void validateConfiguration() {
         var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
 
@@ -128,7 +131,8 @@ class IssuerTest extends BaseTest {
                     4. The test confirms that the configuration aligns with OID4VCI authorization flow expectations.
                     """
     )
-    @Tag("issuance")
+    @Tag("uci_w1a")
+    @Tag("happy_path")
     void validateOAuthAuthorizationServer() {
         OpenIdConfiguration openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
 

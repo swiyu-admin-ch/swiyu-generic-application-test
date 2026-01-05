@@ -74,8 +74,8 @@ class WalletTest extends BaseTest {
                     6. The verifier processes the SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("issuance")
-    @Tag("verification")
+    @Tag("uci_w1")
+    @Tag("happy_path")
     void unboundNotDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
@@ -112,8 +112,8 @@ class WalletTest extends BaseTest {
                     8. The verifier successfully validates the SD-JWT and confirms the verification state as SUCCESS.
                     """
     )
-    @Tag("issuance")
-    @Tag("verification")
+    @Tag("uci_w1")
+    @Tag("happy_path")
     void unboundDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
 
@@ -163,8 +163,8 @@ class WalletTest extends BaseTest {
                     6. The verifier validates the bound SD-JWT presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("issuance")
-    @Tag("verification")
+    @Tag("uci_w2")
+    @Tag("happy_path")
     void createBoundCredential_thenSuccess() throws InterruptedException {
         int before = awaitStableIssuerCallbacks();
 
@@ -211,8 +211,8 @@ class WalletTest extends BaseTest {
                     8. The verifier validates the bound SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("issuance")
-    @Tag("verification")
+    @Tag("uci_w2")
+    @Tag("happy_path")
     void createDeferredBoundCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
 
@@ -252,9 +252,8 @@ class WalletTest extends BaseTest {
                     7. The verifier validates the presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("issuance")
-    @Tag("verification")
-    @Tag("dcql")
+    @Tag("uci_w3")
+    @Tag("happy_path")
     void verifyDCQLRequest_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 

@@ -60,8 +60,8 @@ class PayloadEncryptionTest extends BaseTest {
                     7. The verifier decrypts and validates the presentation, confirming that the verification state is SUCCESS.
                     """
     )
-    @Tag("verification")
-    @Tag("encryption")
+    @Tag("ucv_o2")
+    @Tag("happy_path")
     void verifierRequiresEncryption_walletSendsEncryptedPayload_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
         final String expectedCrv = "P-256";
         final String expectedKty = "EC";
@@ -125,8 +125,8 @@ class PayloadEncryptionTest extends BaseTest {
                     7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
                     """
     )
-    @Tag("verification")
-    @Tag("encryption")
+    @Tag("ucv_o2")
+    @Tag("edge_case")
     void verifierRequiresEncryption_walletSendsUnencrypted_thenRejected(final SwiyuApiVersionConfig swiyuApiVersion) {
         log.info("Issuer creating credential offer and wallet collecting it");
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -191,8 +191,8 @@ class PayloadEncryptionTest extends BaseTest {
                     7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
                     """
     )
-    @Tag("verification")
-    @Tag("encryption")
+    @Tag("ucv_o2")
+    @Tag("edge_case")
     void verifierRequiresEncryption_walletSendsWrongEncryption_thenRejected(final SwiyuApiVersionConfig swiyuApiVersion) throws JOSEException {
         log.info("Issuer creating credential offer and wallet collecting it");
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -267,8 +267,8 @@ class PayloadEncryptionTest extends BaseTest {
                     5. Wallet decrypts JWE and validates SD-JWT format
                     """
     )
-    @Tag("issuer")
-    @Tag("encryption")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void issuerEncryptionV1_encryptedRequestAndResponse_thenSuccess() {
         final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
 

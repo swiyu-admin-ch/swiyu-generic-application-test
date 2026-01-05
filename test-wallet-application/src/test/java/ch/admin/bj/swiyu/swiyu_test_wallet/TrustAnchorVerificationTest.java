@@ -56,8 +56,8 @@ class TrustAnchorVerificationTest extends BaseTest {
                     5. Verify that the verification succeeds (state == SUCCESS).
                     """
     )
-    //@ComponentTest("verifier")
-    @Tag("verification")
+    @Tag("ucv_o1")
+    @Tag("happy_path")
     @Disabled("No business mock")
     void verificationWithValidTrustAnchor_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -108,8 +108,8 @@ class TrustAnchorVerificationTest extends BaseTest {
                     5. Verify that the process fails with an 'issuer_not_accepted' or equivalent error.
                     """
     )
-    //@ComponentTest("verifier")
-    @Tag("verification")
+    @Tag("ucv_o1")
+    @Tag("edge_case")
     @Disabled("No business trust mock")
     void verificationWithUntrustedIssuer_thenFails(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
