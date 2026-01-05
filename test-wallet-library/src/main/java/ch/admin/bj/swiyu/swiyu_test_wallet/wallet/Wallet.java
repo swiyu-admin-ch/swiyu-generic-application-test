@@ -9,20 +9,17 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
+import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWEObject;
-import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
@@ -36,10 +33,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.security.KeyPair;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.security.interfaces.ECPrivateKey;
 import java.util.*;
 
@@ -321,18 +314,51 @@ public class Wallet {
         return postDeferredCredentialRequest(walletEntry);
     }
 
-    public RequestObject getVerificationDetails(String verificationDeeplink) {
+    public VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
         var query = URI.create(verificationDeeplink).getQuery();
-
         String[] pairs = query.split("&");
-        var verificationUrl = verifierContext.getContextualizedUri(PathSupport.toUri(pairs[1].split("=")[1]));
 
-        return restClient.get()
+        var verificationUrl =
+                verifierContext.getContextualizedUri(
+                        PathSupport.toUri(pairs[1].split("=")[1])
+                );
+
+        ResponseEntity<String> response = restClient.get()
                 .uri(verificationUrl)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header(
+                        HttpHeaders.ACCEPT,
+                        "application/oauth-authz-req+jwt, application/json"
+                )
                 .retrieve()
-                .body(RequestObject.class);
+                .toEntity(String.class);
+
+        MediaType contentType = response.getHeaders().getContentType();
+        String body = response.getBody();
+
+        assertThat(body).isNotNull();
+
+        if (MediaType.valueOf("application/oauth-authz-req+jwt").includes(contentType)) {
+            return new VerificationRequestObject.Signed(body);
+        }
+
+        try {
+            final ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            final RequestObject requestObject =
+                    mapper.readValue(body, RequestObject.class);
+            return new VerificationRequestObject.Unsigned(requestObject);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse unsigned request object", e);
+        }
+    }
+
+    public RequestObject getVerificationDetailsUnsigned(String verificationDeeplink) {
+        VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
+        return ((VerificationRequestObject.Unsigned) request).requestObject();
+    }
+
+    public String getVerificationDetailSigned(String verificationDeeplink) {
+        VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
+        return ((VerificationRequestObject.Signed) request).jwt();
     }
 
     public void respondToVerification(final SwiyuApiVersionConfig apiVersion, RequestObject requestObject, String token) {
@@ -689,11 +715,10 @@ public class Wallet {
             builder = builder.header("DPoP", dpopProof);
         }
 
-         var response = builder
+        var response = builder
                 .body(requestPayload)
                 .retrieve()
                 .toEntity(String.class);
-
 
 
         int code = response.getStatusCode().value();
@@ -826,6 +851,3 @@ public class Wallet {
     }
 
 }
-
-
-

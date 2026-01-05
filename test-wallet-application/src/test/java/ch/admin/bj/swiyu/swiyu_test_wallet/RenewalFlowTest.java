@@ -88,7 +88,7 @@ class RenewalFlowTest extends BaseTest {
                     .withUniversityDCQL()
                     .create();
 
-            final RequestObject details = wallet.getVerificationDetails(deepLink);
+            final RequestObject details = wallet.getVerificationDetailsUnsigned(deepLink);
             final String presentation = entry.createPresentationForSdJwtIndex(i, details);
 
             wallet.respondToVerificationV1(details, presentation);

@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.verifier.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.verifier.api.VerifierManagementApiApi;
 import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestPresentationDefinitions;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -31,15 +32,23 @@ public class VerifierManager {
         actuatorApi = new ActuatorApi(apiClient);
     }
 
+    public VerificationRequestBuilder verificationRequest(final boolean withKeyBinding) {
+        return new VerificationRequestBuilder(withKeyBinding);
+    }
+
     public VerificationRequestBuilder verificationRequest() {
-        return new VerificationRequestBuilder();
+        return new VerificationRequestBuilder(true);
     }
 
     public class VerificationRequestBuilder {
         private final CreateVerificationManagement request;
 
-        public VerificationRequestBuilder() {
-            this.request = createDefaultRequest(true);
+        public VerificationRequestBuilder(final boolean withKeyBinding) {
+            this.request = createDefaultRequest(withKeyBinding);
+        }
+
+        public CreateVerificationManagement getRequest() {
+            return request;
         }
 
         public VerificationRequestBuilder acceptedIssuerDids(List<String> dids) {
@@ -72,28 +81,31 @@ public class VerifierManager {
             return this;
         }
 
-        public VerificationRequestBuilder withUniversity() {
-            boolean withKeyBinding = true;
+        public VerificationRequestBuilder presentationDefinition(PresentationDefinition presentationDefinition) {
+            request.presentationDefinition(presentationDefinition);
+            return this;
+        }
 
-            Constraint universityConstraint = new Constraint()
-                    .addFieldsItem(new Field().addPathItem("$.type"))
-                    .addFieldsItem(new Field().addPathItem("$.name"))
-                    .addFieldsItem(new Field().addPathItem("$.average_grade"));
+        private VerificationRequestBuilder jwtSecuredAuthorizationRequest(boolean jwtSecuredAuthorizationRequest) {
+            request.jwtSecuredAuthorizationRequest(jwtSecuredAuthorizationRequest);
+            return this;
+        }
 
-            InputDescriptor universityInputDescriptor = new InputDescriptor()
-                    .id(UUID.randomUUID().toString())
-                    .name("University Credential")
-                    .putFormatItem("vc+sd-jwt", withKeyBinding ? es256Format() : es256FormatNoKeyBinding())
-                    .constraints(universityConstraint);
+        public VerificationRequestBuilder jwtSecure() {
+            return jwtSecuredAuthorizationRequest(true);
+        }
 
-            PresentationDefinition presentation = new PresentationDefinition()
-                    .id(UUID.randomUUID().toString())
-                    .name("University Presentation")
-                    .purpose("Present university degree information")
-                    .format(null)
-                    .addInputDescriptorsItem(universityInputDescriptor);
+        public VerificationRequestBuilder jwtUnsecure() {
+            return jwtSecuredAuthorizationRequest(false);
+        }
 
+        public VerificationRequestBuilder presentation(final PresentationDefinition presentation) {
             request.presentationDefinition(presentation);
+            return this;
+        }
+
+        public VerificationRequestBuilder withUniversity() {
+            request.presentationDefinition(TestPresentationDefinitions.universityPresentation());
             return this;
         }
 
@@ -119,41 +131,14 @@ public class VerifierManager {
         }
 
         public VerificationRequestBuilder withUniversityDCQL() {
-            DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
-                    .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
-                    .typeValues(List.of(List.of("string"), List.of("string"), List.of("number")));
-            DcqlClaimDto claimType = new DcqlClaimDto()
-                    .path(List.of("type"))
-                    .id(null)
-                    .values(List.of("Bachelor of Science"));
-            DcqlClaimDto claimName = new DcqlClaimDto()
-                    .path(List.of("name"))
-                    .id(null)
-                    .values(null);
-            DcqlClaimDto claimAverageGrade = new DcqlClaimDto()
-                    .path(List.of("average_grade"))
-                    .id(null)
-                    .values(null);
-            DcqlCredentialDto credential = new DcqlCredentialDto()
-                    .id("VerifiableCredential")
-                    .format("vc+sd-jwt")
-                    .meta(meta)
-                    .claims(List.of(claimType, claimName, claimAverageGrade))
-                    .claimSets(null)
-                    .requireCryptographicHolderBinding(true);
+            request.setDcqlQuery(TestPresentationDefinitions.universityPresentationDCQL());
 
-            DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
-            request.setDcqlQuery(dcqlQuery);
-
-
-            PresentationDefinition presentation = new PresentationDefinition()
+            final PresentationDefinition presentation = new PresentationDefinition()
                     .id(UUID.randomUUID().toString())
                     .name("string")
                     .purpose("string")
                     .format(null);
-
             request.presentationDefinition(presentation);
-
             return this;
         }
 
@@ -190,8 +175,12 @@ public class VerifierManager {
         return managementResponse;
     }
 
+    public ManagementResponse getVerificationById(UUID id) {
+        return managementApi.getVerification(id);
+    }
+
     public ManagementResponse verifyState() {
-        return  verifyState(VerificationStatus.SUCCESS);
+        return verifyState(VerificationStatus.SUCCESS);
     }
 
     public void intercept(HttpTraceInterceptor interceptor) {

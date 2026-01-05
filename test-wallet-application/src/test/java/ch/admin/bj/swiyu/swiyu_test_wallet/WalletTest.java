@@ -13,8 +13,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,8 +22,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpErrorAssertions.errorCode;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpErrorAssertions.errorJson;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -90,7 +86,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(entry.getIssuerDid())
                 .create();
 
-        RequestObject verificationRequest = wallet.getVerificationDetails(deeplink);
+        RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
 
@@ -136,7 +132,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(entry.getIssuerDid())
                 .create();
         ;
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
 
@@ -169,17 +165,29 @@ class WalletTest extends BaseTest {
     )
     @Tag("issuance")
     @Tag("verification")
-    void createBoundCredential_thenSuccess() {
-        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+    void createBoundCredential_thenSuccess() throws InterruptedException {
+        int before = awaitStableIssuerCallbacks();
 
-        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+
+        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        var deepLink = verifierManager.verificationRequest().acceptedIssuerDid(entry.getIssuerDid()).withUniversity().create();
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
-        var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+        awaitNIssuerCallback(before, 2);
 
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
+        final String deepLink = verifierManager.verificationRequest(false).acceptedIssuerDid(entry.getIssuerDid()).withUniversity().create();
+        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
+        final String res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+
+        before = awaitStableVerifierCallbacks();
+
+        wallet.respondToVerification(
+                SwiyuApiVersionConfig.ID2,
+                verificationDetails,
+                res
+        );
+
+        awaitOneVerifierCallback(before);
     }
 
     @Test
@@ -219,7 +227,7 @@ class WalletTest extends BaseTest {
         var deepLink = verifierManager.verificationRequest()
                 .acceptedIssuerDid(entry.getIssuerDid())
                 .create();
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, res);
@@ -258,7 +266,7 @@ class WalletTest extends BaseTest {
                 .withUniversityDCQL()
                 .create();
 
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
         var res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
 
         assert verificationDetails.getDcqlQuery() != null;
@@ -280,7 +288,7 @@ class WalletTest extends BaseTest {
 
             verifierManager.verifyState(VerificationStatus.PENDING);
 
-            var verificationDetails = wallet.getVerificationDetails(deepLink);
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
             var res = entry.createPresentationForSdJwtIndex(i, verificationDetails);
 
             assert verificationDetails.getDcqlQuery() != null;
@@ -302,7 +310,7 @@ class WalletTest extends BaseTest {
                 .withUniversityDCQL()
                 .create();
 
-        var verificationDetails = wallet.getVerificationDetails(deepLink);
+        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
         var res = entry.getVerifiableCredential();
 
         assert verificationDetails.getDcqlQuery() != null;
