@@ -1,11 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -18,6 +14,8 @@ import org.mockserver.model.MediaType;
 import org.testcontainers.containers.MockServerContainer;
 
 import java.text.ParseException;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +31,17 @@ public class MockServerClientConfig {
 
     public static MockServerClient createMockServerClient(MockServerContainer mockServer, IssuerConfig issuerConfig) {
 
+        final String validFrom = LocalDate.now(ZoneOffset.UTC)
+                .minusDays(7)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant()
+                .toString();
+
+        final String validUntil = LocalDate.now(ZoneOffset.UTC)
+                .plusDays(7)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant()
+                .toString();
         MockServerClient mockServerClient = new MockServerClient(
                 mockServer.getHost(),
                 mockServer.getServerPort()
@@ -88,23 +97,22 @@ public class MockServerClientConfig {
                         response()
                                 .withStatusCode(200)
                                 .withHeader("Content-Type", "application/json")
-                                .withBody("""
-                {
-                  "metadata_credential_supported_id": ["university_example_sd_jwt"],
-                  "credential_subject_data": {
-                    "name": "Data Science",
-                    "type": "Bachelor of Science",
-                    "average_grade": "5.33"
-                  },
-                  "credential_metadata": {
-                    "vct#integrity": "sha256-0000000000000000000000000000000000000000000="
-                  },
-                  "credential_valid_from": "2025-01-01T00:00:00Z",
-                  "credential_valid_until": "2026-01-01T00:00:00Z",
-                  "status_lists": [
-                  ]
-                }
-            """)
+                                .withBody(String.format("""
+                                        {
+                                          "metadata_credential_supported_id": ["university_example_sd_jwt"],
+                                          "credential_subject_data": {
+                                            "name": "Data Science",
+                                            "type": "Bachelor of Science",
+                                            "average_grade": "5.33"
+                                          },
+                                          "credential_metadata": {
+                                            "vct#integrity": "sha256-0000000000000000000000000000000000000000000="
+                                          },
+                                          "credential_valid_from": "%s",
+                                          "credential_valid_until": "%s",
+                                          "status_lists": []
+                                        }
+                                        """, validFrom, validUntil))
                 );
 
 

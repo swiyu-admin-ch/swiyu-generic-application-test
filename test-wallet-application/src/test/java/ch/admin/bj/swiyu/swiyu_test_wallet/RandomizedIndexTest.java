@@ -55,7 +55,8 @@ class RandomizedIndexTest extends BaseTest {
                     7. The test asserts that the number of credentials matches the expected count and that indexes are not sequential.
                     """
     )
-    @Tag("issuance")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void fullBatchFlow_withRandomIndexes() throws Exception {
         final int statusListLength = 10000;
         issuerManager.createStatusList(statusListLength, 2);
@@ -101,8 +102,8 @@ class RandomizedIndexTest extends BaseTest {
                        non-sequential across batches.
                     """
     )
-    //@ComponentTest("issuer")
-    @Tag("batch-issuance")
+    @Tag("uci_i1")
+    @Tag("happy_path")
     void multipleConcurrentBatches_largeStatusList() throws Exception {
         final int statusListLength = 10000;
         final int batchCount = 10;
@@ -156,8 +157,8 @@ class RandomizedIndexTest extends BaseTest {
                     6. The test ensures that issuance stops once the list capacity is reached.
                     """
     )
-    //@ComponentTest("issuer")
-    @Tag("batch-issuance")
+    @Tag("uci_i1")
+    @Tag("edge_case")
     void multipleConcurrentBatches_smallStatusList() throws Exception {
         final int statusListLength = 20;
         final int batchCount = 10;

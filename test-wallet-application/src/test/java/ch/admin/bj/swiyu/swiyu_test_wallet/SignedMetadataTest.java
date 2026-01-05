@@ -61,7 +61,8 @@ class SignedMetadataTest extends BaseTest {
                     5. The retrieved metadata is valid and contains expected OID4VCI fields.
                     """
     )
-    @Tag("signed-metadata")
+    @Tag("uci_m1")
+    @Tag("happy_path")
     void shouldSuccessfullyValidateSignedMetadata() {
         var walletEntry = wallet.createWalletEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -87,7 +88,8 @@ class SignedMetadataTest extends BaseTest {
                      2. The issuer respond a NOT FOUND.
                     """
     )
-    @Tag("signed-metadata")
+    @Tag("uci_m1")
+    @Tag("edge_case")
     @Disabled("Bug reported in ticket EIDOMNI-446")
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
         final WalletEntry walletEntry = wallet.createWalletEntry();

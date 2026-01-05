@@ -117,7 +117,8 @@ class RenewalFlowTest extends BaseTest {
                            accepting HTTP 200 or 202 responses. A second batch is successfully issued.
                     """
     )
-    @Tag("renewal-flow")
+    @Tag("uci_r1")
+    @Tag("happy_path")
     void renewalFlow_happyPath_fullyAlignedWithSequenceDiagram() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -180,8 +181,8 @@ class RenewalFlowTest extends BaseTest {
                        invalid_grant error response.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("issuance")
+    @Tag("uci_r1")
+    @Tag("edge_case")
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -248,8 +249,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("renewal-flow")
-    @Tag("security")
+    @Tag("uci_r1")
+    @Tag("edge_case")
     void renewalFlow_withWrongDpopBinding_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -325,8 +326,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("renewal-flow")
-    @Tag("security")
+    @Tag("uci_r1")
+    @Tag("edge_case")
     void renewalFlow_withNonceReplayAttack_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -398,8 +399,8 @@ class RenewalFlowTest extends BaseTest {
                         5. Issuer must reject the renewal as the credential management state is REVOKED.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("lifecycle")
+    @Tag("uci_r1")
+    @Tag("edge_case")
     @Disabled("Discuss to confirm that this scenario must be rejected")
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
         final List<String> allCredentials = new ArrayList<>();
@@ -459,9 +460,8 @@ class RenewalFlowTest extends BaseTest {
                     4. The test succeeds only if rate limiting is enforced.
                     """
     )
-    @Tag("renewal-flow")
-    @Tag("stress")
-    @Tag("security")
+    @Tag("uci_r1")
+    @Tag("edge_case")
     void renewalFlow_rateLimitEventuallyTriggered() {
         final int MAX_ATTEMPTS = 100;
 
@@ -535,8 +535,8 @@ class RenewalFlowTest extends BaseTest {
                     5. The issuer must reject the request with HTTP 401 invalid_grant.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("security")
+    @Tag("uci_r2")
+    @Tag("edge_case")
     void refreshToken_refreshWithInvalidToken_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -586,8 +586,8 @@ class RenewalFlowTest extends BaseTest {
                     5. The issuer must reject the request with HTTP 401.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("security")
+    @Tag("uci_r2")
+    @Tag("edge_case")
     void refreshToken_refreshWithWrongDpopBinding_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -637,8 +637,8 @@ class RenewalFlowTest extends BaseTest {
                     5. The issuer must reject the second request with HTTP 401.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("security")
+    @Tag("uci_r2")
+    @Tag("edge_case")
     void refreshToken_refreshNonceReplay_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -684,8 +684,8 @@ class RenewalFlowTest extends BaseTest {
                     4. Issuer must reject the request with HTTP 401.
                     """
     )
-    @Tag("refresh-flow")
-    @Tag("lifecycle")
+    @Tag("uci_r2")
+    @Tag("edge_case")
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -738,8 +738,8 @@ class RenewalFlowTest extends BaseTest {
                        between independent management entities.
                     """
     )
-    @Tag("renewal-flow")
-    @Tag("persistence")
+    @Tag("uci_r3")
+    @Tag("happy_path")
     void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {
 
         log.info("Create initial credentials for issuance A");
