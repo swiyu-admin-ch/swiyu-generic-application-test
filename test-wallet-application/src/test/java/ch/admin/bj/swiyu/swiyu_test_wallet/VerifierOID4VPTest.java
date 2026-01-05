@@ -22,6 +22,7 @@ public class VerifierOID4VPTest extends BaseTest {
                     """
     )
     @Tag("ucv_o1")
+    @Tag("ucv_o1a")
     @Tag("happy_path")
     void walletFetchesSignedRequestObject_thenSuccess() {
 
@@ -92,6 +93,7 @@ public class VerifierOID4VPTest extends BaseTest {
                     """
     )
     @Tag("ucv_o1")
+    @Tag("ucv_o1b")
     @Tag("happy_path")
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 

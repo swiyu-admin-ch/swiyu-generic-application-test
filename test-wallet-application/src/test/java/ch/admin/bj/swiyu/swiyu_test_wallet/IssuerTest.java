@@ -36,7 +36,8 @@ class IssuerTest extends BaseTest {
                     5. The test asserts that the pre-authorized code is present and unique from the management ID.
                     """
     )
-    @Tag("uci_ex_1")
+    @Tag("uci_c1")
+    @Tag("uci_c1a")
     @Tag("happy_path")
     void offerDeepLinkWithSDJwt() {
 
@@ -78,6 +79,7 @@ class IssuerTest extends BaseTest {
                     """
     )
     @Tag("uci_m1")
+    @Tag("uci_m1a")
     @Tag("happy_path")
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();

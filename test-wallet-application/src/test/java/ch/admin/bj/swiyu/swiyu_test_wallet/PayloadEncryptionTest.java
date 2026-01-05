@@ -61,6 +61,7 @@ class PayloadEncryptionTest extends BaseTest {
                     """
     )
     @Tag("ucv_o2")
+    @Tag("ucv_o2a")
     @Tag("happy_path")
     void verifierRequiresEncryption_walletSendsEncryptedPayload_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
         final String expectedCrv = "P-256";

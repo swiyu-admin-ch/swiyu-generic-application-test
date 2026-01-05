@@ -74,7 +74,9 @@ class WalletTest extends BaseTest {
                     6. The verifier processes the SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("uci_w1")
+    @Tag("uci_c1a")
+    @Tag("uci_i1")
+    @Tag("ucv_o2")
     @Tag("happy_path")
     void unboundNotDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -112,7 +114,9 @@ class WalletTest extends BaseTest {
                     8. The verifier successfully validates the SD-JWT and confirms the verification state as SUCCESS.
                     """
     )
-    @Tag("uci_w1")
+    @Tag("uci_c1b")
+    @Tag("uci_i1b")
+    @Tag("ucv_o2")
     @Tag("happy_path")
     void unboundDeferredCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
@@ -163,7 +167,9 @@ class WalletTest extends BaseTest {
                     6. The verifier validates the bound SD-JWT presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("uci_w2")
+    @Tag("uci_c1a")
+    @Tag("uci_i1a")
+    @Tag("ucv_o2a")
     @Tag("happy_path")
     void createBoundCredential_thenSuccess() throws InterruptedException {
         int before = awaitStableIssuerCallbacks();
@@ -211,7 +217,9 @@ class WalletTest extends BaseTest {
                     8. The verifier validates the bound SD-JWT and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("uci_w2")
+    @Tag("uci_c1b")
+    @Tag("uci_i1b")
+    @Tag("ucv_o2a")
     @Tag("happy_path")
     void createDeferredBoundCredential_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
@@ -252,7 +260,9 @@ class WalletTest extends BaseTest {
                     7. The verifier validates the presentation and confirms that the verification state is SUCCESS.
                     """
     )
-    @Tag("uci_w3")
+    @Tag("uci_c1a")
+    @Tag("uci_i1a")
+    @Tag("ucv_o2a")
     @Tag("happy_path")
     void verifyDCQLRequest_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -273,6 +283,14 @@ class WalletTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-557",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("uci_c1")
+    @Tag("uci_i1")
+    @Tag("ucv_o2")
+    @Tag("happy_path")
     void verifyDCQLBatchIssuanceRequest_thenSuccess() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
 
@@ -298,6 +316,12 @@ class WalletTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-561",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("ucv_o2")
+    @Tag("edge_case")
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
         CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 

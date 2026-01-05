@@ -57,6 +57,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                     """
     )
     @Tag("ucv_o1")
+    @Tag("ucv_o1a")
     @Tag("happy_path")
     @Disabled("No business mock")
     void verificationWithValidTrustAnchor_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
@@ -109,6 +110,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                     """
     )
     @Tag("ucv_o1")
+    @Tag("ucv_o1b")
     @Tag("edge_case")
     @Disabled("No business trust mock")
     void verificationWithUntrustedIssuer_thenFails(final SwiyuApiVersionConfig swiyuApiVersion) {

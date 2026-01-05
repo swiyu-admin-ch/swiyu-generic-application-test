@@ -70,6 +70,7 @@ class DPoPFlowTest extends BaseTest {
                     7. Issuer successfully issues credentials.
                     """
     )
+    @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
     void dpopInitialIssuance_happyPath() {
@@ -145,6 +146,7 @@ class DPoPFlowTest extends BaseTest {
                     10. Wallet uses the refreshed access_token on /credential (V1) and receives credentials.
                     """
     )
+    @Tag("uci_c1")
     @Tag("uci_i2")
     @Tag("happy_path")
     void dpopRefreshFlow_happyPath() {

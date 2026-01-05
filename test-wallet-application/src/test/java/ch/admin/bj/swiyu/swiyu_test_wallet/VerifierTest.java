@@ -45,7 +45,9 @@ class VerifierTest extends BaseTest {
                     2. The wallet retrieves verification details 
                     """
     )
-    @Tag("verification")
+    @Tag("ucv_m1")
+    @Tag("ucv_m1b")
+    @Tag("happy_path")
     void verifierProvidesDeeplink() {
         final ManagementResponse deeplink = verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).createManagementResponse();
         assertThat(deeplink.getVerificationDeeplink())
@@ -54,7 +56,12 @@ class VerifierTest extends BaseTest {
     }
 
     @Test
-    @Tag("management")
+    @XrayTest(
+            key = "EIDOMNI-557",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("ucv_m1")
+    @Tag("edge_case")
     void managementCreateVerification_missingPresentationDefinition_thenRejected() {
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
                 verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).presentationDefinition(null).createManagementResponse()
@@ -70,7 +77,12 @@ class VerifierTest extends BaseTest {
 
 
     @Test
-    @Tag("management")
+    @XrayTest(
+            key = "EIDOMNI-562",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("ucv_m3")
+    @Tag("edge_case")
     void managementGetVerification_randomId_thenRejected() {
         final UUID unknownId = UUID.randomUUID();
 
@@ -86,7 +98,12 @@ class VerifierTest extends BaseTest {
     }
 
     @Test
-    @Tag("verification")
+    @XrayTest(
+            key = "EIDOMNI-559",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("ucv_o2")
+    @Tag("edge_case")
     void missingPresentationSubmission_thenRejected() {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");
@@ -151,7 +168,12 @@ class VerifierTest extends BaseTest {
     }
 
     @Test
-    @Tag("verification")
+    @XrayTest(
+            key = "EIDOMNI-560",
+            summary = "Successful deeplink creation for verification request"
+    )
+    @Tag("ucv_o2")
+    @Tag("edge_case")
     void wrongPresentationSubmission_thenRejected() {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("university_example_sd_jwt");

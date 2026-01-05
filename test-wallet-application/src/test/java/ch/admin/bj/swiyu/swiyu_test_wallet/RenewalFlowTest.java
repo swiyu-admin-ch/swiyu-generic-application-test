@@ -117,7 +117,8 @@ class RenewalFlowTest extends BaseTest {
                            accepting HTTP 200 or 202 responses. A second batch is successfully issued.
                     """
     )
-    @Tag("uci_r1")
+    @Tag("uci_c1")
+    @Tag("uci_i2")
     @Tag("happy_path")
     void renewalFlow_happyPath_fullyAlignedWithSequenceDiagram() {
         final List<String> allCredentials = new ArrayList<>();
@@ -181,7 +182,8 @@ class RenewalFlowTest extends BaseTest {
                        invalid_grant error response.
                     """
     )
-    @Tag("uci_r1")
+    @Tag("uci_c1")
+    @Tag("uci_i2")
     @Tag("edge_case")
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();

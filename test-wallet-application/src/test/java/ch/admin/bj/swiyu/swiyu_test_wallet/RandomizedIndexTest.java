@@ -55,6 +55,7 @@ class RandomizedIndexTest extends BaseTest {
                     7. The test asserts that the number of credentials matches the expected count and that indexes are not sequential.
                     """
     )
+    @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
     void fullBatchFlow_withRandomIndexes() throws Exception {
@@ -102,6 +103,7 @@ class RandomizedIndexTest extends BaseTest {
                        non-sequential across batches.
                     """
     )
+    @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
     void multipleConcurrentBatches_largeStatusList() throws Exception {
@@ -157,6 +159,7 @@ class RandomizedIndexTest extends BaseTest {
                     6. The test ensures that issuance stops once the list capacity is reached.
                     """
     )
+    @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("edge_case")
     void multipleConcurrentBatches_smallStatusList() throws Exception {

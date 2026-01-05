@@ -62,6 +62,7 @@ class SignedMetadataTest extends BaseTest {
                     """
     )
     @Tag("uci_m1")
+    @Tag("uci_m1a")
     @Tag("happy_path")
     void shouldSuccessfullyValidateSignedMetadata() {
         var walletEntry = wallet.createWalletEntry();
@@ -89,6 +90,7 @@ class SignedMetadataTest extends BaseTest {
                     """
     )
     @Tag("uci_m1")
+    @Tag("uci_m1a")
     @Tag("edge_case")
     @Disabled("Bug reported in ticket EIDOMNI-446")
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
