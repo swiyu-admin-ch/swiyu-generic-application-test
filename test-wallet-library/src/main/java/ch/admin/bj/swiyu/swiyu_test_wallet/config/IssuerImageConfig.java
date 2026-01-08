@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtKeyGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -17,6 +18,9 @@ public class IssuerImageConfig {
 
     private String surname = "default";
     private boolean enforceDpop = false;
+    private boolean enableJwtAuth = false;
+
+    private JwtKeyGenerator jwtKeyGenerator;
 
     // set dynamically
     private String mockServerUri;
@@ -36,5 +40,12 @@ public class IssuerImageConfig {
 
     public String getNetworkAlias() {
         return String.format("swiyu_issuer_%s", getSurname());
+    }
+
+    public JwtKeyGenerator getJwtKeyGenerator() {
+        if (enableJwtAuth && jwtKeyGenerator == null) {
+            jwtKeyGenerator = new JwtKeyGenerator("test-key-1");
+        }
+        return jwtKeyGenerator;
     }
 }
