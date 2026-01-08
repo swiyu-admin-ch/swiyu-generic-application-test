@@ -162,9 +162,14 @@ class WalletTest extends BaseTest {
                 .as("Invalid refresh tokens must be rejected")
                 .isEqualTo(400);
 
-        Assertions.assertThat(errorJson(ex))
-                .containsEntry("error_description", "Bad Request")
-                .containsEntry("detail", "Illegal state transition");
+        final Map<String, String> error = errorJson(ex);
+        Assertions.assertThat(error)
+                .containsEntry("error_description", "Bad Request");
+        Assertions.assertThat((String) error.get("detail"))
+                .as("detail should describe the failed state transition")
+                .contains("payload=READY")
+                .contains("oldStatus=Issued");
+
     }
 
     @Test

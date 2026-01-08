@@ -49,6 +49,7 @@ public class IssuerContainerConfig {
                 .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString())
                 .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                 .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
+                .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
                 .withEnv("ENABLE_SIGNED_METADATA", "true")
                 .withEnv("RENEWAL_FLOW_ENABLED", "true")
                 .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")

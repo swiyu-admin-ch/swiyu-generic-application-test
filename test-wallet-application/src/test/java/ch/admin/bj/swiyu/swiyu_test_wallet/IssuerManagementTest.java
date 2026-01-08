@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -156,10 +157,13 @@ class IssuerManagementTest extends BaseTest {
 
         Assertions.assertThat(errorCode(ex))
                 .isEqualTo(400);
-        Assertions.assertThat(errorJson(ex))
-                .containsEntry("detail", "Illegal state transition - Status cannot be updated from CANCELLED to ISSUED")
+        final Map<String, String> error = errorJson(ex);
+        Assertions.assertThat(error)
                 .containsEntry("error_description", "Bad Request");
-        log.info("Invalid transition correctly rejected");
+        Assertions.assertThat((String) error.get("detail"))
+                .as("detail should describe the failed state transition")
+                .contains("payload=ISSUE")
+                .contains("oldStatus=Cancelled");
     }
 
     @Test
