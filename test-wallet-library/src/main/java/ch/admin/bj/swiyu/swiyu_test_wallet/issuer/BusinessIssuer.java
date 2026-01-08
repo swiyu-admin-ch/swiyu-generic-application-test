@@ -6,17 +6,22 @@ import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class BusinessIssuer {
 
     private CredentialApiApi credentialApi;
@@ -25,6 +30,7 @@ public class BusinessIssuer {
 
     private StatusList statusList;
     private IssuerConfig issuerConfig;
+    private final List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
@@ -35,7 +41,25 @@ public class BusinessIssuer {
         actuatorApi = new ActuatorApi(apiClient);
     }
 
+    private void applyJwt(String jwt) {
+        ApiClient apiClient = statusListApi.getApiClient();
+        apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+    }
+
     public StatusList createStatusList(int size, int bits) {
+        ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
+        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
+        statusListCreate.setMaxLength(size);
+        statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
+
+        statusList = statusListApi.createStatusList(statusListCreate);
+
+        return statusList;
+    }
+
+    public StatusList createStatusList(int size, int bits, String jwt) {
+        applyJwt(jwt);
+
         ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
         statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
         statusListCreate.setMaxLength(size);

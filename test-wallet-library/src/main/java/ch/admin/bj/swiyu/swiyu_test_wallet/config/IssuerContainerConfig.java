@@ -28,7 +28,7 @@ public class IssuerContainerConfig {
             final String imageName,
             final IssuerImageConfig issuerImageConfig) {
 
-        return new GenericContainer<>(imageName)
+        var containerBuilder = new GenericContainer<>(imageName)
                 .withExposedPorts(8080)
                 .withEnv("ISSUER_ID", config.getIssuerDid())
                 .withEnv("TOKEN_TTL", "600")
@@ -48,7 +48,7 @@ public class IssuerContainerConfig {
                 .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
                 .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString())
                 .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
-                .withEnv("ENABLE_JWT_AUTH", "false")
+                .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                 .withEnv("ENABLE_SIGNED_METADATA", "true")
                 .withEnv("RENEWAL_FLOW_ENABLED", "true")
                 .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
@@ -72,5 +72,12 @@ public class IssuerContainerConfig {
                 .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                 .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
                 .dependsOn(dbContainer, mockServer);
+
+        if (issuerImageConfig.isEnableJwtAuth()) {
+            var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
+            containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
+        }
+
+        return containerBuilder;
     }
 }
