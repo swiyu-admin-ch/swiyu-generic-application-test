@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -153,8 +154,11 @@ class IssuerManagementTest extends BaseTest {
                 () -> issuerManager.updateState(managementId, UpdateCredentialStatusRequestType.ISSUED)
         );
 
-        assertThat(errorCode(ex)).isEqualTo(400);
-        assertThat(errorJson(ex).values().toString()).contains("already");
+        Assertions.assertThat(errorCode(ex))
+                .isEqualTo(400);
+        Assertions.assertThat(errorJson(ex))
+                .containsEntry("detail", "Illegal state transition - Status cannot be updated from CANCELLED to ISSUED")
+                .containsEntry("error_description", "Bad Request");
         log.info("Invalid transition correctly rejected");
     }
 

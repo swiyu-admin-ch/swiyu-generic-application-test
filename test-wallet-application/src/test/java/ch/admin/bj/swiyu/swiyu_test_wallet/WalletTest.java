@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
@@ -126,6 +127,12 @@ class WalletTest extends BaseTest {
 
         CredentialInfoResponse cred = issuerManager.getCredentialById(response.getManagementId());
 
+        Map<String, Object> credentialStatus = new HashMap<>();
+        credentialStatus.put("average_grade", 4.0);
+        credentialStatus.put("name", "Data Science");
+        credentialStatus.put("type", "Bachelor of Science");
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+
         issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
 
         var result = wallet.getCredentialFromTransactionId(entry);
@@ -140,13 +147,24 @@ class WalletTest extends BaseTest {
 
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
 
-        issuerManager.getStatusById(response.getManagementId());
+        issuerManager.verifyStatus(response.getManagementId(), CredentialStatusType.ISSUED);
 
-        Map<String, Object> credentialStatus = new HashMap<>();
-        credentialStatus.put("average_grade", 4.0);
-        credentialStatus.put("name", "Data Science");
-        credentialStatus.put("type", "Bachelor of Science");
-        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+        Map<String, Object> retryCredentialStatus = new HashMap<>();
+        retryCredentialStatus.put("average_grade", 4.2);
+        retryCredentialStatus.put("name", "Business Administration");
+        retryCredentialStatus.put("type", "Bachelor of Business Administration");
+        final HttpClientErrorException ex = assertThrows(
+                HttpClientErrorException.class,
+                () -> issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), retryCredentialStatus)
+        );
+
+        Assertions.assertThat(errorCode(ex))
+                .as("Invalid refresh tokens must be rejected")
+                .isEqualTo(400);
+
+        Assertions.assertThat(errorJson(ex))
+                .containsEntry("error_description", "Bad Request")
+                .containsEntry("detail", "Illegal state transition");
     }
 
     @Test

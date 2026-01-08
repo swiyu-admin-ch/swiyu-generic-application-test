@@ -30,7 +30,7 @@ public class EnvironmentConfig {
                 .issuerRegistryEntry(identifierRegistryUrl.toString())
                 .issuerDid(issuerDid)
                 .issuerDidLog(didLog)
-                .mockServerUri("https://mockserver:1080")
+                .mockServerUri("http://mockserver:1080")
                 .issuerAssertKeyId(issuerDid + "#assert-key-01")
                 .issuerAuthKeyId(issuerDid + "#assert-key-01")
                 .issuerAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
