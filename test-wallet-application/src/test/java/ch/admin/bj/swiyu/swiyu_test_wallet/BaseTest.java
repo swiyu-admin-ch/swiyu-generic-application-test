@@ -195,7 +195,7 @@ public class BaseTest {
         );
 
         if (issuerImageConfig.isEnableJwtAuth()) {
-            currentStatusList = issuerManager.createStatusListWithSignedJwt(100000, 2, jwtKey, "test-key-1");
+            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 100000, 2);
         } else {
             currentStatusList = issuerManager.createStatusList(100000, 2);
         }

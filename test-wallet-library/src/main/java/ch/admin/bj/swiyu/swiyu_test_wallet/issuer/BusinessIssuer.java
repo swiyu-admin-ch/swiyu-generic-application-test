@@ -150,10 +150,10 @@ public class BusinessIssuer {
         return offer;
     }
 
-    public StatusList createStatusListWithSignedJwt(int size, int bits, PrivateKey privateKey, String keyId) {
+    public StatusList createStatusListWithSignedJwt(final PrivateKey privateKey, final String keyId, int size, int bits) {
         String jwt;
         try {
-            jwt = createSignedJwtWithEcKey(size, bits, privateKey, keyId);
+            jwt = createSignedJwtForStatusList(privateKey, keyId, size, bits);
         } catch (JsonProcessingException | JOSEException e) {
             throw new RuntimeException(e);
         }
@@ -170,37 +170,76 @@ public class BusinessIssuer {
         return statusList;
     }
 
-    private String createSignedJwtWithEcKey(int size, int bits, PrivateKey privateKey, String keyId) throws JsonProcessingException, JOSEException {
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+    public CredentialWithDeeplinkResponse createCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
+        String jwt;
+        try {
+            jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId);
+        } catch (JsonProcessingException | JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
+        final RestClient restClient = RestClient.builder().build();
+        final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials";
+        final CredentialWithDeeplinkResponse response = restClient.post()
+                .uri(url)
+                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .body(jwt)
+                .retrieve()
+                .body(CredentialWithDeeplinkResponse.class);
+        return response;
+    }
+
+    private String createSignedJwtWithEcKey(final PrivateKey privateKey, final String keyId, final String data)
+            throws JsonProcessingException, JOSEException {
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .keyID(keyId)
                 .build();
 
-        ObjectMapper mapper = new ObjectMapper();
-
-        StatusListCreate statusListCreate = new StatusListCreate();
-        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
-        statusListCreate.setMaxLength(size);
-        statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
-
-        String dataJson = mapper.writeValueAsString(statusListCreate);
-
-        Date now = new Date();
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+        final Date now = new Date();
+        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .jwtID(UUID.randomUUID().toString())
                 .issueTime(now)
                 .expirationTime(new Date(now.getTime() + 3600000))
                 .subject("test-issuer")
                 .audience("issuer-api")
-                .claim("data", dataJson)
+                .claim("data", data)
                 .build();
 
-        SignedJWT signedJWT = new SignedJWT(header, claimsSet);
-        JWSSigner signer = new ECDSASigner((ECPrivateKey) privateKey);
+        final SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+        final JWSSigner signer = new ECDSASigner((ECPrivateKey) privateKey);
         signedJWT.sign(signer);
 
         return signedJWT.serialize();
     }
 
+    private String createSignedJwtForStatusList(final PrivateKey privateKey, final String keyId, final int size,
+                                                final int bits) throws JsonProcessingException, JOSEException {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        final StatusListCreate statusListCreate = new StatusListCreate();
+        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
+        statusListCreate.setMaxLength(size);
+        statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
+
+        final String data = mapper.writeValueAsString(statusListCreate);
+
+        return createSignedJwtWithEcKey(privateKey, keyId, data);
+    }
+
+    private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
+                                                String supportedMetadataId) throws JsonProcessingException,
+            JOSEException {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        final CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
+        credentialOfferMetadataDto.setDeferred(false);
+
+        final CredentialOfferRequest offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
+
+        final String data = mapper.writeValueAsString(offer);
+
+        return createSignedJwtWithEcKey(privateKey, keyId, data);
+    }
 
     public void intercept(HttpTraceInterceptor interceptor) {
 

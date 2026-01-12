@@ -1,9 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,20 +21,20 @@ class IssuerStrictManagementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-582",
-            summary = "Business issuer can create status list via POST endpoint with signed JWT body",
+            summary = "Access to Issuer Management operations using a valid signed JWT",
             description = """
-                    Validate that when a signed JWT with valid credentials is provided in the body,
-                    the business issuer can successfully create a status list via the
-                    POST /management/api/status-list endpoint.
-                    This test ensures that authorized POST requests with valid signed JWT bodies are accepted.
+                    This test validates that access to Issuer Management operations is correctly controlled using a 
+                    signed JWT. It ensures that a Business Issuer can perform authorized management actions when a 
+                    valid JWT is provided, and that management read operations remain accessible according to defined 
+                    business access rules.
                     """
     )
     @Tag("uci_s1")
     @Tag("uci_p1")
     @Tag("happy_path")
-    void createStatusList_WithSignedJwtBody_thenSuccess() {
+    void issuerManagementAccess_withSignedJwt_thenSuccess() {
         log.info("Creating status list with signed JWT body (should succeed)");
-        final StatusList statusList = issuerManager.createStatusListWithSignedJwt(10000, 2, jwtKey, "test-key-1");
+        final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 10000, 2);
 
         assertThat(statusList)
                 .as("Status list should be created successfully with valid signed JWT")
@@ -41,27 +43,33 @@ class IssuerStrictManagementTest extends BaseTest {
                 .as("Status list should have a valid registry URL")
                 .isNotNull();
 
-        log.info("Status list created successfully with signed JWT authentication");
+        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "university_example_sd_jwt");
+
+        assertThat(credentialInfo).isNotNull();
+
+        final CredentialInfoResponse credentialManagement = issuerManager.getCredentialById(credentialInfo.getManagementId());
+
+        assertThat(credentialManagement).isNotNull();
+        assertThat(credentialManagement.getStatus()).isEqualTo(CredentialStatusType.OFFERED);
     }
 
     @Test
     @XrayTest(
             key = "EIDOMNI-583",
-            summary = "Business issuer cannot create status list with unauthenticated JWT key",
+            summary = "Access to Issuer Management operations using an unauthorized signed JWT is denied",
             description = """
-                    Validate that when an unauthenticated JWT key is used in the body,
-                    the business issuer cannot create a status list and receives a 401 Unauthorized response.
-                    This test ensures that the management endpoint properly validates JWT signatures.
+                    This test validates that access to Issuer Management operations is correctly denied when an unauthorized signed JWT is provided.
+                    It ensures that authentication and access control rules are enforced, preventing a Business Issuer from performing management
+                    actions when the JWT is not trusted.
                     """
     )
     @Tag("uci_s1")
     @Tag("uci_p1")
     @Tag("edge_case")
-    void createStatusList_WithUnauthenticatedJwtBody_thenUnauthorized() {
-        log.info("Attempting to create status list with unauthenticated JWT body (should fail with 401)");
-        final HttpClientErrorException ex = assertThrows(
+    void issuerManagementAccess_withUnauthorizedSignedJwt_thenRejected() {
+        HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> issuerManager.createStatusListWithSignedJwt(10000, 2, unauthenticatedJwtKey, "test-key-1")
+                () -> issuerManager.createStatusList(10000, 2)
         );
 
         assertThat(errorCode(ex))
@@ -72,7 +80,18 @@ class IssuerStrictManagementTest extends BaseTest {
                 .containsEntry("error", "Unauthorized")
                 .containsEntry("path", "/management/api/status-list");
 
-        log.info("Request correctly rejected: JWT signature validation is enforced");
+        ex = assertThrows(
+                HttpClientErrorException.class,
+                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, "test-key-1", "university_example_sd_jwt")
+        );
+
+        assertThat(errorCode(ex))
+                .as("Request with unauthenticated JWT should be rejected with 401 Unauthorized")
+                .isEqualTo(401);
+
+        assertThat(errorJson(ex))
+                .containsEntry("error", "Unauthorized")
+                .containsEntry("path", "/management/api/credentials");
     }
 }
 

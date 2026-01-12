@@ -55,7 +55,7 @@ class RenewalFlowTest extends BaseTest {
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "university_example_sd_jwt");
 
         entry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         entry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(entry));
