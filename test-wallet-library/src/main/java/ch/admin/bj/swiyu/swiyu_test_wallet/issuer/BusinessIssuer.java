@@ -6,6 +6,17 @@ import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import jdk.jfr.ContentType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -13,9 +24,15 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+
+import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import java.security.PrivateKey;
+import java.security.interfaces.ECPrivateKey;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -132,6 +149,58 @@ public class BusinessIssuer {
         offer.setOfferValiditySeconds(86400); // 24h
         return offer;
     }
+
+    public StatusList createStatusListWithSignedJwt(int size, int bits, PrivateKey privateKey, String keyId) {
+        String jwt;
+        try {
+            jwt = createSignedJwtWithEcKey(size, bits, privateKey, keyId);
+        } catch (JsonProcessingException | JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
+        final RestClient restClient = RestClient.builder().build();
+        final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/status-list";
+        final StatusList response = restClient.post()
+                .uri(url)
+                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .body(jwt)
+                .retrieve()
+                .body(StatusList.class);
+        statusList = response;
+        return statusList;
+    }
+
+    private String createSignedJwtWithEcKey(int size, int bits, PrivateKey privateKey, String keyId) throws JsonProcessingException, JOSEException {
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .keyID(keyId)
+                .build();
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        StatusListCreate statusListCreate = new StatusListCreate();
+        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
+        statusListCreate.setMaxLength(size);
+        statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
+
+        String dataJson = mapper.writeValueAsString(statusListCreate);
+
+        Date now = new Date();
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .jwtID(UUID.randomUUID().toString())
+                .issueTime(now)
+                .expirationTime(new Date(now.getTime() + 3600000))
+                .subject("test-issuer")
+                .audience("issuer-api")
+                .claim("data", dataJson)
+                .build();
+
+        SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+        JWSSigner signer = new ECDSASigner((ECPrivateKey) privateKey);
+        signedJWT.sign(signer);
+
+        return signedJWT.serialize();
+    }
+
 
     public void intercept(HttpTraceInterceptor interceptor) {
 
