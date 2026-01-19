@@ -694,7 +694,8 @@ class RenewalFlowTest extends BaseTest {
         final CredentialWithDeeplinkResponse offer = initializeCredentials(entry);
 
         log.info("The management revokes the credential");
-        issuerManager.updateState(
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
                 offer.getManagementId(),
                 UpdateCredentialStatusRequestType.REVOKED
         );

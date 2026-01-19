@@ -135,8 +135,8 @@ public class VerifierManager {
 
             final PresentationDefinition presentation = new PresentationDefinition()
                     .id(UUID.randomUUID().toString())
-                    .name("string")
-                    .purpose("string")
+                    .name("DCQL Example")
+                    .purpose("Test purpose")
                     .format(null);
             request.presentationDefinition(presentation);
             return this;

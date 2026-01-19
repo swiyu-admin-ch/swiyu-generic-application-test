@@ -167,8 +167,7 @@ class WalletTest extends BaseTest {
                 .containsEntry("error_description", "Bad Request");
         Assertions.assertThat((String) error.get("detail"))
                 .as("detail should describe the failed state transition")
-                .contains("payload=READY")
-                .contains("oldStatus=Issued");
+                .contains("Credential is either not deferred or has an incorrect status, cannot update offer data");
 
     }
 

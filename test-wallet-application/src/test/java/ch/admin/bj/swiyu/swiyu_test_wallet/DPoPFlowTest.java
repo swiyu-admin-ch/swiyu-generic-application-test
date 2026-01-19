@@ -286,7 +286,8 @@ class DPoPFlowTest extends BaseTest {
                 .as("Issuer should reject replay attempt with 401 Unauthorized")
                 .isEqualTo(401);
         assertThat(errorJson(ex))
-                .isNull();
+                .containsEntry("error", "invalid_dpop_proof")
+                .containsEntry("error_description", "Must use valid server provided nonce");
         log.info("Replay attack prevented - nonce invalidation working correctly");
     }
 
@@ -626,7 +627,8 @@ class DPoPFlowTest extends BaseTest {
                 .as("Issuer should reject with 401 Unauthorized")
                 .isEqualTo(401);
         assertThat(errorJson(ex))
-                .isNull();
+                .containsEntry("error", "invalid_dpop_proof")
+                .containsEntry("error_description", "URL mismatch between DPoP and request");
         log.info("MITM attack prevented - DPoP URI binding working correctly");
     }
 

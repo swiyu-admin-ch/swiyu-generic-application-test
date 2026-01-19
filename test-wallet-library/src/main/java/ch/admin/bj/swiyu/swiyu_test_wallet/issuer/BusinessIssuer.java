@@ -189,6 +189,26 @@ public class BusinessIssuer {
         return response;
     }
 
+    public void updateStateWithSignedJwt(final PrivateKey privateKey, final String keyId, final UUID id,
+                                         final UpdateCredentialStatusRequestType newState) {
+        String jwt;
+        try {
+            jwt = createSignedJwtForUpdateState(privateKey, keyId, id, newState);
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
+        final RestClient restClient = RestClient.builder().build();
+        final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials/" + id +
+                          "/status?credentialStatus=" + newState;
+        restClient.patch()
+                .uri(url)
+                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .body(jwt)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private String createSignedJwtWithEcKey(final PrivateKey privateKey, final String keyId, final String data)
             throws JsonProcessingException, JOSEException {
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
@@ -239,6 +259,18 @@ public class BusinessIssuer {
         final String data = mapper.writeValueAsString(offer);
 
         return createSignedJwtWithEcKey(privateKey, keyId, data);
+    }
+
+    private String createSignedJwtForUpdateState(final PrivateKey privateKey, final String keyId, final UUID id,
+                                                  final UpdateCredentialStatusRequestType newState) throws JOSEException {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            final String data = mapper.writeValueAsString(newState);
+            return createSignedJwtWithEcKey(privateKey, keyId, data);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void intercept(HttpTraceInterceptor interceptor) {
