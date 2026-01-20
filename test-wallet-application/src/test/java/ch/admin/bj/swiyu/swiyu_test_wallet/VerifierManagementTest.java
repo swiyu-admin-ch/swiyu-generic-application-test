@@ -34,9 +34,9 @@ public class VerifierManagementTest extends BaseTest {
             key = "EIDOMNI-549",
             summary = "Business verifier initiates a verification process and receives a deeplink",
             description = """
-                      Validate that a verifier can initiate a new verification process,
-                      that it is persisted in the verification management system,
-                      and that a deeplink suitable for QR code generation is returned.
+                    This test validates that a Business Verifier can successfully initiate a verification process
+                    through the management API, persist the verification entry with presentation definition constraints,
+                    and return a verification deeplink suitable for QR code generation.
                     """
     )
     @Tag("ucv_m1")
@@ -139,9 +139,9 @@ public class VerifierManagementTest extends BaseTest {
             key = "EIDOMNI-550",
             summary = "Business verifier initiates a DCQL verification process and receives a deeplink",
             description = """
-                      Validate that a verifier can initiate a new verification process,
-                      that it is persisted in the verification management system,
-                      and that a deeplink suitable for QR code generation is returned.
+                    This test validates that a Business Verifier can successfully initiate a DCQL-based verification
+                    process through the management API, persist the verification entry with DCQL query constraints,
+                    and return a verification deeplink suitable for QR code generation.
                     """
     )
     @Tag("ucv_m1")
@@ -249,10 +249,10 @@ public class VerifierManagementTest extends BaseTest {
             key = "EIDOMNI-551",
             summary = "Verifier cannot initiate a verification without a presentation definition",
             description = """
-                Validate that the verifier management service rejects
-                the creation of a verification when no presentation definition
-                is provided.
-                """
+                    This test validates that the Business Verifier management API correctly rejects verification
+                    request creation when no presentation definition is provided, ensuring that all verification
+                    requests contain valid presentation requirements.
+                    """
     )
     @Tag("ucv_m1")
     @Tag("edge_case")
@@ -282,10 +282,11 @@ public class VerifierManagementTest extends BaseTest {
     @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
             key = "EIDOMNI-552",
-            summary = "Business verifier retrieves verification result",
+            summary = "Business verifier retrieves verification result after successful verification",
             description = """
-                    Validate that a verifier can retrieve the verification result
-                    after a successful verification.
+                    This parameterized test validates that a Business Verifier can successfully retrieve the final
+                    verification result after a wallet has completed a successful presentation and verification flow.
+                    It runs for both SWIYU API versions (OID4VP standard and DCQL-based).
                     """
     )
     @Tag("ucv_m3")
@@ -346,10 +347,10 @@ public class VerifierManagementTest extends BaseTest {
             key = "EIDOMNI-553",
             summary = "Verifier cannot retrieve a verification result for an unknown verification id",
             description = """
-                Validate that the verifier management service returns a 404 error
-                when attempting to retrieve a verification result for a verification
-                identifier that does not exist.
-                """
+                    This test validates that the Business Verifier management API returns HTTP 404 when attempting
+                    to retrieve verification results for a non-existent verification identifier, preventing access
+                    to unauthorized or deleted verification entries.
+                    """
     )
     @Tag("ucv_m3")
     @Tag("edge_case")

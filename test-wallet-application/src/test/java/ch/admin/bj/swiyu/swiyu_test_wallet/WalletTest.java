@@ -62,17 +62,9 @@ class WalletTest extends BaseTest {
             key = "EIDOMNI-386",
             summary = "Successful verification of an unbound SD-JWT credential (non-deferred)",
             description = """
-                    This test validates the complete SD-JWT credential lifecycle where a verifier successfully
-                    validates a non-deferred, unbound credential issued through the OID4VCI flow and presented
-                    via the OID4VP interface.
-                    
-                    Steps:
-                    1. The issuer creates a credential offer for an unbound SD-JWT credential (immediate issuance, non-deferred).
-                    2. The wallet collects the offer through the deeplink and retrieves the SD-JWT credential.
-                    3. The verifier generates a verification request according to the OID4VP flow.
-                    4. The wallet obtains the verification request object and constructs a presentation containing the full SD-JWT.
-                    5. The wallet submits the SD-JWT presentation back to the verifier.
-                    6. The verifier processes the SD-JWT and confirms that the verification state is SUCCESS.
+                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential
+                    through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
+                    collects the non-deferred credential and presents it to a verifier for validation.
                     """
     )
     @Tag("uci_c1a")
@@ -101,18 +93,10 @@ class WalletTest extends BaseTest {
             key = "EIDOMNI-389",
             summary = "Successful deferred issuance and verification of an unbound SD-JWT credential",
             description = """
-                    This test validates that an unbound SD-JWT credential can be successfully issued using
-                    the deferred OID4VCI flow and subsequently verified through the OID4VP interface.
-                    
-                    Steps:
-                    1. The issuer creates a deferred credential offer for an unbound SD-JWT credential.
-                    2. The wallet collects the transaction ID from the deferred offer deeplink.
-                    3. The issuer updates the credential state to READY, making it available for retrieval.
-                    4. The wallet fetches the issued SD-JWT credential using the transaction ID.
-                    5. The verifier initiates a verification request following the OID4VP process.
-                    6. The wallet retrieves verification details and constructs a presentation including the SD-JWT.
-                    7. The wallet submits the SD-JWT presentation to the verifier.
-                    8. The verifier successfully validates the SD-JWT and confirms the verification state as SUCCESS.
+                    This test validates the end-to-end deferred issuance flow for an unbound SD-JWT credential,
+                    where the wallet retrieves a transaction ID during the initial offer collection phase and
+                    collects the credential after the issuer marks it as READY. The credential is subsequently
+                    verified through the OID4VP interface.
                     """
     )
     @Tag("uci_c1b")
@@ -176,17 +160,9 @@ class WalletTest extends BaseTest {
             key = "EIDOMNI-393",
             summary = "Successful issuance and verification of a bound SD-JWT credential with selective disclosure",
             description = """
-                    This test validates the immediate issuance of a bound SD-JWT credential that requires a selective disclosure 
-                    presentation during verification. It ensures that the credential bound to a holder's key can be successfully 
-                    issued and verified through the OID4VCI and OID4VP flows.
-                    
-                    Steps:
-                    1. The issuer creates a credential offer for a bound SD-JWT credential (e.g., university_example_sd_jwt).
-                    2. The wallet collects the credential offer from the deeplink and retrieves the bound SD-JWT credential.
-                    3. The verifier initiates a verification request based on the OID4VP protocol.
-                    4. The wallet constructs a selective disclosure presentation using the SD-JWT and the verifier's request.
-                    5. The wallet sends the selective disclosure presentation to the verifier.
-                    6. The verifier validates the bound SD-JWT presentation and confirms that the verification state is SUCCESS.
+                    This test validates the immediate issuance of a bound SD-JWT credential that requires selective
+                    disclosure during verification. The wallet constructs a derived presentation based on the verifier's
+                    requirements and the credential is successfully validated.
                     """
     )
     @Tag("uci_c1a")
@@ -223,20 +199,9 @@ class WalletTest extends BaseTest {
             key = "EIDOMNI-390",
             summary = "Successful deferred issuance and verification of a bound SD-JWT credential",
             description = """
-                    This test validates the end-to-end flow for deferred issuance of a bound SD-JWT credential, 
-                    ensuring correct handling of deferred retrieval and subsequent selective disclosure presentation 
-                    through the OID4VCI and OID4VP processes.
-                    
-                    Steps:
-                    1. The issuer creates a deferred credential offer for a bound SD-JWT credential (e.g., university_example_sd_jwt).
-                    2. The wallet collects the transaction ID from the deferred offer deeplink.
-                    3. The issuer updates the credential status to READY, making the SD-JWT available for retrieval.
-                    4. The wallet fetches the bound SD-JWT credential using the transaction ID.
-                    5. The verifier initiates a verification request following the OID4VP flow.
-                    6. The wallet retrieves verification details and constructs a selective disclosure presentation 
-                       using the bound SD-JWT.
-                    7. The wallet submits the presentation to the verifier.
-                    8. The verifier validates the bound SD-JWT and confirms that the verification state is SUCCESS.
+                    This test validates the end-to-end deferred issuance flow for a bound SD-JWT credential
+                    with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
+                    and successfully constructs a presentation that satisfies the verifier's requirements.
                     """
     )
     @Tag("uci_c1b")
@@ -268,18 +233,9 @@ class WalletTest extends BaseTest {
             key = "EIDOMNI-409",
             summary = "Successful DCQL-based verification of a bound SD-JWT credential via OID4VP v2",
             description = """
-                    This test validates that a verifier can successfully perform a DCQL-based verification of a bound SD-JWT credential 
-                    through the OID4VP v2 endpoint. The verifier supplies a Digital Credential Query Language (DCQL) request specifying 
-                    credential requirements, and the wallet constructs a compliant SD-JWT presentation in response.
-                    
-                    Steps:
-                    1. The issuer creates a credential offer for a bound SD-JWT credential (e.g., university_example_sd_jwt).
-                    2. The wallet collects the credential offer via the deeplink and retrieves the issued SD-JWT credential.
-                    3. The verifier generates a DCQL-based verification request defining the required credential attributes.
-                    4. The wallet retrieves verification details, including the DCQL query structure.
-                    5. The wallet builds a compliant selective disclosure presentation from the SD-JWT that satisfies the DCQL query.
-                    6. The wallet responds to the verifier via the OID4VP v2 endpoint using the DCQL query context.
-                    7. The verifier validates the presentation and confirms that the verification state is SUCCESS.
+                    This test validates that a verifier can successfully perform DCQL-based verification of a bound
+                    SD-JWT credential through the OID4VP v2 endpoint. The wallet constructs a selective disclosure presentation
+                    that satisfies the DCQL query requirements.
                     """
     )
     @Tag("uci_c1a")
@@ -307,7 +263,12 @@ class WalletTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-557",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Successful DCQL-based batch verification of multiple SD-JWT credentials via OID4VP v1",
+            description = """
+                    This test validates that a batch of multiple SD-JWT credentials can be successfully issued and verified
+                    using DCQL-based verification requests. Each credential in the batch is individually verified through
+                    separate OID4VP v1 verification flows.
+                    """
     )
     @Tag("uci_c1")
     @Tag("uci_i1")
@@ -340,7 +301,12 @@ class WalletTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-561",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Verification rejection of an unbound credential when holder binding proof is required",
+            description = """
+                    This test validates that a DCQL-based verification request requiring holder binding is correctly rejected
+                    when the wallet attempts to present an unbound credential. The verifier detects the missing holder key binding
+                    proof and rejects the presentation with an appropriate error.
+                    """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")

@@ -46,18 +46,9 @@ class PayloadEncryptionTest extends BaseTest {
             key = "EIDOMNI-392",
             summary = "Successful issuance and verification of an encrypted SD-JWT credential",
             description = """
-                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential 
-                    where both issuance and presentation responses are encrypted according to OID4VCI and OID4VP 
-                    encryption requirements.
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an encrypted SD-JWT presentation back to the verifier.
-                    7. The verifier decrypts and validates the presentation, confirming that the verification state is SUCCESS.
+                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential where both
+                    OID4VCI credential responses and OID4VP presentation responses are encrypted according to specification.
+                    The test runs for both SWIYU API versions to ensure encryption works correctly across all supported flows.
                     """
     )
     @Tag("ucv_o2")

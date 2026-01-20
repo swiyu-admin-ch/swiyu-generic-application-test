@@ -23,10 +23,9 @@ class IssuerStrictManagementTest extends BaseTest {
             key = "EIDOMNI-582",
             summary = "Access to Issuer Management operations using a valid signed JWT",
             description = """
-                    This test validates that access to Issuer Management operations is correctly controlled using a 
-                    signed JWT. It ensures that a Business Issuer can perform authorized management actions when a 
-                    valid JWT is provided, and that management read operations remain accessible according to defined 
-                    business access rules.
+                    This test validates that access to Issuer Management operations is correctly controlled using signed JWT
+                    authentication. A Business Issuer with valid JWT credentials can successfully perform authorized management
+                    actions including status list creation and credential issuance.
                     """
     )
     @Tag("uci_s1")

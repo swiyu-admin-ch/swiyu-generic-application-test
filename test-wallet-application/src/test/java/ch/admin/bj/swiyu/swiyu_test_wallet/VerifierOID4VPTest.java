@@ -25,8 +25,9 @@ public class VerifierOID4VPTest extends BaseTest {
             key = "EIDOMNI-554",
             summary = "Wallet retrieves a signed OID4VP request object from verifier",
             description = """
-                    Validate that the verifier exposes a signed OpenID Connect
-                    request object containing the verification query and response information.
+                    This test validates that the wallet can successfully retrieve a signed OpenID Connect
+                    request object from the verifier containing verification query details, response information,
+                    and cryptographic parameters required for the OID4VP flow.
                     """
     )
     @Tag("ucv_o1")
@@ -94,10 +95,11 @@ public class VerifierOID4VPTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-555",
-            summary = "Wallet retrieves a signed OID4VP request object from verifier",
+            summary = "Wallet retrieves an unsigned OID4VP request object from verifier",
             description = """
-                    Validate that the verifier exposes a signed OpenID Connect
-                    request object containing the verification query and response information.
+                    This test validates that the wallet can successfully retrieve an unsigned OpenID Connect
+                    request object from the verifier containing DCQL-based verification query details, encrypted
+                    response requirements, and necessary cryptographic parameters for the OID4VP flow.
                     """
     )
     @Tag("ucv_o1")

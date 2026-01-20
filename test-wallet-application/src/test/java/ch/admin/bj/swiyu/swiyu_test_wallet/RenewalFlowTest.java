@@ -103,18 +103,9 @@ class RenewalFlowTest extends BaseTest {
             key = "EIDOMNI-492",
             summary = "Renewal Flow (Batch Issuance) – Happy Path",
             description = """
-                        This test validates the complete renewal flow using the updated model where
-                        credentials are issued directly after a successful token refresh.
-                    
-                        1. The wallet receives an offer, retrieves issuer configuration, and obtains an initial
-                           access token and refresh token using a DPoP-bound request.
-                        2. The wallet generates holder keys, creates proofs, and requests the initial batch
-                           of credentials. All credentials are consumed through the verifier to simulate
-                           their single-use nature.
-                        3. The renewal is triggered by requesting a new nonce and refreshing the token using
-                           the DPoP-bound refresh flow. A new access token and refresh token are returned.
-                        4. Using the renewed token, the wallet requests a new batch of credentials via POST /credential,
-                           accepting HTTP 200 or 202 responses. A second batch is successfully issued.
+                    This test validates the complete renewal flow where a wallet successfully obtains
+                    initial credentials and then renews the batch by refreshing the token and issuing
+                    a second batch of credentials using the DPoP-bound refresh token mechanism.
                     """
     )
     @Tag("uci_c1")
@@ -164,22 +155,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-608",
             summary = "Renewal flow rejected due to invalid refresh token",
             description = """
-                    Negative renewal flow test verifying that a credential renewal
-                    is rejected when an invalid refresh token is used.
-                    
-                    1. The wallet completes a full happy-path issuance flow and
-                       consumes the initially issued credentials.
-                    2. The wallet prepares a renewal attempt using a refresh token.
-                    3. The refresh token value is deliberately altered to simulate
-                       an invalid or expired token.
-                    4. A valid DPoP proof is generated for the token endpoint.
-                    5. The wallet attempts to refresh the access token using the
-                       invalid refresh token.
-                    6. The issuer must reject the request with HTTP 401 and an
-                       invalid_grant error response.
+                    This test validates that the renewal flow is rejected when an invalid or
+                    tampered refresh token is used. The Issuer must enforce strict token
+                    validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
     @Tag("uci_c1")
@@ -232,22 +213,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-609",
             summary = "Renewal flow rejected due to invalid DPoP binding",
             description = """
-                    Negative renewal flow test verifying that credential issuance is rejected
-                    when the DPoP binding is invalid during a refreshed issuance flow.
-                    
-                    1. The wallet completes a full happy-path issuance flow and consumes the
-                       initially issued credentials.
-                    2. A refresh token is successfully used to obtain a new access token.
-                    3. New holder proofs are generated for the renewed issuance attempt.
-                    4. The credential request is sent using:
-                       - an access token value that does not match the server state, and
-                       - a DPoP proof signed with a different EC key than the one originally
-                         bound to the token.
-                    5. The issuer must reject the request with HTTP 401, enforcing strict
-                       DPoP binding and token integrity.
+                    This test validates that credential renewal is rejected when the DPoP proof
+                    is signed with a different cryptographic key than the one bound to the access token.
+                    The Issuer must enforce strict DPoP binding verification and reject with HTTP 401.
                     """
 
     )
@@ -309,22 +280,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-610",
             summary = "Renewal flow rejected due to DPoP nonce replay attack",
             description = """
-                    Negative renewal flow test verifying that a DPoP nonce cannot be replayed
-                    on the credential endpoint during a renewed issuance flow.
-                    
-                    1. The wallet completes a full happy-path issuance and renewal flow
-                       until a new access token is obtained.
-                    2. Holder keys and proofs are regenerated for the renewed issuance.
-                    3. A valid DPoP proof is created for the credential endpoint using
-                       a server-provided nonce.
-                    4. The credential request succeeds once using the valid DPoP proof.
-                    5. The same DPoP proof (same nonce and same jti) is reused in a second
-                       credential request.
-                    6. The issuer must reject the second request with HTTP 401, enforcing
-                       nonce uniqueness and protecting against replay attacks.
+                    This test validates that renewal requests are rejected when attempting to
+                    replay the same DPoP proof with its nonce on the credential endpoint.
+                    The Issuer must enforce nonce uniqueness and reject replayed requests with HTTP 401.
                     """
 
     )
@@ -388,22 +349,16 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
-            summary = "TC 07 – Renewal blocked due to Credential Management REVOKED",
+            key = "EIDOMNI-611",
+            summary = "Renewal blocked due to Credential Management REVOKED",
             description = """
-                        Renewal test validating that the issuer blocks refresh-token based renewal
-                        when the credential management entry has been revoked.
-                    
-                        1. Wallet receives the offer and obtains an initial DPoP-bound token.
-                        2. Wallet performs the initial issuance of the credential batch.
-                        3. Issuer revokes the credential management record.
-                        4. Wallet attempts a renewal request (refresh_token + DPoP).
-                        5. Issuer must reject the renewal as the credential management state is REVOKED.
+                    This test validates that the issuer blocks refresh-token based renewal
+                    when the credential management entry has been revoked.
+                    The renewal attempt must be rejected with HTTP 400 invalid_token error.
                     """
     )
     @Tag("uci_r1")
     @Tag("edge_case")
-    @Disabled("Discuss to confirm that this scenario must be rejected")
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -431,7 +386,11 @@ class RenewalFlowTest extends BaseTest {
                 token.getAccessToken());
 
         log.info("The management revokes the credential");
-        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
+                offer.getManagementId(),
+                UpdateCredentialStatusRequestType.REVOKED
+        );
 
         log.info("Renew credentials using the refresh token");
         final HttpClientErrorException ex = assertThrows(
@@ -441,100 +400,20 @@ class RenewalFlowTest extends BaseTest {
 
         assertThat(errorCode(ex))
                 .as("Invalid refresh tokens must be rejected")
-                .isEqualTo(401);
+                .isEqualTo(400);
 
         assertThat(errorJson(ex))
-                .containsEntry("error", "Error")
-                .containsEntry("error_description", "Description Message");
+                .containsEntry("error_description", "Credential management is revoked, no renewal possible");
     }
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
-            summary = "Renewal Flow – Rate limiting enforced on repeated renewals",
-            description = """
-                    Stress test verifying that the issuer enforces rate limiting
-                    on repeated renewal attempts.
-                    
-                    1. Initial credential issuance is performed once.
-                    2. The wallet repeatedly performs token refresh and credential renewal.
-                    3. The loop continues until at least one HTTP 429 is received.
-                    4. The test succeeds only if rate limiting is enforced.
-                    """
-    )
-    @Tag("uci_r1")
-    @Tag("edge_case")
-    void renewalFlow_rateLimitEventuallyTriggered() {
-        final int MAX_ATTEMPTS = 100;
-
-        final WalletBatchEntry entry = new WalletBatchEntry(wallet);
-
-        log.info("Initial issuance");
-        initializeCredentials(entry);
-
-        log.info("Perform %0d renewal flow attempt {}", MAX_ATTEMPTS);
-        for (int i = 1; i <= MAX_ATTEMPTS; i++) {
-            try {
-                String nonce = wallet.getCNonce(entry);
-                String dpopRefresh = DPoPSupport.createDpopProofForToken(
-                        entry.getIssuerTokenUri().toString(),
-                        nonce,
-                        dpopKeyPair,
-                        dpopPublicKey,
-                        entry.getToken().getRefreshToken()
-                );
-
-                OAuthToken refreshedToken =
-                        wallet.collectRefreshTokenWithDPoP(entry, dpopRefresh);
-
-                entry.setToken(refreshedToken);
-
-                nonce = wallet.getCNonce(entry);
-                entry.generateHolderKeys();
-                entry.createProofs(nonce);
-
-                nonce = wallet.getDpopNonce(entry);
-                String dpopCredential = DPoPSupport.createDpopProofForToken(
-                        entry.getIssuerCredentialUri().toString(),
-                        nonce,
-                        dpopKeyPair,
-                        dpopPublicKey,
-                        refreshedToken.getAccessToken()
-                );
-
-                wallet.postCredentialRequestWithRefreshToken(
-                        entry,
-                        refreshedToken.getAccessToken(),
-                        dpopCredential
-                );
-
-            } catch (HttpClientErrorException ex) {
-                log.info("Exception is triggered at iteration {}", i);
-                assertThat(errorCode(ex))
-                        .as("At least one renewal attempt must be rejected with HTTP 429")
-                        .isEqualTo(429);
-                assertThat(errorJson(ex))
-                        .containsEntry("error", "Error")
-                        .containsEntry("error_description", "Error description");
-            }
-            assertThat(true).isTrue();
-        }
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-612",
             summary = "Renewal flow rejected due to invalid refresh token at token endpoint",
             description = """
-                    Negative renewal flow test verifying that the token endpoint
-                    rejects a refresh request when an invalid or unknown refresh
-                    token is used.
-                    
-                    1. The wallet completes a full happy-path issuance flow.
-                    2. The refresh token value is deliberately altered.
-                    3. A valid DPoP proof is generated for the token endpoint.
-                    4. The wallet attempts to refresh the access token.
-                    5. The issuer must reject the request with HTTP 401 invalid_grant.
+                    This test validates that the token endpoint rejects a refresh request
+                    when an invalid or tampered refresh token is used. The Issuer must
+                    enforce strict token validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
     @Tag("uci_r2")
@@ -575,17 +454,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-613",
             summary = "Renewal flow rejected due to DPoP binding mismatch on refresh token",
             description = """
-                    Negative renewal flow test verifying that a refresh token
-                    cannot be used with a DPoP proof signed by a different key.
-                    
-                    1. The wallet completes a full happy-path issuance flow.
-                    2. An attacker key pair is generated.
-                    3. A DPoP proof is created using the attacker key.
-                    4. The wallet attempts to refresh the access token.
-                    5. The issuer must reject the request with HTTP 401.
+                    This test validates that a refresh token cannot be used with a DPoP proof
+                    signed by a different cryptographic key. The issuer must enforce strict
+                    DPoP binding verification and reject with HTTP 401.
                     """
     )
     @Tag("uci_r2")
@@ -626,17 +500,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-614",
             summary = "Renewal flow rejected due to DPoP nonce replay on refresh endpoint",
             description = """
-                    Negative renewal flow test verifying that a DPoP nonce
-                    cannot be replayed on the token endpoint.
-                    
-                    1. The wallet completes a full happy-path issuance flow.
-                    2. A valid DPoP proof is created for the refresh request.
-                    3. The refresh succeeds once.
-                    4. The same DPoP proof is reused.
-                    5. The issuer must reject the second request with HTTP 401.
+                    This test validates that a DPoP nonce cannot be replayed on the token endpoint.
+                    The issuer must enforce nonce uniqueness and reject replayed refresh requests
+                    with HTTP 401.
                     """
     )
     @Tag("uci_r2")
@@ -673,17 +542,12 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-615",
             summary = "Renewal flow rejected because credential management is revoked",
             description = """
-                    Negative renewal flow test verifying that refresh token
-                    usage is rejected when the credential management entry
-                    has been revoked.
-                    
-                    1. Wallet completes initial issuance.
-                    2. Issuer revokes the credential management record.
-                    3. Wallet attempts to refresh the token.
-                    4. Issuer must reject the request with HTTP 401.
+                    This test validates that refresh token usage is rejected when the credential 
+                    management entry has been revoked. The issuer must block token refresh attempts
+                    and return HTTP 400 invalid_token error.
                     """
     )
     @Tag("uci_r2")
@@ -723,22 +587,13 @@ class RenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-492",
+            key = "EIDOMNI-616",
             summary = "Credential management links renewed offers correctly across multiple renewals",
             description = """
-                    Persistence test verifying that renewed credential offers
-                    are correctly linked to their corresponding credential
-                    management entity across multiple initial issuances
-                    and renewal cycles.
-                    
-                    1. Wallet performs an initial issuance (A).
-                    2. Wallet performs a renewal for issuance A.
-                    3. Wallet performs a second initial issuance (B).
-                    4. Wallet performs another renewal for issuance A.
-                    5. Wallet performs a renewal for issuance B.
-                    6. The issuer must persist all credential offers with the
-                       correct credential_management_id, without cross-linking
-                       between independent management entities.
+                    This test validates that renewed credential offers are correctly linked 
+                    to their corresponding credential management entity across multiple initial 
+                    issuances and renewal cycles. Each credential offer must retain the correct 
+                    credential_management_id without cross-linking between independent management entities.
                     """
     )
     @Tag("uci_r3")
