@@ -1,0 +1,17 @@
+Action,Data,Expected Result
+"Wallet completes initial issuance flow and obtains valid refresh token with DPoP binding","- Credential offer deeplink
+- DPoP binding key
+- Initial access token and refresh token
+- Initial batch of credentials","Initial credentials successfully issued; refresh token obtained"
+"Wallet tampers with access token value to simulate invalid or mismatched token","- Valid access token
+- Tampered access token (UUID-randomized)
+- DPoP binding key","Access token value successfully altered to simulate attack"
+"Wallet generates valid DPoP proof for credential endpoint using tampered access token","- Credential endpoint URI
+- Tampered access token
+- DPoP binding key
+- Nonce from server","Valid DPoP proof generated with correct signature"
+"Wallet sends credential request to issuer with tampered access token and valid DPoP proof","- Tampered access token
+- Valid DPoP proof
+- Holder proofs
+- Credential endpoint request","Issuer returns HTTP 400 with error code INVALID_TOKEN and error_description 'Invalid accessToken'"
+

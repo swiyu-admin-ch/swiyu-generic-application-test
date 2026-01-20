@@ -14,3 +14,4 @@ Action,Data,Expected Result
 "Wallet requests new batch of credentials using renewed access token via POST /credential endpoint","- Renewed access token (DPoP-bound)
 - Holder keys and proofs
 - Batch credential request","Issuer returns HTTP 200 or HTTP 202; second batch of credentials successfully issued"
+

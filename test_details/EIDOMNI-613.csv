@@ -1,0 +1,16 @@
+Action,Data,Expected Result
+"Wallet completes initial issuance flow with original DPoP binding key and obtains refresh token","- Credential offer deeplink
+- Original DPoP binding key
+- Initial access token and refresh token
+- Initial credentials issued","Initial credentials and refresh token successfully obtained"
+"Wallet generates attacker key pair (different cryptographic key from original DPoP binding)","- Attacker EC key pair
+- Curve P-256
+- Key ID 'attacker-dpop-'","Attacker key pair successfully generated"
+"Wallet generates DPoP proof for token endpoint using attacker key and refresh token","- Token endpoint URI
+- Refresh token
+- Attacker DPoP key
+- Nonce from server","DPoP proof successfully created with attacker key (different binding from original)"
+"Wallet sends token refresh request to issuer with refresh token and attacker DPoP proof","- Refresh token
+- Attacker DPoP proof (signed with wrong key)
+- Token endpoint request","Issuer returns HTTP 401 with error code 'invalid_dpop_proof' and error_description 'Key mismatch'"
+

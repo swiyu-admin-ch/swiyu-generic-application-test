@@ -1,5 +1,8 @@
 Action,Data,Expected Result
-"Business Verifier creates a verification request via the verifier management API","- Accepted issuer DID (UUID)
-- Standard OID4VP request","Verifier returns HTTP 200 with ManagementResponse containing verification deeplink"
-"Deeplink format validation","- Verification deeplink URL","Deeplink starts with 'swiyu-verify://' scheme and contains valid URI structure"
+"Business Verifier creates a verification request through the management API; Verifier generates a verification deeplink","- Verifier management API endpoint
+- Accepted issuer DID
+- Presentation definition
+- Deeplink generation request","Verification request successfully created in management system; deeplink generated"
+"Business Verifier provides the verification deeplink to the wallet","- Verification deeplink URI
+- Deeplink format: swiyu-verify://","Deeplink successfully generated and follows correct swiyu-verify:// URI scheme"
 

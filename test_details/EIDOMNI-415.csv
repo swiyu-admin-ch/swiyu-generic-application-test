@@ -1,7 +1,0 @@
-Action,Data,Expected Result
-"Issuer exposes OID4VCI metadata endpoint; Application retrieves well-known credential issuer information","- GET request to .well-known/openid-credential-issuer endpoint
-- Issuer service instance","Issuer returns HTTP 200 with IssuerMetadata object"
-"Validate issuer metadata structure and contents","- IssuerMetadata containing: issuerURI, display, supportedCredentialConfigurations
-- Credential configuration: university_example_sd_jwt","issuerURI starts with 'http://default-issuer-url.admin.ch'; display is not null; supportedCredentialConfigurations is not null"
-"Verify that SD-JWT credential configuration is supported and exposed","- supportedCredentialConfigurations map
-- Configuration key: 'university_example_sd_jwt'","university_example_sd_jwt configuration is present and not null"

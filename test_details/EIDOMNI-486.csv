@@ -1,7 +1,0 @@
-Action,Data,Expected Result
-"Business Issuer creates credential offer; Wallet collects offer and requests initial token using DPoP proof","- Credential offer deeplink
-- DPoP proof with key1 thumbprint
-- Token endpoint","Wallet obtains access token bound to key1"
-"Wallet requests credential using DPoP proof with different key (key2 with different thumbprint)","- Access token (bound to key1)
-- DPoP proof with key2 thumbprint (mismatch)
-- Credential request","Issuer returns HTTP 400; DPoP binding mismatch is detected and rejected"

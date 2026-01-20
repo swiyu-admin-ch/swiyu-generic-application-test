@@ -1,0 +1,18 @@
+Action,Data,Expected Result
+"Business Issuer A creates first credential offer; Wallet receives offer A and performs initial issuance A with credential management ID mgmt_A","- Credential offer A deeplink
+- DPoP binding key (A)
+- Initial tokens and credentials for A
+- Credential management ID: mgmt_A","Initial issuance A completed; database contains 1 credential offer linked to mgmt_A"
+"Wallet refreshes token for issuance A and performs first renewal A","- Refresh token (A)
+- DPoP binding key (A)
+- Token endpoint and credential endpoint
+- Renewed credentials from A","First renewal of A completed; database contains 2 credential offers linked to mgmt_A"
+"Business Issuer B creates second credential offer; Wallet receives offer B and performs initial issuance B with credential management ID mgmt_B","- Credential offer B deeplink
+- DPoP binding key (B)
+- Initial tokens and credentials for B
+- Credential management ID: mgmt_B","Initial issuance B completed; database contains 1 credential offer linked to mgmt_B"
+"Wallet performs second renewal for A and renewal for B; Issuer correctly persists all credential offers with proper management linkage","- Refresh token (A) for second renewal
+- Refresh token (B) for first renewal
+- Renewed credentials from A and B
+- Credential management tracking","Database contains 3 credential offers linked to mgmt_A; database contains 2 credential offers linked to mgmt_B; no cross-linking between management entities"
+

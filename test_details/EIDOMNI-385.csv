@@ -1,8 +1,0 @@
-Action,Data,Expected Result
-"Issuer exposes OAuth authorization server endpoint; Application retrieves well-known OAuth configuration","- GET request to .well-known/oauth-authorization-server endpoint
-- Issuer service instance","Issuer returns HTTP 200 with OpenIdConfiguration object"
-"Validate OAuth authorization server configuration structure","- OpenIdConfiguration containing: issuer, tokenEndpoint
-- Expected base URL: http://default-issuer-url.admin.ch
-- Expected token endpoint: http://default-issuer-url.admin.ch/oid4vci/api/token","issuer is not null and starts with expected base URL; tokenEndpoint is not null and equals expected token endpoint URL"
-"Confirm OAuth configuration aligns with OID4VCI authorization flow expectations","- OAuth authorization configuration
-- OID4VCI compliance check","OAuth and OpenID configurations are consistent and match expected OID4VCI token endpoint"

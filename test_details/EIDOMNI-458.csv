@@ -1,8 +1,0 @@
-Action,Data,Expected Result
-"Business Issuer creates a deferred credential offer for unbound SD-JWT","- Credential type: unbound_example_sd_jwt
-- Deferred: true
-- Deferred offer validity seconds configured","Issuer returns HTTP 200 with CredentialWithDeeplinkResponse and management_id"
-"Business Issuer retrieves deferred credential offer status by management ID","- Management ID from deferred offer
-- GET request to /management/api/status/{id}","Issuer returns HTTP 200 with StatusResponse"
-"Verify status response contains valid deferred credential status information","- StatusResponse object
-- Status field populated","Status field is not null; status value reflects deferred offer state"

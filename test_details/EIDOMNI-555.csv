@@ -1,8 +1,0 @@
-Action,Data,Expected Result
-"Business Verifier creates an unsigned verification request with DCQL and encryption; Wallet retrieves unsigned request object from verifier","- Accepted issuer DID
-- DCQL university requirements (withUniversityDCQL)
-- Encryption enabled (encrypted)
-- JWT unsecure (jwtUnsecure)
-- Verification request deeplink","Wallet successfully retrieves the unsigned OID4VP request object as a RequestObject"
-"Wallet validates the unsigned request object structure and fields","- RequestObject containing: client_id, client_id_scheme, response_uri, response_mode, nonce
-- DCQL query structure present","All required fields are present; client_id_scheme is 'did'; response_uri contains correct endpoint path; response_mode matches verifier configuration; nonce is non-empty"

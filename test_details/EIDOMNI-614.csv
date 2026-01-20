@@ -1,0 +1,16 @@
+Action,Data,Expected Result
+"Wallet completes initial issuance flow with DPoP binding key and obtains refresh token","- Credential offer deeplink
+- DPoP binding key
+- Initial access token and refresh token
+- Initial credentials issued","Initial credentials and refresh token successfully obtained"
+"Wallet generates valid DPoP proof for token endpoint using refresh token and server-provided nonce","- Token endpoint URI
+- Refresh token
+- DPoP binding key
+- Nonce from server","Valid DPoP proof created; first token refresh request sent and accepted"
+"Wallet successfully obtains new access token and refresh token from first refresh attempt","- Valid DPoP proof
+- Refresh token
+- Token endpoint","New access token and refresh token successfully returned with HTTP 200"
+"Wallet replays the same DPoP proof (identical nonce and jti) in a second token refresh request","- Replay DPoP proof (identical to first request)
+- Refresh token
+- Token endpoint request","Issuer returns HTTP 401 with error code 'invalid_dpop_proof' and error_description 'Must use valid server provided nonce'"
+

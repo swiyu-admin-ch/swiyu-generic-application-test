@@ -1,4 +1,13 @@
 Action,Data,Expected Result
-"Business Verifier attempts to retrieve verification details using a non-existent verification ID","- Random UUID verification ID
-- GET request to verifier management API","Verifier returns HTTP 404 with error detail: 'The verification with the identifier '[UUID]' was not found'"
+"Business Verifier sends a GET request to retrieve verification details using a non-existent verification ID","- Verifier management API endpoint: /verifications/{id}
+- Unknown verification ID (random UUID)
+- Authentication token
+- GET request","Business Verifier management API call prepared with non-existent verification ID"
+"Verifier management API searches for the verification record with the provided ID in the database","- Non-existent verification ID
+- Verification database query
+- Management API service logic","Verification record lookup fails; no matching verification found in database"
+"Verifier management API returns HTTP 404 error response with appropriate error message","- HTTP 404 status code
+- Error response body
+- detail field with verification ID
+- Error message format: 'The verification with the identifier '{id}' was not found'","Verifier returns HTTP 404 with detail error message indicating verification not found; error message includes the requested verification ID"
 

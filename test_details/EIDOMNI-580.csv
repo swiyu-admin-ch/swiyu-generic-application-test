@@ -1,5 +1,0 @@
-Action,Data,Expected Result
-"Business Issuer retrieves current status list resource via management API","- GET request to /management/api/status-list or equivalent endpoint
-- Current status list context","Issuer returns HTTP 200 with status list information"
-"Verify status list resource contains valid registry URL","- StatusList object with statusRegistryUrl
-- URL format validation","statusRegistryUrl is not blank; URL is properly formatted"

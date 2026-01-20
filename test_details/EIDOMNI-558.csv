@@ -1,9 +1,0 @@
-Action,Data,Expected Result
-"Business Issuer creates a credential offer and transitions status to CANCELLED","- Credential type: unbound_example_sd_jwt
-- Initial status transition to CANCELLED
-- Management ID obtained","Credential status successfully changed to CANCELLED"
-"Business Issuer attempts invalid state transition from CANCELLED back to ISSUED","- Management ID
-- UpdateCredentialStatusRequestType.ISSUED
-- Invalid state transition request","Issuer returns HTTP 400 Bad Request"
-"Verify error response describes the failed state transition","- HTTP 400 error body
-- Detail field containing state transition information","Error detail contains: 'payload=ISSUE' and 'oldStatus=Cancelled'"

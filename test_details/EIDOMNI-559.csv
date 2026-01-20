@@ -1,11 +1,17 @@
 Action,Data,Expected Result
-"Business Issuer creates credential offer; Wallet collects bound SD-JWT credential; Business Verifier creates verification request with selective disclosure requirements","- Credential type: university_example_sd_jwt
-- Accepted issuer DID
-- Verification request deeplink","Wallet successfully retrieves bound SD-JWT and verification request is created"
-"Wallet constructs selective disclosure presentation using the bound SD-JWT credential","- Verification request object
-- Bound SD-JWT credential
-- Selective disclosure requirements","Wallet successfully creates presentation"
-"Wallet submits presentation but omits the required presentation_submission field (only vp_token included)","- vp_token (SD-JWT presentation)
-- presentation_submission = null/missing
-- OID4VP endpoint","Verifier rejects submission with HTTP 400; error response contains: error='invalid_request', error_code='authorization_request_missing_error_param', error_description='Incomplete submission for ID2, must contain vp_token and presentation_submission'; verification state remains PENDING"
+"Business Issuer creates a credential offer; Wallet collects the offer and obtains the credential; Business Verifier creates a verification request","- Credential offer deeplink
+- Credential type: university_example_sd_jwt (bound)
+- Verification request deeplink
+- Presentation definition (selective disclosure required)","Credential successfully issued; verification request successfully created"
+"Wallet constructs a valid presentation meeting verifier requirements with both vp_token and presentation_submission","- Wallet's bound SD-JWT credential
+- Verifier's presentation definition
+- Required claims and disclosure requirements
+- presentation_submission object","Wallet successfully generates valid presentation with required fields"
+"Test harness injects a malicious Wallet mock that sends only vp_token without presentation_submission field","- Spied wallet object
+- Presentation endpoint form data (vp_token only)
+- Missing presentation_submission field
+- Verification endpoint request","Wallet mock successfully sends incomplete presentation (vp_token only)"
+"Verifier validates incoming presentation and rejects submission missing presentation_submission field","- Incomplete presentation submission
+- Verifier OID4VP endpoint
+- Presentation validation logic","Verifier returns HTTP 400 error; Verification state remains PENDING; error indicates missing presentation_submission"
 

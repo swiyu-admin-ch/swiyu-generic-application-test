@@ -1,4 +1,0 @@
-Action,Data,Expected Result
-"Business Verifier attempts to create a verification request without providing a presentation definition","- Accepted issuer DID (UUID)
-- presentationDefinition = null","Verifier returns HTTP 400 with error_description: 'PresentationDefinition must be provided'"
-

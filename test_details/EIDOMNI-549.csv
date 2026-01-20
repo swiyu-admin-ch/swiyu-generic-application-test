@@ -1,8 +1,0 @@
-Action,Data,Expected Result
-"Business Verifier initiates a verification request via the management API with accepted issuer DID and university credential requirements","- Accepted issuer DID (UUID)
-- PresentationDefinition with university requirements
-- Presentation constraints with field definitions","Verifier returns HTTP 200 with ManagementResponse containing verification ID and deeplink"
-"Verifier management API persists verification entry and returns deeplink","- ManagementResponse with verification ID and deeplink
-- Deeplink starts with 'swiyu-verify://' scheme","Deeplink is valid and suitable for QR code generation; verification state is PENDING"
-"Business Verifier retrieves the persisted verification entry by ID","- Verification ID from ManagementResponse
-- GET request to verifier management API","Verifier returns the persisted entry with matching presentation definition, input descriptors, and field constraints unchanged from creation"

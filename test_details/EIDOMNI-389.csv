@@ -1,12 +1,16 @@
 Action,Data,Expected Result
-"Business Issuer creates a deferred credential offer for an unbound SD-JWT credential","- Credential type: unbound_example_sd_jwt
-- Deferred issuance (deferred = true)","Issuer returns HTTP 200 with credential offer and transaction_id"
-"Wallet collects transaction ID from deferred offer; Issuer marks credential as READY; Wallet fetches credential","- Transaction ID from offer
-- Management ID
-- Status update: READY","Wallet successfully retrieves the unbound SD-JWT credential using transaction ID"
-"Business Verifier creates verification request; Wallet submits SD-JWT presentation","- Verification request deeplink
-- Unbound SD-JWT credential
-- OID4VP flow","Wallet constructs and submits presentation; verification state is SUCCESS"
-"Issuer credential status is updated to ISSUED; Subsequent update attempts are rejected","- Management ID
-- Attempt to update credential data after issuance","Issuer status changes to ISSUED; retry update fails with HTTP 400: 'Credential is either not deferred or has an incorrect status'"
+"Business Issuer creates a deferred credential offer; Wallet collects the offer and retrieves the transaction ID","- Deferred credential offer deeplink
+- Credential type: unbound_example_sd_jwt
+- Credential management ID
+- Transaction ID from offer collection","Wallet successfully retrieves transaction ID; credential management entry created in PENDING state"
+"Business Issuer updates the credential data and transitions the credential management state to READY","- Credential management ID
+- Credential data: average_grade, name, type
+- UpdateCredentialStatusRequestType.READY
+- Issuer management API call","Credential management state successfully updated to READY; credential data stored"
+"Wallet retrieves the credential using the transaction ID from the deferred flow","- Transaction ID
+- Credential endpoint request","Wallet successfully retrieves SD-JWT credential with unbound claims"
+"Business Verifier creates verification request and Wallet provides valid presentation; Verifier validates the credential","- Verification request deeplink
+- Wallet presentation (SD-JWT)
+- Verification endpoint
+- Issuer DID","Wallet presentation accepted; credential successfully verified; credential management status updated to ISSUED"
 
