@@ -29,6 +29,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.spec.ECGenParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -85,6 +88,8 @@ public class BaseTest {
     protected VerifierManager verifierManager;
     protected RestClient restClient;
     protected Statement stmt;
+    protected PrivateKey jwtKey;
+    protected PrivateKey unauthenticatedJwtKey;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
 
@@ -172,6 +177,15 @@ public class BaseTest {
                 )).toString()
         );
 
+        if (issuerImageConfig.isEnableJwtAuth() && issuerImageConfig.getJwtKeyGenerator() != null) {
+            jwtKey = issuerImageConfig.getJwtKeyGenerator().getPrivateKey();
+
+            final KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("EC");
+            final ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
+            keyPairGen.initialize(ecSpec);
+            unauthenticatedJwtKey = keyPairGen.generateKeyPair().getPrivate();
+        }
+
         final ServiceLocationContext issuerContext = new ServiceLocationContext(
                 issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
         );
@@ -180,8 +194,11 @@ public class BaseTest {
                 verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
         );
 
-        currentStatusList = issuerManager.createStatusList(100000, 2);
-
+        if (issuerImageConfig.isEnableJwtAuth()) {
+            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 100000, 2);
+        } else {
+            currentStatusList = issuerManager.createStatusList(100000, 2);
+        }
         connection = DriverManager.getConnection(
                 dbTestContainer.getJdbcUrl(),
                 dbTestContainer.getUsername(),

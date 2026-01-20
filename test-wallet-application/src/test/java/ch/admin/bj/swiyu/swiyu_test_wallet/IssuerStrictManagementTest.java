@@ -1,21 +1,17 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.util.UUID;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
@@ -25,61 +21,77 @@ class IssuerStrictManagementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-582",
-            summary = "Business issuer cannot access management endpoint without JWT when JWT protection is enabled",
+            summary = "Access to Issuer Management operations using a valid signed JWT",
             description = """
-                    Validate that when JWT authentication is enabled on the management endpoint,
-                    requests without a valid JWT are rejected with 401 Unauthorized.
-                    This ensures the management API is properly protected.
+                    This test validates that access to Issuer Management operations is correctly controlled using a 
+                    signed JWT. It ensures that a Business Issuer can perform authorized management actions when a 
+                    valid JWT is provided, and that management read operations remain accessible according to defined 
+                    business access rules.
                     """
     )
+    @Tag("uci_s1")
     @Tag("uci_p1")
-    @Tag("edge_case")
-    @Disabled
-    void updateCredentialStatus_WithoutJwt_thenUnauthorized() {
-        log.info("Creating credential...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        final UUID managementId = response.getManagementId();
+    @Tag("happy_path")
+    void issuerManagementAccess_withSignedJwt_thenSuccess() {
+        log.info("Creating status list with signed JWT body (should succeed)");
+        final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 10000, 2);
 
-        log.info("Attempting to update status without JWT (should fail with 401)");
-        final HttpClientErrorException ex = assertThrows(
-                HttpClientErrorException.class,
-                () -> issuerManager.updateState(managementId,
-                        ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType.CANCELLED)
-        );
+        assertThat(statusList)
+                .as("Status list should be created successfully with valid signed JWT")
+                .isNotNull();
+        assertThat(statusList.getStatusRegistryUrl())
+                .as("Status list should have a valid registry URL")
+                .isNotNull();
 
-        assertThat(errorCode(ex))
-                .as("Request without JWT should be rejected with 401 Unauthorized")
-                .isEqualTo(401);
+        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "university_example_sd_jwt");
 
-        log.info("Request correctly rejected: JWT authentication is enforced");
+        assertThat(credentialInfo).isNotNull();
+
+        final CredentialInfoResponse credentialManagement = issuerManager.getCredentialById(credentialInfo.getManagementId());
+
+        assertThat(credentialManagement).isNotNull();
+        assertThat(credentialManagement.getStatus()).isEqualTo(CredentialStatusType.OFFERED);
     }
 
     @Test
     @XrayTest(
             key = "EIDOMNI-583",
-            summary = "Business issuer can access management endpoint with valid JWT",
+            summary = "Access to Issuer Management operations using an unauthorized signed JWT is denied",
             description = """
-                    Validate that when a valid JWT is provided, the business issuer can successfully
-                    access the management endpoint and perform credential status updates.
-                    This test ensures that authorized requests with valid JWTs are accepted.
+                    This test validates that access to Issuer Management operations is correctly denied when an unauthorized signed JWT is provided.
+                    It ensures that authentication and access control rules are enforced, preventing a Business Issuer from performing management
+                    actions when the JWT is not trusted.
                     """
     )
+    @Tag("uci_s1")
     @Tag("uci_p1")
-    @Tag("happy_path")
-    @Disabled
-    void updateCredentialStatus_WithValidJwt_thenSuccess() {
-        log.info("Creating credential with JWT...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        final UUID managementId = response.getManagementId();
+    @Tag("edge_case")
+    void issuerManagementAccess_withUnauthorizedSignedJwt_thenRejected() {
+        HttpClientErrorException ex = assertThrows(
+                HttpClientErrorException.class,
+                () -> issuerManager.createStatusList(10000, 2)
+        );
 
-        log.info("Updating status with valid JWT (should succeed)");
-        issuerManager.updateState(managementId,
-                ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType.CANCELLED);
+        assertThat(errorCode(ex))
+                .as("Request with unauthenticated JWT should be rejected with 401 Unauthorized")
+                .isEqualTo(401);
 
-        final StatusResponse status = issuerManager.getStatusById(managementId);
-        assertThat(status.getStatus()).isEqualTo(ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType.CANCELLED);
+        assertThat(errorJson(ex))
+                .containsEntry("error", "Unauthorized")
+                .containsEntry("path", "/management/api/status-list");
 
-        log.info("Status update successful with JWT authentication");
+        ex = assertThrows(
+                HttpClientErrorException.class,
+                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, "test-key-1", "university_example_sd_jwt")
+        );
+
+        assertThat(errorCode(ex))
+                .as("Request with unauthenticated JWT should be rejected with 401 Unauthorized")
+                .isEqualTo(401);
+
+        assertThat(errorJson(ex))
+                .containsEntry("error", "Unauthorized")
+                .containsEntry("path", "/management/api/credentials");
     }
 }
 
