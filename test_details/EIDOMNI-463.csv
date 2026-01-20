@@ -1,0 +1,5 @@
+Action,Data,Expected Result
+"Business Verifier creates a verification request via the verifier management API","- Accepted issuer DID (UUID)
+- Standard OID4VP request","Verifier returns HTTP 200 with ManagementResponse containing verification deeplink"
+"Deeplink format validation","- Verification deeplink URL","Deeplink starts with 'swiyu-verify://' scheme and contains valid URI structure"
+

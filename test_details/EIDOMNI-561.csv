@@ -1,0 +1,10 @@
+Action,Data,Expected Result
+"Business Issuer creates credential offer for unbound SD-JWT; Wallet collects credential via OID4VCI","- Credential type: unbound_example_sd_jwt
+- Immediate issuance (deferred = false)
+- No holder key binding","Issuer returns HTTP 200 with offer_deeplink; Wallet successfully retrieves unbound SD-JWT"
+"Business Verifier creates DCQL-based verification request with mandatory holder binding requirement via OID4VP v1","- DCQL query with holder binding requirement (withUniversityDCQL)
+- Verification request deeplink
+- Holder binding proof mandatory","Verifier returns HTTP 200 with verification request requiring holder key binding"
+"Wallet constructs presentation from unbound credential (no holder binding proof); Wallet submits to verifier","- DCQL query requiring holder binding
+- Unbound SD-JWT credential (no holder key binding)
+- OID4VP v1 endpoint","Verifier decryption/validation fails due to missing holder binding; Verifier rejects with HTTP 400: error='invalid_transaction_data', error_code='holder_binding_mismatch', error_description='Missing Holder Key Binding Proof'"

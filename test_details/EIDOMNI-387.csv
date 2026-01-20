@@ -1,0 +1,11 @@
+Action,Data,Expected Result
+"Business Issuer creates a credential offer for an SD-JWT credential via the issuer management API","- Credential type: university_example_sd_jwt
+- Credential subject data (name, type, average_grade)
+- Immediate issuance (deferred = false)","Issuer returns HTTP 200 with CredentialWithDeeplinkResponse containing offer_deeplink and management_id"
+"Parse and validate the credential offer deeplink URI","- Offer deeplink from response
+- URI scheme validation
+- Query parameter extraction","Deeplink scheme is 'swiyu'; query parameters decoded successfully"
+"Decode credential offer from deeplink query parameter and validate structure","- credential_offer query parameter (base64/JSON encoded)
+- Credential offer object fields: credential_issuer, grants","credential_issuer is present; grants object contains 'urn:ietf:params:oauth:grant-type:pre-authorized_code' with pre-authorized_code"
+"Validate that pre-authorized code is unique and differs from management ID","- pre-authorized_code from offer
+- management_id from response","pre-authorized_code is non-empty, non-null, and NOT equal to management_id; security isolation confirmed"

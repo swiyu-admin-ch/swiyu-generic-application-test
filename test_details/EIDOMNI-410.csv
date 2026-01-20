@@ -1,0 +1,12 @@
+Action,Data,Expected Result
+"Business Issuer creates a status list with large capacity; Issuer creates and issues single SD-JWT credential","- Status list length: 10000, bit length: 2
+- Single credential type: university_example_sd_jwt
+- Wallet collects in ID2 mode","Single credential successfully issued and assigned one status list index"
+"Business Issuer creates batch credential offer; Wallet collects batch of 3 credentials in V1 mode","- Status list with remaining capacity
+- Batch credential type: unbound_example_sd_jwt
+- Batch collection (V1 API)","Batch of 3 credentials successfully issued with indexes assigned"
+"Query database for all used status list indexes from both single and batch issuance","- credential_offer_status table
+- Database query for all indexes
+- Sort and collect all values","Total of 6 indexes found (1 single + 3 batch = 4 credentials, but with multiple indexes per credential)"
+"Verify that all indexes are NOT sequential","- List of all indexes
+- Sequential check algorithm","Indexes are not in strict sequential order (e.g., not 1,2,3,4,5,6)"

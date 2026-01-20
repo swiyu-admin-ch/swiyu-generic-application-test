@@ -36,18 +36,9 @@ class BatchTest extends BaseTest {
             key = "EIDOMNI-388",
             summary = "Successful SD-JWT batch issuance flow",
             description = """
-                    This test validates that the issuer successfully performs a batch issuance of multiple SD-JWT credentials 
-                    in a single offer, ensuring that all issued credentials receive non-sequential status list indexes. 
-                    The flow follows the OID4VCI issuance process with encryption enabled.
-                    
-                    Steps:
-                    1. The issuer initializes a status list with a defined capacity and bit configuration.
-                    2. The wallet indicates encryption preference for credential issuance responses.
-                    3. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    4. The wallet collects the offer in batch mode and retrieves multiple SD-JWT credentials.
-                    5. The system queries the status list to extract all used indexes.
-                    6. The test verifies that the number of issued credentials matches the requested batch size and that 
-                       indexes are not strictly sequential across the batch.
+                    This test validates that the issuer successfully performs batch issuance of multiple SD-JWT credentials
+                    in a single offer with encryption enabled. The batch credentials receive non-sequential status list indexes
+                    to ensure proper randomization and uniqueness across the status list.
                     """
     )
     @Tag("uci_s1")
@@ -79,16 +70,9 @@ class BatchTest extends BaseTest {
             key = "EIDOMNI-395",
             summary = "Batch issuance rejected when status list capacity exceeded",
             description = """
-                    This test ensures that the issuer correctly rejects a batch SD-JWT issuance request when the 
-                    number of credentials to be issued exceeds the remaining capacity of the configured status list.
-                    
-                    Steps:
-                    1. The issuer creates a status list with limited capacity (e.g., length 2).
-                    2. The wallet enables encryption preference for issuance.
-                    3. The issuer attempts to create a credential offer for an SD-JWT credential.
-                    4. The wallet requests to collect multiple credentials in a batch exceeding the status list capacity.
-                    5. The issuer responds with an HTTP 400 Bad Request.
-                    6. The test validates that the error message indicates insufficient available status indexes.
+                    This test ensures that the issuer correctly rejects batch SD-JWT issuance requests when the number of
+                    credentials requested exceeds the remaining capacity of the configured status list, returning HTTP 400
+                    with an appropriate error message.
                     """
     )
     @Tag("uci_s1")

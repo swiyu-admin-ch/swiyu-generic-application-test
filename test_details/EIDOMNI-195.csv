@@ -1,0 +1,14 @@
+Action,Data,Expected Result
+"Business Issuer creates credential offer for unbound SD-JWT; Wallet collects and retrieves credential; Extract issuer DID from SD-JWT","- Credential type: unbound_example_sd_jwt
+- Pre-authorized code
+- Wallet API version: ID2","Issuer returns credential offer; Wallet successfully retrieves unbound SD-JWT; Issuer DID is extracted from credential"
+"Business Verifier creates a Trust Anchor linked to the trusted issuer DID and initiates verification request (parametrized for API v1 and v2)","- Trust Anchor with issuer DID
+- trustRegistryUri: 'trust-reg.trust-infra.swiyu-int.admin.ch'
+- API version: ID2 (standard) or V1 (withDCQL)","Verifier creates verification request with Trust Anchor configuration"
+"Wallet retrieves verification request details and submits the unbound SD-JWT presentation to the verifier","- Verification request deeplink
+- Unbound SD-JWT credential
+- Trust Anchor verification flow
+- OID4VP endpoint","Wallet constructs and submits presentation; Verifier validates issuer through Trust Anchor"
+"Business Verifier confirms verification success and validates state","- Verification result from management API
+- Verification ID
+- PresentationDefinition","Verification state = SUCCESS; issuer trust is confirmed through Trust Anchor"

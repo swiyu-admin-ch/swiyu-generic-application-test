@@ -38,11 +38,9 @@ class VerifierTest extends BaseTest {
             key = "EIDOMNI-463",
             summary = "Successful deeplink creation for verification request",
             description = """
-                    This test validates the end-to-end flow for deeplink verification, 
-
-                    Steps:
-                    1. The verifier initiates a verification request following the OID4VP flow.
-                    2. The wallet retrieves verification details 
+                    This test validates that a Business Verifier can successfully create a verification request
+                    and generate a verification deeplink through the verifier management API. The deeplink follows
+                    the correct URI scheme and can be used by the wallet to initiate the verification flow.
                     """
     )
     @Tag("ucv_m1")
@@ -58,7 +56,13 @@ class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-557",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Verification request creation is rejected when presentation definition is missing",
+            description = """
+                    This test validates that the Business Verifier management API correctly rejects
+                    verification request creation when the required presentation definition is not provided.
+                    The validation ensures that complete and valid presentation definitions are mandatory
+                    for all verification requests.
+                    """
     )
     @Tag("ucv_m1")
     @Tag("edge_case")
@@ -79,7 +83,13 @@ class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-562",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Verification retrieval fails when verification ID does not exist",
+            description = """
+                    This test validates that the Business Verifier management API correctly rejects
+                    attempts to retrieve verification details using a non-existent verification ID.
+                    The API returns HTTP 404 with an appropriate error message indicating that the
+                    requested verification was not found.
+                    """
     )
     @Tag("ucv_m3")
     @Tag("edge_case")
@@ -100,7 +110,12 @@ class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-559",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Verification presentation submission is rejected when presentation_submission field is missing",
+            description = """
+                    This test validates that the Verifier OID4VP endpoint correctly rejects presentation submissions
+                    that are missing the required presentation_submission field. The wallet must include both vp_token
+                    and presentation_submission in the response to be accepted.
+                    """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
@@ -170,7 +185,12 @@ class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-560",
-            summary = "Successful deeplink creation for verification request"
+            summary = "Verification presentation submission is rejected when presentation_submission is invalid",
+            description = """
+                    This test validates that the Verifier OID4VP endpoint correctly rejects presentation submissions
+                    where the presentation_submission field is invalid or malformed. The submission must contain valid
+                    descriptor mappings with proper structure for the verifier to accept the presentation.
+                    """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")

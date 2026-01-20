@@ -1,0 +1,11 @@
+Action,Data,Expected Result
+"Business Issuer creates a credential offer for a bound SD-JWT credential","- Credential type: university_example_sd_jwt
+- Immediate issuance (deferred = false)
+- Credential is bound to holder's key","Issuer returns HTTP 200 with credential offer and offer_deeplink"
+"Wallet collects credential via OID4VCI and retrieves bound SD-JWT; Verifier creates verification request","- Credential offer deeplink
+- Verification request deeplink with selective disclosure requirements
+- University credential requirements","Wallet successfully retrieves bound SD-JWT with holder key binding"
+"Wallet constructs selective disclosure presentation and submits to verifier","- Verification request with disclosure requirements
+- Bound SD-JWT credential
+- Holder key binding proof","Verifier validates presentation; verification state is SUCCESS; all required claims disclosed and verified"
+

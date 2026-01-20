@@ -24,16 +24,9 @@ class IssuerTest extends BaseTest {
             key = "EIDOMNI-387",
             summary = "Credential offer deeplink creation with SD-JWT content",
             description = """
-                    This test validates that the issuer correctly generates a credential offer deeplink for an SD-JWT credential 
-                    according to the OID4VCI specification. It ensures that the deeplink contains all required parameters and that 
-                    the pre-authorized code differs from the management ID for security reasons.
-                    
-                    Steps:
-                    1. The issuer creates a credential offer for an SD-JWT credential (e.g., university_example_sd_jwt).
-                    2. The deeplink URI is parsed and its scheme validated as 'swiyu'.
-                    3. The query parameters of the deeplink are decoded and validated.
-                    4. The credential offer object is inspected for required fields: credential_issuer and grants.
-                    5. The test asserts that the pre-authorized code is present and unique from the management ID.
+                    This test validates that the Business Issuer correctly generates a credential offer deeplink for an SD-JWT
+                    credential according to the OID4VCI specification. The deeplink contains all required parameters including a
+                    unique pre-authorized code that differs from the management ID for security purposes.
                     """
     )
     @Tag("uci_c1")
@@ -67,15 +60,9 @@ class IssuerTest extends BaseTest {
             key = "EIDOMNI-415",
             summary = "Issuer metadata endpoint validation",
             description = """
-                    This test ensures that the issuer's metadata endpoint correctly exposes OID4VCI-compliant configuration data. 
-                    It validates that the issuer URI, display information, and supported credential configurations are available 
-                    and properly structured.
-                    
-                    Steps:
-                    1. The issuer metadata endpoint (.well-known/openid-credential-issuer) is retrieved.
-                    2. The issuer URI is validated to start with the expected base URL.
-                    3. The display metadata and credential configurations are checked for presence.
-                    4. The SD-JWT credential configuration 'university_example_sd_jwt' is verified to be included.
+                    This test ensures that the issuer's OID4VCI metadata endpoint (.well-known/openid-credential-issuer)
+                    correctly exposes compliant configuration data including issuer URI, display information, and all
+                    supported credential configurations.
                     """
     )
     @Tag("uci_m1")
@@ -95,15 +82,9 @@ class IssuerTest extends BaseTest {
             key = "EIDOMNI-391",
             summary = "OpenID configuration validation for OID4VCI issuer",
             description = """
-                    This test validates that the issuer’s OpenID configuration endpoint (.well-known/openid-configuration) 
-                    is correctly implemented for OID4VCI flows. It confirms that the issuer and token endpoint URLs 
-                    match the expected configuration pattern.
-                    
-                    Steps:
-                    1. The OpenID configuration endpoint is fetched from the issuer.
-                    2. The issuer URL is validated to match the default base URL.
-                    3. The token endpoint is verified to be correctly defined and reachable.
-                    4. The test asserts compliance with expected OID4VCI configuration.
+                    This test validates that the issuer's OpenID configuration endpoint (.well-known/openid-configuration)
+                    is correctly implemented for OID4VCI flows, confirming that issuer and token endpoint URLs match the
+                    expected configuration pattern and are reachable.
                     """
     )
     @Tag("uci_w1")
@@ -122,15 +103,9 @@ class IssuerTest extends BaseTest {
             key = "EIDOMNI-385",
             summary = "OAuth authorization server configuration validation for OID4VCI",
             description = """
-                    This test validates that the OAuth authorization server endpoint exposed by the issuer 
-                    is correctly aligned with OID4VCI requirements. It ensures that authorization metadata 
-                    and token endpoint URLs are configured consistently with the OpenID provider configuration.
-                    
-                    Steps:
-                    1. The issuer's OAuth authorization server configuration is retrieved.
-                    2. The issuer URL is validated to match the expected base address.
-                    3. The token endpoint is checked for existence and correctness.
-                    4. The test confirms that the configuration aligns with OID4VCI authorization flow expectations.
+                    This test validates that the OAuth authorization server endpoint exposed by the issuer is correctly
+                    aligned with OID4VCI requirements, ensuring that authorization metadata and token endpoint URLs are
+                    configured consistently with OID4VCI authorization flow expectations.
                     """
     )
     @Tag("uci_w1a")

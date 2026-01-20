@@ -1,0 +1,11 @@
+Action,Data,Expected Result
+"Business Issuer creates credential offer; Wallet collects bound SD-JWT credential; Business Verifier creates verification request with selective disclosure requirements","- Credential type: university_example_sd_jwt
+- Accepted issuer DID
+- Verification request deeplink","Wallet successfully retrieves bound SD-JWT and verification request is created"
+"Wallet constructs selective disclosure presentation using the bound SD-JWT credential","- Verification request object
+- Bound SD-JWT credential
+- Selective disclosure requirements","Wallet successfully creates presentation"
+"Wallet submits presentation but omits the required presentation_submission field (only vp_token included)","- vp_token (SD-JWT presentation)
+- presentation_submission = null/missing
+- OID4VP endpoint","Verifier rejects submission with HTTP 400; error response contains: error='invalid_request', error_code='authorization_request_missing_error_param', error_description='Incomplete submission for ID2, must contain vp_token and presentation_submission'; verification state remains PENDING"
+

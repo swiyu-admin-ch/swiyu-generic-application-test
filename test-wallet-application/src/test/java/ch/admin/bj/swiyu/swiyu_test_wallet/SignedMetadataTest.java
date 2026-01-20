@@ -43,22 +43,9 @@ class SignedMetadataTest extends BaseTest {
             key = "EIDOMNI-402",
             summary = "Validate retrieval and verification of signed issuer metadata (happy path)",
             description = """
-                    This test validates that a wallet can successfully request, retrieve, and verify signed issuer metadata 
-                    according to the OID4VCI specification.
-                    
-                    Components:
-                    - Issuer: exposes the signed metadata endpoint.
-                    - Wallet: retrieves and validates the signed metadata.
-                    
-                    Preconditions:
-                    - Signed metadata feature is enabled on the issuer (ENABLE_SIGNED_METADATA=true).
-                    
-                    Test Flow:
-                    1. The wallet requests issuer metadata with Accept: application/jwt.
-                    2. The issuer returns a signed JWT (header.payload.signature).
-                    3. The wallet decodes the JWT, extracts metadata claims, and validates its structure.
-                    4. The wallet confirms the metadata signature and verifies required claims.
-                    5. The retrieved metadata is valid and contains expected OID4VCI fields.
+                    This test validates that a wallet can successfully request, retrieve, and verify signed issuer metadata
+                    according to the OID4VCI specification when the signed metadata feature is enabled on the issuer.
+                    The wallet decodes the signed JWT response and confirms that all required OID4VCI metadata claims are present.
                     """
     )
     @Tag("uci_m1")
@@ -84,9 +71,8 @@ class SignedMetadataTest extends BaseTest {
             key = "EIDOMNI-453",
             summary = "Reject a signed metadata request if the tenant id does not exist",
             description = """
-                     This test validates that issuer reject a request of a signed metadata of a none existed tenant id.
-                     1. The wallet requests issuer metadata with Accept: application/jwt using none existing tenant id.
-                     2. The issuer respond a NOT FOUND.
+                    This test validates that the issuer rejects a wallet's request for signed metadata when using
+                    a non-existent tenant ID, returning HTTP 404 to prevent unauthorized metadata access.
                     """
     )
     @Tag("uci_m1")

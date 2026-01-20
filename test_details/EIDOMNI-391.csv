@@ -1,0 +1,6 @@
+Action,Data,Expected Result
+"Issuer exposes OpenID configuration endpoint; Application retrieves well-known OpenID configuration","- GET request to .well-known/openid-configuration endpoint
+- Issuer service instance","Issuer returns HTTP 200 with OpenIdConfiguration object"
+"Validate issuer and token endpoint URLs in configuration","- OpenIdConfiguration containing: issuer, tokenEndpoint
+- Expected base URL: http://default-issuer-url.admin.ch
+- Expected token endpoint: http://default-issuer-url.admin.ch/oid4vci/api/token","issuer is not null and starts with expected base URL; tokenEndpoint is not null and equals expected token endpoint URL"

@@ -1,0 +1,3 @@
+Action,Data,Expected Result
+"Business Issuer attempts to retrieve non-existent status list using random UUID","- Random UUID (non-existent status list ID)
+- GET request to /management/api/status/{id}","Issuer returns HTTP 404 Not Found"

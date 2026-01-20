@@ -1,0 +1,5 @@
+Action,Data,Expected Result
+"Business Verifier attempts to retrieve verification details using a non-existent random UUID verification ID","- Random UUID verification ID
+- GET request to verifier management API /api/verification/{id}","Verifier returns HTTP 404"
+"Verify error response contains correct not-found information","- HTTP 404 response body
+- Error detail field","Response contains: detail = 'The verification with the identifier '[UUID]' was not found'"

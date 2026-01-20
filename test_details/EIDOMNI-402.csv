@@ -1,0 +1,13 @@
+Action,Data,Expected Result
+"Wallet creates a wallet entry and collects credential offer via deeplink; Business Issuer creates credential offer with signed metadata enabled (ENABLE_SIGNED_METADATA=true)","- Credential type: unbound_example_sd_jwt
+- Signed metadata feature enabled on issuer
+- Credential offer deeplink","Wallet successfully validates and receives deeplink; Issuer returns credential offer"
+"Wallet retrieves issuer well-known configuration and collects token via pre-authorized code flow","- Well-known metadata endpoint
+- Pre-authorized code
+- Token endpoint request","Wallet successfully retrieves issuer configuration and exchanges pre-authorized code for token"
+"Wallet requests signed metadata from issuer using Accept: application/jwt header","- Token (JWT)
+- GET request to issuer metadata endpoint
+- Accept: application/jwt header","Issuer returns HTTP 200 with signed metadata as JWT (header.payload.signature)"
+"Wallet decodes JWT payload, validates JWT structure, and confirms required OID4VCI metadata claims are present","- Signed JWT response
+- JWT payload containing OID4VCI claims
+- Signature validation","Wallet successfully decodes payload; all required OID4VCI metadata fields are present and valid; signature is verified"

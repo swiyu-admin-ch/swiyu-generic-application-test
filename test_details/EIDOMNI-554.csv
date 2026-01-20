@@ -1,0 +1,7 @@
+Action,Data,Expected Result
+"Business Verifier creates a verification request with security requirements; Wallet retrieves signed request object from verifier","- Accepted issuer DID
+- University credential requirements (withUniversity)
+- JWT secure (jwtSecure)
+- Verification request deeplink","Wallet successfully fetches the signed OID4VP request object as a compact JWS"
+"Wallet decodes and validates the signed JWT payload structure","- Signed JWT (header.payload.signature)
+- JWT payload contains: client_id, client_id_scheme, response_uri, response_mode, nonce","All required fields are present; client_id_scheme is 'did'; response_uri contains correct endpoint path; nonce is non-empty"

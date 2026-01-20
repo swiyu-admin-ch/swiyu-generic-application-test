@@ -1,0 +1,14 @@
+Action,Data,Expected Result
+"Business Issuer creates a small status list with limited capacity; 10 concurrent threads each attempt batch issuance","- Status list length: 20 (very limited capacity)
+- Bit length: 2
+- 10 concurrent batch issuance threads
+- Each thread requests 3 credentials","Concurrent operations proceed; some succeed, others constrained by capacity"
+"Each concurrent wallet thread attempts to collect batch of 3 credentials","- Parallel credential collection (V1 API)
+- 10 concurrent threads
+- Status list capacity constraint: 20 total indexes","Not all 30 credentials can be issued due to capacity limitation"
+"Query database after all concurrent operations complete and timeout reached","- credential_offer_status table
+- Database aggregation
+- Executor pool shutdown with 60-second timeout","Total of 18 credentials issued (capacity limit respected)"
+"Verify that issuance stopped once status list capacity was reached","- Final index count: 18
+- Status list length: 20
+- Capacity constraint enforced","Only 18 credentials issued; remaining capacity unused; constraint properly enforced"

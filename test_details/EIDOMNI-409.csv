@@ -1,0 +1,10 @@
+Action,Data,Expected Result
+"Business Issuer creates a credential offer for a bound SD-JWT credential; Wallet collects credential via OID4VCI","- Credential type: university_example_sd_jwt
+- Immediate issuance (deferred = false)
+- Pre-authorized code","Issuer returns HTTP 200 with offer_deeplink; Wallet successfully retrieves bound SD-JWT with holder key binding"
+"Business Verifier creates a DCQL-based verification request specifying required attributes via OID4VP v2","- DCQL query with attribute requirements
+- Verification request deeplink
+- OID4VP v2 endpoint","Verifier returns HTTP 200 with verification request containing DCQL query structure"
+"Wallet retrieves verification details and constructs selective disclosure presentation satisfying DCQL query","- DCQL query requirements
+- Bound SD-JWT credential
+- Holder key binding proof","Wallet derives compliant presentation and submits via OID4VP v2; Verifier validates against DCQL requirements; verification state is SUCCESS"

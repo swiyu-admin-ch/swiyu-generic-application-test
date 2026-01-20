@@ -1,0 +1,9 @@
+Action,Data,Expected Result
+"Business Issuer creates a status list with very limited capacity; Wallet enables encryption preference","- Status list with length 2 (very small)
+- Bit length 2
+- Wallet encryption preference: true","Status list created with capacity only for 2 credentials"
+"Business Issuer attempts to create credential offer and Wallet collects it in batch mode (3 credentials needed)","- Credential type: university_example_sd_jwt
+- Batch collection attempting to get 3 credentials
+- Status list capacity: only 2 remaining indexes","Issuer/Wallet interaction fails with HTTP 400 Bad Request"
+"Verify error response indicates insufficient status list capacity","- Error response body
+- HTTP 400 status code","Error message contains: 'Too few status indexes remain in status list'"

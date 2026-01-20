@@ -1,0 +1,12 @@
+Action,Data,Expected Result
+"Business Issuer creates a deferred credential offer for a bound SD-JWT credential","- Credential type: university_example_sd_jwt
+- Deferred issuance (deferred = true)
+- Credential is bound to holder's key","Issuer returns HTTP 200 with credential offer and transaction_id"
+"Wallet collects transaction ID; Issuer updates status to READY; Wallet fetches bound credential; Verifier creates verification request","- Transaction ID from offer
+- Management ID
+- Status update: READY
+- Verification request deeplink","Wallet successfully retrieves bound SD-JWT with holder key binding"
+"Wallet constructs selective disclosure presentation using bound credential and submits to verifier","- DCQL/disclosure requirements
+- Bound SD-JWT credential with holder binding
+- Verification request","Verifier validates presentation; verification state is SUCCESS; holder binding and all required claims verified"
+

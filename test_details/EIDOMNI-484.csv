@@ -1,0 +1,12 @@
+Action,Data,Expected Result
+"Business Issuer creates credential offer; Wallet collects offer and requests token using DPoP proof","- Credential offer deeplink
+- DPoP proof (JWT with thumbprint)
+- Pre-authorized code
+- Token endpoint","Issuer returns HTTP 200 with access token and nonce; DPoP binding confirmed"
+"Wallet requests token refresh using new DPoP proof and nonce; Obtains new access token","- Refresh token
+- New DPoP proof with updated thumbprint
+- New nonce
+- Token endpoint","Issuer returns HTTP 200 with new access token and updated nonce"
+"Wallet requests credential using refreshed access token and new DPoP proof","- Refreshed access token
+- New DPoP proof with matching thumbprint
+- Credential request with DPoP binding","Issuer returns HTTP 200 with credential using refreshed token"

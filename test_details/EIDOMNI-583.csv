@@ -1,0 +1,12 @@
+Action,Data,Expected Result
+"Business Issuer attempts to create a status list without valid JWT authentication in strict mode","- Issuer in strict mode (authentication required)
+- No valid signed JWT provided
+- Status list creation request","Issuer returns HTTP 401 Unauthorized"
+"Verify error response contains authentication failure details","- HTTP 401 response body
+- Error and path fields
+- Endpoint: /management/api/status-list","Response contains: error='Unauthorized', path='/management/api/status-list'"
+"Business Issuer attempts to create credential with unauthenticated JWT key","- Unauthenticated JWT key
+- Credential type: university_example_sd_jwt
+- Request to /management/api/credentials","Issuer returns HTTP 401 Unauthorized"
+"Verify credential creation error response","- HTTP 401 response body
+- Endpoint: /management/api/credentials","Response contains: error='Unauthorized', path='/management/api/credentials'"

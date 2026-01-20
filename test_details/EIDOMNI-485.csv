@@ -1,0 +1,7 @@
+Action,Data,Expected Result
+"Business Issuer creates credential offer; Wallet collects offer and requests token using DPoP proof; Wallet receives nonce","- Credential offer deeplink
+- DPoP proof with thumbprint
+- Token endpoint returning nonce","Wallet successfully obtains access token and nonce"
+"Wallet requests credential using DPoP proof with the same nonce (replay attempt)","- Access token
+- Same DPoP proof with replayed nonce
+- Credential endpoint","Issuer returns HTTP 400; nonce reuse is detected and rejected"

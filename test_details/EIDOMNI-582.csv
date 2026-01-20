@@ -1,0 +1,9 @@
+Action,Data,Expected Result
+"Business Issuer creates a status list using a valid signed JWT with JWT key signature","- Signed JWT body with valid key
+- JWT key: 'test-key-1'
+- Status list length: 10000, bit length: 2","Issuer returns HTTP 200; StatusList object with valid statusRegistryUrl is created"
+"Business Issuer creates a credential offer using signed JWT with same valid key","- Signed JWT body with valid key
+- JWT key: 'test-key-1'
+- Credential type: university_example_sd_jwt","Issuer returns HTTP 200 with CredentialWithDeeplinkResponse"
+"Business Issuer retrieves credential status by management ID","- Management ID from credential offer
+- GET request to issuer management API","Issuer returns HTTP 200 with CredentialInfoResponse; status is OFFERED"

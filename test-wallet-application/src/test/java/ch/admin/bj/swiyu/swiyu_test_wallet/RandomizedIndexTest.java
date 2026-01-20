@@ -41,18 +41,9 @@ class RandomizedIndexTest extends BaseTest {
             key = "EIDOMNI-410",
             summary = "Batch issuance with randomized status list index allocation",
             description = """
-                    This test validates that status list index allocation behaves as expected during mixed single and batch SD-JWT 
-                    credential issuance. The test ensures that indexes used for status entries are not sequential even when combining 
-                    individual and batch credential creation through the OID4VCI issuance flow.
-                    
-                    Steps:
-                    1. The issuer creates a status list with a defined maximum length and configuration.
-                    2. The issuer issues one SD-JWT credential and stores its index in the status list.
-                    3. The wallet collects the single credential offer.
-                    4. The issuer performs a batch issuance of SD-JWT credentials (multiple credentials per offer).
-                    5. The wallet collects all batch credentials.
-                    6. The database is queried for all used indexes.
-                    7. The test asserts that the number of credentials matches the expected count and that indexes are not sequential.
+                    This test validates that status list index allocation is randomized during mixed single and batch
+                    SD-JWT credential issuance, ensuring that indexes are not sequential even when combining individual
+                    and batch credential creation through OID4VCI.
                     """
     )
     @Tag("uci_c1")
@@ -90,17 +81,9 @@ class RandomizedIndexTest extends BaseTest {
             key = "EIDOMNI-408",
             summary = "Concurrent batch issuance over a large status list",
             description = """
-                    This test validates the behavior of concurrent SD-JWT credential batch issuance when operating over a large 
-                    status list. It ensures that multiple parallel issuance operations correctly allocate unique indexes without 
-                    collisions or sequential patterns.
-                    
-                    Steps:
-                    1. The issuer creates a large status list configured for token status entries.
-                    2. Multiple concurrent threads are launched, each performing a batch issuance of SD-JWT credentials.
-                    3. Each batch offer is collected by the wallet.
-                    4. After all threads complete, the database is queried for all used indexes.
-                    5. The test asserts that the total number of issued credentials matches the expected total and that indexes are 
-                       non-sequential across batches.
+                    This test validates the behavior of concurrent SD-JWT credential batch issuance over a large status list,
+                    ensuring that multiple parallel issuance operations correctly allocate unique randomized indexes without
+                    collisions or sequential patterns across batches.
                     """
     )
     @Tag("uci_c1")
@@ -146,17 +129,9 @@ class RandomizedIndexTest extends BaseTest {
             key = "EIDOMNI-411",
             summary = "Concurrent batch issuance with to small status list capacity",
             description = """
-                    This test validates the issuer's behavior when handling concurrent batch SD-JWT issuance requests under 
-                    constrained status list capacity. It verifies that issuance succeeds up to available index capacity and that 
-                    excess requests are properly constrained by configuration.
-                    
-                    Steps:
-                    1. The issuer creates a small status list with limited capacity.
-                    2. Multiple concurrent threads are launched, each initiating a batch issuance request for SD-JWT credentials.
-                    3. Each batch offer is collected by the wallet.
-                    4. The system waits for all batch operations to complete.
-                    5. The database is queried to verify that the number of issued credentials matches the expected limit.
-                    6. The test ensures that issuance stops once the list capacity is reached.
+                    This test validates the issuer's behavior when handling concurrent batch SD-JWT issuance requests under
+                    constrained status list capacity, verifying that issuance succeeds up to available capacity and excess
+                    requests are properly constrained.
                     """
     )
     @Tag("uci_c1")

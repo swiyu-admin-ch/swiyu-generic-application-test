@@ -31,8 +31,8 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-457",
             summary = "Business issuer retrieves the current status of a credential offer (non-deferred)",
             description = """
-                    Validate that the Business Issuer can successfully retrieve the current status
-                    of a non-deferred credential offer immediately after creation.
+                    This test validates that the Business Issuer can successfully retrieve the current status of a
+                    non-deferred credential offer immediately after creation through the issuer management API.
                     """
     )
     @Tag("uci_c2")
@@ -55,8 +55,8 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-458",
             summary = "Business issuer retrieves the current status of a deferred credential offer",
             description = """
-                    Validate that the Business Issuer can successfully retrieve the current status
-                    of a deferred credential offer.
+                    This test validates that the Business Issuer can successfully retrieve the current status of a
+                    deferred credential offer through the issuer management API.
                     """
     )
     @Tag("uci_c2")
@@ -79,8 +79,8 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-459",
             summary = "Business issuer cannot retrieve status of non-existent credential",
             description = """
-                    Validate that the Business Issuer receives a 404 error when attempting to retrieve
-                    the status of a credential that does not exist.
+                    This test validates that the Business Issuer receives HTTP 404 when attempting to retrieve
+                    the status of a non-existent credential through the issuer management API.
                     """
     )
     @Tag("uci_c2")
@@ -103,8 +103,9 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-466",
             summary = "Business issuer successfully updates credential status with valid transitions",
             description = """
-                    Validate that the Business Issuer can successfully update a credential's status
-                    through valid state transitions: OFFERED → ISSUED → SUSPENDED → ISSUED.
+                    This test validates that the Business Issuer can successfully update a credential's status
+                    through valid state transitions, confirming that status management operations follow defined
+                    credential lifecycle rules.
                     """
     )
     @Tag("uci_c3")
@@ -132,8 +133,9 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-558",
             summary = "Business issuer cannot perform invalid state transition (REVOKED → ISSUED)",
             description = """
-                    Validate that the Business Issuer receives an error when attempting an invalid
-                    state transition. Revoked credentials cannot be reissued as revocation is permanent.
+                    This test validates that the Business Issuer receives HTTP 400 when attempting invalid
+                    credential state transitions such as transitioning from CANCELLED back to ISSUED,
+                    ensuring that revocation is permanent and lifecycle constraints are enforced.
                     """
     )
     @Tag("uci_c3")
@@ -171,9 +173,9 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-580",
             summary = "Business issuer successfully retrieves the status list resource",
             description = """
-                    Validate that the Business Issuer can successfully fetch the current status list
-                    resource which contains the up-to-date status of all verifiable credentials managed
-                    by the issuer. This is essential for monitoring and auditing credential validity.
+                    This test validates that the Business Issuer can successfully fetch the current status list resource
+                    which contains the up-to-date status of all managed credentials, essential for credential management
+                    and audit purposes.
                     """
     )
     @Tag("uci_s2")
@@ -192,8 +194,8 @@ class IssuerManagementTest extends BaseTest {
             key = "EIDOMNI-581",
             summary = "Business issuer cannot retrieve non-existent status list",
             description = """
-                    Validate that the Business Issuer receives an appropriate error when attempting
-                    to retrieve a status list that does not exist.
+                    This test validates that the Business Issuer receives HTTP 404 when attempting to retrieve
+                    a non-existent status list, ensuring proper error handling for missing resources.
                     """
     )
     @Tag("uci_s2")
