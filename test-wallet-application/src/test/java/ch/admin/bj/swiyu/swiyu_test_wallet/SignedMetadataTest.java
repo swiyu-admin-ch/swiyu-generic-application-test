@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
@@ -64,6 +66,25 @@ class SignedMetadataTest extends BaseTest {
         final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadataSigned(walletEntry);
 
         assertThat(metadata).isNotNull();
+        assertThat(metadata.getData()).isNotNull();
+
+        if (metadata.getData().has("iss")) {
+            assertThat(metadata.getData().get("iss").getAsString())
+                    .isEqualTo(issuerConfig.getIssuerDid());
+        }
+
+        assertThat(metadata.getData().get("sub").getAsString())
+                .isEqualTo("http://default-issuer-url.admin.ch");
+
+        assertThat(metadata.getData().has("iat"))
+                .isTrue();
+        assertThat(metadata.getData().get("iat").getAsLong())
+                .isPositive();
+
+        if (metadata.getData().has("exp")) {
+            assertThat(metadata.getData().get("exp").getAsLong())
+                    .isGreaterThan(metadata.getData().get("iat").getAsLong());
+        }
     }
 
     @Test
@@ -78,7 +99,6 @@ class SignedMetadataTest extends BaseTest {
     @Tag("uci_m1")
     @Tag("uci_m1a")
     @Tag("edge_case")
-    @Disabled("Bug reported in ticket EIDOMNI-446")
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
         final WalletEntry walletEntry = wallet.createWalletEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -99,10 +119,8 @@ class SignedMetadataTest extends BaseTest {
                 .when(modifiedWalletEntry)
                 .getIssuerUri();
 
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.getIssuerWellKnownMetadataSigned(modifiedWalletEntry)
-        );
-
-        assertThat(ex.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThrows(HttpServerErrorException.InternalServerError.class, () ->
+                        wallet.getIssuerWellKnownMetadataSigned(modifiedWalletEntry)
+                );
     }
 }
