@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -58,6 +59,8 @@ class SignedMetadataTest extends BaseTest {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
+        final SwiyuDeeplink swiyuDeeplink = new SwiyuDeeplink(deeplink);
+
         walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
 
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
@@ -75,6 +78,9 @@ class SignedMetadataTest extends BaseTest {
 
         assertThat(metadata.getData().get("sub").getAsString())
                 .isEqualTo("http://default-issuer-url.admin.ch");
+
+        assertThat(metadata.getData().get("sub").getAsString())
+                .isEqualTo(swiyuDeeplink.getCredentialIssuer());
 
         assertThat(metadata.getData().has("iat"))
                 .isTrue();
