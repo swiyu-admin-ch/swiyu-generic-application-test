@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
@@ -77,7 +78,7 @@ class SignedMetadataTest extends BaseTest {
         }
 
         assertThat(metadata.getData().get("sub").getAsString())
-                .isEqualTo("http://default-issuer-url.admin.ch");
+                .isEqualTo(TestConstants.ISSUER_URL);
 
         assertThat(metadata.getData().get("sub").getAsString())
                 .isEqualTo(swiyuDeeplink.getCredentialIssuer());

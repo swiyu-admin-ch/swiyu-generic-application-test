@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -34,7 +35,7 @@ public class IssuerContainerConfig {
                 .withEnv("TOKEN_TTL", "600")
                 .withEnv("OPENID_CONFIG_FILE", "classpath:example_openid.json")
                 .withEnv("METADATA_CONFIG_FILE", "file:///tmp/metadata.json")
-                .withEnv("EXTERNAL_URL", "http://default-issuer-url.admin.ch")
+                .withEnv("EXTERNAL_URL", TestConstants.ISSUER_URL)
                 .withEnv("DID_SDJWT_VERIFICATION_METHOD", config.getIssuerAssertKeyId())
                 .withEnv("OFFER_VALIDITY_SECONDS", "2592000")
                 .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
