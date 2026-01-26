@@ -337,4 +337,106 @@ class PayloadEncryptionTest extends BaseTest {
             assertThat(sdjwt.isClaimValid(type)).isTrue();
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(SwiyuApiVersionConfig.class)
+    @XrayTest(
+            key = "EIDOMNI-628",
+            summary = "Deferred credential request rejected when encryption is required but wallet sends unencrypted",
+            description = """
+                    This test validates that a wallet cannot retrieve a deferred credential using an unencrypted request
+                    when the strict issuer profile requires encryption.
+                    """
+    )
+    @Tag("uci_i1")
+    @Tag("edge_case")
+    void deferredCredentialRequestUnencrypted_strictIssuerRequired_thenRejected(final SwiyuApiVersionConfig apiVersion) {
+        log.info("Creating deferred credential offer from strict issuer requiring encryption - API version: {}", apiVersion.name());
+        final CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
+
+        log.info("Wallet collecting transaction ID from deferred offer");
+        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(toUri(response.getOfferDeeplink()));
+        AssertionsForClassTypes.assertThat(entry.getCredentialOffer()).isNotNull();
+
+        final Map<String, Object> credentialStatus = Map.ofEntries(
+                MapEntry.entry("average_grade", 4.00),
+                MapEntry.entry("name", "Data Science"),
+                MapEntry.entry("type", "Bachelor of Science")
+        );
+
+        log.info("Issuer updating credential status for deferred issuance");
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+        issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
+
+        log.info("Mocking wallet to force unencrypted request despite strict issuer requirement");
+        final WalletEntry spiedEntry = Mockito.spy(entry);
+        Mockito.doReturn(false).when(spiedEntry).isEncryptionEnabled();
+
+        log.info("Attempting to retrieve deferred credential with unencrypted request");
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
+                wallet.getCredentialFromTransactionId(apiVersion, spiedEntry)
+        );
+
+        log.info("Issuer correctly rejected unencrypted request: {}", ex.getStatusCode());
+        assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        assertThat(ex.getResponseBodyAsString())
+                .contains("encryption", "required", "missing");
+    }
+
+    @ParameterizedTest
+    @EnumSource(SwiyuApiVersionConfig.class)
+    @XrayTest(
+            key = "EIDOMNI-629",
+            summary = "Deferred credential with encryption key mismatch between credential request and deferred call",
+            description = """
+                    This test validates that deferred credentials are correctly encrypted with the ephemeral key
+                    used at the time of the deferred credential request, even if different from the initial credential request key.
+                    """
+    )
+    @Tag("uci_i1")
+    @Tag("edge_case")
+    void deferredCredentialEncryptionKeyMismatch_thenRetrieveWithCurrentKey(final SwiyuApiVersionConfig apiVersion) {
+        final CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
+
+        log.info("Wallet collecting transaction ID from deferred offer");
+        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(toUri(response.getOfferDeeplink()));
+        AssertionsForClassTypes.assertThat(entry.getCredentialOffer()).isNotNull();
+
+        final Map<String, Object> credentialStatus = Map.ofEntries(
+                MapEntry.entry("average_grade", 3.50),
+                MapEntry.entry("name", "Data Science"),
+                MapEntry.entry("type", "Bachelor of Science")
+        );
+
+        log.info("Issuer updating credential status for deferred issuance with initial encryption key");
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+        issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
+
+        final ECKey originalKey = entry.getEphemeralEncryptionKey();
+        entry.generateEphemeralEncryptionKey();
+        final ECKey newKey = entry.getEphemeralEncryptionKey();
+
+        assertThat(newKey).as("New ephemeral key should be different from original key").isNotEqualTo(originalKey);
+
+        log.info("Wallet retrieving deferred credential with modified encryption key");
+        var result = wallet.getCredentialFromTransactionId(apiVersion, entry);
+
+
+        final List<String> credentials = new ArrayList<>();
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            result.getAsJsonArray("credentials").forEach(c ->
+                credentials.add(c.getAsJsonObject().get("credential").getAsString())
+            );
+        } else {
+            credentials.add(result.get("credential").getAsString());
+        }
+
+        for (final String credential : credentials) {
+            final SdJwtDebugMetadata sdjwt = new SdJwtDebugMetadata(credential);
+
+            assertThat(sdjwt.isClaimValid(MapEntry.entry("average_grade", 4.00))).isTrue();
+            assertThat(sdjwt.isClaimValid(MapEntry.entry("name", "Data Science"))).isTrue();
+            assertThat(sdjwt.isClaimValid(MapEntry.entry("type", "Bachelor of Science"))).isTrue();
+        }
+    }
 }
