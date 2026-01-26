@@ -42,6 +42,10 @@ public class IssuerImageConfig {
         return String.format("swiyu_issuer_%s", getSurname());
     }
 
+    public String getMetadataFile() {
+        return String.format("issuer/metadata-%s.json", getSurname());
+    }
+
     public JwtKeyGenerator getJwtKeyGenerator() {
         if (enableJwtAuth && jwtKeyGenerator == null) {
             jwtKeyGenerator = new JwtKeyGenerator("test-key-1");

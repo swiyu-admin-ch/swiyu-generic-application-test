@@ -2,9 +2,10 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtDebugMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.nimbusds.jose.JOSEException;
@@ -13,6 +14,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.AssertionsForClassTypes;
+import org.assertj.core.data.MapEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,10 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -275,5 +281,60 @@ class PayloadEncryptionTest extends BaseTest {
         assertThat(entry.getIssuerMetadata()).isNotNull();
         assertThat(entry.getCredentialConfigurationSupported()).isNotNull();
         assertThat(entry.getProofs()).hasSize(entry.getProofs().size());
+    }
+
+    @ParameterizedTest
+    @EnumSource(SwiyuApiVersionConfig.class)
+    @XrayTest(
+            key = "EIDOMNI-620",
+            summary = "Successful deferred issuance and verification of a bound SD-JWT credential",
+            description = """
+                    This test validates the end-to-end deferred issuance flow for a bound SD-JWT credential
+                    with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
+                    and successfully constructs a presentation that satisfies the verifier's requirements.
+                    The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
+                    retrieved and their disclosures are properly validated.
+                    """
+    )
+    @Tag("uci_i1")
+    @Tag("happy_path")
+    void deferredSdJwtBoundCredential_withEncryptedPayload_thenSuccess(final SwiyuApiVersionConfig apiVersion) {
+        final MapEntry<String, Object> averageGrade = MapEntry.entry("average_grade", 4.00);
+        final MapEntry<String, Object> name = MapEntry.entry("name", "Data Science");
+        final MapEntry<String, Object> type = MapEntry.entry("type", "Bachelor of Science");
+
+        log.info("Issuer creating deferred credential offer for API version: {}", apiVersion.name());
+        final CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("university_example_sd_jwt");
+
+        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(toUri(response.getOfferDeeplink()));
+        AssertionsForClassTypes.assertThat(entry.getCredentialOffer()).isNotNull();
+
+        final Map<String, Object> credentialStatus = Map.ofEntries(averageGrade, name, type);
+
+        log.info("Business issuer updating credential status for deferred issuance");
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+        issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
+
+        log.info("Wallet retrieving deferred credential using transaction ID");
+        var result = wallet.getCredentialFromTransactionId(apiVersion, entry);
+
+        // Prepare list of credentials based on API version
+        final List<String> credentials = new ArrayList<>();
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            result.getAsJsonArray("credentials").forEach(c ->
+                credentials.add(c.getAsJsonObject().get("credential").getAsString())
+            );
+        } else {
+            credentials.add(result.get("credential").getAsString());
+        }
+
+        log.info("Verifying {} credential(s) and their disclosures", credentials.size());
+        for (final String credential : credentials) {
+            final SdJwtDebugMetadata sdjwt = new SdJwtDebugMetadata(credential);
+
+            assertThat(sdjwt.isClaimValid(averageGrade)).isTrue();
+            assertThat(sdjwt.isClaimValid(name)).isTrue();
+            assertThat(sdjwt.isClaimValid(type)).isTrue();
+        }
     }
 }
