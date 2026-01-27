@@ -18,6 +18,7 @@ public class IssuerImageConfig {
 
     private String surname = "default";
     private boolean enforceDpop = false;
+    private boolean signedMetadata = false;
     private boolean enableJwtAuth = false;
 
     private JwtKeyGenerator jwtKeyGenerator;

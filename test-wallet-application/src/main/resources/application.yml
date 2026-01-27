@@ -8,6 +8,7 @@ application:
   issuer:
     base-image: "${ISSUER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
     image-tag: "${ISSUER_IMAGE_TAG:dev}"
+    signed-metadata: true
   verifier:
     base-image: "${VERIFIER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
     image-tag: "${VERIFIER_IMAGE_TAG:dev}"

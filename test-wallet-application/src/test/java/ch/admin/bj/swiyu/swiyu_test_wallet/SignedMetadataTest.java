@@ -2,38 +2,20 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.net.URI;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -41,6 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class SignedMetadataTest extends BaseTest {
+
+    @BeforeEach
+    void beforeEach() {
+        wallet.setSignedMetadataPreferred(true);
+    }
 
     @Test
     @XrayTest(
@@ -67,7 +54,7 @@ class SignedMetadataTest extends BaseTest {
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
         walletEntry.setToken(wallet.collectToken(walletEntry));
 
-        final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadataSigned(walletEntry);
+        final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
 
         assertThat(metadata).isNotNull();
         assertThat(metadata.getData()).isNotNull();
@@ -108,6 +95,10 @@ class SignedMetadataTest extends BaseTest {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
+        var offerDeeplink = new SwiyuDeeplink(deeplink);
+
+        Assertions.assertTrue(offerDeeplink.hasTenantId());
+
         walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
 
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
@@ -124,7 +115,7 @@ class SignedMetadataTest extends BaseTest {
                 .getIssuerUri();
 
         assertThrows(HttpServerErrorException.InternalServerError.class, () ->
-                        wallet.getIssuerWellKnownMetadataSigned(modifiedWalletEntry)
-                );
+                wallet.getIssuerWellKnownMetadata(modifiedWalletEntry)
+        );
     }
 }
