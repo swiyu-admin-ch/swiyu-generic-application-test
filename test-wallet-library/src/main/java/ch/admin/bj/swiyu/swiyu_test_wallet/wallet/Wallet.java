@@ -239,7 +239,14 @@ public class Wallet {
         return issued;
     }
 
-    private JsonObject postDeferredCredentialRequest(WalletEntry walletEntry) {
+    private JsonObject postDeferredCredentialRequest(final SwiyuApiVersionConfig apiVersion, final WalletEntry walletEntry) {
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            return postDeferredCredentialRequestV1((WalletBatchEntry) walletEntry);
+        }
+        return postDeferredCredentialRequestID2(walletEntry);
+    }
+
+    private JsonObject postDeferredCredentialRequestID2(final WalletEntry walletEntry) {
         if (walletEntry.getTransactionId() == null) {
             throw new IllegalStateException("Transaction ID is not set in wallet entry.");
         }
@@ -255,27 +262,107 @@ public class Wallet {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+
+        // Encrypt the payload if encryption is preferred
+        final String finalPayload = encryptionPreferred
+                ? encryptCredentialRequest(walletEntry, requestPayload)
+                : requestPayload;
+
         String bearerToken = token.getAccessToken();
 
         ResponseEntity<String> response = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, encryptionPreferred ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .body(requestPayload)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue())
+                .body(finalPayload)
                 .retrieve()
-                .toEntity(String.class); // Use toEntity for status + body
+                .toEntity(String.class);
 
         int responseStatusCode = response.getStatusCode().value();
         String bodyAsString = response.getBody();
 
         assertThat(responseStatusCode)
-                .withFailMessage("POST issuer credential request failed: url [%s], response code [%d] and response body [%s], request body: [%s]"
+                .withFailMessage("POST issuer deferred credential request failed: url [%s], response code [%d] and response body [%s], request body: [%s]"
                         .formatted(deferredCredentialUri, responseStatusCode, bodyAsString, requestPayload))
                 .isIn(List.of(200, 202));
 
         var credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
 
-        walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
+        if (credentialResponse.has("credential")) {
+            walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
+        }
+
+        return credentialResponse;
+    }
+
+    private JsonObject postDeferredCredentialRequestV1(final WalletBatchEntry walletEntry) {
+        if (walletEntry.getTransactionId() == null) {
+            throw new IllegalStateException("Transaction ID is not set in wallet entry.");
+        }
+
+        final boolean encryptionEnabled = walletEntry.isEncryptionEnabled();
+        var deferredCredentialUri = walletEntry.getIssuerDeferredCredentialUri();
+        var token = walletEntry.getToken();
+        var request = new DeferredCredentialEndpointRequest();
+        request.setTransactionId(walletEntry.getTransactionId());
+
+        String requestPayload;
+        try {
+            requestPayload = new ObjectMapper().writeValueAsString(request);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        final String finalPayload = encryptionEnabled
+                ? encryptCredentialRequest(walletEntry, requestPayload)
+                : requestPayload;
+
+        String bearerToken = token.getAccessToken();
+
+        String doPProofForCredentialRequest = null;
+        if (token.getTokenType() != null && token.getTokenType().equals("DPoP")) {
+            doPProofForCredentialRequest = createDoPProofForCredentialRequest(walletEntry, deferredCredentialUri);
+        }
+
+        var requestBuilder = restClient.post()
+                .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, encryptionEnabled ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+
+        if (doPProofForCredentialRequest != null) {
+            requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
+        }
+
+        final ResponseEntity<String> response = requestBuilder
+                .body(finalPayload)
+                .retrieve()
+                .toEntity(String.class);
+
+        int responseCode = response.getStatusCode().value();
+        String responseBody = response.getBody();
+        assertThat(responseCode)
+                .withFailMessage("POST issuer deferred credential request failed: url [%s], code [%d], body [%s], encryption=%s"
+                        .formatted(deferredCredentialUri, responseCode, responseBody, encryptionEnabled))
+                .isIn(List.of(200, 202));
+
+        if (encryptionEnabled) {
+            try {
+                JWESupport.assertIsJWE(responseBody);
+                responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+            } catch (Exception e) {
+                throw new RuntimeException("Error decrypting deferred credential response", e);
+            }
+        }
+
+        final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+
+        final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
+        credentials.forEach(c -> {
+            final String credential = c.getAsJsonObject().get("credential").getAsString();
+            walletEntry.addIssuedCredential(credential);
+        });
 
         return credentialResponse;
     }
@@ -321,8 +408,12 @@ public class Wallet {
         }
     }
 
+    public JsonObject getCredentialFromTransactionId(final SwiyuApiVersionConfig apiVersion, WalletEntry walletEntry) {
+        return postDeferredCredentialRequest(apiVersion, walletEntry);
+    }
+
     public JsonObject getCredentialFromTransactionId(WalletEntry walletEntry) {
-        return postDeferredCredentialRequest(walletEntry);
+        return postDeferredCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
     }
 
     public VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
