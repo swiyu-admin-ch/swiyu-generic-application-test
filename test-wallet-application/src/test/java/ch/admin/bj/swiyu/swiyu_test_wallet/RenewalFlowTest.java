@@ -13,7 +13,10 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -649,7 +652,6 @@ class RenewalFlowTest extends BaseTest {
     }
 
     private void performRefresh(WalletBatchEntry entry) {
-
         String nonce = wallet.getCNonce(entry);
         String dpop = DPoPSupport.createDpopProofForToken(
                 entry.getIssuerTokenUri().toString(),

@@ -39,7 +39,6 @@ import java.util.*;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 @Getter
 @Setter
 public class Wallet {
@@ -52,6 +51,7 @@ public class Wallet {
     private final ServiceLocationContext verifierContext;
 
     private boolean encryptionPreferred = false;
+    private boolean signedMetadataPreferred = false;
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext) {
         this.restClient = restClient;
@@ -117,53 +117,64 @@ public class Wallet {
     }
 
     public OpenIdConfiguration getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
-        URI credentialIssuerURI = issuerContext.getContextualizedUri(walletEntry.getCredentialOffer().getCredentialIssuerUri());
-        URI target = credentialIssuerURI.resolve("oid4vci/.well-known/openid-configuration");
+        final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
+        final URI issuerOpenIdConfiguration = UriComponentsBuilder
+                .fromUri(issuerUri)
+                .pathSegment(".well-known", "openid-configuration")
+                .build()
+                .toUri();
+
+        if (this.isSignedMetadataPreferred()) {
+            final String jwt = restClient.get()
+                    .uri(issuerOpenIdConfiguration)
+                    .header(HttpHeaders.ACCEPT, "application/jwt")
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .retrieve()
+                    .body(String.class);
+
+            final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            return objectMapper.convertValue(payload, OpenIdConfiguration.class);
+        }
 
         return restClient.get()
-                .uri(target)
+                .uri(issuerOpenIdConfiguration)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
                 .body(OpenIdConfiguration.class);
     }
 
     public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
-        var issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
-        var issuerMetadataUri = issuerUri.resolve("oid4vci/.well-known/openid-credential-issuer");
+        final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
+        final URI issuerOpenIdCredentialIssuer = UriComponentsBuilder
+                .fromUri(issuerUri)
+                .pathSegment(".well-known", "openid-credential-issuer")
+                .build()
+                .toUri();
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> rawMetadata = restClient.get()
-                .uri(issuerMetadataUri)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        if (this.isSignedMetadataPreferred()) {
+            final String jwt = restClient.get()
+                    .uri(issuerOpenIdCredentialIssuer)
+                    .header(HttpHeaders.ACCEPT, "application/jwt")
+                    .retrieve()
+                    .body(String.class);
+
+            final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
+            final JsonObject metadata = new Gson().fromJson(payload.toString(), JsonObject.class);
+
+            return new IssuerMetadata(metadata);
+        }
+
+        final Map rawMetadata = restClient.get()
+                .uri(issuerOpenIdCredentialIssuer)
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
                 .body(Map.class);
 
         JsonObject metadata = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
-
-        return new IssuerMetadata(metadata);
-    }
-
-    public IssuerMetadata getIssuerWellKnownMetadataSigned(WalletEntry walletEntry) {
-        final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
-        final URI issuerMetadataUri = UriComponentsBuilder
-                .fromUri(issuerUri)
-                .pathSegment(".well-known", "openid-configuration")
-                .build()
-                .toUri();
-
-        final String jwt = restClient.get()
-                .uri(issuerMetadataUri)
-                .header(HttpHeaders.ACCEPT, "application/jwt")
-                .retrieve()
-                .body(String.class);
-
-        assertThat(jwt).isNotBlank();
-        assertThat(JwtSupport.isCompactJwt(jwt))
-                .withFailMessage("Expected a compact JWS format (header.payload.signature), but got: %s", jwt)
-                .isTrue();
-
-        final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
-        final JsonObject metadata = new Gson().fromJson(payload.toString(), JsonObject.class);
 
         return new IssuerMetadata(metadata);
     }

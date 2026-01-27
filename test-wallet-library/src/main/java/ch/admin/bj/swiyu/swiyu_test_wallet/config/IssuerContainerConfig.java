@@ -15,7 +15,6 @@ import org.testcontainers.utility.MountableFile;
 import java.net.URI;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass
@@ -51,7 +50,6 @@ public class IssuerContainerConfig {
                 .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                 .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                 .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
-                .withEnv("ENABLE_SIGNED_METADATA", "true")
                 .withEnv("RENEWAL_FLOW_ENABLED", "true")
                 .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
                 .withEnv("APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA", "classpath:example_oca.json")
@@ -65,6 +63,7 @@ public class IssuerContainerConfig {
                         ISSUER_CALLBACK_PATH).toString())
                 .withEnv("WEBHOOK_INTERVAL", "100")
                 .withEnv("APPLICATION_DPOP_ENFORCE", String.valueOf(issuerImageConfig.isEnforceDpop()))
+                .withEnv("ENABLE_SIGNED_METADATA", String.valueOf(issuerImageConfig.isSignedMetadata()))
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                 .withNetwork(network)
                 .withNetworkAliases(issuerImageConfig.getNetworkAlias())
