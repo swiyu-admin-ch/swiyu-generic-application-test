@@ -122,10 +122,13 @@ public class WalletEntry {
         if (token == null) {
             throw new IllegalStateException("token not set.");
         }
+        if (getIssuerMetadata() == null) {
+            throw new IllegalStateException("issuerMetadata not set.");
+        }
 
         String cNonce = token.getcNonce();
-        String credentialIssuerURI = credentialOffer.getCredentialBaseIssuerUriAsString();
-        return new JwtProof(credentialIssuerURI, cNonce, proofPublicJwk, keyPair);
+        String audience = getIssuerMetadata().getIssuerURI();
+        return new JwtProof(audience, cNonce, proofPublicJwk, keyPair);
     }
 
     private static String hashSdJwt(String credentialsSdJwt) {

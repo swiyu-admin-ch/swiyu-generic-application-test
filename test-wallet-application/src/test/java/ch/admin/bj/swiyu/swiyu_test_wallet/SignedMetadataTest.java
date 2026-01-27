@@ -78,9 +78,6 @@ class SignedMetadataTest extends BaseTest {
         }
 
         assertThat(metadata.getData().get("sub").getAsString())
-                .isEqualTo(TestConstants.ISSUER_URL);
-
-        assertThat(metadata.getData().get("sub").getAsString())
                 .isEqualTo(swiyuDeeplink.getCredentialIssuer());
 
         assertThat(metadata.getData().has("iat"))

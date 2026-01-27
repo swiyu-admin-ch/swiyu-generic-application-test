@@ -118,7 +118,7 @@ public class Wallet {
 
     public OpenIdConfiguration getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
         URI credentialIssuerURI = issuerContext.getContextualizedUri(walletEntry.getCredentialOffer().getCredentialIssuerUri());
-        URI target = credentialIssuerURI.resolve("oid4vci/.well-known/openid-configuration");
+        URI target = URI.create(credentialIssuerURI +"/.well-known/openid-configuration");
 
         return restClient.get()
                 .uri(target)
@@ -127,11 +127,10 @@ public class Wallet {
                 .body(OpenIdConfiguration.class);
     }
 
-    public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
+    public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry)  {
         var issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
-        var issuerMetadataUri = issuerUri.resolve("oid4vci/.well-known/openid-credential-issuer");
+        var issuerMetadataUri = URI.create(issuerUri + "/.well-known/openid-credential-issuer");
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> rawMetadata = restClient.get()
                 .uri(issuerMetadataUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)

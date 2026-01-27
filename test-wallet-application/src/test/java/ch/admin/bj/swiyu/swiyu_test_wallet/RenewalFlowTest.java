@@ -652,7 +652,7 @@ class RenewalFlowTest extends BaseTest {
 
         String nonce = wallet.getCNonce(entry);
         String dpop = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerTokenUri().toString(),
+                entry.getIssuerMetadata().getIssuerURI(),
                 nonce,
                 dpopKeyPair,
                 dpopPublicKey,
@@ -668,7 +668,7 @@ class RenewalFlowTest extends BaseTest {
 
         nonce = wallet.getDpopNonce(entry);
         dpop = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(),
+                entry.getIssuerMetadata().getIssuerURI(),
                 nonce,
                 dpopKeyPair,
                 dpopPublicKey,
