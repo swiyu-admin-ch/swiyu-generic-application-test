@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class IssuerTest extends BaseTest {
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
-        assertThat(metadata.getIssuerURI()).startsWith("http://default-issuer-url.admin.ch");
+        assertThat(metadata.getIssuerURI()).startsWith(TestConstants.ISSUER_URL);
         assertThat(metadata.getDisplay()).isNotNull();
         assertThat(metadata.getSupportedCredentialConfigurations()).isNotNull();
         assertThat(metadata.getSupportedCredentialConfigurations().get("university_example_sd_jwt")).isNotNull();
@@ -93,7 +94,7 @@ class IssuerTest extends BaseTest {
         var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
 
         assertThat(openIdConfig.getIssuer()).isNotNull();
-        assertThat(openIdConfig.getIssuer()).startsWith("http://default-issuer-url.admin.ch");
+        assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
     }
@@ -114,7 +115,7 @@ class IssuerTest extends BaseTest {
         OpenIdConfiguration openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
 
         assertThat(openIdConfig.getIssuer()).isNotNull();
-        assertThat(openIdConfig.getIssuer()).startsWith("http://default-issuer-url.admin.ch");
+        assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
     }
