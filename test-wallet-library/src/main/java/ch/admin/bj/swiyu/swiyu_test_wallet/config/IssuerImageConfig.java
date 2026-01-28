@@ -20,6 +20,7 @@ public class IssuerImageConfig {
     private boolean enforceDpop = false;
     private boolean signedMetadata = false;
     private boolean enableJwtAuth = false;
+    private boolean encryptionEnforce = false;
 
     private JwtKeyGenerator jwtKeyGenerator;
 
