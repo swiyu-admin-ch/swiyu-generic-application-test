@@ -147,7 +147,8 @@ public class VerifierManager {
         }
 
         public ManagementResponse createManagementResponse() {
-            return managementApi.createVerification(request);
+            managementResponse = managementApi.createVerification(request);
+            return managementResponse;
         }
 
         public String create() {
@@ -166,17 +167,25 @@ public class VerifierManager {
         return (Map<String, Object>) actuatorApi.health();
     }
 
-    public ManagementResponse verifyState(final VerificationStatus status) {
+    public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status) {
 
-        managementResponse = managementApi.getVerification(managementResponse.getId());
+        managementResponse = managementApi.getVerification(verificationId);
 
         assertThat(managementResponse.getState()).isEqualTo(status);
 
         return managementResponse;
     }
 
+    public ManagementResponse verifyState(final VerificationStatus status) {
+        return verifyState(managementResponse.getId(), status);
+    }
+
     public ManagementResponse getVerificationById(UUID id) {
         return managementApi.getVerification(id);
+    }
+
+    public ManagementResponse verifyState(final UUID verificationId) {
+        return verifyState(verificationId, VerificationStatus.SUCCESS);
     }
 
     public ManagementResponse verifyState() {

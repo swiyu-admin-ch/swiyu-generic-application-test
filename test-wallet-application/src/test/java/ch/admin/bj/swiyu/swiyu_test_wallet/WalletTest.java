@@ -5,9 +5,14 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
+import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.CredentialOffer;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuance_deeplink.IssuanceDeeplinkAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_deeplink.VerificationDeeplinkAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -30,26 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-/**
- * Integration tests for {@link Wallet} exercising end-to-end SD-JWT credential issuance (immediate & deferred),
- * selective disclosure presentation creation for bound credentials, and verification flows (standard & DCQL-based)
- * against containerized issuer and verifier services.
- *
- * Happy-path scenarios:
- * <ul>
- *   <li><b>unboundNotDeferredCredential_thenSuccess</b>: Immediate issuance & verification of an unbound credential.</li>
- *   <li><b>unboundDeferredCredential_thenSuccess</b>: Deferred issuance (transaction id) of an unbound credential.</li>
- *   <li><b>createBoundCredential_thenSuccess</b>: Immediate issuance of a bound credential with selective disclosure presentation.</li>
- *   <li><b>createDeferredBoundCredential_thenSuccess</b>: Deferred issuance of a bound credential.</li>
- *   <li><b>verifiyDCQLReuqest_thenSuccess</b>: DCQL-based verification using V2 response API (method name typos preserved).</li>
- * </ul>
- * Notes:
- * <ul>
- *   <li>A large status list (size 100000, bit length 2) is created once for revocation/status embedding.</li>
- *   <li>Bound credentials require constructing a derived presentation; unbound credentials can be sent as-is.</li>
- *   <li>Method name typos are retained to avoid breaking historical reports or tooling references.</li>
- * </ul>
- */
 class WalletTest extends BaseTest {
 
     @BeforeEach
@@ -72,20 +57,38 @@ class WalletTest extends BaseTest {
     @Tag("ucv_o2")
     @Tag("happy_path")
     void unboundNotDeferredCredential_thenSuccess() {
-        CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        // Given
+        final Map<String, Object> subjectClaims = CredentialOffer.defaultSubjectData();
+        final String supportedMetadataId = "unbound_example_sd_jwt";
 
-        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
+        // When
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
+                subjectClaims);
+        // Then
+        IssuanceDeeplinkAssert.assertThat(offer.getOfferDeeplink())
+                .isWellFormed()
+                .containsCredentialConfigurationId(supportedMetadataId);
 
-        var deeplink = verifierManager.verificationRequest()
+        // When
+        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(offer.getOfferDeeplink()));
+        // Then
+        SdJwtAssert.assertThat(entry.getIssuerSdJwt())
+                        .hasExactlyInAnyOrderDisclosures(subjectClaims);
+
+        // When
+        final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(entry.getIssuerDid())
-                .create();
+                .createManagementResponse();
+        // Then
+        VerificationDeeplinkAssert.assertThat(verification.getVerificationDeeplink())
+                .isWellFormed();
 
-        RequestObject verificationRequest = wallet.getVerificationDetailsUnsigned(deeplink);
-
+        // When
+        final RequestObject verificationRequest =
+                wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationRequest, entry.getVerifiableCredential());
-
-        verifierManager.verifyState();
+        // Then
+        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
     @Test
@@ -104,24 +107,29 @@ class WalletTest extends BaseTest {
     @Tag("ucv_o2")
     @Tag("happy_path")
     void unboundDeferredCredential_thenSuccess() {
-        CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
+        // Given
+        final Map<String, Object> initialSubjectClaims = CredentialOffer.defaultSubjectData();
+        final Map<String, Object> updatedSubjectClaims = CredentialOffer.defaultSubjectData();
+        updatedSubjectClaims.put("average_grade", 4.0);
+        final Map<String, Object> lateUpdatedSubjectClaims = CredentialOffer.defaultSubjectData();
+        updatedSubjectClaims.put("average_grade", 6.0);
+        final String supportedMetadataId = "unbound_example_sd_jwt";
+
+        CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt", initialSubjectClaims);
 
         WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(toUri(response.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
 
         CredentialInfoResponse cred = issuerManager.getCredentialById(response.getManagementId());
 
-        Map<String, Object> credentialStatus = new HashMap<>();
-        credentialStatus.put("average_grade", 4.0);
-        credentialStatus.put("name", "Data Science");
-        credentialStatus.put("type", "Bachelor of Science");
-        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), credentialStatus);
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), updatedSubjectClaims);
 
         issuerManager.updateState(response.getManagementId(), UpdateCredentialStatusRequestType.READY);
 
+        // When
         var result = wallet.getCredentialFromTransactionId(entry);
-
-        assertThat(result.get("credential")).isNotNull();
+        // Then
+        SdJwtAssert.assertThat(entry.getIssuerSdJwt())
+                .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
 
         var deepLink = verifierManager.verificationRequest()
                 .acceptedIssuerDid(entry.getIssuerDid())
@@ -133,13 +141,9 @@ class WalletTest extends BaseTest {
 
         issuerManager.verifyStatus(response.getManagementId(), CredentialStatusType.ISSUED);
 
-        Map<String, Object> retryCredentialStatus = new HashMap<>();
-        retryCredentialStatus.put("average_grade", 4.2);
-        retryCredentialStatus.put("name", "Business Administration");
-        retryCredentialStatus.put("type", "Bachelor of Business Administration");
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), retryCredentialStatus)
+                () -> issuerManager.updateCredentialForDeferredFlowRequestCreation(response.getManagementId(), lateUpdatedSubjectClaims)
         );
 
         Assertions.assertThat(errorCode(ex))

@@ -498,9 +498,14 @@ public class Wallet {
         }
     }
 
+    // @TODO Remove duplication with bellow method
     public RequestObject getVerificationDetailsUnsigned(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return ((VerificationRequestObject.Unsigned) request).requestObject();
+    }
+
+    public RequestObject getVerificationDetailsUnsigned(URI verificationDeeplink) {
+        return getVerificationDetailsUnsigned(verificationDeeplink.toString());
     }
 
     public String getVerificationDetailSigned(String verificationDeeplink) {
