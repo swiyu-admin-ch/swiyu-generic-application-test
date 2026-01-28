@@ -94,7 +94,18 @@ public class Wallet {
                 """).toString();
     }
 
+    public WalletEntry collectTransactionIdFromDeferredOffer(final SwiyuApiVersionConfig apiVersion, URI issuerDeepLink) {
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            return collectTransactionIdFromDeferredOfferV1(issuerDeepLink);
+        }
+        return collectTransactionIdFromDeferredOfferID2(issuerDeepLink);
+    }
+
     public WalletEntry collectTransactionIdFromDeferredOffer(URI issuerDeepLink) {
+        return collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.ID2, issuerDeepLink);
+    }
+
+    private WalletEntry collectTransactionIdFromDeferredOfferID2(URI issuerDeepLink) {
         var walletEntry = createWalletEntry();
 
         walletEntry.receiveDeepLinkAndValidateIt(issuerDeepLink);
@@ -114,6 +125,32 @@ public class Wallet {
 
         walletEntry.setTransactionId(UUID.fromString(transactionId));
         return walletEntry;
+    }
+
+    private WalletEntry collectTransactionIdFromDeferredOfferV1(URI issuerDeepLink) {
+        var walletBatchEntry = createWalletBatchEntry();
+
+        walletBatchEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(issuerDeepLink));
+        walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
+        walletBatchEntry.setToken(collectToken(walletBatchEntry));
+        walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
+        walletBatchEntry.setCredentialConfigurationSupported();
+
+        walletBatchEntry.generateHolderKeys();
+        walletBatchEntry.createProofs();
+
+        var deferredCredentialTransactionIdResponse = postCredentialRequest(SwiyuApiVersionConfig.V1, walletBatchEntry);
+
+        assertThat(deferredCredentialTransactionIdResponse)
+                .isNotNull();
+
+        var transactionIdNode = deferredCredentialTransactionIdResponse.get("transaction_id");
+        assertThat(transactionIdNode).isNotNull();
+        var transactionId = transactionIdNode.getAsString();
+        assertThat(transactionId).isNotNull();
+
+        walletBatchEntry.setTransactionId(UUID.fromString(transactionId));
+        return walletBatchEntry;
     }
 
     public OpenIdConfiguration getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
@@ -280,14 +317,23 @@ public class Wallet {
                 .toEntity(String.class);
 
         int responseStatusCode = response.getStatusCode().value();
-        String bodyAsString = response.getBody();
+        String responseBody = response.getBody();
 
         assertThat(responseStatusCode)
                 .withFailMessage("POST issuer deferred credential request failed: url [%s], response code [%d] and response body [%s], request body: [%s]"
-                        .formatted(deferredCredentialUri, responseStatusCode, bodyAsString, requestPayload))
+                        .formatted(deferredCredentialUri, responseStatusCode, responseBody, requestPayload))
                 .isIn(List.of(200, 202));
 
-        var credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
+        if (encryptionPreferred) {
+            try {
+                JWESupport.assertIsJWE(responseBody);
+                responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+            } catch (Exception e) {
+                throw new RuntimeException("Error decrypting deferred credential response", e);
+            }
+        }
+
+        final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
         if (credentialResponse.has("credential")) {
             walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
@@ -301,7 +347,6 @@ public class Wallet {
             throw new IllegalStateException("Transaction ID is not set in wallet entry.");
         }
 
-        final boolean encryptionEnabled = walletEntry.isEncryptionEnabled();
         var deferredCredentialUri = walletEntry.getIssuerDeferredCredentialUri();
         var token = walletEntry.getToken();
         var request = new DeferredCredentialEndpointRequest();
@@ -314,7 +359,7 @@ public class Wallet {
             throw new RuntimeException(e);
         }
 
-        final String finalPayload = encryptionEnabled
+        final String finalPayload = encryptionPreferred
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
@@ -327,7 +372,7 @@ public class Wallet {
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, encryptionEnabled ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, encryptionPreferred ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
                 .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
 
@@ -344,10 +389,10 @@ public class Wallet {
         String responseBody = response.getBody();
         assertThat(responseCode)
                 .withFailMessage("POST issuer deferred credential request failed: url [%s], code [%d], body [%s], encryption=%s"
-                        .formatted(deferredCredentialUri, responseCode, responseBody, encryptionEnabled))
+                        .formatted(deferredCredentialUri, responseCode, responseBody, encryptionPreferred))
                 .isIn(List.of(200, 202));
 
-        if (encryptionEnabled) {
+        if (encryptionPreferred) {
             try {
                 JWESupport.assertIsJWE(responseBody);
                 responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
@@ -614,10 +659,6 @@ public class Wallet {
         final OAuthToken token = walletEntry.getToken();
         final String bearerToken = token.getAccessToken();
 
-        String requestPayload;
-        ResponseEntity<String> response;
-
-
         var credentialConfigurationSupported = walletEntry.getCredentialConfigurationSupported();
         var request = new CredentialEndpointRequest();
         request.setFormat(VC_SD_JWT);
@@ -628,17 +669,36 @@ public class Wallet {
             request.setProof(proofMap);
         }
 
+        if (encryptionPreferred) {
+            walletEntry.generateEphemeralEncryptionKey();
+
+            var metadata = walletEntry.getIssuerMetadata();
+            var encryptionMetadata = metadata.getCredentialResponseEncryption();
+            var responseEncryption = new CredentialResponseEncryption()
+                    .alg(encryptionMetadata.getAlgValuesSupported().getFirst())
+                    .enc(encryptionMetadata.getEncValuesSupported().getFirst())
+                    .jwk(walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject());
+
+            request.setCredentialResponseEncryption(responseEncryption);
+        }
+
+        String requestPayload;
         try {
             requestPayload = new ObjectMapper().writeValueAsString(request);
         } catch (JsonProcessingException ex) {
             throw new RuntimeException("Cannot serialize payload credential", ex);
         }
 
-        response = restClient.post()
+        final String finalPayload = encryptionPreferred
+                ? encryptCredentialRequest(walletEntry, requestPayload)
+                : requestPayload;
+
+        ResponseEntity<String> response = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, encryptionPreferred ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .body(requestPayload)
+                .header("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue())
+                .body(finalPayload)
                 .retrieve()
                 .toEntity(String.class);
 
@@ -646,9 +706,18 @@ public class Wallet {
         String bodyAsString = response.getBody();
 
         assertThat(responseStatusCode)
-                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], request"
-                        .formatted(credentialUri, responseStatusCode, bodyAsString))
+                .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], encryption=%s"
+                        .formatted(credentialUri, responseStatusCode, bodyAsString, encryptionPreferred))
                 .isIn(List.of(200, 202));
+
+        if (encryptionPreferred) {
+            try {
+                JWESupport.assertIsJWE(bodyAsString);
+                bodyAsString = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), bodyAsString);
+            } catch (Exception e) {
+                throw new RuntimeException("Error decrypting credential response", e);
+            }
+        }
 
         final JsonObject credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
 
@@ -660,7 +729,6 @@ public class Wallet {
     }
 
     private JsonObject postCredentialRequestV1(final WalletBatchEntry walletEntry) {
-        final boolean encryptionEnabled = walletEntry.isEncryptionEnabled();
         final URI credentialUri = walletEntry.getIssuerCredentialUri();
         final OAuthToken token = walletEntry.getToken();
         final String bearerToken = token.getAccessToken();
@@ -673,7 +741,7 @@ public class Wallet {
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
-        if (encryptionEnabled) {
+        if (encryptionPreferred) {
             walletEntry.generateEphemeralEncryptionKey();
 
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
@@ -692,7 +760,7 @@ public class Wallet {
             throw new RuntimeException("Failed to serialize credential request payload", ex);
         }
 
-        final String finalPayload = encryptionEnabled
+        final String finalPayload = encryptionPreferred
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
@@ -703,7 +771,7 @@ public class Wallet {
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, encryptionEnabled ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, encryptionPreferred ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
                 .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
 
@@ -720,10 +788,10 @@ public class Wallet {
         String responseBody = response.getBody();
         assertThat(responseCode)
                 .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], encryption=%s"
-                        .formatted(credentialUri, responseCode, responseBody, encryptionEnabled))
+                        .formatted(credentialUri, responseCode, responseBody, encryptionPreferred))
                 .isIn(List.of(200, 202));
 
-        if (encryptionEnabled) {
+        if (encryptionPreferred) {
             try {
                 JWESupport.assertIsJWE(responseBody);
                 responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
@@ -734,11 +802,14 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
-        final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
-        credentials.forEach(c -> {
-            final String credential = c.getAsJsonObject().get("credential").getAsString();
-            walletEntry.addIssuedCredential(credential);
-        });
+        if (credentialResponse.has("credentials")) {
+
+            final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
+            credentials.forEach(c -> {
+                final String credential = c.getAsJsonObject().get("credential").getAsString();
+                walletEntry.addIssuedCredential(credential);
+            });
+        }
 
         return credentialResponse;
     }
