@@ -101,10 +101,6 @@ public class Wallet {
         return collectTransactionIdFromDeferredOfferID2(issuerDeepLink);
     }
 
-    public WalletEntry collectTransactionIdFromDeferredOffer(URI issuerDeepLink) {
-        return collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.ID2, issuerDeepLink);
-    }
-
     private WalletEntry collectTransactionIdFromDeferredOfferID2(URI issuerDeepLink) {
         var walletEntry = createWalletEntry();
 

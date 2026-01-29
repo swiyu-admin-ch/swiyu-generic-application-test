@@ -17,9 +17,7 @@ public final class TestPresentationDefinitions {
 
     public static PresentationDefinition universityPresentation() {
         final Constraint universityConstraint = new Constraint()
-                .addFieldsItem(new Field().addPathItem("$.type"))
-                .addFieldsItem(new Field().addPathItem("$.name"))
-                .addFieldsItem(new Field().addPathItem("$.average_grade"));
+                .addFieldsItem(new Field().addPathItem("$.name"));
 
         final InputDescriptor universityInputDescriptor = new InputDescriptor()
                 .id(UUID.randomUUID().toString())
@@ -38,24 +36,16 @@ public final class TestPresentationDefinitions {
     public static DcqlQueryDto universityPresentationDCQL() {
         final DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
                 .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
-                .typeValues(List.of(List.of("string"), List.of("string"), List.of("number")));
-        final DcqlClaimDto claimType = new DcqlClaimDto()
-                .path(List.of("type"))
-                .id(null)
-                .values(List.of("Bachelor of Science"));
+                .typeValues(List.of(List.of("string")));
         final DcqlClaimDto claimName = new DcqlClaimDto()
                 .path(List.of("name"))
-                .id(null)
-                .values(null);
-        final DcqlClaimDto claimAverageGrade = new DcqlClaimDto()
-                .path(List.of("average_grade"))
                 .id(null)
                 .values(null);
         final DcqlCredentialDto credential = new DcqlCredentialDto()
                 .id("VerifiableCredential")
                 .format("vc+sd-jwt")
                 .meta(meta)
-                .claims(List.of(claimType, claimName, claimAverageGrade))
+                .claims(List.of(claimName))
                 .claimSets(null)
                 .requireCryptographicHolderBinding(true);
         return new DcqlQueryDto().credentials(List.of(credential));

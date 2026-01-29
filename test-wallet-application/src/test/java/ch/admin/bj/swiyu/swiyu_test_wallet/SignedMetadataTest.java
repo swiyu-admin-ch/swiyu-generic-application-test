@@ -79,6 +79,41 @@ class SignedMetadataTest extends BaseTest {
     }
 
     @Test
+    void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
+        wallet.setSignedMetadataPreferred(false);
+        var walletEntry = wallet.createWalletEntry();
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final String deeplink = response.getOfferDeeplink();
+
+        final SwiyuDeeplink swiyuDeeplink = new SwiyuDeeplink(deeplink);
+
+        walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
+
+        walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
+        walletEntry.setToken(wallet.collectToken(walletEntry));
+
+        final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+
+        assertThat(metadata).isNotNull();
+        assertThat(metadata.getData()).isNotNull();
+
+        if (metadata.getData().has("iss")) {
+            assertThat(metadata.getData().get("iss").getAsString())
+                    .isEqualTo(issuerConfig.getIssuerDid());
+        }
+
+        assertThat(metadata.getData().get("sub")).isNull();
+
+        assertThat(metadata.getData().has("iat"))
+                .isFalse();
+
+        if (metadata.getData().has("exp")) {
+            assertThat(metadata.getData().get("exp").getAsLong())
+                    .isGreaterThan(metadata.getData().get("iat").getAsLong());
+        }
+    }
+
+    @Test
     @XrayTest(
             key = "EIDOMNI-453",
             summary = "Reject a signed metadata request if the tenant id does not exist",

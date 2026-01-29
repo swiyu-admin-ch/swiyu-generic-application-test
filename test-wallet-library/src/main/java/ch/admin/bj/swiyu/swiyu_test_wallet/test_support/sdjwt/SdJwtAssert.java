@@ -1,6 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
 import com.jayway.jsonpath.JsonPath;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.assertj.core.api.Assertions;
 
 import java.util.List;
@@ -8,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 public final class SdJwtAssert {
 
     private final String headerJson;
@@ -23,7 +27,13 @@ public final class SdJwtAssert {
     }
 
     public static SdJwtAssert assertThat(final String sdJwt) {
-        return new SdJwtAssert(sdJwt);
+        final SdJwtAssert sdJwtAssert = new SdJwtAssert(sdJwt);
+        log.debug(String.format("SdJwt [%s]", sdJwt));
+        log.debug(String.format("\tHeaderJson [%s]", sdJwtAssert.headerJson));
+        log.debug(String.format("\tPayloadJson [%s]", sdJwtAssert.payloadJson));
+        log.debug(String.format("\tDisclosures [%s]", sdJwtAssert.disclosures));
+        log.debug(String.format("\tKeyBindingJwt [%s]", sdJwtAssert.keyBindingJwt));
+        return sdJwtAssert;
     }
 
     public SdJwtAssert hasHeaderAlg(final String expectedAlg) {

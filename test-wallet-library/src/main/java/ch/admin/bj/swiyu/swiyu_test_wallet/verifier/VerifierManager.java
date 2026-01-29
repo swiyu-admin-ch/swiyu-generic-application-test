@@ -114,7 +114,7 @@ public class VerifierManager {
                     .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
                     .typeValues(null);
             DcqlClaimDto claim = new DcqlClaimDto()
-                    .path(List.of("type"))
+                    .path(List.of("name"))
                     .id(null)
                     .values(null);
             DcqlCredentialDto credential = new DcqlCredentialDto()
