@@ -457,6 +457,10 @@ public class Wallet {
         return postDeferredCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
     }
 
+    public JsonObject getCredentialFromTransactionId(WalletBatchEntry walletBatchEntry) {
+        return postDeferredCredentialRequest(SwiyuApiVersionConfig.V1, walletBatchEntry);
+    }
+
     public VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
         var query = URI.create(verificationDeeplink).getQuery();
         String[] pairs = query.split("&");

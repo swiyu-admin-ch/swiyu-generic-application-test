@@ -130,8 +130,8 @@ public class VerifierManager {
             return this;
         }
 
-        public VerificationRequestBuilder withUniversityDCQL() {
-            request.setDcqlQuery(TestPresentationDefinitions.universityPresentationDCQL());
+        public VerificationRequestBuilder withUniversityDCQL(final boolean holderBinding) {
+            request.setDcqlQuery(TestPresentationDefinitions.universityPresentationDCQL(holderBinding));
 
             final PresentationDefinition presentation = new PresentationDefinition()
                     .id(UUID.randomUUID().toString())
@@ -139,6 +139,11 @@ public class VerifierManager {
                     .purpose("Test purpose")
                     .format(null);
             request.presentationDefinition(presentation);
+            return this;
+        }
+
+        public VerificationRequestBuilder withUniversityDCQL() {
+            withUniversityDCQL(true);
             return this;
         }
 

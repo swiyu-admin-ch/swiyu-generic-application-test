@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CredentialConfigurationFixtures {
 
+    public static final int BATCH_SIZE = 3;
+
     public static final String UNIVERSITY_EXAMPLE_SD_JWT =
             "university_example_sd_jwt";
 

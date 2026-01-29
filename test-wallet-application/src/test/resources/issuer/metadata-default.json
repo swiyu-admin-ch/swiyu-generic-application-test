@@ -128,7 +128,7 @@
       "credential_signing_alg_values_supported": [
         "ES256"
       ],
-      "vct": "unbound_example_sd_jwt",
+      "vct": "${external-url}/oid4vci/vct/my-vct-v01",
       "claims": {
         "name": {
           "mandatory": true,
