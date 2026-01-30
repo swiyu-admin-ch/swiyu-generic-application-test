@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtKeyGenerator;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,6 +16,14 @@ public class IssuerImageConfig {
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-issuer";
     private String imageTag = "latest";
 
+    private String surname = "default";
+    private boolean enforceDpop = false;
+    private boolean signedMetadata = false;
+    private boolean enableJwtAuth = false;
+    private boolean encryptionEnforce = false;
+
+    private JwtKeyGenerator jwtKeyGenerator;
+
     // set dynamically
     private String mockServerUri;
     private String swiyuPartnerId;
@@ -26,4 +35,19 @@ public class IssuerImageConfig {
     private String issuerAuthKeyId;
     private String issuerAssertKeyPemString;
     private String issuerAuthKeyPemString;
+
+    public String getDbSchema() {
+        return String.format("%s_%s", DBContainerConfig.ISSUER_DB_SCHEMA, getSurname());
+    }
+
+    public String getNetworkAlias() {
+        return String.format("swiyu_issuer_%s", getSurname());
+    }
+
+    public JwtKeyGenerator getJwtKeyGenerator() {
+        if (enableJwtAuth && jwtKeyGenerator == null) {
+            jwtKeyGenerator = new JwtKeyGenerator("test-key-1");
+        }
+        return jwtKeyGenerator;
+    }
 }

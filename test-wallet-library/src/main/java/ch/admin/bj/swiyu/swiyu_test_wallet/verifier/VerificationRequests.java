@@ -22,7 +22,7 @@ public class VerificationRequests {
 
         Constraint lastNameConstraint = new Constraint()
                 .addFieldsItem(new Field()
-                        .addPathItem("$.type"));
+                        .addPathItem("$.name"));
 
         InputDescriptor lastNameInputDescriptor = new InputDescriptor()
                 .id(UUID.randomUUID().toString())
@@ -45,13 +45,13 @@ public class VerificationRequests {
                 .presentationDefinition(presentation);
     }
 
-    static FormatAlgorithm es256Format() {
+    public static FormatAlgorithm es256Format() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(DEFAULT_ALG)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);
     }
 
-    static FormatAlgorithm es256FormatNoKeyBinding() {
+    public static FormatAlgorithm es256FormatNoKeyBinding() {
         return new FormatAlgorithm()
                 .addKbJwtAlgValuesItem(null)
                 .addSdJwtAlgValuesItem(DEFAULT_ALG);

@@ -2,6 +2,8 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -13,6 +15,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -21,6 +24,7 @@ import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+@Slf4j
 @Getter
 @Setter
 public class WalletBatchEntry extends WalletEntry {
@@ -93,6 +97,12 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
+    public String getIssuerDid(final int index) {
+        final String vc = getIssuedCredentials().get(index);
+        final JsonNode payload = SdJwtSupport.extractPayload(vc);
+        return payload.get("iss").asText();
+    }
+
     public void createProofs() {
         if (getCredentialOffer() == null || getToken() == null) {
             throw new IllegalStateException("Offer or token missing for proof generation");
@@ -105,6 +115,24 @@ public class WalletBatchEntry extends WalletEntry {
                     currentNonce + "-" + UUID.randomUUID().toString() :
                     getToken().getcNonce();
 
+            var proof = new JwtProof(
+                    getIssuerMetadata().getIssuerURI(),
+                    uniqueNonce,
+                    pub,
+                    holderKeyPairs.get(holderPublicKeys.indexOf(pub))
+            );
+            proofs.add(proof);
+        }
+    }
+
+    public void createProofs(final String uniqueNonce) {
+        if (getCredentialOffer() == null || getToken() == null) {
+            throw new IllegalStateException("Offer or token missing for proof generation");
+        }
+
+        proofs.clear();
+
+        for (ECKey pub : holderPublicKeys) {
             var proof = new JwtProof(
                     getIssuerMetadata().getIssuerURI(),
                     uniqueNonce,
@@ -142,6 +170,17 @@ public class WalletBatchEntry extends WalletEntry {
 
     public void addIssuedCredential(String jwt) {
         issuedCredentials.add(jwt);
+    }
+
+    public String getVerifiableCredential(final int index) {
+        if (issuedCredentials == null) {
+            throw new IllegalStateException("verifiable credential not set.");
+        }
+        if (issuedCredentials.size() <= index) {
+            throw new IndexOutOfBoundsException("index out of bounds for verifiable credential " + index);
+        }
+
+        return issuedCredentials.get(index);
     }
 }
 

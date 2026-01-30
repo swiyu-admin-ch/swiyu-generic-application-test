@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
+package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata;
 
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialResponseEncryption;

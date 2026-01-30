@@ -13,12 +13,14 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
@@ -27,14 +29,24 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.spec.ECGenParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntSupplier;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
@@ -65,7 +77,8 @@ public class BaseTest {
     @Autowired
     protected PostgreSQLContainer<?> dbTestContainer;
     @Autowired
-    protected MockServerContainer mockServer;
+    protected MockServerContainer mockServerContainer;
+    protected MockServerClient mockServerClient;
 
     protected Connection connection;
     protected Wallet wallet;
@@ -75,8 +88,78 @@ public class BaseTest {
     protected VerifierManager verifierManager;
     protected RestClient restClient;
     protected Statement stmt;
+    protected PrivateKey jwtKey;
+    protected PrivateKey unauthenticatedJwtKey;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
+
+    protected int countVerifierCallbacks() {
+        return mockServerClient
+                .retrieveRecordedRequests(request().withPath(VERIFIER_CALLBACK_PATH))
+                .length;
+    }
+
+    protected int countIssuerCallbacks() {
+        return mockServerClient
+                .retrieveRecordedRequests(request().withPath(ISSUER_CALLBACK_PATH))
+                .length;
+    }
+
+    protected int awaitStableVerifierCallbacks() {
+        return awaitStableCount(this::countVerifierCallbacks);
+    }
+
+    protected int awaitStableIssuerCallbacks() {
+        return awaitStableCount(this::countIssuerCallbacks);
+    }
+
+    protected void awaitNVerifierCallback(final int before, final int n) {
+        await().untilAsserted(() ->
+                assertThat(countVerifierCallbacks())
+                        .isEqualTo(before + n)
+        );
+    }
+
+    protected void awaitOneVerifierCallback(final int before) {
+        awaitNVerifierCallback(before, 1);
+    }
+
+    protected void awaitNoneVerifierCallback(final int before) {
+        awaitNVerifierCallback(before, 0);
+    }
+
+    protected void awaitNIssuerCallback(final int before, final int n) {
+        await().untilAsserted(() ->
+                assertThat(countIssuerCallbacks())
+                        .isEqualTo(before + n)
+        );
+    }
+
+    protected void awaitOneIssuerCallback(final int before) {
+        awaitNIssuerCallback(before, 1);
+    }
+
+    protected void awaitNoneIssuerCallback(final int before) {
+        awaitNIssuerCallback(before, 0);
+    }
+
+    protected int awaitStableCount(final IntSupplier counter) {
+        final AtomicInteger previous = new AtomicInteger(-1);
+
+        await()
+                .pollInterval(Duration.ofMillis(200))
+                .atMost(Duration.ofSeconds(3))
+                .until(() -> {
+                    int current = counter.getAsInt();
+                    int last = previous.getAndSet(current);
+                    return last == current;
+                });
+
+        return previous.get();
+    }
+
+
+
 
     @BeforeAll
     void setup() throws Exception {
@@ -94,6 +177,15 @@ public class BaseTest {
                 )).toString()
         );
 
+        if (issuerImageConfig.isEnableJwtAuth() && issuerImageConfig.getJwtKeyGenerator() != null) {
+            jwtKey = issuerImageConfig.getJwtKeyGenerator().getPrivateKey();
+
+            final KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("EC");
+            final ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
+            keyPairGen.initialize(ecSpec);
+            unauthenticatedJwtKey = keyPairGen.generateKeyPair().getPrivate();
+        }
+
         final ServiceLocationContext issuerContext = new ServiceLocationContext(
                 issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
         );
@@ -102,8 +194,11 @@ public class BaseTest {
                 verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
         );
 
-        currentStatusList = issuerManager.createStatusList(100000, 2);
-
+        if (issuerImageConfig.isEnableJwtAuth()) {
+            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 100000, 2);
+        } else {
+            currentStatusList = issuerManager.createStatusList(100000, 2);
+        }
         connection = DriverManager.getConnection(
                 dbTestContainer.getJdbcUrl(),
                 dbTestContainer.getUsername(),
@@ -114,6 +209,14 @@ public class BaseTest {
         restClient = RestClient.builder().build();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
+    }
+
+    @BeforeEach
+    void setupMockServerVerificationClient() {
+        mockServerClient = new MockServerClient(
+                mockServerContainer.getHost(),
+                mockServerContainer.getServerPort()
+        );
     }
 
     @BeforeEach
@@ -180,5 +283,15 @@ public class BaseTest {
         if (connection != null && !connection.isClosed()) {
             connection.close();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> errorJson(HttpClientErrorException ex) {
+        return (Map<String, String>) ex.getResponseBodyAs(Map.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static int errorCode(HttpClientErrorException ex) {
+        return ex.getStatusCode().value();
     }
 }

@@ -1,0 +1,135 @@
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
+
+import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.web.client.HttpClientErrorException;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.Assert.assertThrows;
+
+@SpringBootTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Import(CompleteEnvironmentTestConfiguration.class)
+class BatchTest extends BaseTest {
+
+    @BeforeEach
+    void beforeEach() {
+        wallet.setUseEncryption(false);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-388",
+            summary = "Successful SD-JWT batch issuance flow",
+            description = """
+                    This test validates that the issuer successfully performs batch issuance of multiple SD-JWT credentials
+                    in a single offer with encryption enabled. The batch credentials receive non-sequential status list indexes
+                    to ensure proper randomization and uniqueness across the status list.
+                    """
+    )
+    @Tag("uci_s1")
+    @Tag("uci_c1")
+    @Tag("uci_i1")
+    @Tag("happy_path")
+    void batchIssuanceFlow_thenSuccess() throws SQLException {
+        final int batchSize = 3;
+
+        issuerManager.createStatusList(10000, 2);
+
+        wallet.setUseEncryption(true);
+
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+
+        final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+
+        assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+
+        List<Integer> indexes = getUsedIndexesFromDb();
+
+        assertThat(areSequential(indexes))
+                .as("Indexes in status_list should not be strictly sequential")
+                .isFalse();
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-395",
+            summary = "Batch issuance rejected when status list capacity exceeded",
+            description = """
+                    This test ensures that the issuer correctly rejects batch SD-JWT issuance requests when the number of
+                    credentials requested exceeds the remaining capacity of the configured status list, returning HTTP 400
+                    with an appropriate error message.
+                    """
+    )
+    @Tag("uci_s1")
+    @Tag("uci_c1")
+    @Tag("uci_i1")
+    @Tag("edge_case")
+    void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
+        final int batchSize = 3;
+        final int statusListLength = 2;
+
+        issuerManager.createStatusList(statusListLength, 2);
+
+        wallet.setUseEncryption(true);
+
+        HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+            final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
+
+            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+        });
+
+        assertThat(ex.getStatusCode().value())
+                .as("Expected HTTP 400 Bad Request")
+                .isEqualTo(400);
+
+        assertThat(ex.getMessage())
+                .as("Expected message to contain Bad Request and detail about max length exceeded")
+                .contains("\"detail\":\"Too few status indexes remain in status list");
+    }
+
+    private boolean areSequential(final List<Integer> indexes) {
+        if (indexes.size() < 2) return false;
+
+        final List<Integer> sorted = indexes.stream().sorted().collect(Collectors.toList());
+        for (int i = 1; i < sorted.size(); i++) {
+            if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
+        }
+
+        return true;
+    }
+
+    private List<Integer> getUsedIndexesFromDb() throws SQLException {
+        final List<Integer> indexes = new ArrayList<>();
+
+        final String query = """
+                    SELECT index
+                    FROM %s.credential_offer_status
+                    ORDER BY index ASC
+                """.formatted(issuerImageConfig.getDbSchema());
+
+        try (ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                indexes.add(rs.getInt("index"));
+            }
+        }
+
+        return indexes;
+    }
+}

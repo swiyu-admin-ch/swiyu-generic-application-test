@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -122,10 +122,13 @@ public class WalletEntry {
         if (token == null) {
             throw new IllegalStateException("token not set.");
         }
+        if (getIssuerMetadata() == null) {
+            throw new IllegalStateException("issuerMetadata not set.");
+        }
 
         String cNonce = token.getcNonce();
-        String credentialIssuerURI = credentialOffer.getCredentialBaseIssuerUriAsString();
-        return new JwtProof(credentialIssuerURI, cNonce, proofPublicJwk, keyPair);
+        String audience = getIssuerMetadata().getIssuerURI();
+        return new JwtProof(audience, cNonce, proofPublicJwk, keyPair);
     }
 
     private static String hashSdJwt(String credentialsSdJwt) {
@@ -143,7 +146,7 @@ public class WalletEntry {
     public boolean isEncryptionEnabled() {
         final IssuerCredentialRequestEncryption req = issuerMetadata.getCredentialRequestEncryption();
 
-        return (req != null && req.getEncryptionRequired()) || wallet.isEncryptionPreferred();
+        return (req != null && req.getEncryptionRequired()) || wallet.isUseEncryption();
     }
 
     public RestClient getRestClient() {
@@ -262,6 +265,5 @@ public class WalletEntry {
 
         return responseEncryption;
     }
-
 
 }

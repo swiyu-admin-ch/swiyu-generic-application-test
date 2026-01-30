@@ -1,0 +1,7 @@
+application:
+  issuer:
+    surname: "encryption"
+    enforce-dpop: false
+    enable-jwt-auth: false
+    signed-metadata: true
+    encryption-enforce: true
