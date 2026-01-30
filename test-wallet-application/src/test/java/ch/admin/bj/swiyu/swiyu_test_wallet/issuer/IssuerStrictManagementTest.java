@@ -1,13 +1,18 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -15,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
+@SpringBootTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Import(CompleteEnvironmentTestConfiguration.class)
 @ActiveProfiles({"issuer-strict"})
 class IssuerStrictManagementTest extends BaseTest {
 
@@ -42,7 +50,7 @@ class IssuerStrictManagementTest extends BaseTest {
                 .as("Status list should have a valid registry URL")
                 .isNotNull();
 
-        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "university_example_sd_jwt");
+        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "bound_example_sd_jwt");
 
         assertThat(credentialInfo).isNotNull();
 
@@ -81,7 +89,7 @@ class IssuerStrictManagementTest extends BaseTest {
 
         ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, "test-key-1", "university_example_sd_jwt")
+                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, "test-key-1", "bound_example_sd_jwt")
         );
 
         assertThat(errorCode(ex))

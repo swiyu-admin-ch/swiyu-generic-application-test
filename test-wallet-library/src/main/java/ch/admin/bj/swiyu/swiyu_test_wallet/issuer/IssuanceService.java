@@ -2,6 +2,8 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.springframework.web.client.RestClient;

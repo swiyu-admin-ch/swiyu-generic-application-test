@@ -1,8 +1,10 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.security;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -75,7 +77,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("happy_path")
     void dpopInitialIssuance_happyPath() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -153,7 +155,7 @@ class DPoPFlowTest extends BaseTest {
         final int batchSize = 3;
 
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -249,7 +251,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("edge_case")
     void dpopNonceInvalidationAfterUsage_preventReplayAttack() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -311,7 +313,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("edge_case")
     void dpopNonceInvalidationInRefreshFlow_preventReplay() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -399,7 +401,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("happy_path")
     void dpopNonceInvalidationInCredentialRequests_preventReplay() {
         CredentialWithDeeplinkResponse offer1 =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
         URI deeplink1 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer1.getOfferDeeplink()));
@@ -436,7 +438,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Wallet creates new credential offer for second batch");
         CredentialWithDeeplinkResponse offer2 =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
         URI deeplink2 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer2.getOfferDeeplink()));
@@ -484,7 +486,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("edge_case")
     void dpopRegisterHolderKey_thenRejectDifferentKey() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -582,7 +584,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("edge_case")
     void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         URI deeplink = wallet.getIssuerContext()
@@ -715,7 +717,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag("edge_case")
     void holderBindingReplayProtection_preventProofReuse() {
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
 
         final URI deeplink = wallet.getIssuerContext()
@@ -754,7 +756,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Creating new credential offer for attacker's replay attempt");
         final CredentialWithDeeplinkResponse offer2 =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
         final URI deeplink2 = wallet.getIssuerContext()
                 .getContextualizedUri(toUri(offer2.getOfferDeeplink()));

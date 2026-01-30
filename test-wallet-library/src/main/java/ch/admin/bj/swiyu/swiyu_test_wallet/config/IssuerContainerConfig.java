@@ -69,7 +69,7 @@ public class IssuerContainerConfig {
                 .withNetwork(network)
                 .withNetworkAliases(issuerImageConfig.getNetworkAlias())
                 .withExtraHost("host.docker.internal", "host-gateway")
-                .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath(issuerImageConfig.getMetadataFile())), "/tmp" +
+                .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("issuer/metadata.json")), "/tmp" +
                         "/metadata.json")
                 .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                 .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")

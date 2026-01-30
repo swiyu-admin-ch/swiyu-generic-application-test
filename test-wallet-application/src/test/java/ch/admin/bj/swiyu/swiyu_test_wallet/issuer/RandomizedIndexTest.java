@@ -1,7 +1,9 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -32,7 +34,7 @@ class RandomizedIndexTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() throws SQLException {
-        wallet.setEncryptionPreferred(false);
+        wallet.setUseEncryption(false);
         stmt.execute("TRUNCATE TABLE %s.status_list RESTART IDENTITY CASCADE".formatted(issuerImageConfig.getDbSchema()));
     }
 
@@ -54,7 +56,7 @@ class RandomizedIndexTest extends BaseTest {
         issuerManager.createStatusList(statusListLength, 2);
 
         final CredentialWithDeeplinkResponse singleResponse =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         wallet.collectOfferID2(toUri(singleResponse.getOfferDeeplink()));
 
         final int afterSingle = getUsedIndexesFromDb().size();

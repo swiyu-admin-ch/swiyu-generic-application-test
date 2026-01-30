@@ -1,31 +1,20 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.runner.Request;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;

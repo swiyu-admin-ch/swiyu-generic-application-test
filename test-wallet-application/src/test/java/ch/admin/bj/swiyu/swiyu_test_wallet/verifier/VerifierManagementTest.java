@@ -1,10 +1,11 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
@@ -295,7 +296,7 @@ public class VerifierManagementTest extends BaseTest {
 
         // GIVEN – credential issued to wallet
         final CredentialWithDeeplinkResponse response =
-                issuerManager.createCredentialOffer("university_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
 
         // GIVEN – verifier initiates verification

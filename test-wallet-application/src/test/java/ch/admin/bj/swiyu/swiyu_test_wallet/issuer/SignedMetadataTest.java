@@ -1,8 +1,10 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.*;

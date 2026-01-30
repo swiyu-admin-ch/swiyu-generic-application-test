@@ -30,20 +30,26 @@ public final class CredentialSubjectFixtures {
     public static Map<String, Object> completeEmployeeProfile() {
         final Map<String, Object> subjectClaims = new HashMap<>();
 
-        // string / mandatory
         subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
-        // string / non-mandatory
         subjectClaims.put(TEXT_OPTIONAL_CLAIM_KEY, TEXT_OPTIONAL_DEFAULT_VALUE);
 
-        // number / mandatory
         subjectClaims.put(NUMBER_MANDATORY_CLAIM_KEY, NUMBER_MANDATORY_DEFAULT_VALUE);
-        // number / non-mandatory
         subjectClaims.put(NUMBER_OPTIONAL_CLAIM_KEY, NUMBER_OPTIONAL_DEFAULT_VALUE);
 
-        // iana media type / mandatory
         subjectClaims.put(IMAGE_MANDATORY_CLAIM_KEY, IMAGE_MANDATORY_DEFAULT_VALUE);
-        // iana media type / non-mandatory
         subjectClaims.put(IMAGE_OPTIONAL_CLAIM_KEY, IMAGE_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> mandatoryClaimsEmployeeProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        subjectClaims.put(NUMBER_MANDATORY_CLAIM_KEY, NUMBER_MANDATORY_DEFAULT_VALUE);
+
+        subjectClaims.put(IMAGE_MANDATORY_CLAIM_KEY, IMAGE_MANDATORY_DEFAULT_VALUE);
 
         return subjectClaims;
     }

@@ -1,10 +1,12 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -58,7 +60,7 @@ class RenewalFlowTest extends BaseTest {
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "university_example_sd_jwt");
+                issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "bound_example_sd_jwt");
 
         entry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         entry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(entry));

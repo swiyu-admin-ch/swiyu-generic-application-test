@@ -32,7 +32,7 @@
     "batch_size": 3
   },
   "credential_configurations_supported": {
-    "university_example_sd_jwt": {
+    "bound_example_sd_jwt": {
       "format": "vc+sd-jwt",
       "credential_signing_alg_values_supported": [
         "ES256"

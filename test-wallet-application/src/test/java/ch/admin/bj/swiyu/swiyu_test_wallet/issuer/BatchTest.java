@@ -1,7 +1,9 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -28,7 +30,7 @@ class BatchTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() {
-        wallet.setEncryptionPreferred(false);
+        wallet.setUseEncryption(false);
     }
 
     @Test
@@ -50,7 +52,7 @@ class BatchTest extends BaseTest {
 
         issuerManager.createStatusList(10000, 2);
 
-        wallet.setEncryptionPreferred(true);
+        wallet.setUseEncryption(true);
 
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
@@ -85,10 +87,10 @@ class BatchTest extends BaseTest {
 
         issuerManager.createStatusList(statusListLength, 2);
 
-        wallet.setEncryptionPreferred(true);
+        wallet.setUseEncryption(true);
 
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("university_example_sd_jwt");
+            final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
             wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
         });

@@ -286,12 +286,12 @@ public class BaseTest {
     }
 
     @SuppressWarnings("unchecked")
-    static Map<String, String> errorJson(HttpClientErrorException ex) {
+    public static Map<String, String> errorJson(HttpClientErrorException ex) {
         return (Map<String, String>) ex.getResponseBodyAs(Map.class);
     }
 
     @SuppressWarnings("unchecked")
-    static int errorCode(HttpClientErrorException ex) {
+    public static int errorCode(HttpClientErrorException ex) {
         return ex.getStatusCode().value();
     }
 }

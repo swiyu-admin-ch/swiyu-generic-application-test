@@ -19,7 +19,9 @@ public final class TestPresentationDefinitions {
 
     public static PresentationDefinition universityPresentation() {
         final Constraint universityConstraint = new Constraint()
-                .addFieldsItem(new Field().addPathItem("$.name"));
+                .addFieldsItem(new Field().addPathItem(String.format("$.%s", TEXT_MANDATORY_CLAIM_KEY)))
+                .addFieldsItem(new Field().addPathItem(String.format("$.%s", NUMBER_MANDATORY_CLAIM_KEY)))
+                .addFieldsItem(new Field().addPathItem(String.format("$.%s", IMAGE_MANDATORY_CLAIM_KEY)));
 
         final InputDescriptor universityInputDescriptor = new InputDescriptor()
                 .id(UUID.randomUUID().toString())

@@ -1,9 +1,11 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet;
+package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -35,7 +37,7 @@ class IssuerTest extends BaseTest {
     @Tag("happy_path")
     void offerDeepLinkWithSDJwt() {
 
-        var credentialDetails = issuerManager.createCredentialOffer("university_example_sd_jwt");
+        var credentialDetails = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         var deeplink = toUri(credentialDetails.getOfferDeeplink());
 
         assertThat(deeplink.getScheme()).isEqualTo("swiyu");
@@ -75,7 +77,7 @@ class IssuerTest extends BaseTest {
         assertThat(metadata.getIssuerURI()).startsWith(TestConstants.ISSUER_URL);
         assertThat(metadata.getDisplay()).isNotNull();
         assertThat(metadata.getSupportedCredentialConfigurations()).isNotNull();
-        assertThat(metadata.getSupportedCredentialConfigurations().get("university_example_sd_jwt")).isNotNull();
+        assertThat(metadata.getSupportedCredentialConfigurations().get("bound_example_sd_jwt")).isNotNull();
     }
 
     @Test
