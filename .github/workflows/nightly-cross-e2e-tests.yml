@@ -43,7 +43,7 @@ jobs:
       - name: Checkout dev branch
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: main
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -149,7 +149,7 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: main
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -260,7 +260,7 @@ jobs:
       - name: Checkout (for context)
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: main
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
