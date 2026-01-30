@@ -447,6 +447,10 @@ class WalletTest extends BaseTest {
                     """)
     @Tag("ucv_o2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            verifier = {"staging"},
+            reason = "This is fixed in next versions"
+    )
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 

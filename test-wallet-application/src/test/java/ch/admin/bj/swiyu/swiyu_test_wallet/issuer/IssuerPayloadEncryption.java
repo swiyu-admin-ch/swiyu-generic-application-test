@@ -63,8 +63,8 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("happy_path")
     @DisableIfImageTag(
-            issuer = {"stable"},
-            reason = "This feature is not available yet"
+            issuer = {"stable", "staging"},
+            reason = "This feature payload encryption in deferred credential route is not available yet"
     )
     void payloadEncryptionCredentialIssuanceId2_withEncryptedPayload_thenSuccess(final boolean deferred) {
         // Given
@@ -124,7 +124,7 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("happy_path")
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {"stable", "staging"},
             reason = "The fix for supported media type not available yet"
     )
     void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
@@ -177,7 +177,7 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
     )
     void deferredCredentialEncryption_whenKeyMismatch_thenRejected(final SwiyuApiVersionConfig apiVersion) {
@@ -222,7 +222,7 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {"stable", "staging"},
             reason = "Fix for deferred encprytion is not available yet"
     )
     void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected(final SwiyuApiVersionConfig apiVersion) {

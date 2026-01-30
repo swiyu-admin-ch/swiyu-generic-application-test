@@ -144,7 +144,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag("uci_c3")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
     )
     void updateCredentialStatus_InvalidTransition_thenRejected() {
