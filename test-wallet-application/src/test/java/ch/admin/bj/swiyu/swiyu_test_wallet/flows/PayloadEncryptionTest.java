@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.nimbusds.jose.JOSEException;
@@ -262,6 +263,10 @@ class PayloadEncryptionTest extends BaseTest {
     )
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "Fix for deferred encprytion is not available yet"
+    )
     void issuerEncryptionV1_encryptedRequestAndResponse_thenSuccess() {
         final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
 

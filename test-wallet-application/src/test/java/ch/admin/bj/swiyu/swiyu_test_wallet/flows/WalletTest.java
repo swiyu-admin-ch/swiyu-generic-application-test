@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -84,6 +85,10 @@ class WalletTest extends BaseTest {
     @Tag("uci_i1")
     @Tag("ucv_o2")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void unboundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -180,6 +185,10 @@ class WalletTest extends BaseTest {
     @Tag("uci_i1b")
     @Tag("ucv_o2")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void unboundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -278,6 +287,10 @@ class WalletTest extends BaseTest {
     @Tag("uci_i1a")
     @Tag("ucv_o2a")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void boundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();

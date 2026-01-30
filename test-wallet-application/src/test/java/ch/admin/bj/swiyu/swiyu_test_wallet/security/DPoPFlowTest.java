@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -75,6 +76,10 @@ class DPoPFlowTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopInitialIssuance_happyPath() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -151,6 +156,10 @@ class DPoPFlowTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i2")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopRefreshFlow_happyPath() {
         final int batchSize = 3;
 
@@ -249,6 +258,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopNonceInvalidationAfterUsage_preventReplayAttack() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -311,6 +324,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopNonceInvalidationInRefreshFlow_preventReplay() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -399,6 +416,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopNonceInvalidationInCredentialRequests_preventReplay() {
         CredentialWithDeeplinkResponse offer1 =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -484,6 +505,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopRegisterHolderKey_thenRejectDifferentKey() {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -582,6 +607,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -715,6 +744,10 @@ class DPoPFlowTest extends BaseTest {
     )
     @Tag("uci_i1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void holderBindingReplayProtection_preventProofReuse() {
         final CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");

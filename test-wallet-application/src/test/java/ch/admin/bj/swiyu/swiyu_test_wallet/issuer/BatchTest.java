@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -47,6 +48,10 @@ class BatchTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void batchIssuanceFlow_thenSuccess() throws SQLException {
         final int batchSize = 3;
 
@@ -81,6 +86,10 @@ class BatchTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
         final int batchSize = 3;
         final int statusListLength = 2;

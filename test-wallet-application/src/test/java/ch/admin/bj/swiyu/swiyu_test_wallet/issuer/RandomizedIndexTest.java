@@ -4,6 +4,8 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -51,6 +53,10 @@ class RandomizedIndexTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void fullBatchFlow_withRandomIndexes() throws Exception {
         final int statusListLength = 10000;
         issuerManager.createStatusList(statusListLength, 2);
@@ -91,6 +97,10 @@ class RandomizedIndexTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void multipleConcurrentBatches_largeStatusList() throws Exception {
         final int statusListLength = 10000;
         final int batchCount = 10;
@@ -139,6 +149,10 @@ class RandomizedIndexTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void multipleConcurrentBatches_smallStatusList() throws Exception {
         final int statusListLength = 20;
         final int batchCount = 10;

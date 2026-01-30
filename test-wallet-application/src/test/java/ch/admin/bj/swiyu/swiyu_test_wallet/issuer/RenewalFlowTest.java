@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -116,6 +117,10 @@ class RenewalFlowTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i2")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void renewalFlow_happyPath_fullyAlignedWithSequenceDiagram() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -171,6 +176,10 @@ class RenewalFlowTest extends BaseTest {
     @Tag("uci_c1")
     @Tag("uci_i2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -229,6 +238,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void renewalFlow_withWrongDpopBinding_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -296,6 +309,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void renewalFlow_withNonceReplayAttack_thenRejected() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -364,6 +381,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
         final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -423,6 +444,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void refreshToken_refreshWithInvalidToken_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -469,6 +494,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void refreshToken_refreshWithWrongDpopBinding_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -515,6 +544,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void refreshToken_refreshNonceReplay_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -557,6 +590,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
         log.info("Create initial credentials");
@@ -603,6 +640,10 @@ class RenewalFlowTest extends BaseTest {
     )
     @Tag("uci_r3")
     @Tag("happy_path")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "This feature is not available yet"
+    )
     void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {
 
         log.info("Create initial credentials for issuance A");
