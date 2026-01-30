@@ -447,14 +447,17 @@ public class Wallet {
     }
 
     public CredentialResponse getCredentialFromTransactionId(final SwiyuApiVersionConfig apiVersion, WalletEntry walletEntry) {
-        return postDeferredCredentialRequest(apiVersion, walletEntry);
+        if (apiVersion == SwiyuApiVersionConfig.V1) {
+            return getCredentialFromTransactionIdV1((WalletBatchEntry) walletEntry);
+        }
+        return getCredentialFromTransactionIdID2(walletEntry);
     }
 
-    public CredentialResponse getCredentialFromTransactionId(WalletEntry walletEntry) {
+    public CredentialResponse getCredentialFromTransactionIdID2(WalletEntry walletEntry) {
         return postDeferredCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
     }
 
-    public CredentialResponse getCredentialFromTransactionId(WalletBatchEntry walletBatchEntry) {
+    public CredentialResponse getCredentialFromTransactionIdV1(WalletBatchEntry walletBatchEntry) {
         return postDeferredCredentialRequest(SwiyuApiVersionConfig.V1, walletBatchEntry);
     }
 

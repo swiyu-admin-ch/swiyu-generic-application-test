@@ -147,7 +147,7 @@ class IssuerPayloadEncryption extends BaseTest {
             issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
             // When
-            wallet.getCredentialFromTransactionId(batchEntry);
+            wallet.getCredentialFromTransactionIdV1(batchEntry);
         } else {
             // When
             batchEntry = (WalletBatchEntry) wallet.collectOffer(issuanceApiVersion, toUri(offer.getOfferDeeplink()));
@@ -239,5 +239,48 @@ class IssuerPayloadEncryption extends BaseTest {
                 .hasStatus(400)
                 .hasError("INVALID_TRANSACTION_ID")
                 .hasErrorDescription("Invalid transactional id");
+    }
+
+    @ParameterizedTest
+    @EnumSource(SwiyuApiVersionConfig.class)
+    @XrayTest(key = "EIDOMNI-666",
+            summary = "Deferred credential request rejected when encryption is required but wallet sends unencrypted",
+            description = """
+                    This test validates that a wallet cannot retrieve a deferred credential using an unencrypted request
+                    when the strict issuer profile requires encryption.
+                    """)
+    @Tag("uci_i1")
+    @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable", "rc", "staging"},
+            reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
+    )
+    void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(
+            final SwiyuApiVersionConfig apiVersion) {
+        // Given
+        final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+
+        // When
+        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
+                initialSubjectClaims);
+        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion,
+                toUri(offer.getOfferDeeplink()));
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
+        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
+        // Then
+        assertThat(entry.getTransactionId()).isNotNull();
+
+        // Given
+        wallet.setUseEncryption(false);
+
+        // When
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
+                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+        // Then
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .hasError("Credential Request must be encrypted");
     }
 }
