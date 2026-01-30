@@ -448,7 +448,7 @@ class WalletTest extends BaseTest {
     @Tag("ucv_o2")
     @Tag("edge_case")
     @DisableIfImageTag(
-            verifier = {"staging"},
+            verifier = {"staging", "rc"},
             reason = "This is fixed in next versions"
     )
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
