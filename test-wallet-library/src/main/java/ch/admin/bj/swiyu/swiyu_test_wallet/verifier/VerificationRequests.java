@@ -22,7 +22,7 @@ public class VerificationRequests {
 
         Constraint lastNameConstraint = new Constraint()
                 .addFieldsItem(new Field()
-                        .addPathItem("$.type"));
+                        .addPathItem("$.name"));
 
         InputDescriptor lastNameInputDescriptor = new InputDescriptor()
                 .id(UUID.randomUUID().toString())

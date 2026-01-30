@@ -88,21 +88,28 @@ public class BusinessIssuer {
     }
 
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId) {
-        CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
-        credentialOfferMetadataDto.setDeferred(false);
+        return createCredentialOffer(supportedMetadataId, CredentialOffer.defaultSubjectData(), false);
+    }
 
-        var offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
+    public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId, Map<String, Object> subjectClaims) {
+        return createCredentialOffer(supportedMetadataId, subjectClaims, false);
+    }
+
+    public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId, Map<String, Object> subjectClaims, final boolean deferred) {
+        CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
+        credentialOfferMetadataDto.setDeferred(deferred);
+
+        var offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto, subjectClaims);
 
         return createCredential(offer);
     }
 
     public CredentialWithDeeplinkResponse createDeferredCredentialOffer(String supportedMetadataId) {
-        CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
-        credentialOfferMetadataDto.setDeferred(true);
+        return createCredentialOffer(supportedMetadataId, CredentialOffer.defaultSubjectData(), true);
+    }
 
-        var offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
-
-        return createCredential(offer);
+    public CredentialWithDeeplinkResponse createDeferredCredentialOffer(String supportedMetadataId, Map<String, Object> subjectClaims) {
+        return createCredentialOffer(supportedMetadataId, subjectClaims, true);
     }
 
     public CredentialWithDeeplinkResponse createCredential(CredentialOfferRequest offer) {
@@ -140,9 +147,9 @@ public class BusinessIssuer {
         return (Map<String, Object>) actuatorApi.health();
     }
 
-    private CredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata) {
+    private CredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata, Map<String, Object> subjectClaims) {
         CredentialOfferRequest offer = new CredentialOfferRequest();
-        offer.setCredentialSubjectData(CredentialOffer.defaultSubjectData());
+        offer.setCredentialSubjectData(subjectClaims);
         offer.setStatusLists(List.of(statusList.getStatusRegistryUrl()));
         offer.setCredentialMetadata(credentialMetadata);
         offer.setMetadataCredentialSupportedId(List.of(supportedMetadataId));
@@ -254,7 +261,7 @@ public class BusinessIssuer {
         final CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
         credentialOfferMetadataDto.setDeferred(false);
 
-        final CredentialOfferRequest offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto);
+        final CredentialOfferRequest offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto, CredentialOffer.defaultSubjectData());
 
         final String data = mapper.writeValueAsString(offer);
 
