@@ -333,7 +333,11 @@ public class Wallet {
             walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
         }
 
-        return new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
+        final CredentialResponse completeCredentialResponse = new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
+
+        walletEntry.setCredentialResponse(completeCredentialResponse);
+
+        return completeCredentialResponse;
     }
 
     private CredentialResponse postDeferredCredentialRequestV1(final WalletBatchEntry walletEntry) {
@@ -402,7 +406,11 @@ public class Wallet {
             });
         }
 
-        return new CredentialResponse(responseCode, credentialResponse, rawResponse);
+        final CredentialResponse completeCredentialResponse = new CredentialResponse(responseCode, credentialResponse, rawResponse);
+
+        walletEntry.setCredentialResponse(completeCredentialResponse);
+
+        return completeCredentialResponse;
     }
 
     private String encryptCredentialRequest(WalletEntry walletEntry, String requestJson) {
@@ -728,7 +736,11 @@ public class Wallet {
             walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
         }
 
-        return new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
+        final CredentialResponse completeCredentialResponse = new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
+
+        walletEntry.setCredentialResponse(completeCredentialResponse);
+
+        return completeCredentialResponse;
     }
 
     private CredentialResponse postCredentialRequestV1(final WalletBatchEntry walletEntry) {
@@ -815,7 +827,11 @@ public class Wallet {
             });
         }
 
-        return new CredentialResponse(responseCode, credentialResponse, rawResponse);
+        final CredentialResponse completeCredentialResponse = new CredentialResponse(responseCode, credentialResponse, rawResponse);
+
+        walletEntry.setCredentialResponse(completeCredentialResponse);
+
+        return completeCredentialResponse;
     }
 
     public String getDpopNonce(WalletEntry walletEntry) {

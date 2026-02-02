@@ -76,6 +76,14 @@ public final class CredentialResponseAssert {
         return this;
     }
 
+    public CredentialResponseAssert hasCode(final int statusCode) {
+        Assertions.assertThat(this.response.getStatus())
+                .as("Status code must as expected")
+                .isEqualTo(statusCode);
+
+        return this;
+    }
+
     public CredentialResponseAssert isResponseEncrypted() {
         Assertions.assertThat(response.getRawBody())
                 .as("Credential response must contain a raw body")

@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
@@ -56,6 +57,7 @@ public class WalletEntry {
     private JsonNode vctDetails;
     private UUID transactionId;
     private ECKey ephemeralEncryptionKey;
+    private CredentialResponse credentialResponse;
 
     public WalletEntry(final Wallet wallet) {
         this.wallet = wallet;
