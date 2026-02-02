@@ -527,15 +527,11 @@ public class Wallet {
     }
 
     public void respondToVerificationID2(RequestObject requestObject, String token) {
-        final boolean isEncrypted = requestObject.getResponseMode() == RequestObject.ResponseModeEnum.POST_JWT;
-
         final String submission = getPresentationSubmissionPayload();
         final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
 
-        if (isEncrypted) {
+        if (useEncryption) {
             final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
-            jsonWebKey.setAlg("ECDH-ES");
-            jsonWebKey.setUse("enc");
             final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
 
             final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
@@ -577,17 +573,13 @@ public class Wallet {
     }
 
     public void respondToVerificationV1(final RequestObject requestObject, final String token) {
-        final boolean isEncrypted = requestObject.getResponseMode() == RequestObject.ResponseModeEnum.POST_JWT;
-
         final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
         final Map<String, List<String>> vpToken = Map.of(tokenId, List.of(token));
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 
-        if (isEncrypted) {
+        if (useEncryption) {
             final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
-            jsonWebKey.setAlg("ECDH-ES");
-            jsonWebKey.setUse("enc");
             final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
 
             final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
