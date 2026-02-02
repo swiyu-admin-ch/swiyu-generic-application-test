@@ -154,7 +154,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionId(entry);
+        wallet.getCredentialFromTransactionIdID2(entry);
         // Then
         SdJwtAssert.assertThat(entry.getVerifiableCredential())
                 .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
@@ -210,7 +210,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionId(batchEntry);
+        wallet.getCredentialFromTransactionIdV1(batchEntry);
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
@@ -358,7 +358,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionId(entry);
+        wallet.getCredentialFromTransactionIdID2(entry);
         // Then
         SdJwtAssert.assertThat(entry.getVerifiableCredential())
                 .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
@@ -413,7 +413,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionId(batchEntry);
+        wallet.getCredentialFromTransactionIdV1(batchEntry);
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
