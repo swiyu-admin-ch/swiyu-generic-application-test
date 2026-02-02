@@ -63,6 +63,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
     )
     void verifyDCQLEncryptedWithHolderBinding_walletResponds_thenSuccess(final String supportedMetadataId) {
+        final String expectedAlgorithm = "ECDH-ES";
         final String expectedKeyType = "EC";
         final String expectedCurve = "P-256";
         final String expectedEncAlgorithm = "A128GCM";
@@ -88,6 +89,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .hasResponseMode(RequestObject.ResponseModeEnum.POST_JWT)
                 .hasClientMetadata()
                 .hasEncryptionJwks()
+                .hasEncryptionJwksWithAlgorithm(expectedAlgorithm)
                 .hasEncryptionJwksWithKty(expectedKeyType)
                 .hasEncryptionJwksWithCurve(expectedCurve)
                 .hasEncryptionEncAlgorithm(expectedEncAlgorithm)
