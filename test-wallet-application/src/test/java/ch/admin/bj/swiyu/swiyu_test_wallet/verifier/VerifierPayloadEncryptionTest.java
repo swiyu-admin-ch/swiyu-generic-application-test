@@ -267,6 +267,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final ECKey wrongECKey = new ECKeyGenerator(Curve.P_256).keyID(wrongKeyId).generate();
         final JsonWebKey wrongKey = new JsonWebKey()
                 .crv("P-256")
+                .alg("ECDH-ES")
                 .x(wrongECKey.getX().toString())
                 .y(wrongECKey.getY().toString())
                 .kid(wrongKeyId);
@@ -339,6 +340,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final ECKey wrongECKey = new ECKeyGenerator(Curve.P_256).keyID(wrongKeyId).generate();
         final JsonWebKey wrongKey = new JsonWebKey()
                 .crv("P-256")
+                .alg("ECDH-ES")
                 .x(wrongECKey.getX().toString())
                 .y(wrongECKey.getY().toString())
                 .kid(wrongKeyId);
