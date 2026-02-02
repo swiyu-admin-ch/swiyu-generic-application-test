@@ -49,10 +49,11 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
     @XrayTest(
             key = "EIDOMNI-392",
-            summary = "Successful issuance and verification of an encrypted SD-JWT credential",
+            summary = "Successful DCQL verification with payload encryption when wallet responds with encrypted presentation",
             description = """
-                    This test validates the end-to-end issuance and verification of an SD-JWT credential where OID4VP presentation
-                     responses are encrypted according to specification. The test runs for bound and unbound SD-JWT credential.
+                    This test validates the end-to-end DCQL verification flow when the Business Verifier requests payload encryption.
+                    The Wallet retrieves the verification request and successfully constructs an encrypted presentation that satisfies the Verifier's encryption requirements.
+                    The test runs for both bound and unbound SD-JWT credentials to ensure encryption works correctly across credential types.
                     """
     )
     @Tag("ucv_o2")
@@ -62,7 +63,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             issuer = {"stable", "staging", "rc"},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
     )
-    void verifyDCQLEncryptedWithHolderBinding_walletResponds_thenSuccess(final String supportedMetadataId) {
+    void verifyDCQL_whenEncryptionRequired_thenSuccess(final String supportedMetadataId) {
         final String expectedAlgorithm = "ECDH-ES";
         final String expectedKeyType = "EC";
         final String expectedCurve = "P-256";
@@ -113,23 +114,17 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
     @XrayTest(
             key = "EIDOMNI-452",
-            summary = "Deny an unencrypted presentation that the verifier requires as encrypted",
+            summary = "Reject unencrypted presentation when Business Verifier requires encrypted payload (ID2 retrocompatible)",
             description = """
-                    This test validates the negative path of the verifier that request an encrypted verification but receiving a valid but unencrypted verification
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an unencrypted SD-JWT presentation back to the verifier.
-                    7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
+                    This test validates that the Verifier rejects unencrypted presentations when the Business Verifier explicitly requests encrypted payloads.
+                    The Wallet intentionally sends an unencrypted presentation to verify the Verifier enforces encryption requirements.
+                    The verification state remains PENDING as the presentation does not meet security requirements.
                     """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
-    void verifierRequiresEncryption_walletSendsUnencrypted_thenRejected(final String supportedMetadataId) {
+    @Deprecated(forRemoval = true)
+    void rejectPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.ID2;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -174,23 +169,16 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
     @XrayTest(
             key = "EIDOMNI-452",
-            summary = "Deny an unencrypted presentation that the verifier requires as encrypted",
+            summary = "Reject unencrypted DCQL presentation when Business Verifier requires encrypted payload",
             description = """
-                    This test validates the negative path of the verifier that request an encrypted verification but receiving a valid but unencrypted verification
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an unencrypted SD-JWT presentation back to the verifier.
-                    7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
+                    This test validates that the Verifier rejects unencrypted DCQL presentations when the Business Verifier explicitly requests encrypted payloads.
+                    The Wallet intentionally sends an unencrypted DCQL-based presentation to verify the Verifier enforces encryption requirements.
+                    The verification state remains PENDING as the presentation does not meet security requirements.
                     """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
-    void verifierRequiresEncryption_walletSendsUnencrypted_thenRejected2(final String supportedMetadataId) {
+    void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -236,24 +224,17 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
     @XrayTest(
             key = "EIDOMNI-461",
-            summary = "Verifier denied an encrypted presentation that was encrypted with the wrong key",
+            summary = "Reject encrypted presentation when encrypted with wrong key (ID2 retrocompatible)",
             description = """
-                    This test validates the negative path of the wallet sending a encrypted presentation but not with the expected key
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an encrypted SD-JWT presentation that was encrypted with the wrong key
-                    7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
+                    This test validates that the Verifier rejects presentations encrypted with an incorrect key that does not match the Business Verifier's public keys.
+                    The Wallet sends a properly encrypted presentation but using a wrong encryption key to verify the Verifier enforces key validation.
+                    The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
                     """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
     @Deprecated(forRemoval = true)
-    void verifierRequiresEncryption_walletSendsWrongEncryption_thenRejected(final String supportedMetadataId) throws JOSEException {
+    void rejectPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.ID2;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -315,23 +296,16 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
     @XrayTest(
             key = "EIDOMNI-461",
-            summary = "Verifier denied an encrypted presentation that was encrypted with the wrong key",
+            summary = "Reject encrypted DCQL presentation when encrypted with wrong key",
             description = """
-                    This test validates the negative path of the wallet sending a encrypted presentation but not with the expected key
-                    
-                    Steps:
-                    1. The wallet indicates preference for encrypted responses (encryption_preferred = true).
-                    2. The issuer creates a credential offer for an unbound SD-JWT credential.
-                    3. The wallet collects the credential offer and retrieves the encrypted SD-JWT credential.
-                    4. The verifier creates a verification request that requires encrypted presentations.
-                    5. The wallet retrieves the verification request details.
-                    6. The wallet constructs and sends an encrypted SD-JWT presentation that was encrypted with the wrong key
-                    7. The verifier deny the presentation as not encrypted, and keep the verification state as PENDING.
+                    This test validates that the Verifier rejects DCQL presentations encrypted with an incorrect key that does not match the Business Verifier's public keys.
+                    The Wallet sends a properly encrypted DCQL presentation but using a wrong encryption key to verify the Verifier enforces key validation.
+                    The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
                     """
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
-    void verifierRequiresEncryption_walletSendsWrongEncryption_thenRejected2(final String supportedMetadataId) throws JOSEException {
+    void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
