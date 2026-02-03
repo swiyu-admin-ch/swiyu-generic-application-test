@@ -54,8 +54,8 @@ jobs:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: pull_request_check:latest
+          scan-type: 'fs'
           severity: 'CRITICAL,HIGH'
           exit-code: 1
           ignore-unfixed: true
-          format: table
+          format: 'table'
