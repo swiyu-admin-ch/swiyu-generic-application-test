@@ -268,7 +268,7 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "rc", "staging"},
+            issuer = {"stable", "rc", "staging", "dev"},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
     void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(
