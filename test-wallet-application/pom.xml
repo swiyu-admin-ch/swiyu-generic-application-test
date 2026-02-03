@@ -125,7 +125,7 @@
         <dependency>
             <groupId>app.getxray</groupId>
             <artifactId>xray-junit-extensions</artifactId>
-            <version>0.10.0</version>
+            <version>1.0.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
