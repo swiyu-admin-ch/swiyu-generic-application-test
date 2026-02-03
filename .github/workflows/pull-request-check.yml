@@ -51,6 +51,17 @@ jobs:
         with:
           sarif_file: pmd-report.sarif
 
+      - name: Build and push docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          pull: true # Prevent old images to be used, which may trigger CVE findings
+          tags: pull_request_check:latest
+          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
+          file: Dockerfile
+
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
