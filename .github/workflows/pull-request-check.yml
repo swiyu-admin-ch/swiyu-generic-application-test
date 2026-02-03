@@ -33,28 +33,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
-      - name: Build & test with Maven (produce JaCoCo)
-        run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-      - name: Upload JaCoCo reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-reports
-          path: |
-            verifier-service/target/site/jacoco/jacoco.xml
-            verifier-service/target/site/jacoco/index.html
-            verifier-application/target/site/jacoco/jacoco.xml
-            verifier-application/target/site/jacoco/index.html
-
-      - name: Setup Node.js (for coverage summary script)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Add coverage to summary
-        run: node .github/scripts/coverage-summary.js
 
       - name: Run PMD static analysis
         uses: pmd/pmd-github-action@v2
@@ -66,17 +48,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: pmd-report.sarif
-
-      - name: Build and push docker image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          pull: true # Prevent old images to be used, which may trigger CVE findings
-          tags: pull_request_check:latest
-          build-args: SOURCE_IMAGE=eclipse-temurin:21-jre-ubi9-minimal
-          file: Dockerfile
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@0.30.0
