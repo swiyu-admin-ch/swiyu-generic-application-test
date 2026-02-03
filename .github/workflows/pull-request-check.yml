@@ -33,6 +33,8 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
+      - name: Build & test with Maven
+        run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
