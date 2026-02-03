@@ -13,7 +13,7 @@ echo "🔍 Testing CodeQL Advanced Mode Configuration..."
 
 # Pfade
 CODEQL_HOME="./codeql"
-DB_NAME="swiyu-issuer-codeql-db"
+DB_NAME="swiyu-application-test-codeql-db"
 
 # Cleanup existing database and results
 echo "🧹 Cleaning up existing database and results..."
