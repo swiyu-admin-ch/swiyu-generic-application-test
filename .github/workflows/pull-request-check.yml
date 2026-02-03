@@ -39,15 +39,20 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-
       - name: Run PMD static analysis
         uses: pmd/pmd-github-action@v2
         id: pmd
         with:
           rulesets: '.github/rulesets/java/pmd_omni_ruleset.xml'
-
       - name: Upload PMD SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: pmd-report.sarif
-
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,config
+          severity: CRITICAL,HIGH
+          exit-code: 0
