@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Code QL ###
+/codeql/
+/swiyu-application-test-codeql-db/
+codeql-results.sarif

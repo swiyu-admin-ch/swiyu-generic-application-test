@@ -29,7 +29,7 @@ else
 fi
 
 echo ""
-echo "=== Scanning issuer-application for vulnerabilities ==="
+echo "=== Scanning verifier-application for vulnerabilities ==="
 echo ""
 
 # Scan the Maven project for HIGH and CRITICAL vulnerabilities
@@ -47,4 +47,4 @@ echo ""
 echo "=== Scan complete ==="
 echo ""
 echo "To generate a JSON report, run:"
-echo "trivy fs --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-report.json issuer-application/"
+echo "trivy fs --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-report.json test-wallet-application/"
