@@ -40,6 +40,10 @@ public class DeferredFlowTest extends BaseTest {
     )
     @Tag("uci_i1")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable", "rc", "staging"},
+            reason = "The images have not the fix yet (Spec about 202 if credential deferred not available)."
+    )
     @Deprecated(forRemoval = true)
     void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() throws InterruptedException {
         // Given
