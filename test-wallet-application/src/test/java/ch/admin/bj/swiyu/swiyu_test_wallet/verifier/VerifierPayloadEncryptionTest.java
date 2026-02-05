@@ -123,6 +123,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "The stable tag is not yet ready with batch issuance."
+    )
     @Deprecated(forRemoval = true)
     void rejectPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
         // Given
@@ -178,6 +182,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "The stable tag is not yet ready with batch issuance."
+    )
     void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
@@ -233,6 +241,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "The stable tag is not yet ready with batch issuance."
+    )
     @Deprecated(forRemoval = true)
     void rejectPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
         // Given
@@ -306,6 +318,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     @Tag("ucv_o2")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable"},
+            reason = "The stable tag is not yet ready with batch issuance."
+    )
     void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
         // Given
         final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
