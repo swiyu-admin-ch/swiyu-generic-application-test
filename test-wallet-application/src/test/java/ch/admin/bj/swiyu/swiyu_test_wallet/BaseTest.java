@@ -50,13 +50,8 @@ import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-        properties = {
-                "server.port=${systemtests.port:18888}",
-                "server.address=0.0.0.0"
-        },
         classes = SwiyuTestWalletApplication.class
 )
-@ActiveProfiles("systemtests")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
