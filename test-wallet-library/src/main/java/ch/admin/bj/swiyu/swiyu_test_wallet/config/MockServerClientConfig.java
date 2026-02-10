@@ -42,6 +42,8 @@ public class MockServerClientConfig {
     private static final String MOCKSERVER_HOST = "mockserver:1080";
     private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
 
+    private static boolean shouldReturnRevokedStatusList = false;
+
     public static MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig) {
 
@@ -136,13 +138,16 @@ public class MockServerClientConfig {
 
         JWSSigner signer = new ECDSASigner(jwk.toECKey());
 
+        String statusBits = shouldReturnRevokedStatusList ?
+                "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAE=" :
+                "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ";
+
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(httpRequest.getPath().getValue())
                 .issuer(issuerConfig.getIssuerDid())
                 .claim("status_list", Map.of(
                         "bits", "2",
-                        "lst",
-                        "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ"))
+                        "lst", statusBits))
                 .expirationTime(new Date(new Date().getTime() + 60 * 1000))
                 .build();
 
@@ -159,4 +164,17 @@ public class MockServerClientConfig {
 
         return SignedJWT.parse(s).serialize();
     }
+
+    public static void toggleRevokedStatusList() {
+        shouldReturnRevokedStatusList = !shouldReturnRevokedStatusList;
+    }
+
+    public static void setRevokedStatusList(boolean revoked) {
+        shouldReturnRevokedStatusList = revoked;
+    }
+
+    public static void resetRevokedStatusList() {
+        shouldReturnRevokedStatusList = false;
+    }
 }
+
