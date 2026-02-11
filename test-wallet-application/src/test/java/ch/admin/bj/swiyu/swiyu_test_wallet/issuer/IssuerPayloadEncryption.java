@@ -268,7 +268,7 @@ class IssuerPayloadEncryption extends BaseTest {
     @Tag("uci_i1")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "rc", "staging", "dev"},
+            issuer = {"stable", "rc", "staging"},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
     void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(
@@ -297,6 +297,7 @@ class IssuerPayloadEncryption extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("Credential Request must be encrypted");
+                .hasError("INVALID_ENCRYPTION_PARAMETERS")
+                .hasErrorDescription("Request encryption is mandatory with content type set to application/jwt");
     }
 }
