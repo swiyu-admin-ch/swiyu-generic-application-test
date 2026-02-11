@@ -5,6 +5,8 @@ import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 
+import java.util.UUID;
+
 @Slf4j
 public final class CredentialResponseAssert {
 
@@ -36,10 +38,18 @@ public final class CredentialResponseAssert {
         return new CredentialResponseAssert(response);
     }
 
-    public CredentialResponseAssert hasTransactionId() {
+    public CredentialResponseAssert hasTransactionId(UUID expectedTransactionId) {
         Assertions.assertThat(body.has("transaction_id"))
                 .as("Deferred response must contain transaction_id")
                 .isTrue();
+
+        final UUID actualTransactionId = UUID.fromString(
+                body.get("transaction_id").getAsString()
+        );
+
+        Assertions.assertThat(actualTransactionId)
+                .as("transaction_id must match expected UUID")
+                .isEqualTo(expectedTransactionId);
 
         return this;
     }
