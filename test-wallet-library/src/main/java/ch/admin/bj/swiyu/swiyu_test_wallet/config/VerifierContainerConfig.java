@@ -44,6 +44,7 @@ public class VerifierContainerConfig {
                 .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, verifierImageConfig.getDbSchema()))
                 .withEnv("POSTGRES_USER", dbContainer.getUsername())
                 .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
+                .withEnv("POSTGRES_DB_SCHEMA", verifierImageConfig.getDbSchema())
                 .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                 .withEnv("WEBHOOK_INTERVAL", "100")
                 .withNetwork(network)
