@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,10 +43,10 @@ public class DeferredFlowTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {"stable", "rc", "staging"},
-            reason = "The images have not the fix yet (Spec about 202 if credential deferred not available)."
+            reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
     )
     @Deprecated(forRemoval = true)
-    void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() throws InterruptedException {
+    void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() {
         // Given
         final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -62,11 +63,12 @@ public class DeferredFlowTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
 
         // When
+        final UUID expectedTransactionId = batchEntry.getTransactionId();
         final CredentialResponse credentialResponse = wallet.getCredentialFromTransactionId(apiVersion, batchEntry);
 
         // Then
         CredentialResponseAssert.assertThat(credentialResponse)
-                .hasTransactionId()
+                .hasTransactionId(expectedTransactionId)
                 .hasInterval()
                 .hasCode(202);
 
@@ -76,7 +78,7 @@ public class DeferredFlowTest extends BaseTest {
 
         // Then
         CredentialResponseAssert.assertThat(credentialResponse)
-                .hasTransactionId()
+                .hasTransactionId(expectedTransactionId)
                 .hasInterval()
                 .hasCode(202);
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
@@ -99,7 +101,7 @@ public class DeferredFlowTest extends BaseTest {
     @Tag("uci_i1")
     @Tag("edge_case")
     @Deprecated(forRemoval = true)
-    void deferredCredentialRequestID2_whenCredentialNotReady_remainsDeferred() throws InterruptedException {
+    void deferredCredentialRequestID2_whenCredentialNotReady_remainsDeferred() {
         // Given
         final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.ID2;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
