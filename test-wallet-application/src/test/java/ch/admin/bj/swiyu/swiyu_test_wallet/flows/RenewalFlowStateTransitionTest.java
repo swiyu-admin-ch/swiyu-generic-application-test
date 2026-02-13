@@ -12,8 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -31,9 +31,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.security.KeyPair;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -107,407 +107,350 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "@TODO",
-            summary = "All credentials (initial and renewed) are revoked and cannot be verified",
+            key = "EIDOMNI-713",
+            summary = "Revocation applies to both initial and renewed credentials in OID4VP flow",
             description = """
-                    This test validates the complete renewal and revocation flow where credentials are initially
-                    issued, renewed through refresh token mechanism, and then all credentials (both initial batch
-                    and renewed batch) are revoked by the credential management. The test ensures that revocation
-                    is applied consistently to all credential batches and that verification fails for all revoked
-                    credentials regardless of whether they are from the initial or renewed batch.
+                    This test validates that when an Issuer revokes a credential after it has been renewed,
+                    the revocation applies to all related credential batches.
+                    
+                    The Issuer first issues a batch of credentials. The Wallet then renews the credentials
+                    using the refresh token mechanism, resulting in a second batch of valid credentials.
+                    
+                    When the Issuer revokes the credential through the management endpoint, both the
+                    initial batch and the renewed batch must be considered revoked.
+                    
+                    Any attempt by the Wallet to present credentials from either batch in an OID4VP
+                    verification flow must be rejected by the Verifier.
                     """)
-    @Tag("@TODO")
-    @Tag("happy_path")
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc", "dev"},
-            reason = "This feature is not available yet"
+            issuer = {"stable", "staging", "rc"},
+            reason = "This fix is not available yet"
     )
-    void renewalFlow_whenAllCredentialsRevoked_thenBothInitialAndRenewedRejected() {
-        final List<String> allCredentials = new ArrayList<>();
+    void credentialRenewal_whenRevoked_thenAllCredentialsAreRejected() {
+        // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
+
         final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
-        final WalletBatchEntry renewedEntry = new WalletBatchEntry(wallet);
-
-        log.info("Create initial credentials");
         final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
-        allCredentials.addAll(initialEntry.getIssuedCredentials());
+        final WalletBatchEntry renewedEntry = initialEntry.duplicate();
 
-        renewedEntry.setIssuerVCDeepLink(initialEntry.getIssuerVCDeepLink());
-        renewedEntry.setCredentialOffer(initialEntry.getCredentialOffer());
-        renewedEntry.setIssuerWellKnownConfiguration(initialEntry.getIssuerWellKnownConfiguration());
-        renewedEntry.setIssuerMetadata(initialEntry.getIssuerMetadata());
-        renewedEntry.setCredentialConfigurationSupported();
-        renewedEntry.setToken(initialEntry.getToken());
-
-        log.info("Retrieve a refresh token");
+        // When - Renew credentials
         String nonce = wallet.getCNonce(renewedEntry);
-        String dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerTokenUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                renewedEntry.getToken().getRefreshToken());
-        final OAuthToken token = wallet.collectRefreshTokenWithDPoP(renewedEntry, dpop);
-        renewedEntry.setToken(token);
-
-        log.info("Generate proofs with a fresh nonce");
-        nonce = wallet.getCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        log.info("Renew credentials using the refresh token");
-        nonce = wallet.getDpopNonce(renewedEntry);
-        dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                token.getAccessToken());
-
-        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, token.getAccessToken(), dpop);
-        assertThat(credentialResponse).isNotNull();
-        allCredentials.addAll(renewedEntry.getIssuedCredentials());
-
-        assertThat(allCredentials)
-                .as("All credentials have been issued")
-                .isNotNull()
-                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2);
-
-        assertThat(allCredentials)
-                .as("All credential JWTs must be unique")
-                .doesNotHaveDuplicates();
-
-        issuerManager.updateStateWithSignedJwt(
-                jwtKey, "test-key-1",
-                offer.getManagementId(),
-                UpdateCredentialStatusRequestType.REVOKED
-        );
-
-        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Revoked!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-        }
-
-        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Revoked!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        }
-    }
-
-    @Test
-    @XrayTest(
-            key = "@TODO",
-            summary = "All credentials (initial and renewed) are revoked and cannot be verified",
-            description = """
-                    This test validates the complete renewal and revocation flow where credentials are initially
-                    issued, renewed through refresh token mechanism, and then all credentials (both initial batch
-                    and renewed batch) are revoked by the credential management. The test ensures that revocation
-                    is applied consistently to all credential batches and that verification fails for all revoked
-                    credentials regardless of whether they are from the initial or renewed batch.
-                    """)
-    @Tag("@TODO")
-    @Tag("happy_path")
-    @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc", "dev"},
-            reason = "This feature is not available yet"
-    )
-    void renewalFlow_whenAllCredentialsSuspended_thenBothInitialAndRenewedRejected() {
-        final List<String> allCredentials = new ArrayList<>();
-        final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
-        final WalletBatchEntry renewedEntry = new WalletBatchEntry(wallet);
-
-        log.info("Create initial credentials");
-        final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
-        allCredentials.addAll(initialEntry.getIssuedCredentials());
-
-        renewedEntry.setIssuerVCDeepLink(initialEntry.getIssuerVCDeepLink());
-        renewedEntry.setCredentialOffer(initialEntry.getCredentialOffer());
-        renewedEntry.setIssuerWellKnownConfiguration(initialEntry.getIssuerWellKnownConfiguration());
-        renewedEntry.setIssuerMetadata(initialEntry.getIssuerMetadata());
-        renewedEntry.setCredentialConfigurationSupported();
-        renewedEntry.setToken(initialEntry.getToken());
-
-        log.info("Retrieve a refresh token");
-        String nonce = wallet.getCNonce(renewedEntry);
-        String dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerTokenUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                renewedEntry.getToken().getRefreshToken());
-        final OAuthToken token = wallet.collectRefreshTokenWithDPoP(renewedEntry, dpop);
-        renewedEntry.setToken(token);
-
-        log.info("Generate proofs with a fresh nonce");
-        nonce = wallet.getCNonce(renewedEntry);
-        renewedEntry.generateHolderKeys();
-        renewedEntry.createProofs(nonce);
-
-        log.info("Renew credentials using the refresh token");
-        nonce = wallet.getDpopNonce(renewedEntry);
-        dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                token.getAccessToken());
-
-        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, token.getAccessToken(), dpop);
-        assertThat(credentialResponse).isNotNull();
-        allCredentials.addAll(renewedEntry.getIssuedCredentials());
-
-        assertThat(allCredentials)
-                .as("All credentials have been issued")
-                .isNotNull()
-                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2);
-
-        assertThat(allCredentials)
-                .as("All credential JWTs must be unique")
-                .doesNotHaveDuplicates();
-
-        issuerManager.updateStateWithSignedJwt(
-                jwtKey, "test-key-1",
-                offer.getManagementId(),
-                UpdateCredentialStatusRequestType.SUSPENDED
-        );
-
-        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Suspended!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-        }
-
-        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Suspended!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        }
-    }
-
-    @Test
-    @XrayTest(
-            key = "@TODO",
-            summary = "All credentials (initial and renewed) are revoked and cannot be verified",
-            description = """
-                    This test validates the complete renewal and revocation flow where credentials are initially
-                    issued, renewed through refresh token mechanism, and then all credentials (both initial batch
-                    and renewed batch) are revoked by the credential management. The test ensures that revocation
-                    is applied consistently to all credential batches and that verification fails for all revoked
-                    credentials regardless of whether they are from the initial or renewed batch.
-                    """)
-    @Tag("@TODO")
-    @Tag("happy_path")
-    @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc", "dev"},
-            reason = "This feature is not available yet"
-    )
-    void renewalFlow_whenRevokedBeforeRenew_thenBothInitialAndRenewedRejected() {
-        final List<String> allCredentials = new ArrayList<>();
-        final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
-        final WalletBatchEntry renewedEntry = new WalletBatchEntry(wallet);
-
-        log.info("Create initial credentials");
-        final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
-        allCredentials.addAll(initialEntry.getIssuedCredentials());
-
-        renewedEntry.setIssuerVCDeepLink(initialEntry.getIssuerVCDeepLink());
-        renewedEntry.setCredentialOffer(initialEntry.getCredentialOffer());
-        renewedEntry.setIssuerWellKnownConfiguration(initialEntry.getIssuerWellKnownConfiguration());
-        renewedEntry.setIssuerMetadata(initialEntry.getIssuerMetadata());
-        renewedEntry.setCredentialConfigurationSupported();
-        renewedEntry.setToken(initialEntry.getToken());
-
-        issuerManager.updateStateWithSignedJwt(
-                jwtKey, "test-key-1",
-                offer.getManagementId(),
-                UpdateCredentialStatusRequestType.REVOKED
-        );
-
-        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Revoked!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-        }
-
-        log.info("Retrieve a refresh token");
-        String nonce = wallet.getCNonce(renewedEntry);
-        String dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerTokenUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                renewedEntry.getToken().getRefreshToken());
-        final OAuthToken token = wallet.collectRefreshTokenWithDPoP(renewedEntry, dpop);
-        renewedEntry.setToken(token);
-
-        log.info("Generate proofs with a fresh nonce");
-        nonce = wallet.getCNonce(renewedEntry);
-        renewedEntry.generateHolderKeys();
-        renewedEntry.createProofs(nonce);
-
-        log.info("Renew credentials using the refresh token");
         nonce = wallet.getDpopNonce(renewedEntry);
         final String finalDpop = DPoPSupport.createDpopProofForToken(
                 renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                token.getAccessToken());
+                renewedEntry.getToken().getAccessToken());
 
+        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+
+        // Then - Wallet was able to successfully renew credentials in another batch
+        assertThat(credentialResponse).isNotNull();
+        List<String> all = Stream.concat(initialEntry.getIssuedCredentials().stream(), renewedEntry.getIssuedCredentials().stream()).toList();
+        SdJwtBatchAssert.assertThat(all)
+                .areUnique()
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE * 2);
+
+
+        // When - Revoke both initial and renewed credentials
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
+                offer.getManagementId(),
+                updateStatus
+        );
+
+        // Then - Verify that initial credentials cannot be verified
+        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            });
+            ApiErrorAssert.assertThat(ex)
+                    .hasError("invalid_transaction_data")
+                    .hasErrorDescription("Credential has been Revoked!");
+            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        }
+
+        // Then - Verify that renewed credentials cannot be verified
+        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            });
+            ApiErrorAssert.assertThat(ex)
+                    .hasError("invalid_transaction_data")
+                    .hasErrorDescription("Credential has been Revoked!");
+            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-714",
+            summary = "Suspension applies to both initial and renewed credentials until reactivation in OID4VP flow",
+            description = """
+                    This test validates that when an Issuer suspends a credential after it has been renewed,
+                    the suspension applies to all related credential batches managed under the same offer.
+                    
+                    The Issuer first issues a batch of credentials associated with a management offer.
+                    The Wallet then renews the credentials using the refresh token mechanism, creating
+                    a renewed batch linked to the same management context.
+                    
+                    When the Issuer suspends the credential via the management endpoint, both the
+                    initial batch and the renewed batch must be considered suspended.
+                    
+                    Any attempt by the Wallet to present credentials from either batch in an OID4VP
+                    verification flow must be rejected by the Verifier.
+                    
+                    Once the Issuer reactivates the credential by setting the status back to ISSUED,
+                    the Wallet must be able to successfully complete the OID4VP verification flow.
+                    """)
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable", "staging", "rc"},
+            reason = "This fix is not available yet"
+    )
+    void credentialRenewal_whenSuspended_thenAllCredentialsAreRejected() {
+        // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
+
+        final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
+        final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
+        final WalletBatchEntry renewedEntry = initialEntry.duplicate();
+
+        // When - Renew credentials
+        String nonce = wallet.getCNonce(renewedEntry);
+        renewedEntry.generateHolderKeys();
+        renewedEntry.createProofs(nonce);
+
+        nonce = wallet.getDpopNonce(renewedEntry);
+        final String finalDpop = DPoPSupport.createDpopProofForToken(
+                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
+                renewedEntry.getToken().getAccessToken());
+
+        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+
+        // Then - Wallet was able to successfully renew credentials in another batch
+        assertThat(credentialResponse).isNotNull();
+        List<String> all = Stream.concat(initialEntry.getIssuedCredentials().stream(), renewedEntry.getIssuedCredentials().stream()).toList();
+        SdJwtBatchAssert.assertThat(all)
+                .areUnique()
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE * 2);
+
+        // When - Suspend both initial and renewed credentials
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
+                offer.getManagementId(),
+                updateStatus
+        );
+
+        // Then - Verify that initial credentials cannot be verified
+        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            });
+            ApiErrorAssert.assertThat(ex)
+                    .hasError("invalid_transaction_data")
+                    .hasErrorDescription("Credential has been Suspended!");
+            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        }
+
+        // Then - Verify that renewed credentials cannot be verified
+        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            });
+            ApiErrorAssert.assertThat(ex)
+                    .hasError("invalid_transaction_data")
+                    .hasErrorDescription("Credential has been Suspended!");
+            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        }
+
+        // When - Reactivate credentials by setting status back to ISSUED
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
+                offer.getManagementId(),
+                UpdateCredentialStatusRequestType.ISSUED
+        );
+
+        // Then - Verify that both initial and renewed credentials can now be verified successfully
+        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+        }
+
+        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
+            final ManagementResponse verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
+            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+        }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-715",
+            summary = "Revoked credentials cannot be renewed through the renewal flow",
+            description = """
+                    This test validates that once a credential associated with a management offer
+                    has been revoked by the Issuer, it is no longer possible to renew it.
+                    
+                    The Issuer first issues a batch of credentials under a management offer.
+                    The Issuer then revokes the credential before any renewal occurs.
+                    
+                    When the Wallet attempts to initiate a renewal flow using the refresh token,
+                    the renewal request must be rejected and no new credential batch must be issued.
+                    
+                    A revoked credential must permanently terminate the lifecycle of the
+                    associated offer and prevent any further renewal operations.
+                    """
+    )
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable", "staging", "rc"},
+            reason = "This fix is not available yet"
+    )
+    void credentialRenewal_whenRevokedBeforeRenewal_thenRenewalIsRejected() {
+        // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
+
+        final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
+        final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
+        final WalletBatchEntry renewedEntry = initialEntry.duplicate();
+
+        // When - Revoke credentials before renewal attempt
+        issuerManager.updateStateWithSignedJwt(
+                jwtKey, "test-key-1",
+                offer.getManagementId(),
+                updateStatus
+        );
+
+        // When - Attempt to renew revoked credentials
+        String nonce = wallet.getCNonce(renewedEntry);
+        renewedEntry.generateHolderKeys();
+        renewedEntry.createProofs(nonce);
+
+        nonce = wallet.getDpopNonce(renewedEntry);
+        final String finalDpop = DPoPSupport.createDpopProofForToken(
+                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
+                renewedEntry.getToken().getAccessToken());
+
+        // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequestWithRefreshToken(renewedEntry, token.getAccessToken(), finalDpop);
+            wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
         });
 
         ApiErrorAssert.assertThat(ex)
-                .hasError("invalid_transaction_data")
-                .hasErrorDescription("Credential has been Revoked!");
+                .hasErrorDescription("Credential management is revoked, no renewal possible");
     }
 
     @Test
     @XrayTest(
-            key = "@TODO",
-            summary = "All credentials (initial and renewed) are revoked and cannot be verified",
+            key = "EIDOMNI-716",
+            summary = "Suspended credentials cannot produce valid renewed credentials",
             description = """
-                    This test validates the complete renewal and revocation flow where credentials are initially
-                    issued, renewed through refresh token mechanism, and then all credentials (both initial batch
-                    and renewed batch) are revoked by the credential management. The test ensures that revocation
-                    is applied consistently to all credential batches and that verification fails for all revoked
-                    credentials regardless of whether they are from the initial or renewed batch.
-                    """)
-    @Tag("@TODO")
-    @Tag("happy_path")
-    @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc", "dev"},
-            reason = "This feature is not available yet"
+                    This test validates that when a credential associated with a management offer
+                    is suspended before a renewal flow, the suspension prevents the issuance of
+                    valid renewed credentials.
+                    
+                    The Issuer first issues a batch of credentials under a management offer.
+                    The Issuer then suspends the credential before the Wallet initiates the
+                    renewal process.
+                    
+                    When the Wallet attempts to renew the credential using the refresh token,
+                    the system must not issue a new valid credential batch.
+                    
+                    Suspension must prevent the lifecycle from progressing through renewal
+                    until the Issuer explicitly reactivates the credential.
+                    """
     )
-    void renewalFlow_whenSuspendedBeforeRenew_thenBothInitialAndRenewedRejected() {
-        final List<String> allCredentials = new ArrayList<>();
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
+    @DisableIfImageTag(
+            issuer = {"stable", "staging", "rc"},
+            reason = "This fix is not available yet"
+    )
+    void credentialRenewal_whenSuspendedBeforeRenewal_thenNoValidRenewedCredentialsAreIssued() {
+        // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
+
         final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
-        final WalletBatchEntry renewedEntry = new WalletBatchEntry(wallet);
-
-        log.info("Create initial credentials");
         final CredentialWithDeeplinkResponse offer = initializeCredentials(initialEntry);
-        allCredentials.addAll(initialEntry.getIssuedCredentials());
+        final WalletBatchEntry renewedEntry = initialEntry.duplicate();
 
-        renewedEntry.setIssuerVCDeepLink(initialEntry.getIssuerVCDeepLink());
-        renewedEntry.setCredentialOffer(initialEntry.getCredentialOffer());
-        renewedEntry.setIssuerWellKnownConfiguration(initialEntry.getIssuerWellKnownConfiguration());
-        renewedEntry.setIssuerMetadata(initialEntry.getIssuerMetadata());
-        renewedEntry.setCredentialConfigurationSupported();
-        renewedEntry.setToken(initialEntry.getToken());
-
+        // When - Revoke credentials before renewal attempt
         issuerManager.updateStateWithSignedJwt(
                 jwtKey, "test-key-1",
                 offer.getManagementId(),
-                UpdateCredentialStatusRequestType.SUSPENDED
+                updateStatus
         );
 
-        for (int i = 0; i < initialEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Suspended!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-        }
-
-        log.info("Retrieve a refresh token");
+        // When - Attempt to renew suspended credentials
         String nonce = wallet.getCNonce(renewedEntry);
-        String dpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerTokenUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                renewedEntry.getToken().getRefreshToken());
-        final OAuthToken token = wallet.collectRefreshTokenWithDPoP(renewedEntry, dpop);
-        renewedEntry.setToken(token);
-
-        log.info("Generate proofs with a fresh nonce");
-        nonce = wallet.getCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        log.info("Renew credentials using the refresh token");
         nonce = wallet.getDpopNonce(renewedEntry);
         final String finalDpop = DPoPSupport.createDpopProofForToken(
                 renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                token.getAccessToken());
+                renewedEntry.getToken().getAccessToken());
 
-        //final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequestWithRefreshToken(renewedEntry, token.getAccessToken(), finalDpop);
-        //});
+        wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
 
-        //
-        //ApiErrorAssert.assertThat(ex)
-          //      .hasError("invalid_transaction_data")
-            //    .hasErrorDescription("Credential has been Suspended!");
+        // Then - Renewal must be rejected
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+            wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+        });
 
-        for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(true)
-                    .createManagementResponse();
-
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
-            final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            log.info("Presenting credential from initial batch, which should be revoked " + presentation);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Suspended!");
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        }
+        ApiErrorAssert.assertThat(ex)
+                .hasErrorDescription("Credential management is suspended, no renewal possible");
     }
-
 }

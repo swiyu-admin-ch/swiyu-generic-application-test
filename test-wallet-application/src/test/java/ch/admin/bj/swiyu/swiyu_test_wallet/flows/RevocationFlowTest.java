@@ -35,16 +35,26 @@ public class RevocationFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "@TODO",
-            summary = "Revoked credential cannot be verified in OID4VP flow",
+            key = "EIDOMNI-711",
+            summary = "Revoked credentials cannot be used in OID4VP verification flow",
             description = """
-                    This test validates that a revoked credential cannot be used in an OID4VP verification flow.
-                    After issuing a batch of credentials and subsequently revoking them, the verifier correctly rejects
-                    the presentation with a credential_revoked error, preventing verification from succeeding.
+                        This test validates that once credentials have been issued and subsequently revoked by the Issuer,
+                        any attempt by the Wallet to use them in an OID4VP verification flow is rejected.
+
+                        The Issuer first issues a batch of credentials to the Wallet. After confirming successful issuance,
+                        the Issuer changes the credential status to REVOKED.
+
+                        When the Wallet attempts to present each credential to the Verifier, the verification process
+                        must fail with a credential_revoked error. The Verifier must transition the verification state
+                        to FAILED, ensuring that revoked credentials cannot be reused.
                     """)
-    @Tag("@TODO")
-    void revokedCredential_whenVerified_thenFailureWithRevokedError() throws InterruptedException {
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
+    void revokedCredential_whenVerified_thenVerificationIsRejected() {
         // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
+
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
@@ -60,7 +70,7 @@ public class RevocationFlowTest extends BaseTest {
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // When - Revoke the credential
-        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+        issuerManager.updateState(offer.getManagementId(), updateStatus);
 
         // Then - The verification failed as the credential is revoked
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
@@ -89,17 +99,24 @@ public class RevocationFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "@TODO",
-            summary = "Suspended credential cannot be verified but can be revalidated in OID4VP flow",
+            key = "EIDOMNI-712",
+            summary = "Suspended credentials are rejected during OID4VP verification and become verifiable again once reactivated by the issuer",
             description = """
-                    This test validates the suspension and revalidation lifecycle of a credential in an OID4VP flow.
-                    After issuing a batch of credentials, the issuer suspends them, causing verification to fail with 
-                    a credential_suspended error. The issuer then revalidates the credentials by setting them back to ISSUED,
-                    allowing subsequent verification attempts to succeed.
-                    """)
-    @Tag("@TODO")
-    void suspendedCredential_whenSuspendedAndVerified_thenFailure_whenReissuedThenSuccess() throws InterruptedException {
+                This test validates the credential lifecycle behavior in an OID4VP verification flow when the Issuer suspends
+                and later reactivates a batch of issued credentials.
+
+                The Issuer first issues a batch of credentials to the Wallet. The Issuer then suspends the batch, and any attempt
+                by the Wallet to present one of these credentials to the Verifier must be rejected with a credential_suspended error.
+                Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
+                the credentials successfully and the Verifier accepts the verification.
+                """)
+    @Tag("ucv_c3")
+    @Tag("ucv_o2c")
+    @Tag("edge_case")
+    void suspendedCredential_whenSuspended_thenVerificationRejected_whenRevalidated_thenVerificationAccepted() {
         // Given
+        final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
+
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
 
@@ -115,7 +132,7 @@ public class RevocationFlowTest extends BaseTest {
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // When - Suspend the credential
-        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
+        issuerManager.updateState(offer.getManagementId(), updateStatus);
 
         // Then - The verification fails as the credential is suspended
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
