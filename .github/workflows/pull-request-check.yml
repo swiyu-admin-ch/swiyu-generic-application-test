@@ -33,6 +33,8 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
+      - name: Configure Docker Java client, workaround for a bug in docker 29
+        run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Build & test with Maven
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis

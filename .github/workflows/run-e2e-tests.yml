@@ -31,8 +31,8 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
-      - name: Setup Docker
-        uses: docker/setup-docker-action@v4
+      - name: Configure Docker Java client, workaround for a bug in docker 29
+        run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Build and verify with Maven
         run: mvn --batch-mode verify
       - name: Publish Test Report
