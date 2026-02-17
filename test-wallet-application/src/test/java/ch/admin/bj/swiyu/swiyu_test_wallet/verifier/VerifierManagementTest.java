@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-public class VerifierManagementTest extends BaseTest {
+class VerifierManagementTest extends BaseTest {
 
     @Test
     @XrayTest(

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-public class VerifierOID4VPTest extends BaseTest {
+class VerifierOID4VPTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-554",
