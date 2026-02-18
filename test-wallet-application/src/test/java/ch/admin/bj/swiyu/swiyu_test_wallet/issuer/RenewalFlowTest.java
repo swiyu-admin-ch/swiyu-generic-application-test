@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
@@ -114,9 +115,9 @@ class RenewalFlowTest extends BaseTest {
                     a second batch of credentials using the DPoP-bound refresh token mechanism.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i2")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1)
+    @Tag(TestTags.UCI_I2)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -171,9 +172,9 @@ class RenewalFlowTest extends BaseTest {
                     validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_C1)
+    @Tag(TestTags.UCI_I2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -235,8 +236,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -307,8 +308,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -380,8 +381,8 @@ class RenewalFlowTest extends BaseTest {
                     The renewal attempt must be rejected with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -444,8 +445,8 @@ class RenewalFlowTest extends BaseTest {
                     enforce strict token validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -494,8 +495,8 @@ class RenewalFlowTest extends BaseTest {
                     DPoP binding verification and reject with HTTP 401.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -544,8 +545,8 @@ class RenewalFlowTest extends BaseTest {
                     with HTTP 401.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
@@ -590,8 +591,8 @@ class RenewalFlowTest extends BaseTest {
                     and return HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_R2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
@@ -640,8 +641,8 @@ class RenewalFlowTest extends BaseTest {
                     credential_management_id without cross-linking between independent management entities.
                     """
     )
-    @Tag("uci_r3")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_R3)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"

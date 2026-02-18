@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
@@ -42,9 +43,9 @@ class SignedMetadataTest extends BaseTest {
                     The wallet decodes the signed JWT response and confirms that all required OID4VCI metadata claims are present.
                     """
     )
-    @Tag("uci_m1")
-    @Tag("uci_m1a")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_M1)
+    @Tag(TestTags.UCI_M1A)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -129,9 +130,9 @@ class SignedMetadataTest extends BaseTest {
                     a non-existent tenant ID, returning HTTP 404 to prevent unauthorized metadata access.
                     """
     )
-    @Tag("uci_m1")
-    @Tag("uci_m1a")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_M1)
+    @Tag(TestTags.UCI_M1A)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"

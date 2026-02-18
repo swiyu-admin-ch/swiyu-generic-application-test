@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
@@ -46,8 +47,8 @@ class DeferredFlowTest extends BaseTest {
                     This ensures specification-compliant deferred issuance flow behavior.
                     """
     )
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "rc", "staging"},
             reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
@@ -105,8 +106,8 @@ class DeferredFlowTest extends BaseTest {
                     The test confirms this legacy behavior is maintained during the deprecation period.
                     """
     )
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @Deprecated(forRemoval = true)
     void deferredCredentialRequestID2_whenCredentialNotReady_remainsDeferred() {
         // Given

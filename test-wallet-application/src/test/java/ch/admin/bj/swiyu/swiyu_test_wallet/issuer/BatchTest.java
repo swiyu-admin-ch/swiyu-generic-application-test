@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +45,10 @@ class BatchTest extends BaseTest {
                     to ensure proper randomization and uniqueness across the status list.
                     """
     )
-    @Tag("uci_s1")
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_S1)
+    @Tag(TestTags.UCI_C1)
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -82,10 +83,10 @@ class BatchTest extends BaseTest {
                     with an appropriate error message.
                     """
     )
-    @Tag("uci_s1")
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_S1)
+    @Tag(TestTags.UCI_C1)
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"

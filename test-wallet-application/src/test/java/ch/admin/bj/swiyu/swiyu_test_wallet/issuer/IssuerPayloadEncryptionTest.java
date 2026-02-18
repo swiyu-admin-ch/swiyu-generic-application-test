@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
@@ -60,8 +61,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
             retrieved and their disclosures are properly validated.
             """)
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature payload encryption in deferred credential route is not available yet"
@@ -121,8 +122,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
             retrieved and their disclosures are properly validated.
             """)
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "The fix for supported media type not available yet"
@@ -174,8 +175,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
             """)
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -219,8 +220,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
             """)
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "Fix for deferred encprytion is not available yet"
@@ -265,8 +266,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     This test validates that a wallet cannot retrieve a deferred credential using an unencrypted request
                     when the strict issuer profile requires encryption.
                     """)
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "rc", "staging"},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"

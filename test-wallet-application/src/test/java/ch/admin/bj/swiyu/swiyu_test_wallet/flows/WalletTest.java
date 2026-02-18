@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -43,10 +44,10 @@ class WalletTest extends BaseTest {
                     through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
                     collects the non-deferred credential and presents it to a verifier for validation.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1A)
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.UCV_O2)
+    @Tag(TestTags.HAPPY_PATH)
     void unboundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -81,10 +82,10 @@ class WalletTest extends BaseTest {
                     through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
                     collects the non-deferred credential and presents it to a verifier for validation.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1A)
+    @Tag(TestTags.UCI_I1)
+    @Tag(TestTags.UCV_O2)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -130,10 +131,10 @@ class WalletTest extends BaseTest {
                     collects the credential after the issuer marks it as READY. The credential is subsequently
                     verified through the OID4VP interface.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1B)
+    @Tag(TestTags.UCI_I1B)
+    @Tag(TestTags.UCV_O2)
+    @Tag(TestTags.HAPPY_PATH)
     void unboundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -181,10 +182,10 @@ class WalletTest extends BaseTest {
                     collects the credential after the issuer marks it as READY. The credential is subsequently
                     verified through the OID4VP interface.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1B)
+    @Tag(TestTags.UCI_I1B)
+    @Tag(TestTags.UCV_O2)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -243,10 +244,10 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1a")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1A)
+    @Tag(TestTags.UCI_I1A)
+    @Tag(TestTags.UCV_O2A)
+    @Tag(TestTags.HAPPY_PATH)
     void boundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -283,10 +284,10 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1a")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1A)
+    @Tag(TestTags.UCI_I1A)
+    @Tag(TestTags.UCV_O2A)
+    @Tag(TestTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -332,10 +333,10 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1B)
+    @Tag(TestTags.UCI_I1B)
+    @Tag(TestTags.UCV_O2A)
+    @Tag(TestTags.HAPPY_PATH)
     void boundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -387,10 +388,10 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(TestTags.UCI_C1B)
+    @Tag(TestTags.UCI_I1B)
+    @Tag(TestTags.UCV_O2A)
+    @Tag(TestTags.HAPPY_PATH)
     void boundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -445,8 +446,8 @@ class WalletTest extends BaseTest {
                     when the wallet attempts to present an unbound credential. The verifier detects the missing holder key binding
                     proof and rejects the presentation with an appropriate error.
                     """)
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(TestTags.UCV_O2)
+    @Tag(TestTags.EDGE_CASE)
     @DisableIfImageTag(
             verifier = {"staging", "rc"},
             reason = "This is fixed in next versions"
