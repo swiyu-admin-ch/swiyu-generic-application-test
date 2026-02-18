@@ -10,17 +10,20 @@
         Custom PMD ruleset for Java. MethodNamingConventions rule is intentionally omitted.
     </description>
 
-    <!-- Example rules, you can add or remove as needed -->
+    <!-- Best practices -->
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
+        <exclude name="UnitTestContainsTooManyAsserts"/>
     </rule>
-    <!--    <rule ref="category/java/codestyle.xml"> !Turn off!-->
+
+    <!-- Design rules -->
     <rule ref="category/java/design.xml">
         <exclude name="LawOfDemeter"/>
     </rule>
-    <rule ref="category/java/errorprone.xml"/>
-    <rule ref="category/java/performance.xml"/>
-    <!--    <rule ref="category/java/documentation.xml"> !Turn off!-->
 
-    <!-- <exclude-pattern>.*/src/test/java/.*</exclude-pattern> -->
+    <!-- Error prone rules -->
+    <rule ref="category/java/errorprone.xml"/>
+
+    <!-- Performance rules -->
+    <rule ref="category/java/performance.xml"/>
 </ruleset>
