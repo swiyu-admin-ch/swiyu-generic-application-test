@@ -46,6 +46,13 @@ public class Wallet {
 
     public static final String BEARER_PREFIX = "Bearer ";
     public static final String VC_SD_JWT = "vc+sd-jwt";
+    public static final String APPLICATION_JWT = "application/jwt";
+    public static final String GRANT_TYPE = "grant_type";
+    public static final String CREDENTIAL = "credential";
+    public static final String CREDENTIALS = "credentials";
+    public static final String SWIYU_API_VERSION_HEADER = "SWIYU-API-Version";
+    public static final String REFRESH_TOKEN = "refresh_token";
+    public static final String VP_TOKEN = "vp_token";
 
     private final RestClient restClient;
     private final ServiceLocationContext issuerContext;
@@ -161,7 +168,7 @@ public class Wallet {
         if (this.isSignedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdConfiguration)
-                    .header(HttpHeaders.ACCEPT, "application/jwt")
+                    .header(HttpHeaders.ACCEPT, APPLICATION_JWT)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .retrieve()
                     .body(String.class);
@@ -192,7 +199,7 @@ public class Wallet {
         if (this.isSignedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdCredentialIssuer)
-                    .header(HttpHeaders.ACCEPT, "application/jwt")
+                    .header(HttpHeaders.ACCEPT, APPLICATION_JWT)
                     .retrieve()
                     .body(String.class);
 
@@ -218,7 +225,7 @@ public class Wallet {
         var preAuthorizedCode = walletEntry.getPreAuthorizedCode();
 
         URI target = UriComponentsBuilder.fromUri(tokenUri)
-                .queryParam("grant_type", "urn:ietf:params:oauth:grant-type:pre-authorized_code")
+                .queryParam(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code")
                 .queryParam("pre-authorized_code", preAuthorizedCode)
                 .build()
                 .toUri();
@@ -252,16 +259,16 @@ public class Wallet {
         CredentialResponse credentialResponse = postCredentialRequest(SwiyuApiVersionConfig.ID2, walletEntry);
 
         assertThat(credentialResponse.getBody().get("format").getAsString()).isEqualTo(VC_SD_JWT);
-        assertThat(credentialResponse.getBody().get("credential")).isNotNull();
+        assertThat(credentialResponse.getBody().get(CREDENTIAL)).isNotNull();
 
-        return credentialResponse.getBody().get("credential").getAsString();
+        return credentialResponse.getBody().get(CREDENTIAL).getAsString();
     }
 
     public List<String> getVerifiableCredentialFromIssuerV1(WalletBatchEntry batchEntry) {
         CredentialResponse credentialResponse = postCredentialRequest(SwiyuApiVersionConfig.V1, batchEntry);
 
         assertThat(credentialResponse.getBody()).isNotNull();
-        var credentialsElement = credentialResponse.getBody().get("credentials");
+        var credentialsElement = credentialResponse.getBody().get(CREDENTIALS);
         assertThat(credentialsElement).isNotNull();
         assertThat(credentialsElement.isJsonArray()).isTrue();
 
@@ -270,7 +277,7 @@ public class Wallet {
 
         List<String> issued = new ArrayList<>();
         for (JsonElement elem : credentialsArray) {
-            String jwt = elem.getAsJsonObject().get("credential").getAsString();
+            String jwt = elem.getAsJsonObject().get(CREDENTIAL).getAsString();
             issued.add(jwt);
         }
 
@@ -310,9 +317,9 @@ public class Wallet {
 
         ResponseEntity<String> response = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.ID2.getValue())
                 .body(finalPayload)
                 .retrieve()
                 .toEntity(String.class);
@@ -333,8 +340,8 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
-        if (credentialResponse.has("credential")) {
-            walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
+        if (credentialResponse.has(CREDENTIAL)) {
+            walletEntry.setIssuerSdJwt(credentialResponse.get(CREDENTIAL).getAsString());
         }
 
         final CredentialResponse completeCredentialResponse = new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
@@ -374,9 +381,9 @@ public class Wallet {
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
         if (doPProofForCredentialRequest != null) {
             requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
@@ -402,10 +409,10 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
-        if (credentialResponse.has("credentials")) {
-            final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
+        if (credentialResponse.has(CREDENTIALS)) {
+            final JsonArray credentials = credentialResponse.getAsJsonArray(CREDENTIALS);
             credentials.forEach(c -> {
-                final String credential = c.getAsJsonObject().get("credential").getAsString();
+                final String credential = c.getAsJsonObject().get(CREDENTIAL).getAsString();
                 walletEntry.addIssuedCredential(credential);
             });
         }
@@ -510,14 +517,9 @@ public class Wallet {
         }
     }
 
-    // @TODO Remove duplication with bellow method
     public RequestObject getVerificationDetailsUnsigned(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return ((VerificationRequestObject.Unsigned) request).requestObject();
-    }
-
-    public RequestObject getVerificationDetailsUnsigned(URI verificationDeeplink) {
-        return getVerificationDetailsUnsigned(verificationDeeplink.toString());
     }
 
     public String getVerificationDetailSigned(String verificationDeeplink) {
@@ -550,7 +552,7 @@ public class Wallet {
                     .build();
 
             final Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("vp_token", token);
+            payload.put(VP_TOKEN, token);
             payload.put("presentation_submission", submission);
 
             final JWEObject jweObject = new JWEObject(jweHeader, new Payload(payload));
@@ -563,14 +565,14 @@ public class Wallet {
             formData.add("response", jweObject.serialize());
         } else {
             formData.add("presentation_submission", submission);
-            formData.add("vp_token", token);
+            formData.add(VP_TOKEN, token);
         }
 
         final var response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
                     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
-                    headers.add("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue());
+                    headers.add(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.ID2.getValue());
                 })
                 .body(formData)
                 .retrieve()
@@ -597,7 +599,7 @@ public class Wallet {
                     .keyID(verifierPublicKey.getKeyID())
                     .build();
 
-            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(Map.of("vp_token", vpToken)));
+            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(Map.of(VP_TOKEN, vpToken)));
             try {
                 jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
             } catch (JOSEException e) {
@@ -606,14 +608,14 @@ public class Wallet {
 
             formData.add("response", jweObject.serialize());
         } else {
-            formData.add("vp_token", new Gson().toJson(vpToken));
+            formData.add(VP_TOKEN, new Gson().toJson(vpToken));
         }
 
         final ResponseEntity<String> response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
                     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
-                    headers.add("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                    headers.add(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
                 })
                 .body(formData)
                 .retrieve()
@@ -704,9 +706,9 @@ public class Wallet {
 
         ResponseEntity<String> response = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.ID2.getValue())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.ID2.getValue())
                 .body(finalPayload)
                 .retrieve()
                 .toEntity(String.class);
@@ -731,8 +733,8 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(bodyAsString).getAsJsonObject();
 
-        if (credentialResponse.has("credential")) {
-            walletEntry.setIssuerSdJwt(credentialResponse.get("credential").getAsString());
+        if (credentialResponse.has(CREDENTIAL)) {
+            walletEntry.setIssuerSdJwt(credentialResponse.get(CREDENTIAL).getAsString());
         }
 
         final CredentialResponse completeCredentialResponse = new CredentialResponse(responseStatusCode, credentialResponse, rawResponse);
@@ -785,9 +787,9 @@ public class Wallet {
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? "application/jwt" : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
         if (doPProofForCredentialRequest != null) {
             requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
@@ -817,11 +819,11 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
-        if (credentialResponse.has("credentials")) {
+        if (credentialResponse.has(CREDENTIALS)) {
 
-            final JsonArray credentials = credentialResponse.getAsJsonArray("credentials");
+            final JsonArray credentials = credentialResponse.getAsJsonArray(CREDENTIALS);
             credentials.forEach(c -> {
-                final String credential = c.getAsJsonObject().get("credential").getAsString();
+                final String credential = c.getAsJsonObject().get(CREDENTIAL).getAsString();
                 walletEntry.addIssuedCredential(credential);
             });
         }
@@ -843,12 +845,12 @@ public class Wallet {
         final String preAuthorizedCode = walletEntry.getPreAuthorizedCode();
 
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "urn:ietf:params:oauth:grant-type:pre-authorized_code");
+        params.add(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code");
         params.add("pre-authorized_code", preAuthorizedCode);
 
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue())
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .header("DPoP", doPProof)
                 .body(params)
@@ -863,12 +865,12 @@ public class Wallet {
         final URI tokenUri = issuerContext.getContextualizedUri(walletEntry.getIssuerTokenUri());
 
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "refresh_token");
-        params.add("refresh_token", walletEntry.getToken().getRefreshToken());
+        params.add(GRANT_TYPE, REFRESH_TOKEN);
+        params.add(REFRESH_TOKEN, walletEntry.getToken().getRefreshToken());
 
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue())
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .header("DPoP", doPProof)
                 .body(params)
@@ -901,7 +903,7 @@ public class Wallet {
                 .uri(credentialUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + accessToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
         if (dpopProof != null) {
             builder = builder.header("DPoP", dpopProof);
@@ -922,12 +924,12 @@ public class Wallet {
 
         final JsonObject credentialResponse = JsonParser.parseString(body).getAsJsonObject();
 
-        if (credentialResponse.has("credentials")) {
+        if (credentialResponse.has(CREDENTIALS)) {
             walletEntry.clearIssuedCredentials();
-            JsonArray arr = credentialResponse.getAsJsonArray("credentials");
+            JsonArray arr = credentialResponse.getAsJsonArray(CREDENTIALS);
             arr.forEach(e ->
                     walletEntry.addIssuedCredential(
-                            e.getAsJsonObject().get("credential").getAsString()
+                            e.getAsJsonObject().get(CREDENTIAL).getAsString()
                     ));
         }
 
@@ -941,8 +943,8 @@ public class Wallet {
         assertThat(refreshToken).isNotNull().isNotEmpty();
 
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "refresh_token");
-        params.add("refresh_token", refreshToken);
+        params.add(GRANT_TYPE, REFRESH_TOKEN);
+        params.add(REFRESH_TOKEN, refreshToken);
 
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
@@ -1023,7 +1025,7 @@ public class Wallet {
                 .uri(issuerContext.getContextualizedUri(credentialUri))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header("SWIYU-API-Version", SwiyuApiVersionConfig.V1.getValue());
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
         if (customDpopProof != null) {
             requestBuilder = requestBuilder.header("DPoP", customDpopProof);

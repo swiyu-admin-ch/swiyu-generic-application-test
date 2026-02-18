@@ -65,7 +65,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
         // Then
@@ -164,7 +164,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(entry.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
         // Then
@@ -225,7 +225,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
                     verifiableCredential);
@@ -265,7 +265,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(),
                 verificationDetails);
@@ -314,7 +314,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -370,7 +370,7 @@ class WalletTest extends BaseTest {
                 .createManagementResponse();
         ;
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
@@ -427,7 +427,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);

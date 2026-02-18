@@ -13,6 +13,9 @@ public final class CredentialResponseAssert {
     private final CredentialResponse response;
     private final JsonObject body;
 
+    private final String KEY_TRANSACTION_ID = "transaction_id";
+    private final String KEY_INTERVAL = "interval";
+
     private CredentialResponseAssert(final CredentialResponse response) {
         this.response = response;
         this.body = response.getBody();
@@ -39,12 +42,12 @@ public final class CredentialResponseAssert {
     }
 
     public CredentialResponseAssert hasTransactionId(UUID expectedTransactionId) {
-        Assertions.assertThat(body.has("transaction_id"))
+        Assertions.assertThat(body.has(KEY_TRANSACTION_ID))
                 .as("Deferred response must contain transaction_id")
                 .isTrue();
 
         final UUID actualTransactionId = UUID.fromString(
-                body.get("transaction_id").getAsString()
+                body.get(KEY_TRANSACTION_ID).getAsString()
         );
 
         Assertions.assertThat(actualTransactionId)
@@ -55,7 +58,7 @@ public final class CredentialResponseAssert {
     }
 
     public CredentialResponseAssert hasNotTransactionId() {
-        Assertions.assertThat(body.has("transaction_id"))
+        Assertions.assertThat(body.has(KEY_TRANSACTION_ID))
                 .as("Deferred response must not contain transaction_id as it's issued")
                 .isFalse();
 
@@ -63,12 +66,12 @@ public final class CredentialResponseAssert {
     }
 
     public CredentialResponseAssert hasInterval() {
-        Assertions.assertThat(body.has("interval"))
+        Assertions.assertThat(body.has(KEY_INTERVAL))
                 .as("Deferred response must contain interval")
                 .isTrue();
 
         final int interval = body
-                .get("interval")
+                .get(KEY_INTERVAL)
                 .getAsInt();
 
         Assertions.assertThat(interval)
@@ -79,7 +82,7 @@ public final class CredentialResponseAssert {
     }
 
     public CredentialResponseAssert hasNotInterval() {
-        Assertions.assertThat(body.has("interval"))
+        Assertions.assertThat(body.has(KEY_INTERVAL))
                 .as("Deferred response must not contain interval as it's issued")
                 .isFalse();
 

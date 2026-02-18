@@ -13,6 +13,8 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
+
+import org.apache.http.protocol.HTTP;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpStatusCode;
@@ -60,7 +62,7 @@ public class MockServerClientConfig {
                 .withPath("/api/v1/statuslist/[a-zA-Z0-9-_]+\\.jwt"))
                 .respond(
                         httpRequest -> response()
-                                .withHeader("Content-Type",
+                                .withHeader(HTTP.CONTENT_TYPE,
                                         "application/statuslist+jwt")
                                 .withStatusCode(HttpStatusCode.OK_200.code())
                                 .withBody(getStatusListJwt(httpRequest, issuerConfig)));
@@ -75,7 +77,7 @@ public class MockServerClientConfig {
                             .formatted(id, id);
                     return response()
                             .withStatusCode(200)
-                            .withHeader("Content-Type", "application/json")
+                            .withHeader(HTTP.CONTENT_TYPE, "application/json")
                             .withBody(payload);
                 });
         mockServerClient.when(request().withMethod("PUT").withPath(
@@ -86,7 +88,7 @@ public class MockServerClientConfig {
                 .respond(
                         httpRequest -> response()
                                 .withStatusCode(200)
-                                .withHeader("Content-Type", "application/jsonl+json")
+                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
                                 .withBody(issuerConfig.getIssuerDidLog()));
         mockServerClient.when(request().withMethod("POST").withPath("/openid-connect/token"))
                 .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
@@ -107,7 +109,7 @@ public class MockServerClientConfig {
                     .respond(
                             response()
                                     .withStatusCode(200)
-                                    .withHeader("Content-Type", "application/json")
+                                    .withHeader(HTTP.CONTENT_TYPE, "application/json")
                                     .withBody(new ObjectMapper().writeValueAsString(
                                             Map.of(
                                                     "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),

@@ -52,10 +52,10 @@ public class DidLogUtil {
             throw new RuntimeException(e);
         }
 
-        String didDocWithSCID = didDoc.toString().replaceAll("\\" + SCID_PLACEHOLDER, scid);
+        String didDocWithSCID = didDoc.toString().replace(SCID_PLACEHOLDER, scid);
         didDoc = JsonParser.parseString(didDocWithSCID).getAsJsonObject();
 
-        String didLogEntryWithoutProofAndSignatureWithSCID = didLogEntryWithoutProofAndSignature.toString().replaceAll("\\" + SCID_PLACEHOLDER, scid);
+        String didLogEntryWithoutProofAndSignatureWithSCID = didLogEntryWithoutProofAndSignature.toString().replace(SCID_PLACEHOLDER, scid);
         JsonArray didLogEntryWithSCIDWithoutProofAndSignature = JsonParser.parseString(didLogEntryWithoutProofAndSignatureWithSCID).getAsJsonArray();
 
         String entryHash = null;
@@ -144,7 +144,7 @@ public class DidLogUtil {
         if (!path.isEmpty()) {
             didTDW = "%s%s".formatted(didTDW,
                     path.replace("/did.jsonl", "")
-                            .replaceAll("/", ":"));
+                            .replace("/", ":"));
         }
         return didTDW;
     }

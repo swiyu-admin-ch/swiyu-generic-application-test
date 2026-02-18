@@ -28,6 +28,8 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
             "content-length"
     );
 
+    private static final String JSON_CODE_BLOCK_DELIMITER = "\n```";
+
     private final File outputFile;
     private final String prefix;
 
@@ -108,10 +110,10 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
 
     private String formatBodyAsJsonBlock(byte[] bodyBytes) {
         if (bodyBytes == null || bodyBytes.length == 0)
-            return "```json\n{}\n```";
+            return "```json\n{}" + JSON_CODE_BLOCK_DELIMITER;
 
         String raw = new String(bodyBytes, StandardCharsets.UTF_8).trim();
-        return "```json\n" + raw + "\n```";
+        return "```json\n" + raw + JSON_CODE_BLOCK_DELIMITER;
     }
 
 
@@ -137,9 +139,9 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
                 (raw.startsWith("[") && raw.endsWith("]"));
 
         if (isJson) {
-            return "```json\n" + raw + "\n```";
+            return "```json\n" + raw + JSON_CODE_BLOCK_DELIMITER;
         } else {
-            return "```text\n" + raw + "\n```";
+            return "```text\n" + raw + JSON_CODE_BLOCK_DELIMITER;
         }
     }
 

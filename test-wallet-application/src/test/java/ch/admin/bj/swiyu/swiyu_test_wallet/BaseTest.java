@@ -55,7 +55,7 @@ import static org.mockserver.model.HttpRequest.request;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
-public class BaseTest {
+public abstract class BaseTest {
 
     @Autowired
     protected ApplicationTestConfig applicationTestConfig;

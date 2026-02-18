@@ -42,6 +42,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Slf4j
 public class WalletEntry {
     public static final String CREDENTIAL_OFFER_KEY_AND_EQUAL = "credential_offer=";
+    public static final String ISSUER_METADATA_NOT_SET = "issuer metadata is not set.";
+    public static final String CREDENTIAL_OFFER_NOT_SET = "credential offer not set.";
     private final Wallet wallet;
     private final KeyPair keyPair;
     private final ECKey proofPublicJwk;
@@ -69,7 +71,7 @@ public class WalletEntry {
 
     public void setCredentialConfigurationSupported() {
         if (issuerMetadata == null) {
-            throw new IllegalStateException("issuer metadata is not set.");
+            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
         credentialConfigurationSupported = issuerMetadata.getCredentialConfigurationById(credentialOffer.getCredentialConfiguraionId());
     }
@@ -119,13 +121,13 @@ public class WalletEntry {
 
     public JwtProof createProof() {
         if (credentialOffer == null) {
-            throw new IllegalStateException("credential offer not set.");
+            throw new IllegalStateException(CREDENTIAL_OFFER_NOT_SET);
         }
         if (token == null) {
             throw new IllegalStateException("token not set.");
         }
         if (getIssuerMetadata() == null) {
-            throw new IllegalStateException("issuerMetadata not set.");
+            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
         String cNonce = token.getcNonce();
@@ -169,7 +171,7 @@ public class WalletEntry {
 
     public String getPreAuthorizedCode() {
         if (credentialOffer == null) {
-            throw new IllegalStateException("credential offer not set.");
+            throw new IllegalStateException(CREDENTIAL_OFFER_NOT_SET);
         }
 
         return credentialOffer.getPreAuthorizedCode();
@@ -177,7 +179,7 @@ public class WalletEntry {
 
     public URI getIssuerUri() {
         if (credentialOffer == null) {
-            throw new IllegalStateException("credential offer not set.");
+            throw new IllegalStateException(CREDENTIAL_OFFER_NOT_SET);
         }
 
         return credentialOffer.getCredentialIssuerUri();
@@ -191,7 +193,7 @@ public class WalletEntry {
 
     public URI getIssuerCredentialUri() {
         if (issuerMetadata == null) {
-            throw new IllegalStateException("issuer metadata is not set.");
+            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
         return issuerMetadata.getCredentialEndpointURI();
@@ -199,7 +201,7 @@ public class WalletEntry {
 
     public URI getIssuerDeferredCredentialUri() {
         if (issuerMetadata == null) {
-            throw new IllegalStateException("issuer metadata is not set.");
+            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
         return issuerMetadata.getDeferredCredentialEndpointURI();
@@ -251,7 +253,7 @@ public class WalletEntry {
 
     public CredentialResponseEncryption createCredentialResponseEncryption() {
         if (issuerMetadata == null) {
-            throw new IllegalStateException("issuer metadata not set");
+            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
         if (ephemeralEncryptionKey == null) {
