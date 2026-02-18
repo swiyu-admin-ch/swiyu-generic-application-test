@@ -114,7 +114,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         final ManagementResponse result = verifierManager.verifyState();
 
         assertThat(result.getState())
-                .isNotEqualTo(VerificationStatus.SUCCESS)
-                .as("Verification should fail for an issuer not trusted via the Trust Anchor");
+            .as("Verification should fail for an issuer not trusted via the Trust Anchor")
+            .isNotEqualTo(VerificationStatus.SUCCESS);
     }
 }

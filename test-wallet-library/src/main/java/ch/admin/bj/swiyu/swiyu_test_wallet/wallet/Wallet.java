@@ -241,7 +241,11 @@ public class Wallet {
 
     public String getCNonce(WalletEntry walletEntry) {
         final ResponseEntity<NonceResponse> response = getNonce(walletEntry);
-        return response.getBody().getcNonce();
+        final NonceResponse body = response.getBody();
+        if (body == null) {
+            throw new IllegalStateException("NonceResponse body is null");
+        }
+        return body.getcNonce();
     }
 
     public String getVerifiableCredentialFromIssuerID2(WalletEntry walletEntry) {
