@@ -44,11 +44,10 @@ public class JwtAuthInterceptor implements ClientHttpRequestInterceptor {
 
         try {
             String jwt = createJwt();
-            log.debug("JWT created successfully, length: {}", jwt.length());
-            log.debug("JWT content (first 50 chars): {}", jwt.substring(0, Math.min(50, jwt.length())));
+            log.debug("JWT created successfully");
 
             byte[] jwtBytes = jwt.getBytes();
-            log.debug("JWT bytes prepared, length: {}", jwtBytes.length);
+            log.debug("JWT bytes prepared");
 
             ClientHttpResponse response = execution.execute(request, jwtBytes);
             log.debug("Request executed successfully");
@@ -80,7 +79,6 @@ public class JwtAuthInterceptor implements ClientHttpRequestInterceptor {
 
         String jwtToken = signedJWT.serialize();
         log.debug("Generated JWT with {} parts", jwtToken.split("\\.").length);
-        log.trace("JWT: {}", jwtToken);
 
         return jwtToken;
     }

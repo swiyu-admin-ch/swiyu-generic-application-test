@@ -919,7 +919,7 @@ public class Wallet {
         final JsonObject credentialResponse = JsonParser.parseString(body).getAsJsonObject();
 
         if (credentialResponse.has("credentials")) {
-            walletEntry.getIssuedCredentials().clear();
+            walletEntry.clearIssuedCredentials();
             JsonArray arr = credentialResponse.getAsJsonArray("credentials");
             arr.forEach(e ->
                     walletEntry.addIssuedCredential(

@@ -47,7 +47,6 @@ public class BusinessIssuer {
 
     private StatusList statusList;
     private IssuerConfig issuerConfig;
-    private final List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
@@ -200,7 +199,7 @@ public class BusinessIssuer {
                                          final UpdateCredentialStatusRequestType newState) {
         String jwt;
         try {
-            jwt = createSignedJwtForUpdateState(privateKey, keyId, id, newState);
+            jwt = createSignedJwtForUpdateState(privateKey, keyId, newState);
         } catch (JOSEException e) {
             throw new RuntimeException(e);
         }
@@ -268,8 +267,8 @@ public class BusinessIssuer {
         return createSignedJwtWithEcKey(privateKey, keyId, data);
     }
 
-    private String createSignedJwtForUpdateState(final PrivateKey privateKey, final String keyId, final UUID id,
-                                                  final UpdateCredentialStatusRequestType newState) throws JOSEException {
+    private String createSignedJwtForUpdateState(final PrivateKey privateKey, final String keyId,
+                                                 final UpdateCredentialStatusRequestType newState) throws JOSEException {
         final ObjectMapper mapper = new ObjectMapper();
 
         try {

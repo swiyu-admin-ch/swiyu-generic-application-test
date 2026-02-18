@@ -168,19 +168,24 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
+    public void clearIssuedCredentials() {
+        issuedCredentials.clear();
+    }
+
     public void addIssuedCredential(String jwt) {
         issuedCredentials.add(jwt);
     }
 
     public String getVerifiableCredential(final int index) {
-        if (issuedCredentials == null) {
-            throw new IllegalStateException("verifiable credential not set.");
-        }
         if (issuedCredentials.size() <= index) {
             throw new IndexOutOfBoundsException("index out of bounds for verifiable credential " + index);
         }
 
         return issuedCredentials.get(index);
+    }
+
+    public List<String> getIssuedCredentials() {
+        return Collections.unmodifiableList(issuedCredentials);
     }
 }
 

@@ -37,16 +37,12 @@ public class JsonConverter {
         }
     }
 
-    public static JsonNode toJsonNode(String json) {
+    public static JsonNode toJsonNode(final String json) {
         try {
             return DEFAULT_OBJECT_MAPPER.readTree(json);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static JsonNode toJsonNode(Object o){
-        return DEFAULT_OBJECT_MAPPER.valueToTree(o);
     }
 
     public static ObjectNode toObjectNode(String json) {
