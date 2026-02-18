@@ -580,7 +580,7 @@ class DPoPFlowTest extends BaseTest {
             jwt.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
             return jwt.serialize();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create DPoP proof for token request with custom key", e);
+            throw new IllegalStateException("Failed to create DPoP proof for token request with custom key", e);
         }
     }
 
@@ -686,7 +686,7 @@ class DPoPFlowTest extends BaseTest {
             jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
             return jwt.serialize();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create DPoP proof for credential request", e);
+            throw new IllegalStateException("Failed to create DPoP proof for credential request", e);
         }
     }
 
@@ -718,7 +718,7 @@ class DPoPFlowTest extends BaseTest {
             jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
             return jwt.serialize();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create DPoP proof for token request", e);
+            throw new IllegalStateException("Failed to create DPoP proof for token request", e);
         }
     }
 

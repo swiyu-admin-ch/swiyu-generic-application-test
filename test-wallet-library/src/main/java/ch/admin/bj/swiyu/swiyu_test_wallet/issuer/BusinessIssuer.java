@@ -13,15 +13,10 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import jdk.jfr.ContentType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -30,8 +25,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.security.PrivateKey;
 import java.security.interfaces.ECPrivateKey;
-import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -200,7 +193,7 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForUpdateState(privateKey, keyId, newState);
         } catch (JOSEException e) {
-            throw new IllegalStateException("Cannot sign JWT");
+            throw new IllegalStateException("Cannot sign JWT", e);
         }
 
         final RestClient restClient = RestClient.builder().build();
@@ -274,7 +267,7 @@ public class BusinessIssuer {
             final String data = mapper.writeValueAsString(newState);
             return createSignedJwtWithEcKey(privateKey, keyId, data);
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Cannot sign JWT for updating state");
+            throw new IllegalStateException("Cannot sign JWT for updating state", e);
         }
     }
 

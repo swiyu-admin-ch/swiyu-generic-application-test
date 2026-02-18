@@ -20,7 +20,7 @@ public class PathSupport {
 
     public static Map<String, String> splitQuery(URI uri) {
         Map<String, String> queryPairs = new HashMap<>();
-        if (uri.getQuery() == null && uri.getQuery().isEmpty()) {
+        if (uri.getQuery() == null || uri.getQuery().isEmpty()) {
             return queryPairs;
         }
 

@@ -11,6 +11,8 @@ import org.springframework.util.StreamUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 @Slf4j
@@ -39,9 +41,16 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
     }
 
     private void append(String text) {
-        try (FileWriter fw = new FileWriter(outputFile, true)) {
-            fw.write(text + System.lineSeparator());
-        } catch (Exception e) {
+        try {
+            Files.writeString(
+                    outputFile.toPath(),
+                    text + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (IOException e) {
             log.error("Failed to write HTTP trace", e);
         }
     }

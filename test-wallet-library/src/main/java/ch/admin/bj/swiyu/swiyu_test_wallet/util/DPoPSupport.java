@@ -5,6 +5,8 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
+import lombok.experimental.UtilityClass;
+
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -13,13 +15,10 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
+@UtilityClass
 public class DPoPSupport {
 
     static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
-
-    private DPoPSupport() {
-        throw new AssertionError("Utility class should not be instantiated");
-    }
 
     public static String tokenToAth(final String token) {
         MessageDigest digest = null;
