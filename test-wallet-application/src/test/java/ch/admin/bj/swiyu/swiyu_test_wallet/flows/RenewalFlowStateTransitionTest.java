@@ -171,7 +171,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -189,7 +189,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -270,7 +270,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -288,7 +288,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -313,7 +313,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -325,7 +325,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);

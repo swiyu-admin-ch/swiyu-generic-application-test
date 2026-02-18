@@ -181,12 +181,10 @@ class RenewalFlowTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -244,12 +242,10 @@ class RenewalFlowTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void renewalFlow_withWrongDpopBinding_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -316,12 +312,10 @@ class RenewalFlowTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void renewalFlow_withNonceReplayAttack_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -389,12 +383,10 @@ class RenewalFlowTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         final CredentialWithDeeplinkResponse offer = initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
