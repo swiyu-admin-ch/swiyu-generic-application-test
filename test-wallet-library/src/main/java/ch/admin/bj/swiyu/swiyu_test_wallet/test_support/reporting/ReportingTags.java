@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class TestTags {
+public class ReportingTags {
     public final static String HAPPY_PATH = "happy_path";
     public final static String EDGE_CASE = "edge_case";
     public final static String UCI_C1 = "uci_c1";

@@ -7,7 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -37,9 +37,9 @@ class IssuerStrictManagementTest extends BaseTest {
                     actions including status list creation and credential issuance.
                     """
     )
-    @Tag(TestTags.UCI_S1)
-    @Tag(TestTags.UCI_P1)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_S1)
+    @Tag(ReportingTags.UCI_P1)
+    @Tag(ReportingTags.HAPPY_PATH)
     void issuerManagementAccess_withSignedJwt_thenSuccess() {
         log.info("Creating status list with signed JWT body (should succeed)");
         final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 10000, 2);
@@ -71,9 +71,9 @@ class IssuerStrictManagementTest extends BaseTest {
                     actions when the JWT is not trusted.
                     """
     )
-    @Tag(TestTags.UCI_S1)
-    @Tag(TestTags.UCI_P1)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_S1)
+    @Tag(ReportingTags.UCI_P1)
+    @Tag(ReportingTags.EDGE_CASE)
     void issuerManagementAccess_withUnauthorizedSignedJwt_thenRejected() {
         HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,

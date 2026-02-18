@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
@@ -74,9 +74,9 @@ class DPoPFlowTest extends BaseTest {
                     7. Issuer successfully issues credentials.
                     """
     )
-    @Tag(TestTags.UCI_C1)
-    @Tag(TestTags.UCI_I1)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -154,9 +154,9 @@ class DPoPFlowTest extends BaseTest {
                     10. Wallet uses the refreshed access_token on /credential (V1) and receives credentials.
                     """
     )
-    @Tag(TestTags.UCI_C1)
-    @Tag(TestTags.UCI_I2)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -257,8 +257,8 @@ class DPoPFlowTest extends BaseTest {
                     without any protection.
                     """
     )
-    @Tag(TestTags.UCI_I2)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -323,8 +323,8 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance renewal requests cannot be replayed.
                     """
     )
-    @Tag(TestTags.UCI_I2)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -415,8 +415,8 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance cannot be exploited through nonce replay.
                     """
     )
-    @Tag(TestTags.UCI_I1)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -504,8 +504,8 @@ class DPoPFlowTest extends BaseTest {
                     MUST be rejected by the issuer.
                     """
     )
-    @Tag(TestTags.UCI_I2)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -606,8 +606,8 @@ class DPoPFlowTest extends BaseTest {
                     This verifies RFC 9449: DPoP URI binding prevents MITM reuse of tokens on different endpoints.
                     """
     )
-    @Tag(TestTags.UCI_I1)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -743,8 +743,8 @@ class DPoPFlowTest extends BaseTest {
                     6. Wallet requests new credential batch with new nonces - must succeed.
                     """
     )
-    @Tag(TestTags.UCI_I1)
-    @Tag(TestTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"

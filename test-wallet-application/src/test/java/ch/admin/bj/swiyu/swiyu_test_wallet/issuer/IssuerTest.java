@@ -4,7 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.TestTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
@@ -33,9 +33,9 @@ class IssuerTest extends BaseTest {
                     unique pre-authorized code that differs from the management ID for security purposes.
                     """
     )
-    @Tag(TestTags.UCI_C1)
-    @Tag(TestTags.UCI_C1A)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void offerDeepLinkWithSDJwt() {
 
         var credentialDetails = issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -69,9 +69,9 @@ class IssuerTest extends BaseTest {
                     supported credential configurations.
                     """
     )
-    @Tag(TestTags.UCI_M1)
-    @Tag(TestTags.UCI_M1A)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.UCI_M1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
@@ -91,8 +91,8 @@ class IssuerTest extends BaseTest {
                     expected configuration pattern and are reachable.
                     """
     )
-    @Tag(TestTags.UCI_W1)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1)
+    @Tag(ReportingTags.HAPPY_PATH)
     void validateConfiguration() {
         var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
 
@@ -112,8 +112,8 @@ class IssuerTest extends BaseTest {
                     configured consistently with OID4VCI authorization flow expectations.
                     """
     )
-    @Tag(TestTags.UCI_W1A)
-    @Tag(TestTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void validateOAuthAuthorizationServer() {
         OpenIdConfiguration openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
 
