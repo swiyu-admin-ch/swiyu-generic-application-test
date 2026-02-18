@@ -89,6 +89,9 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: Configure Docker Java client API version
+        run: echo "api.version=1.44" > ~/.docker-java.properties
+
       - name: Run Maven verify (example)
         run: mvn -B -Dissuer.image="$ISSUER_IMAGE" -Dverifier.image="$VERIFIER_IMAGE" verify
 
