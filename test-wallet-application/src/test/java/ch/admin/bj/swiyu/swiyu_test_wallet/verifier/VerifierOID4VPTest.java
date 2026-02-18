@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +32,9 @@ class VerifierOID4VPTest extends BaseTest {
                     and cryptographic parameters required for the OID4VP flow.
                     """
     )
-    @Tag("ucv_o1")
-    @Tag("ucv_o1a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_O1)
+    @Tag(ReportingTags.UCV_O1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void walletFetchesSignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
@@ -101,9 +102,9 @@ class VerifierOID4VPTest extends BaseTest {
                     response requirements, and necessary cryptographic parameters for the OID4VP flow.
                     """
     )
-    @Tag("ucv_o1")
-    @Tag("ucv_o1b")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_O1)
+    @Tag(ReportingTags.UCV_O1B)
+    @Tag(ReportingTags.HAPPY_PATH)
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)

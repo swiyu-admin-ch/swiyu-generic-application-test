@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Disabled;
@@ -35,9 +36,9 @@ class TrustAnchorVerificationTest extends BaseTest {
                     (OID4VP standard and DCQL-based), ensuring that trust relationships are properly validated.
                     """
     )
-    @Tag("ucv_o1")
-    @Tag("ucv_o1a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_O1)
+    @Tag(ReportingTags.UCV_O1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     @Disabled("No business mock")
     void verificationWithValidTrustAnchor_thenSuccess(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
@@ -82,9 +83,9 @@ class TrustAnchorVerificationTest extends BaseTest {
                     untrusted issuers across both SWIYU API versions.
                     """
     )
-    @Tag("ucv_o1")
-    @Tag("ucv_o1b")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O1)
+    @Tag(ReportingTags.UCV_O1B)
+    @Tag(ReportingTags.EDGE_CASE)
     @Disabled("No business trust mock")
     void verificationWithUntrustedIssuer_thenFails(final SwiyuApiVersionConfig swiyuApiVersion) {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");

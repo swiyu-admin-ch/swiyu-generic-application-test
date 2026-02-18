@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
@@ -40,8 +41,8 @@ class VerifierManagementTest extends BaseTest {
                     and return a verification deeplink suitable for QR code generation.
                     """
     )
-    @Tag("ucv_m1")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.HAPPY_PATH)
     void verifierInitiatesVerification_thenManagementEntryAndDeeplinkCreated() {
 
         // GIVEN
@@ -145,8 +146,8 @@ class VerifierManagementTest extends BaseTest {
                     and return a verification deeplink suitable for QR code generation.
                     """
     )
-    @Tag("ucv_m1")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.HAPPY_PATH)
     void verifierInitiatesDCQLVerification_thenManagementEntryAndDeeplinkCreated() {
 
         // GIVEN
@@ -255,8 +256,8 @@ class VerifierManagementTest extends BaseTest {
                     requests contain valid presentation requirements.
                     """
     )
-    @Tag("ucv_m1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.EDGE_CASE)
     void verifierInitiatesVerification_withoutPresentation_thenRejected() {
 
         // GIVEN
@@ -290,8 +291,8 @@ class VerifierManagementTest extends BaseTest {
                     It runs for both SWIYU API versions (OID4VP standard and DCQL-based).
                     """
     )
-    @Tag("ucv_m3")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_M3)
+    @Tag(ReportingTags.HAPPY_PATH)
     void verifierRetrievesVerificationResult_afterSuccessfulVerification(final SwiyuApiVersionConfig swiyuApiVersion) {
 
         // GIVEN – credential issued to wallet
@@ -353,8 +354,8 @@ class VerifierManagementTest extends BaseTest {
                     to unauthorized or deleted verification entries.
                     """
     )
-    @Tag("ucv_m3")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_M3)
+    @Tag(ReportingTags.EDGE_CASE)
     void verifierRetrievesVerificationResult_withUnknownVerificationId_thenNotFound() {
 
         // GIVEN – a non-existing verification identifier
