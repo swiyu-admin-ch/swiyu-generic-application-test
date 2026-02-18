@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
-import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.ParseException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -32,7 +31,7 @@ public class JWESupport {
             jweObject.encrypt(new ECDHEncrypter(verifierKey.toECKey()));
             return jweObject.serialize();
         } catch (JOSEException e) {
-            throw new RuntimeException("Failed to encrypt JWT claims with verifier key", e);
+            throw new IllegalStateException("Failed to encrypt JWT claims with verifier key", e);
         }
     }
 
@@ -42,9 +41,9 @@ public class JWESupport {
             jweObject.decrypt(new ECDHDecrypter(walletEphemeralKey));
             return jweObject.getPayload().toString();
         } catch (JOSEException e) {
-            throw new RuntimeException("Unable to decrypt ECDH-ES issuer credential response", e);
+            throw new IllegalStateException("Unable to decrypt ECDH-ES issuer credential response", e);
         } catch (java.text.ParseException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 

@@ -33,20 +33,16 @@ public class JsonConverter {
         try {
             return DEFAULT_OBJECT_MAPPER.readValue(json, responseType);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
-    public static JsonNode toJsonNode(String json) {
+    public static JsonNode toJsonNode(final String json) {
         try {
             return DEFAULT_OBJECT_MAPPER.readTree(json);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
-    }
-
-    public static JsonNode toJsonNode(Object o){
-        return DEFAULT_OBJECT_MAPPER.valueToTree(o);
     }
 
     public static ObjectNode toObjectNode(String json) {
@@ -67,7 +63,7 @@ public class JsonConverter {
         try {
             return writer.writeValueAsString(pojo);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 

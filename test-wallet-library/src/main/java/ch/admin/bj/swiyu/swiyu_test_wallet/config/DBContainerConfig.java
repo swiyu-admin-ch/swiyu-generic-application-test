@@ -14,8 +14,9 @@ public class DBContainerConfig {
     public static final String ISSUER_DB_SCHEMA = "swiyu_issuer";
     public static final String VERIFIER_DB_SCHEMA = "swiyu_verifier";
 
-    public static PostgreSQLContainer createPostgreSQLContainer(Network network) {
-        try (PostgreSQLContainer container = new PostgreSQLContainer<>(
+    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    public static PostgreSQLContainer<?> createPostgreSQLContainer(Network network) {
+        try (PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
                 DockerImageName
                         .parse("postgres:15.14-alpine3.21"))) {
             container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)));

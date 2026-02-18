@@ -38,7 +38,7 @@ public class JwtProof {
         try {
             signedJWT.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         return signedJWT.serialize();

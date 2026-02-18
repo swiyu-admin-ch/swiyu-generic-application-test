@@ -65,7 +65,7 @@ public class WalletBatchEntry extends WalletEntry {
             String serializedJwt = signedJWT.serialize();
             return issuerSdJwt + serializedJwt;
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -77,7 +77,7 @@ public class WalletBatchEntry extends WalletEntry {
             byte[] hashBytes = digest.digest(credentialsSdJwt.getBytes());
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -154,18 +154,8 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
-    private static class JwtProofWrapper extends JwtProof {
-        private final String capturedJwt;
-
-        JwtProofWrapper(String jwt) {
-            super(null, null, null, null);
-            this.capturedJwt = jwt;
-        }
-
-        @Override
-        public String toJwt() {
-            return capturedJwt;
-        }
+    public void clearIssuedCredentials() {
+        issuedCredentials.clear();
     }
 
     public void addIssuedCredential(String jwt) {
@@ -173,14 +163,15 @@ public class WalletBatchEntry extends WalletEntry {
     }
 
     public String getVerifiableCredential(final int index) {
-        if (issuedCredentials == null) {
-            throw new IllegalStateException("verifiable credential not set.");
-        }
         if (issuedCredentials.size() <= index) {
             throw new IndexOutOfBoundsException("index out of bounds for verifiable credential " + index);
         }
 
         return issuedCredentials.get(index);
+    }
+
+    public List<String> getIssuedCredentials() {
+        return Collections.unmodifiableList(issuedCredentials);
     }
 }
 

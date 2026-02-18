@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -64,7 +65,13 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig) {
 
-        return MockServerContainerConfig.createAndStartMockServerContainer(network, issuerConfig);
+        var container = MockServerContainerConfig.createMockServerContainer(network);
+
+        container.start();
+
+        MockServerClientConfig.createMockServerClient(container, issuerConfig);
+
+        return container;
     }
 
 

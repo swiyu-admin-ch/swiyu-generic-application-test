@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -43,10 +44,10 @@ class WalletTest extends BaseTest {
                     through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
                     collects the non-deferred credential and presents it to a verifier for validation.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.HAPPY_PATH)
     void unboundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -65,7 +66,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
         // Then
@@ -81,10 +82,10 @@ class WalletTest extends BaseTest {
                     through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
                     collects the non-deferred credential and presents it to a verifier for validation.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -130,10 +131,10 @@ class WalletTest extends BaseTest {
                     collects the credential after the issuer marks it as READY. The credential is subsequently
                     verified through the OID4VP interface.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1B)
+    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.HAPPY_PATH)
     void unboundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -164,7 +165,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(entry.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
         // Then
@@ -181,10 +182,10 @@ class WalletTest extends BaseTest {
                     collects the credential after the issuer marks it as READY. The credential is subsequently
                     verified through the OID4VP interface.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1B)
+    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -225,7 +226,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
                     verifiableCredential);
@@ -243,10 +244,10 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1a")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1A)
+    @Tag(ReportingTags.UCV_O2A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void boundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -265,7 +266,7 @@ class WalletTest extends BaseTest {
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(),
                 verificationDetails);
@@ -283,10 +284,10 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag("uci_c1a")
-    @Tag("uci_i1a")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1A)
+    @Tag(ReportingTags.UCV_O2A)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -314,7 +315,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -332,10 +333,10 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1B)
+    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.UCV_O2A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void boundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -370,7 +371,7 @@ class WalletTest extends BaseTest {
                 .createManagementResponse();
         ;
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
@@ -387,10 +388,10 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag("uci_c1b")
-    @Tag("uci_i1b")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1B)
+    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.UCV_O2A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void boundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -427,7 +428,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(toUri(verification.getVerificationDeeplink()));
+                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
@@ -445,8 +446,8 @@ class WalletTest extends BaseTest {
                     when the wallet attempts to present an unbound credential. The verifier detects the missing holder key binding
                     proof and rejects the presentation with an appropriate error.
                     """)
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             verifier = {"staging", "rc"},
             reason = "This is fixed in next versions"

@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -50,9 +51,9 @@ class RandomizedIndexTest extends BaseTest {
                     and batch credential creation through OID4VCI.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -75,9 +76,9 @@ class RandomizedIndexTest extends BaseTest {
 
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected total of 4 credentials (1 single + 3 in batch)")
-                .isEqualTo(6);
+                .hasSize(6);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")
@@ -94,9 +95,9 @@ class RandomizedIndexTest extends BaseTest {
                     collisions or sequential patterns across batches.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -127,9 +128,9 @@ class RandomizedIndexTest extends BaseTest {
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", batchCount * batchSize, batchCount, batchSize)
-                .isEqualTo(batchCount * batchSize);
+                .hasSize(batchCount * batchSize);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes across all batches must not be sequential when issued concurrently")
@@ -146,9 +147,9 @@ class RandomizedIndexTest extends BaseTest {
                     requests are properly constrained.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -179,9 +180,9 @@ class RandomizedIndexTest extends BaseTest {
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", 18, batchCount, batchSize)
-                .isEqualTo(18);
+                .hasSize(18);
     }
 
     private List<Integer> getUsedIndexesFromDb() throws SQLException {

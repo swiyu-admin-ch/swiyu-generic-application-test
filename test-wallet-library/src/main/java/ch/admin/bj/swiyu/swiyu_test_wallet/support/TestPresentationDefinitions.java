@@ -1,15 +1,12 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.support;
 
 import ch.admin.bj.swiyu.gen.verifier.model.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests;
 
 import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.*;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.es256Format;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.es256FormatNoKeyBinding;
 
 public final class TestPresentationDefinitions {
 

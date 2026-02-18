@@ -20,19 +20,17 @@ import java.util.UUID;
 @Slf4j
 public class JwtAuthInterceptor implements ClientHttpRequestInterceptor {
 
-    private final String jwtSecret;
     private final String keyId;
     private final byte[] secretBytes;
 
     public JwtAuthInterceptor(String jwtSecret, String keyId) {
-        this.jwtSecret = jwtSecret;
         this.keyId = keyId;
         try {
             this.secretBytes = Base64.getUrlDecoder().decode(jwtSecret);
             log.debug("Successfully decoded JWT secret, {} bytes", secretBytes.length);
         } catch (IllegalArgumentException e) {
             log.error("Failed to decode JWT secret as Base64-URL", e);
-            throw new RuntimeException("Invalid Base64-URL encoded secret: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Invalid Base64-URL encoded secret: " + e.getMessage(), e);
         }
     }
 
@@ -44,11 +42,10 @@ public class JwtAuthInterceptor implements ClientHttpRequestInterceptor {
 
         try {
             String jwt = createJwt();
-            log.debug("JWT created successfully, length: {}", jwt.length());
-            log.debug("JWT content (first 50 chars): {}", jwt.substring(0, Math.min(50, jwt.length())));
+            log.debug("JWT created successfully");
 
             byte[] jwtBytes = jwt.getBytes();
-            log.debug("JWT bytes prepared, length: {}", jwtBytes.length);
+            log.debug("JWT bytes prepared");
 
             ClientHttpResponse response = execution.execute(request, jwtBytes);
             log.debug("Request executed successfully");
@@ -80,7 +77,6 @@ public class JwtAuthInterceptor implements ClientHttpRequestInterceptor {
 
         String jwtToken = signedJWT.serialize();
         log.debug("Generated JWT with {} parts", jwtToken.split("\\.").length);
-        log.trace("JWT: {}", jwtToken);
 
         return jwtToken;
     }

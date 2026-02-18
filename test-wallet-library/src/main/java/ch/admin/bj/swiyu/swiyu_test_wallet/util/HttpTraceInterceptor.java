@@ -11,6 +11,8 @@ import org.springframework.util.StreamUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 @Slf4j
@@ -28,6 +30,8 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
             "content-length"
     );
 
+    private static final String JSON_CODE_BLOCK_DELIMITER = "\n```";
+
     private final File outputFile;
     private final String prefix;
 
@@ -37,9 +41,16 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
     }
 
     private void append(String text) {
-        try (FileWriter fw = new FileWriter(outputFile, true)) {
-            fw.write(text + System.lineSeparator());
-        } catch (Exception e) {
+        try {
+            Files.writeString(
+                    outputFile.toPath(),
+                    text + System.lineSeparator(),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.APPEND
+            );
+        } catch (IOException e) {
             log.error("Failed to write HTTP trace", e);
         }
     }
@@ -108,41 +119,11 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
 
     private String formatBodyAsJsonBlock(byte[] bodyBytes) {
         if (bodyBytes == null || bodyBytes.length == 0)
-            return "```json\n{}\n```";
+            return "```json\n{}" + JSON_CODE_BLOCK_DELIMITER;
 
         String raw = new String(bodyBytes, StandardCharsets.UTF_8).trim();
-        return "```json\n" + raw + "\n```";
+        return "```json\n" + raw + JSON_CODE_BLOCK_DELIMITER;
     }
-
-
-    private String formatHeadersAsList(HttpHeaders headers) {
-        StringBuilder sb = new StringBuilder();
-        headers.forEach((key, values) -> {
-            sb.append("- **").append(key).append("**: ");
-            sb.append(String.join(", ", values));
-            sb.append("\n");
-        });
-        return sb.toString().trim();
-    }
-
-    private String formatBody(byte[] bodyBytes) {
-        if (bodyBytes == null || bodyBytes.length == 0) {
-            return "_<empty body>_";
-        }
-
-        String raw = new String(bodyBytes, StandardCharsets.UTF_8).trim();
-
-        // Detect JSON
-        boolean isJson = (raw.startsWith("{") && raw.endsWith("}")) ||
-                (raw.startsWith("[") && raw.endsWith("]"));
-
-        if (isJson) {
-            return "```json\n" + raw + "\n```";
-        } else {
-            return "```text\n" + raw + "\n```";
-        }
-    }
-
 
 
     private static class BufferingClientHttpResponseWrapper implements ClientHttpResponse {

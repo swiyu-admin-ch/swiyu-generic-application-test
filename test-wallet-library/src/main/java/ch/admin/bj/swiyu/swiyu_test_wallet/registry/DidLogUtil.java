@@ -49,20 +49,20 @@ public class DidLogUtil {
         try {
             scid = JCSHasherUtil.buildSCID(didLogEntryWithoutProofAndSignature.toString());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
-        String didDocWithSCID = didDoc.toString().replaceAll("\\" + SCID_PLACEHOLDER, scid);
+        String didDocWithSCID = didDoc.toString().replace(SCID_PLACEHOLDER, scid);
         didDoc = JsonParser.parseString(didDocWithSCID).getAsJsonObject();
 
-        String didLogEntryWithoutProofAndSignatureWithSCID = didLogEntryWithoutProofAndSignature.toString().replaceAll("\\" + SCID_PLACEHOLDER, scid);
+        String didLogEntryWithoutProofAndSignatureWithSCID = didLogEntryWithoutProofAndSignature.toString().replace(SCID_PLACEHOLDER, scid);
         JsonArray didLogEntryWithSCIDWithoutProofAndSignature = JsonParser.parseString(didLogEntryWithoutProofAndSignatureWithSCID).getAsJsonArray();
 
         String entryHash = null;
         try {
             entryHash = JCSHasherUtil.buildSCID(didLogEntryWithSCIDWithoutProofAndSignature.toString());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         JsonArray didLogEntryWithProof = new JsonArray();
@@ -78,7 +78,7 @@ public class DidLogUtil {
                     didDoc, false, challenge, JCSHasherUtil.PROOF_PURPOSE_AUTHENTICATION, zdt, keyPair
             ));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
         didLogEntryWithProof.add(proofs);
 
@@ -144,7 +144,7 @@ public class DidLogUtil {
         if (!path.isEmpty()) {
             didTDW = "%s%s".formatted(didTDW,
                     path.replace("/did.jsonl", "")
-                            .replaceAll("/", ":"));
+                            .replace("/", ":"));
         }
         return didTDW;
     }

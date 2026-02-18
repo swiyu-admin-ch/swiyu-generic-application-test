@@ -8,6 +8,8 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager.VerificationRequestBuilder;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
@@ -40,9 +42,9 @@ class VerifierTest extends BaseTest {
                     the correct URI scheme and can be used by the wallet to initiate the verification flow.
                     """
     )
-    @Tag("ucv_m1")
-    @Tag("ucv_m1b")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.UCV_M1B)
+    @Tag(ReportingTags.HAPPY_PATH)
     void verifierProvidesDeeplink() {
         final ManagementResponse deeplink = verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).createManagementResponse();
         assertThat(deeplink.getVerificationDeeplink())
@@ -61,11 +63,14 @@ class VerifierTest extends BaseTest {
                     for all verification requests.
                     """
     )
-    @Tag("ucv_m1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.EDGE_CASE)
     void managementCreateVerification_missingPresentationDefinition_thenRejected() {
+        final VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
+                .acceptedIssuerDid(UUID.randomUUID().toString())
+                .presentationDefinition(null);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).presentationDefinition(null).createManagementResponse()
+                verificationRequest.createManagementResponse()
         );
 
         assertThat(errorCode(ex)).isEqualTo(400);
@@ -88,8 +93,8 @@ class VerifierTest extends BaseTest {
                     requested verification was not found.
                     """
     )
-    @Tag("ucv_m3")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_M3)
+    @Tag(ReportingTags.EDGE_CASE)
     void managementGetVerification_randomId_thenRejected() {
         final UUID unknownId = UUID.randomUUID();
 
@@ -114,8 +119,8 @@ class VerifierTest extends BaseTest {
                     and presentation_submission in the response to be accepted.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     void missingPresentationSubmission_thenRejected() {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -188,8 +193,8 @@ class VerifierTest extends BaseTest {
                     descriptor mappings with proper structure for the verifier to accept the presentation.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     void wrongPresentationSubmission_thenRejected() {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");

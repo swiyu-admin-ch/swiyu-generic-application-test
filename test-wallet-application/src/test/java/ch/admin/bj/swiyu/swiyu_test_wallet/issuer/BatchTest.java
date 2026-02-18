@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 
 @SpringBootTest
@@ -44,10 +45,10 @@ class BatchTest extends BaseTest {
                     to ensure proper randomization and uniqueness across the status list.
                     """
     )
-    @Tag("uci_s1")
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_S1)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
@@ -63,7 +64,7 @@ class BatchTest extends BaseTest {
 
         final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
 
-        assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+        assertThat(batchEntry.getIssuedCredentials()).hasSize(batchSize);
 
         List<Integer> indexes = getUsedIndexesFromDb();
 
@@ -82,16 +83,15 @@ class BatchTest extends BaseTest {
                     with an appropriate error message.
                     """
     )
-    @Tag("uci_s1")
-    @Tag("uci_c1")
-    @Tag("uci_i1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_S1)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "This feature is not available yet"
     )
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
-        final int batchSize = 3;
         final int statusListLength = 2;
 
         issuerManager.createStatusList(statusListLength, 2);
@@ -99,9 +99,7 @@ class BatchTest extends BaseTest {
         wallet.setUseEncryption(true);
 
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
-
-            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+            issuerManager.createCredentialOffer("bound_example_sd_jwt");
         });
 
         assertThat(ex.getStatusCode().value())

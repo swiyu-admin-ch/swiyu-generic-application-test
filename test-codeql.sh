@@ -26,6 +26,7 @@ mvn clean compile -q
 # Erstelle CodeQL Database (ohne config - wird erst beim analyze benötigt)
 echo "🗄️  Creating CodeQL database..."
 $CODEQL_HOME/codeql database create $DB_NAME \
+  --codescanning-config=.github/codeql/codeql-config.yml \
   --language=java \
   --source-root=. \
   --overwrite \
@@ -36,9 +37,7 @@ echo "🔎 Running CodeQL analysis..."
 $CODEQL_HOME/codeql database analyze $DB_NAME \
   --format=sarif-latest \
   --output=codeql-results.sarif \
-  --sarif-category="/language:java" \
-  java-security-extended java-security-and-quality
-
+  --sarif-category="/language:java"
 
 # Zeige Zusammenfassung
 echo "📊 Analysis complete! Results saved to codeql-results.sarif"
@@ -46,7 +45,7 @@ echo "📁 Database created in $DB_NAME"
 
 # Optional: Zeige Anzahl der Findings
 if [ -f "codeql-results.sarif" ]; then
-    findings=$(grep -o '"ruleId"' codeql-results.sarif | wc -l)
+    findings=$(jq '[.runs[].results[]] | length' codeql-results.sarif)
     echo "🔍 Found $findings security/quality issues"
 fi
 

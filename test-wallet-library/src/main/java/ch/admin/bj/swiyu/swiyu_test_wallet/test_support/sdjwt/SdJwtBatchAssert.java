@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
-import org.apache.commons.lang3.NotImplementedException;
 import org.assertj.core.api.Assertions;
 
 import java.util.List;

@@ -2,10 +2,10 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.apache.commons.collections.list.CursorableLinkedList;
+
+import lombok.experimental.UtilityClass;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -15,16 +15,17 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 
+@UtilityClass
 public class DPoPSupport {
 
-    final static String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
+    static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
 
     public static String tokenToAth(final String token) {
         MessageDigest digest = null;
         try {
             digest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(String.format("%s algorithm not found", MESSAGE_DIGEST_ALGORITHM), e);
+            throw new IllegalStateException(String.format("%s algorithm not found", MESSAGE_DIGEST_ALGORITHM), e);
         }
         final byte[] hash = digest.digest(token.getBytes(StandardCharsets.US_ASCII));
 
@@ -74,7 +75,7 @@ public class DPoPSupport {
             jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
             return jwt.serialize();
         } catch (JOSEException e) {
-            throw new RuntimeException("Failed to create DPoP proof", e);
+            throw new IllegalStateException("Failed to create DPoP proof", e);
         }
     }
 }

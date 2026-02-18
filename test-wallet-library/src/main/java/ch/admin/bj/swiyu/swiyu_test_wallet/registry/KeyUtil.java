@@ -86,7 +86,7 @@ public class KeyUtil {
         try (JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter)) {
             pemWriter.writeObject(keyPair); // CAUTION The whole key pair is expected to be written here, not only the private key
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         return stringWriter.toString();

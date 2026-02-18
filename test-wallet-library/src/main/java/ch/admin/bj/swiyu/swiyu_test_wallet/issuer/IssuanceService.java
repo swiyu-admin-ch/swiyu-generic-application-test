@@ -13,14 +13,12 @@ import java.util.Map;
 public class IssuanceService {
 
     private final ch.admin.bj.swiyu.gen.issuer.api.WellKnownEndpointsApiApi wellKnownApi;
-    private final ch.admin.bj.swiyu.gen.issuer.api.IssuerOid4VciApiApi issuerOid4VciApiApi;
 
     public IssuanceService(String issuerUrl) {
         RestClient restClient = RestClient.builder().build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerUrl);
 
         wellKnownApi = new ch.admin.bj.swiyu.gen.issuer.api.WellKnownEndpointsApiApi(apiClient);
-        issuerOid4VciApiApi = new ch.admin.bj.swiyu.gen.issuer.api.IssuerOid4VciApiApi(apiClient);
     }
 
     public IssuerMetadata getWellKnownCredentialIssuerInfo() {

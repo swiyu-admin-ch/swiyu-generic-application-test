@@ -3,7 +3,6 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.request_object;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.OpenidClientMetadataDto;
 import org.assertj.core.api.Assertions;
-import java.util.List;
 
 public final class RequestObjectAssert {
 

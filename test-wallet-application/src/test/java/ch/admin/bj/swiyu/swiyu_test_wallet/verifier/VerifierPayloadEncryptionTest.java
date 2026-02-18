@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.request_object.RequestObjectAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.JOSEException;
@@ -30,7 +31,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
@@ -56,9 +56,9 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The test runs for both bound and unbound SD-JWT credentials to ensure encryption works correctly across credential types.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("ucv_o2a")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.UCV_O2A)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging", "rc"},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
@@ -121,8 +121,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation does not meet security requirements.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "The stable tag is not yet ready with batch issuance."
@@ -180,8 +180,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation does not meet security requirements.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "The stable tag is not yet ready with batch issuance."
@@ -239,8 +239,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "The stable tag is not yet ready with batch issuance."
@@ -316,8 +316,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
                     """
     )
-    @Tag("ucv_o2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable"},
             reason = "The stable tag is not yet ready with batch issuance."

@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
 import java.util.UUID;
 
 @UtilityClass
@@ -61,7 +60,7 @@ public class VerificationRequests {
         try {
             return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 }

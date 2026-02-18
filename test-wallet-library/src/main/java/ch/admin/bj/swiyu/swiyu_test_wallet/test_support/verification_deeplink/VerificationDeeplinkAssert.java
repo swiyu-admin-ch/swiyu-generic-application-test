@@ -4,12 +4,10 @@ import org.assertj.core.api.Assertions;
 
 public final class VerificationDeeplinkAssert {
 
-    private final String deeplink;
     private final String clientId;
     private final String requestUri;
 
     private VerificationDeeplinkAssert(final String deeplink) {
-        this.deeplink = deeplink;
         this.clientId =
                 VerificationDeeplinkParser.extractClientId(deeplink);
         this.requestUri =
@@ -24,11 +22,11 @@ public final class VerificationDeeplinkAssert {
 
     public VerificationDeeplinkAssert isWellFormed() {
         Assertions.assertThat(clientId)
-                .as("verification deeplink client_id")
+                .as("verification deeplink has a client_id")
                 .isNotBlank();
 
         Assertions.assertThat(requestUri)
-                .as("verification deeplink request_uri")
+                .as("verification deeplink has a request_uri")
                 .isNotBlank();
 
         return this;
@@ -38,7 +36,7 @@ public final class VerificationDeeplinkAssert {
             final String expectedClientId
     ) {
         Assertions.assertThat(clientId)
-                .as("verification deeplink client_id")
+                .as("verification deeplink has correct client_id")
                 .isEqualTo(expectedClientId);
 
         return this;
@@ -48,7 +46,7 @@ public final class VerificationDeeplinkAssert {
             final String expectedRequestUri
     ) {
         Assertions.assertThat(requestUri)
-                .as("verification deeplink request_uri")
+                .as("verification deeplink has correct request_uri")
                 .isEqualTo(expectedRequestUri);
 
         return this;
@@ -58,7 +56,7 @@ public final class VerificationDeeplinkAssert {
             final String expectedBaseUri
     ) {
         Assertions.assertThat(requestUri)
-                .as("verification deeplink request_uri")
+                .as("verification deeplink starting correctly")
                 .startsWith(expectedBaseUri);
 
         return this;

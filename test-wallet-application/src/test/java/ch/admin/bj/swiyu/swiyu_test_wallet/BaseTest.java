@@ -55,6 +55,19 @@ import static org.mockserver.model.HttpRequest.request;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
+@SuppressWarnings({
+        // This class is a shared test infrastructure base:
+        // it intentionally centralizes setup, wiring, and utilities for integration tests.
+        // Design-related PMD rules (size, coupling, imports, generic exceptions) are not relevant here
+        // and would reduce readability and reuse if strictly enforced.
+        "PMD.SignatureDeclareThrowsException",
+        "PMD.TooManyFields",
+        "PMD.TooManyMethods",
+        "PMD.TestClassWithoutTestCases",
+        "PMD.CouplingBetweenObjects",
+        "PMD.ExcessiveImports",
+        "java:S2187" // Base class for tests - does not contain test methods itself
+})
 public class BaseTest {
 
     @Autowired

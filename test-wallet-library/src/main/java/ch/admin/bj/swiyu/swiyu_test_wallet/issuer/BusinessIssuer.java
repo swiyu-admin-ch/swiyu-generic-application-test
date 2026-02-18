@@ -13,15 +13,10 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
-import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import jdk.jfr.ContentType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -30,8 +25,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.security.PrivateKey;
 import java.security.interfaces.ECPrivateKey;
-import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +40,6 @@ public class BusinessIssuer {
 
     private StatusList statusList;
     private IssuerConfig issuerConfig;
-    private final List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
@@ -162,7 +154,7 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForStatusList(privateKey, keyId, size, bits);
         } catch (JsonProcessingException | JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         final RestClient restClient = RestClient.builder().build();
@@ -182,27 +174,26 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId);
         } catch (JsonProcessingException | JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         final RestClient restClient = RestClient.builder().build();
         final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials";
-        final CredentialWithDeeplinkResponse response = restClient.post()
+        return restClient.post()
                 .uri(url)
                 .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .body(jwt)
                 .retrieve()
                 .body(CredentialWithDeeplinkResponse.class);
-        return response;
     }
 
     public void updateStateWithSignedJwt(final PrivateKey privateKey, final String keyId, final UUID id,
                                          final UpdateCredentialStatusRequestType newState) {
         String jwt;
         try {
-            jwt = createSignedJwtForUpdateState(privateKey, keyId, id, newState);
+            jwt = createSignedJwtForUpdateState(privateKey, keyId, newState);
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot sign JWT", e);
         }
 
         final RestClient restClient = RestClient.builder().build();
@@ -217,7 +208,7 @@ public class BusinessIssuer {
     }
 
     private String createSignedJwtWithEcKey(final PrivateKey privateKey, final String keyId, final String data)
-            throws JsonProcessingException, JOSEException {
+            throws JOSEException {
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .keyID(keyId)
                 .build();
@@ -268,15 +259,15 @@ public class BusinessIssuer {
         return createSignedJwtWithEcKey(privateKey, keyId, data);
     }
 
-    private String createSignedJwtForUpdateState(final PrivateKey privateKey, final String keyId, final UUID id,
-                                                  final UpdateCredentialStatusRequestType newState) throws JOSEException {
+    private String createSignedJwtForUpdateState(final PrivateKey privateKey, final String keyId,
+                                                 final UpdateCredentialStatusRequestType newState) throws JOSEException {
         final ObjectMapper mapper = new ObjectMapper();
 
         try {
             final String data = mapper.writeValueAsString(newState);
             return createSignedJwtWithEcKey(privateKey, keyId, data);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot sign JWT for updating state", e);
         }
     }
 

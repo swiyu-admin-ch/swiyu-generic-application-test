@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
@@ -114,9 +115,9 @@ class RenewalFlowTest extends BaseTest {
                     a second batch of credentials using the DPoP-bound refresh token mechanism.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i2")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -155,9 +156,7 @@ class RenewalFlowTest extends BaseTest {
         assertThat(allCredentials)
                 .as("All credentials have been issued")
                 .isNotNull()
-                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2);
-
-        assertThat(allCredentials)
+                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2)
                 .as("All credential JWTs must be unique")
                 .doesNotHaveDuplicates();
     }
@@ -173,9 +172,9 @@ class RenewalFlowTest extends BaseTest {
                     validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_c1")
-    @Tag("uci_i2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -211,9 +210,10 @@ class RenewalFlowTest extends BaseTest {
         Mockito.doReturn(UUID.randomUUID().toString()).when(modifiedToken).getAccessToken();
 
         log.info("Renew credentials using the wrong refresh token");
+        final String accessToken = modifiedToken.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, modifiedToken.getAccessToken(), dpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, dpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -236,8 +236,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -282,9 +282,10 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the wrong dpop");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, token.getAccessToken(), invalidDpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, invalidDpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -307,8 +308,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -351,11 +352,12 @@ class RenewalFlowTest extends BaseTest {
         assertThat(firstResponse).isNotNull();
 
         log.info("Replay renew credentials using the same refresh token and dpop");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequestWithRefreshToken(
                         entry,
-                        token.getAccessToken(),
+                        accessToken,
                         dpopCredential
                 )
         );
@@ -379,8 +381,8 @@ class RenewalFlowTest extends BaseTest {
                     The renewal attempt must be rejected with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r1")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -419,9 +421,10 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the refresh token");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, token.getAccessToken(), dpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, dpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -442,8 +445,8 @@ class RenewalFlowTest extends BaseTest {
                     enforce strict token validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -492,8 +495,8 @@ class RenewalFlowTest extends BaseTest {
                     DPoP binding verification and reject with HTTP 401.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"
@@ -542,8 +545,8 @@ class RenewalFlowTest extends BaseTest {
                     with HTTP 401.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
@@ -588,8 +591,8 @@ class RenewalFlowTest extends BaseTest {
                     and return HTTP 400 invalid_token error.
                     """
     )
-    @Tag("uci_r2")
-    @Tag("edge_case")
+    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
@@ -638,8 +641,8 @@ class RenewalFlowTest extends BaseTest {
                     credential_management_id without cross-linking between independent management entities.
                     """
     )
-    @Tag("uci_r3")
-    @Tag("happy_path")
+    @Tag(ReportingTags.UCI_R3)
+    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
             reason = "This feature is not available yet"

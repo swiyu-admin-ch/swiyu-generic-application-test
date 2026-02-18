@@ -17,9 +17,11 @@ query-filters:
   - include:
       kind: path-problem
   - include:
-      severity: ["error", "warning"]  # Only errors and warnings
+      severity: ["high", "error", "warning"]  # Only high, errors and warnings
   - exclude:
       id: java/deprecated-call # Exclude deprecated calls because of V1 version
+  - exclude:
+      id: java/potentially-weak-cryptographic-algorithm # The cryptographic choices in this codebase are deliberate (OpenID specs & Swiss profile)
 
 # Extended analysis options
 disable-default-queries: false
