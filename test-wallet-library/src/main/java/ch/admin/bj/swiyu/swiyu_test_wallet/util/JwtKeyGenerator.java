@@ -65,7 +65,7 @@ public class JwtKeyGenerator {
             log.debug("JWKS: {}", this.jwksAsJson);
         } catch (Exception e) {
             log.error("Failed to generate JWT key", e);
-            throw new RuntimeException("Failed to generate JWT key", e);
+            throw new IllegalStateException("Failed to generate JWT key", e);
         }
     }
 

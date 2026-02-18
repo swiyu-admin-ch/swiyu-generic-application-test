@@ -49,7 +49,7 @@ public class DidLogUtil {
         try {
             scid = JCSHasherUtil.buildSCID(didLogEntryWithoutProofAndSignature.toString());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         String didDocWithSCID = didDoc.toString().replace(SCID_PLACEHOLDER, scid);
@@ -62,7 +62,7 @@ public class DidLogUtil {
         try {
             entryHash = JCSHasherUtil.buildSCID(didLogEntryWithSCIDWithoutProofAndSignature.toString());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         JsonArray didLogEntryWithProof = new JsonArray();
@@ -78,7 +78,7 @@ public class DidLogUtil {
                     didDoc, false, challenge, JCSHasherUtil.PROOF_PURPOSE_AUTHENTICATION, zdt, keyPair
             ));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
         didLogEntryWithProof.add(proofs);
 

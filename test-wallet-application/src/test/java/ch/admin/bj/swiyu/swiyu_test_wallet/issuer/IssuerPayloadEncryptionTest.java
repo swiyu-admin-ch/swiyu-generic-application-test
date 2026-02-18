@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @ActiveProfiles("issuer-encryption")
-class IssuerPayloadEncryption extends BaseTest {
+class IssuerPayloadEncryptionTest extends BaseTest {
 
     @BeforeEach
     void beforeEach() {

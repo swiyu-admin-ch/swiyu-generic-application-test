@@ -52,9 +52,7 @@ class VerifierOID4VPTest extends BaseTest {
         // THEN – signed request object (UCV_O1a)
         assertThat(requestObjectJwt)
                 .as("OID4VP request object must be returned by the verifier")
-                .isNotNull();
-
-        assertThat(requestObjectJwt)
+                .isNotNull()
                 .as("OID4VP request object must be returned as a compact JWT")
                 .isNotBlank();
 

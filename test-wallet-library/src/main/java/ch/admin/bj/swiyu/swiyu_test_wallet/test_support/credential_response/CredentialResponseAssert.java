@@ -13,8 +13,8 @@ public final class CredentialResponseAssert {
     private final CredentialResponse response;
     private final JsonObject body;
 
-    private final String KEY_TRANSACTION_ID = "transaction_id";
-    private final String KEY_INTERVAL = "interval";
+    private static final String KEY_TRANSACTION_ID = "transaction_id";
+    private static final String KEY_INTERVAL = "interval";
 
     private CredentialResponseAssert(final CredentialResponse response) {
         this.response = response;

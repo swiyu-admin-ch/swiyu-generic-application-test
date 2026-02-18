@@ -161,7 +161,7 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForStatusList(privateKey, keyId, size, bits);
         } catch (JsonProcessingException | JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         final RestClient restClient = RestClient.builder().build();
@@ -181,18 +181,17 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId);
         } catch (JsonProcessingException | JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
 
         final RestClient restClient = RestClient.builder().build();
         final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials";
-        final CredentialWithDeeplinkResponse response = restClient.post()
+        return restClient.post()
                 .uri(url)
                 .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
                 .body(jwt)
                 .retrieve()
                 .body(CredentialWithDeeplinkResponse.class);
-        return response;
     }
 
     public void updateStateWithSignedJwt(final PrivateKey privateKey, final String keyId, final UUID id,
@@ -201,7 +200,7 @@ public class BusinessIssuer {
         try {
             jwt = createSignedJwtForUpdateState(privateKey, keyId, newState);
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot sign JWT");
         }
 
         final RestClient restClient = RestClient.builder().build();
@@ -216,7 +215,7 @@ public class BusinessIssuer {
     }
 
     private String createSignedJwtWithEcKey(final PrivateKey privateKey, final String keyId, final String data)
-            throws JsonProcessingException, JOSEException {
+            throws JOSEException {
         final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .keyID(keyId)
                 .build();
@@ -275,7 +274,7 @@ public class BusinessIssuer {
             final String data = mapper.writeValueAsString(newState);
             return createSignedJwtWithEcKey(privateKey, keyId, data);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot sign JWT for updating state");
         }
     }
 

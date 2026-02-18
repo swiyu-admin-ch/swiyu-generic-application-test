@@ -87,7 +87,7 @@ public class IssuerMetadata {
             );
             return MAPPER.convertValue(map, clazz);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse " + key + " as " + clazz.getSimpleName(), e);
+            throw new IllegalStateException("Failed to parse " + key + " as " + clazz.getSimpleName(), e);
         }
     }
 

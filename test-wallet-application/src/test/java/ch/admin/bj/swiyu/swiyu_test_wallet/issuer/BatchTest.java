@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 
 @SpringBootTest
@@ -63,7 +63,7 @@ class BatchTest extends BaseTest {
 
         final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
 
-        assertThat(batchEntry.getIssuedCredentials().size()).isEqualTo(batchSize);
+        assertThat(batchEntry.getIssuedCredentials()).hasSize(batchSize);
 
         List<Integer> indexes = getUsedIndexesFromDb();
 
@@ -91,7 +91,6 @@ class BatchTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void batchIssuanceFlowExceedStatusList_thenReject() throws SQLException {
-        final int batchSize = 3;
         final int statusListLength = 2;
 
         issuerManager.createStatusList(statusListLength, 2);
@@ -99,9 +98,7 @@ class BatchTest extends BaseTest {
         wallet.setUseEncryption(true);
 
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
-
-            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+            issuerManager.createCredentialOffer("bound_example_sd_jwt");
         });
 
         assertThat(ex.getStatusCode().value())

@@ -87,6 +87,7 @@ class DeferredFlowTest extends BaseTest {
                 .hasTransactionId(expectedTransactionId)
                 .hasInterval()
                 .hasCode(202);
+
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique()

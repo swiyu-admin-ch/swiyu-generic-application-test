@@ -61,7 +61,7 @@ public class JwtSupport {
         try {
             return SignedJWT.parse(jwt);
         } catch (ParseException e) {
-            throw new RuntimeException("Failed to parse JWT", e);
+            throw new IllegalStateException("Failed to parse JWT", e);
         }
     }
 
@@ -69,11 +69,11 @@ public class JwtSupport {
         try {
             SignedJWT jwt = SignedJWT.parse(jwtString);
             if (!JWSAlgorithm.ES256.equals(jwt.getHeader().getAlgorithm())) {
-                throw new RuntimeException("Unsupported alg");
+                throw new IllegalStateException("Unsupported alg");
             }
             return jwt.verify(new ECDSAVerifier(publicKey));
         } catch (ParseException | JOSEException e) {
-            throw new RuntimeException("Failed to verify JWT signature", e);
+            throw new IllegalStateException("Failed to verify JWT signature", e);
         }
     }
 }

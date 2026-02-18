@@ -4,12 +4,10 @@ import org.assertj.core.api.Assertions;
 
 public final class VerificationDeeplinkAssert {
 
-    private final String deeplink;
     private final String clientId;
     private final String requestUri;
 
     private VerificationDeeplinkAssert(final String deeplink) {
-        this.deeplink = deeplink;
         this.clientId =
                 VerificationDeeplinkParser.extractClientId(deeplink);
         this.requestUri =

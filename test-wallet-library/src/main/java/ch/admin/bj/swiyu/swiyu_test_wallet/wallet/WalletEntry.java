@@ -115,7 +115,7 @@ public class WalletEntry {
             String serializedJwt = signedJWT.serialize();
             return issuerSdJwt + serializedJwt;
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -143,7 +143,7 @@ public class WalletEntry {
             byte[] hashBytes = digest.digest(credentialsSdJwt.getBytes());
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -247,7 +247,7 @@ public class WalletEntry {
                     .generate();
             this.setEphemeralEncryptionKey(key);
         } catch (Exception e) {
-            throw new RuntimeException("Error during ephemeral encryption key", e);
+            throw new IllegalStateException("Error during ephemeral encryption key", e);
         }
     }
 

@@ -117,36 +117,6 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
     }
 
 
-    private String formatHeadersAsList(HttpHeaders headers) {
-        StringBuilder sb = new StringBuilder();
-        headers.forEach((key, values) -> {
-            sb.append("- **").append(key).append("**: ");
-            sb.append(String.join(", ", values));
-            sb.append("\n");
-        });
-        return sb.toString().trim();
-    }
-
-    private String formatBody(byte[] bodyBytes) {
-        if (bodyBytes == null || bodyBytes.length == 0) {
-            return "_<empty body>_";
-        }
-
-        String raw = new String(bodyBytes, StandardCharsets.UTF_8).trim();
-
-        // Detect JSON
-        boolean isJson = (raw.startsWith("{") && raw.endsWith("}")) ||
-                (raw.startsWith("[") && raw.endsWith("]"));
-
-        if (isJson) {
-            return "```json\n" + raw + JSON_CODE_BLOCK_DELIMITER;
-        } else {
-            return "```text\n" + raw + JSON_CODE_BLOCK_DELIMITER;
-        }
-    }
-
-
-
     private static class BufferingClientHttpResponseWrapper implements ClientHttpResponse {
         private final ClientHttpResponse response;
         private final byte[] body;

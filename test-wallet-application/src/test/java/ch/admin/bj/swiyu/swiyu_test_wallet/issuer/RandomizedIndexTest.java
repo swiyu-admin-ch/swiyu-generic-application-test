@@ -75,9 +75,9 @@ class RandomizedIndexTest extends BaseTest {
 
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected total of 4 credentials (1 single + 3 in batch)")
-                .isEqualTo(6);
+                .hasSize(6);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")
@@ -127,9 +127,9 @@ class RandomizedIndexTest extends BaseTest {
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", batchCount * batchSize, batchCount, batchSize)
-                .isEqualTo(batchCount * batchSize);
+                .hasSize(batchCount * batchSize);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes across all batches must not be sequential when issued concurrently")
@@ -179,9 +179,9 @@ class RandomizedIndexTest extends BaseTest {
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
-        assertThat(allIndexes.size())
+        assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", 18, batchCount, batchSize)
-                .isEqualTo(18);
+                .hasSize(18);
     }
 
     private List<Integer> getUsedIndexesFromDb() throws SQLException {

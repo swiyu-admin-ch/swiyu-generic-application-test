@@ -209,7 +209,7 @@ public class Wallet {
             return new IssuerMetadata(metadata);
         }
 
-        final Map rawMetadata = restClient.get()
+        final Map<String, Object> rawMetadata = restClient.get()
                 .uri(issuerOpenIdCredentialIssuer)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
@@ -238,12 +238,11 @@ public class Wallet {
 
     public ResponseEntity<NonceResponse> getNonce(WalletEntry walletEntry) {
         final URI cnonceURI = issuerContext.getContextualizedUri(walletEntry.getIssuerMetadata().getNonceEndpointURI());
-        final ResponseEntity<NonceResponse> response = restClient.post()
+        return restClient.post()
                 .uri(cnonceURI)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
                 .toEntity(NonceResponse.class);
-        return response;
     }
 
     public String getCNonce(WalletEntry walletEntry) {
@@ -305,7 +304,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(request);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot serialize deferred credential request", e);
         }
 
         // Encrypt the payload if encryption is preferred
@@ -365,7 +364,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(request);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("Cannot serialize deferred credential request", e);
         }
 
         final String finalPayload = useEncryption
@@ -410,6 +409,7 @@ public class Wallet {
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
         if (credentialResponse.has(CREDENTIALS)) {
+            walletEntry.clearIssuedCredentials();
             final JsonArray credentials = credentialResponse.getAsJsonArray(CREDENTIALS);
             credentials.forEach(c -> {
                 final String credential = c.getAsJsonObject().get(CREDENTIAL).getAsString();
@@ -461,7 +461,7 @@ public class Wallet {
             return jweObject.serialize();
 
         } catch (Exception e) {
-            throw new RuntimeException("Error during encryption", e);
+            throw new IllegalStateException("Error during encryption", e);
         }
     }
 
@@ -513,7 +513,7 @@ public class Wallet {
                     mapper.readValue(body, RequestObject.class);
             return new VerificationRequestObject.Unsigned(requestObject);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse unsigned request object", e);
+            throw new IllegalStateException("Failed to parse unsigned request object", e);
         }
     }
 
@@ -559,7 +559,7 @@ public class Wallet {
             try {
                 jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
             } catch (JOSEException e) {
-                throw new RuntimeException("Failed to encrypt VP token response (ID2)", e);
+                throw new IllegalStateException("Failed to encrypt VP token response (ID2)", e);
             }
 
             formData.add("response", jweObject.serialize());
@@ -603,7 +603,7 @@ public class Wallet {
             try {
                 jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
             } catch (JOSEException e) {
-                throw new RuntimeException("Failed to encrypt VP token response (V1)", e);
+                throw new IllegalStateException("Failed to encrypt VP token response (V1)", e);
             }
 
             formData.add("response", jweObject.serialize());
@@ -697,7 +697,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(request);
         } catch (JsonProcessingException ex) {
-            throw new RuntimeException("Cannot serialize payload credential", ex);
+            throw new IllegalStateException("Cannot serialize payload credential", ex);
         }
 
         final String finalPayload = useEncryption
@@ -727,7 +727,7 @@ public class Wallet {
                 JWESupport.assertIsJWE(bodyAsString);
                 bodyAsString = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), bodyAsString);
             } catch (Exception e) {
-                throw new RuntimeException("Error decrypting credential response", e);
+                throw new IllegalStateException("Error decrypting credential response", e);
             }
         }
 
@@ -773,7 +773,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
         } catch (JsonProcessingException ex) {
-            throw new RuntimeException("Failed to serialize credential request payload", ex);
+            throw new IllegalStateException("Failed to serialize credential request payload", ex);
         }
 
         final String finalPayload = useEncryption
@@ -813,7 +813,7 @@ public class Wallet {
                 JWESupport.assertIsJWE(responseBody);
                 responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
             } catch (Exception e) {
-                throw new RuntimeException("Error decrypting credential response", e);
+                throw new IllegalStateException("Error decrypting credential response", e);
             }
         }
 
@@ -896,7 +896,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
         } catch (JsonProcessingException ex) {
-            throw new RuntimeException("Cannot serialize credential request payload", ex);
+            throw new IllegalStateException("Cannot serialize credential request payload", ex);
         }
 
         var builder = restClient.post()
@@ -991,7 +991,7 @@ public class Wallet {
             signedJWT.sign(new ECDSASigner((ECPrivateKey) walletEntry.getKeyPair().getPrivate()));
             return signedJWT.serialize();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create DPoP proof for credential request", e);
+            throw new IllegalStateException("Failed to create DPoP proof for credential request", e);
         }
     }
 
@@ -1001,7 +1001,7 @@ public class Wallet {
             byte[] hash = digest.digest(accessToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
         } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not available", e);
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
         }
     }
 
@@ -1018,7 +1018,7 @@ public class Wallet {
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
         } catch (JsonProcessingException ex) {
-            throw new RuntimeException("Failed to serialize credential request payload", ex);
+            throw new IllegalStateException("Failed to serialize credential request payload", ex);
         }
 
         var requestBuilder = restClient.post()

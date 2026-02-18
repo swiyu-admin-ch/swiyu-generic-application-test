@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager.VerificationRequestBuilder;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
@@ -64,8 +65,11 @@ class VerifierTest extends BaseTest {
     @Tag("ucv_m1")
     @Tag("edge_case")
     void managementCreateVerification_missingPresentationDefinition_thenRejected() {
+        final VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
+                .acceptedIssuerDid(UUID.randomUUID().toString())
+                .presentationDefinition(null);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).presentationDefinition(null).createManagementResponse()
+                verificationRequest.createManagementResponse()
         );
 
         assertThat(errorCode(ex)).isEqualTo(400);

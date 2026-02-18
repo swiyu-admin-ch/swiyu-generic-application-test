@@ -454,7 +454,7 @@ class DPoPFlowTest extends BaseTest {
         int actualBatchSize = firstCredentials.size();
         assertThat(actualBatchSize)
                 .as("Batch should contain at least one credential")
-                .isGreaterThan(0);
+                .isPositive();
         log.info("First batch issued with {} credentials", actualBatchSize);
 
         log.info("Wallet creates new credential offer for second batch");

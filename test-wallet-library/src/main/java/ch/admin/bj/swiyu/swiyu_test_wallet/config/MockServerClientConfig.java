@@ -35,8 +35,12 @@ import static org.mockserver.model.HttpResponse.response;
 @UtilityClass
 public class MockServerClientConfig {
 
+    @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
     public static final String ISSUER_CALLBACK_PATH = "/callbacks/issuer";
+    @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
     public static final String VERIFIER_CALLBACK_PATH = "/callbacks/issuer";
+    private static final String MOCKSERVER_HOST = "mockserver:1080";
+    private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
 
     public static MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig) {
@@ -73,8 +77,8 @@ public class MockServerClientConfig {
                         .withPathParameter("businessId", ".*"))
                 .respond(httpRequest -> {
                     var id = UUID.randomUUID();
-                    var payload = "{\"id\": \"%s\", \"statusRegistryUrl\": \"https://mockserver:1080/api/v1/statuslist/%s.jwt\"}"
-                            .formatted(id, id);
+                    var payload = "{\"id\": \"%s\", \"statusRegistryUrl\": \"%s\"}"
+                            .formatted(id, STATUSLIST_URI_PATTERN.formatted(id));
                     return response()
                             .withStatusCode(200)
                             .withHeader(HTTP.CONTENT_TYPE, "application/json")

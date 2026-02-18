@@ -33,7 +33,7 @@ public class JsonConverter {
         try {
             return DEFAULT_OBJECT_MAPPER.readValue(json, responseType);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -41,7 +41,7 @@ public class JsonConverter {
         try {
             return DEFAULT_OBJECT_MAPPER.readTree(json);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -63,7 +63,7 @@ public class JsonConverter {
         try {
             return writer.writeValueAsString(pojo);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 

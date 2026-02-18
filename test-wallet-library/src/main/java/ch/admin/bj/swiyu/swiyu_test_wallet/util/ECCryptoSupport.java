@@ -26,7 +26,7 @@ public class ECCryptoSupport {
             keyPairGenerator.initialize(ecSpec);
             return keyPairGenerator.generateKeyPair();
         } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -37,7 +37,7 @@ public class ECCryptoSupport {
             }
             return new ECDSASigner((ECPrivateKey) privateKey);
         } catch (JOSEException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 

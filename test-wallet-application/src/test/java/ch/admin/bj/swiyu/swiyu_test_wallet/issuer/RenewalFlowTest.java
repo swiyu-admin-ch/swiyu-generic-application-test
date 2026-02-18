@@ -155,9 +155,7 @@ class RenewalFlowTest extends BaseTest {
         assertThat(allCredentials)
                 .as("All credentials have been issued")
                 .isNotNull()
-                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2);
-
-        assertThat(allCredentials)
+                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2)
                 .as("All credential JWTs must be unique")
                 .doesNotHaveDuplicates();
     }
@@ -211,9 +209,10 @@ class RenewalFlowTest extends BaseTest {
         Mockito.doReturn(UUID.randomUUID().toString()).when(modifiedToken).getAccessToken();
 
         log.info("Renew credentials using the wrong refresh token");
+        final String accessToken = modifiedToken.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, modifiedToken.getAccessToken(), dpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, dpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -282,9 +281,10 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the wrong dpop");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, token.getAccessToken(), invalidDpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, invalidDpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -351,11 +351,12 @@ class RenewalFlowTest extends BaseTest {
         assertThat(firstResponse).isNotNull();
 
         log.info("Replay renew credentials using the same refresh token and dpop");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequestWithRefreshToken(
                         entry,
-                        token.getAccessToken(),
+                        accessToken,
                         dpopCredential
                 )
         );
@@ -419,9 +420,10 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the refresh token");
+        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequestWithRefreshToken(entry, token.getAccessToken(), dpopCrendetialEndpoint)
+                () -> wallet.postCredentialRequestWithRefreshToken(entry, accessToken, dpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))

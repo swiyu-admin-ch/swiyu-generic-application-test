@@ -55,7 +55,8 @@ import static org.mockserver.model.HttpRequest.request;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
-public abstract class BaseTest {
+@SuppressWarnings("java:S2187") // Base class for tests - does not contain test methods itself
+public class BaseTest {
 
     @Autowired
     protected ApplicationTestConfig applicationTestConfig;

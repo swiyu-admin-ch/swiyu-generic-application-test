@@ -14,7 +14,7 @@ public class PathSupport {
         try {
             return new URI(url);
         } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
