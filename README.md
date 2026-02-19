@@ -131,6 +131,58 @@ class MyTest extends BaseTest {
 }
 ```
 
+## Local Development and Testing
+
+When making modifications to the [Issuer](https://github.com/swiyu-admin-ch/swiyu-issuer) or [Verifier](https://github.com/swiyu-admin-ch/swiyu-verifier) services, you can build and test these development versions locally without relying on pre-built registry images. This allows you to run full end-to-end tests against your own development builds.
+
+### Prerequisites for Local Testing
+
+In addition to the standard prerequisites, you need:
+
+- Access to the [swiyu-issuer](https://github.com/swiyu-admin-ch/swiyu-issuer) repository (for testing Issuer modifications)
+- Access to the [swiyu-verifier](https://github.com/swiyu-admin-ch/swiyu-verifier) repository (for testing Verifier modifications)
+
+### Building and Preparing Local Images for Testing
+
+Run the `prepare-local-testing.sh` script to build both development images locally and configure them for E2E testing:
+
+```bash
+source ./scripts/prepare-local-testing.sh
+```
+
+This script performs the following steps:
+
+1. Builds Maven packages for both services (`mvn clean package -DskipTests`)
+2. Creates Docker images with the `local` tag
+3. Sets environment variables to use the locally built images:
+   - `ISSUER_IMAGE_NAME=swiyu-issuer` and `ISSUER_IMAGE_TAG=local`
+   - `VERIFIER_IMAGE_NAME=swiyu-verifier` and `VERIFIER_IMAGE_TAG=local`
+
+After running this script, all subsequent test executions will use your locally built development images.
+
+### Custom Repository Paths
+
+By default, the script expects repositories at:
+- `~/Git/swiyu-issuer`
+- `~/Git/swiyu-verifier`
+
+To use custom paths, set the environment variables before running the script:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `LOCAL_REPOSITORY_ISSUER_ROOT` | Path to local Issuer repository for development builds | `~/Git/swiyu-issuer` |
+| `LOCAL_REPOSITORY_VERIFIER_ROOT` | Path to local Verifier repository for development builds | `~/Git/swiyu-verifier` |
+
+### Reverting to Registry Images
+
+Once you've finished testing your development builds, you can revert to using the pre-built images from GitHub Container Registry by unsetting the local image environment variables:
+
+```bash
+source ./scripts/cleanup-local-testing.sh
+```
+
+This script removes the environment variables that were set by `prepare-local-testing.sh`, allowing subsequent tests to use the default registry images again.
+
 ## Contributions and feedback
 
 We welcome any feedback on the code regarding both the implementation and security aspects.
