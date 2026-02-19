@@ -87,6 +87,22 @@ class SignedMetadataTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-740",
+            summary = "Validate retrieval of unsigned issuer metadata with tenantId (happy path)",
+            description = """
+                    This test validates that a wallet can successfully request and retrieve unsigned issuer metadata
+                    when the signed metadata feature is disabled and a tenantId is used.
+                    
+                    The wallet processes the credential offer deeplink, resolves the issuer well-known configuration
+                    in a tenant-aware context, and retrieves the issuer metadata as a plain JSON object (not a signed JWT).
+                    
+                    This test covers the happy path for unsigned issuer metadata retrieval in a multi-tenant configuration.
+                    """
+    )
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.UCI_M1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
         wallet.setSignedMetadataPreferred(false);
         var walletEntry = wallet.createWalletEntry();
