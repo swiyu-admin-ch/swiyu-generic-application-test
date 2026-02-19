@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
@@ -33,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -49,6 +51,9 @@ class RenewalFlowTest extends BaseTest {
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
 
+    private static final String ERROR_INVALID_DPOP_PROOF = "invalid_dpop_proof";
+    private static final String ERROR_KEY_MISSMATCH = "Key mismatch";
+
     @BeforeAll
     void setUp() {
         dpopKeyPair = ECCryptoSupport.generateECKeyPair();
@@ -62,7 +67,7 @@ class RenewalFlowTest extends BaseTest {
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "bound_example_sd_jwt");
+                issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, "bound_example_sd_jwt");
 
         entry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         entry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(entry));
@@ -119,7 +124,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void renewalFlow_happyPath_fullyAlignedWithSequenceDiagram() {
@@ -176,16 +181,14 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -240,16 +243,14 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withWrongDpopBinding_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -294,8 +295,8 @@ class RenewalFlowTest extends BaseTest {
                 .isEqualTo(401);
 
         assertThat(errorJson(ex))
-                .containsEntry("error", "invalid_dpop_proof")
-                .containsEntry("error_description", "Key mismatch");
+                .containsEntry("error", ERROR_INVALID_DPOP_PROOF)
+                .containsEntry("error_description", ERROR_KEY_MISSMATCH);
     }
 
     @Test
@@ -313,16 +314,14 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withNonceReplayAttack_thenRejected() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -369,7 +368,7 @@ class RenewalFlowTest extends BaseTest {
                 .isEqualTo(401);
 
         assertThat(errorJson(ex))
-                .containsEntry("error", "invalid_dpop_proof")
+                .containsEntry("error", ERROR_INVALID_DPOP_PROOF)
                 .containsEntry("error_description", "Must use valid server provided nonce");
     }
 
@@ -387,16 +386,14 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
-        final List<String> allCredentials = new ArrayList<>();
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
 
         log.info("Create initial credentials");
         final CredentialWithDeeplinkResponse offer = initializeCredentials(entry);
-        allCredentials.addAll(entry.getIssuedCredentials());
 
         log.info("Retrieve a refresh token");
         String nonce = wallet.getCNonce(entry);
@@ -418,7 +415,7 @@ class RenewalFlowTest extends BaseTest {
 
         log.info("The management revokes the credential");
         issuerManager.updateStateWithSignedJwt(
-                jwtKey, "test-key-1",
+                jwtKey, keyId,
                 offer.getManagementId(),
                 UpdateCredentialStatusRequestType.REVOKED
         );
@@ -452,7 +449,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void refreshToken_refreshWithInvalidToken_thenRejected() {
@@ -503,7 +500,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void refreshToken_refreshWithWrongDpopBinding_thenRejected() {
@@ -536,8 +533,8 @@ class RenewalFlowTest extends BaseTest {
         );
 
         assertThat(errorJson(ex))
-                .containsEntry("error", "invalid_dpop_proof")
-                .containsEntry("error_description", "Key mismatch");
+                .containsEntry("error", ERROR_INVALID_DPOP_PROOF)
+                .containsEntry("error_description", ERROR_KEY_MISSMATCH);
     }
 
     @Test
@@ -554,7 +551,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
     )
     void refreshToken_refreshNonceReplay_thenRejected() {
@@ -583,7 +580,7 @@ class RenewalFlowTest extends BaseTest {
 
         assertThat(errorCode(ex)).isEqualTo(401);
         assertThat(errorJson(ex))
-                .containsEntry("error", "invalid_dpop_proof")
+                .containsEntry("error", ERROR_INVALID_DPOP_PROOF)
                 .containsEntry("error_description", "Must use valid server provided nonce");
     }
 
@@ -601,7 +598,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
     )
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {
@@ -611,7 +608,7 @@ class RenewalFlowTest extends BaseTest {
 
         log.info("The management revokes the credential");
         issuerManager.updateStateWithSignedJwt(
-                jwtKey, "test-key-1",
+                jwtKey, keyId,
                 offer.getManagementId(),
                 UpdateCredentialStatusRequestType.REVOKED
         );
@@ -652,7 +649,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {
@@ -749,8 +746,19 @@ class RenewalFlowTest extends BaseTest {
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setObject(1, managementId);
             try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
+                if (!rs.next()) {
+                    throw new NoSuchElementException(
+                            "No result found for managementId=" + managementId
+                    );
+                }
+                final int result = rs.getInt(1);
+                if (rs.next()) {
+                    throw new IllegalStateException(
+                            "Multiple results found for managementId=" + managementId
+                    );
+                }
+
+                return result;
             }
         }
     }
