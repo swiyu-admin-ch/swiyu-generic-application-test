@@ -1,7 +1,4 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: 2025 Swiss Confederation
-# SPDX-License-Identifier: MIT
-
 # CodeQL Advanced Mode Test Script
 
 # To run the sript extract codeql-bundle-linux64.tar.gz to /codeql folder
