@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 
@@ -55,7 +56,7 @@ class RandomizedIndexTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void fullBatchFlow_withRandomIndexes() throws Exception {
@@ -99,7 +100,7 @@ class RandomizedIndexTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void multipleConcurrentBatches_largeStatusList() throws Exception {
@@ -151,7 +152,7 @@ class RandomizedIndexTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void multipleConcurrentBatches_smallStatusList() throws Exception {

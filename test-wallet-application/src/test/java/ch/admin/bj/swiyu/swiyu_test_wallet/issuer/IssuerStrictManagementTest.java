@@ -42,7 +42,7 @@ class IssuerStrictManagementTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     void issuerManagementAccess_withSignedJwt_thenSuccess() {
         log.info("Creating status list with signed JWT body (should succeed)");
-        final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 10000, 2);
+        final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 10000, 2);
 
         assertThat(statusList)
                 .as("Status list should be created successfully with valid signed JWT")
@@ -51,7 +51,7 @@ class IssuerStrictManagementTest extends BaseTest {
                 .as("Status list should have a valid registry URL")
                 .isNotNull();
 
-        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, "test-key-1", "bound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse credentialInfo = issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, "bound_example_sd_jwt");
 
         assertThat(credentialInfo).isNotNull();
 
@@ -90,7 +90,7 @@ class IssuerStrictManagementTest extends BaseTest {
 
         ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, "test-key-1", "bound_example_sd_jwt")
+                () -> issuerManager.createCredentialWithSignedJwt(unauthenticatedJwtKey, keyId, "bound_example_sd_jwt")
         );
 
         assertThat(errorCode(ex))

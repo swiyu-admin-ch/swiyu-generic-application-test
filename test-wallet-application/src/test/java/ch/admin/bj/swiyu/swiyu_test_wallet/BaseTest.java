@@ -97,6 +97,7 @@ public class BaseTest {
     protected RestClient restClient;
     protected Statement stmt;
     protected PrivateKey jwtKey;
+    protected String keyId = "test-key-1";
     protected PrivateKey unauthenticatedJwtKey;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
@@ -203,7 +204,7 @@ public class BaseTest {
         );
 
         if (issuerImageConfig.isEnableJwtAuth()) {
-            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, "test-key-1", 100000, 2);
+            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 100000, 2);
         } else {
             currentStatusList = issuerManager.createStatusList(100000, 2);
         }

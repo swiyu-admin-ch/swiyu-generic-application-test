@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
@@ -60,7 +61,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING, ImageTags.RC},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
     )
     void verifyDCQL_whenEncryptionRequired_thenSuccess(final String supportedMetadataId) {
@@ -124,7 +125,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
     @Deprecated(forRemoval = true)
@@ -183,7 +184,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
     void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
@@ -242,7 +243,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
     @Deprecated(forRemoval = true)
@@ -319,7 +320,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
     void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
