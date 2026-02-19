@@ -14,13 +14,11 @@ public class ReportingTags {
     public final static String UCI_I1 = "uci_i1";
     public final static String UCI_I1A = "uci_i1a";
     public final static String UCI_I1B = "uci_i1b";
+    public final static String UCI_I1E = "uci_i1e";
     public final static String UCI_I2 = "uci_i2";
     public final static String UCI_M1 = "uci_m1";
     public final static String UCI_M1A = "uci_m1a";
     public final static String UCI_P1 = "uci_p1";
-    public final static String UCI_R1 = "uci_r1";
-    public final static String UCI_R2 = "uci_r2";
-    public final static String UCI_R3 = "uci_r3";
     public final static String UCI_S1 = "uci_s1";
     public final static String UCI_S2 = "uci_s2";
     public final static String UCI_W1 = "uci_w1";

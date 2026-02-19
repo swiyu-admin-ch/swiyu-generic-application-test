@@ -236,7 +236,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -308,7 +309,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -381,7 +383,8 @@ class RenewalFlowTest extends BaseTest {
                     The renewal attempt must be rejected with HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_R1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -445,7 +448,8 @@ class RenewalFlowTest extends BaseTest {
                     enforce strict token validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -495,7 +499,8 @@ class RenewalFlowTest extends BaseTest {
                     DPoP binding verification and reject with HTTP 401.
                     """
     )
-    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -545,7 +550,8 @@ class RenewalFlowTest extends BaseTest {
                     with HTTP 401.
                     """
     )
-    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -591,7 +597,8 @@ class RenewalFlowTest extends BaseTest {
                     and return HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_R2)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
@@ -641,7 +648,8 @@ class RenewalFlowTest extends BaseTest {
                     credential_management_id without cross-linking between independent management entities.
                     """
     )
-    @Tag(ReportingTags.UCI_R3)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {"stable", "staging"},
