@@ -1,8 +1,8 @@
 ![github-banner](https://github.com/swiyu-admin-ch/swiyu-admin-ch.github.io/blob/main/assets/images/github-banner.jpg)
 
-# SWIYU Generic Application Test
+# swiyu Generic Application Test
 
-The Generic Application Test is a test system designed to run end-to-end (E2E) tests against the generic SWIYU [Issuer](https://github.com/swiyu-admin-ch/swiyu-issuer) and [Verifier](https://github.com/swiyu-admin-ch/swiyu-verifier) components.
+The Generic Application Test is a test system designed to run end-to-end (E2E) tests against the generic swiyu [Issuer](https://github.com/swiyu-admin-ch/swiyu-issuer) and [Verifier](https://github.com/swiyu-admin-ch/swiyu-verifier) components.
 
 Its primary goal is to validate the generic behavior of these components in isolation, without relying on a full trust infrastructure or real wallets. The system focuses on testing the issuance and verification flows, independently of any specific ecosystem or deployment.
 
