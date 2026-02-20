@@ -12,7 +12,8 @@ import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import lombok.experimental.UtilityClass;
+import lombok.Getter;
+import lombok.Setter;
 
 import org.apache.http.protocol.HTTP;
 import org.mockserver.client.MockServerClient;
@@ -33,7 +34,8 @@ import java.util.UUID;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-@UtilityClass
+@Getter
+@Setter
 public class MockServerClientConfig {
 
     @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
@@ -44,8 +46,9 @@ public class MockServerClientConfig {
     private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
 
     private static final Map<String, String> statusListBitsMap = new HashMap<>();
+    private String currentStatusList = "";
 
-    public static MockServerClient createMockServerClient(MockServerContainer mockServer,
+    public MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig) {
 
         final String validFrom = LocalDate.now(ZoneOffset.UTC)
@@ -122,32 +125,30 @@ public class MockServerClientConfig {
         mockServerClient.when(request().withMethod("POST").withPath(VERIFIER_CALLBACK_PATH))
                 .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
 
-        try {
-            mockServerClient
-                    .when(
-                            request()
-                                    .withMethod("POST")
-                                    .withPath("/renewal"))
-                    .respond(
-                            response()
-                                    .withStatusCode(200)
-                                    .withHeader(HTTP.CONTENT_TYPE, "application/json")
-                                    .withBody(new ObjectMapper().writeValueAsString(
-                                            Map.of(
-                                                    "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
-                                                    "credential_subject_data", CredentialSubjectFixtures.completeEmployeeProfile(),
-                                                    "credential_metadata", Map.of("vct#integrity","sha256-0000000000000000000000000000000000000000000="),
-                                                    "credential_valid_from", validFrom,
-                                                    "credential_valid_until", validUntil,
-                                                    "status_lists", List.of()))));
-        } catch (JsonProcessingException e) {
-            throw new TestSupportException("Cannot parse correctly data");
-        }
+        mockServerClient
+                .when(request().withMethod("POST").withPath("/renewal"))
+                .respond(httpRequest -> {
+                    try {
+                        return response()
+                                .withStatusCode(200)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withBody(new ObjectMapper().writeValueAsString(
+                                        Map.of(
+                                                "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                                                "credential_subject_data", CredentialSubjectFixtures.completeEmployeeProfile(),
+                                                "credential_metadata", Map.of("vct#integrity","sha256-0000000000000000000000000000000000000000000="),
+                                                "credential_valid_from", validFrom,
+                                                "credential_valid_until", validUntil,
+                                                "status_lists", List.of(this.currentStatusList))));
+                    } catch (JsonProcessingException e) {
+                        throw new TestSupportException("Cannot parse correctly data");
+                    }
+                });
 
         return mockServerClient;
     }
 
-    private static String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)
+    private String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)
             throws JOSEException, ParseException {
 
         final JWK jwk = JWK.parseFromPEMEncodedObjects(issuerConfig.getIssuerAssertKeyPemString());
@@ -183,7 +184,7 @@ public class MockServerClientConfig {
         return SignedJWT.parse(s).serialize();
     }
 
-    private static String extractStatusListIdFromPath(String path) {
+    private String extractStatusListIdFromPath(String path) {
         if (path == null) return null;
 
         final int lastSlash = path.lastIndexOf('/');
@@ -198,7 +199,7 @@ public class MockServerClientConfig {
         return lastSegment;
     }
 
-    private static String extractBitsFromJwt(String jwtBody) {
+    private String extractBitsFromJwt(String jwtBody) {
         try {
             if (jwtBody == null || jwtBody.isEmpty()) {
                 return null;
