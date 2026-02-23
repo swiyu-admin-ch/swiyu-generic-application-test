@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -79,7 +80,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopInitialIssuance_happyPath() {
@@ -159,7 +160,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopRefreshFlow_happyPath() {
@@ -259,7 +260,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopNonceInvalidationAfterUsage_preventReplayAttack() {
@@ -325,7 +326,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopNonceInvalidationInRefreshFlow_preventReplay() {
@@ -373,7 +374,7 @@ class DPoPFlowTest extends BaseTest {
         log.info("Attacker attempts to replay first refresh nonce");
         String replayFirstRefreshDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", firstRefreshNonce);
 
-        final HttpClientErrorException replayEx = assertThrows(HttpClientErrorException.class, () -> {
+        assertThrows(HttpClientErrorException.class, () -> {
             wallet.refreshTokenWithDPoP(batchEntry, replayFirstRefreshDpopProof);
         });
         log.info("Replay attempt blocked");
@@ -417,7 +418,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopNonceInvalidationInCredentialRequests_preventReplay() {
@@ -506,7 +507,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopRegisterHolderKey_thenRejectDifferentKey() {
@@ -608,7 +609,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
@@ -646,7 +647,7 @@ class DPoPFlowTest extends BaseTest {
         log.info("Attacker intercepts request and creates DPoP proof bound to attacker-url");
         URI attackerCredentialUri = URI.create("http://attacker-url:8080/oid4vci/api/credential");
         String credentialNonce = wallet.getDpopNonce(batchEntry);
-        String attackerDpopProof = createDpopProofForCredentialRequest(batchEntry, attackerCredentialUri, credentialNonce);
+        String attackerDpopProof = createDpopProofForCredentialRequest(attackerCredentialUri, credentialNonce);
 
         log.info("Attacker forwards request to real issuer with attacker's DPoP proof");
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -663,7 +664,7 @@ class DPoPFlowTest extends BaseTest {
         log.info("MITM attack prevented - DPoP URI binding working correctly");
     }
 
-    private String createDpopProofForCredentialRequest(WalletBatchEntry walletEntry, URI uri, String nonce) {
+    private String createDpopProofForCredentialRequest(URI uri, String nonce) {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("dpop+jwt"))
@@ -745,7 +746,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void holderBindingReplayProtection_preventProofReuse() {

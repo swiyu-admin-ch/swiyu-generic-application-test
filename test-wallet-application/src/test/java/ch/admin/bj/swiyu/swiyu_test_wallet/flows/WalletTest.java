@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
@@ -87,7 +88,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void unboundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
@@ -187,7 +188,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void unboundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
@@ -289,7 +290,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void boundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
@@ -449,7 +450,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {"staging", "rc"},
+            verifier = {ImageTags.STAGING, ImageTags.RC},
             reason = "This is fixed in next versions"
     )
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
@@ -468,7 +469,7 @@ class WalletTest extends BaseTest {
 
         assert verificationDetails.getDcqlQuery() != null;
 
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+        assertThrows(HttpClientErrorException.class, () -> {
             wallet.respondToVerificationV1(verificationDetails, res);
         });
     }

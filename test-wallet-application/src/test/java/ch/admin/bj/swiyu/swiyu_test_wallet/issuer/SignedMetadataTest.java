@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
@@ -47,7 +48,7 @@ class SignedMetadataTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void shouldSuccessfullyValidateSignedMetadata() {
@@ -87,16 +88,29 @@ class SignedMetadataTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-740",
+            summary = "Validate retrieval of unsigned issuer metadata with tenantId (happy path)",
+            description = """
+                    This test validates that a wallet can successfully request and retrieve unsigned issuer metadata
+                    when the signed metadata feature is disabled and a tenantId is used.
+                    
+                    The wallet processes the credential offer deeplink, resolves the issuer well-known configuration
+                    in a tenant-aware context, and retrieves the issuer metadata as a plain JSON object (not a signed JWT).
+                    
+                    This test covers the happy path for unsigned issuer metadata retrieval in a multi-tenant configuration.
+                    """
+    )
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.UCI_M1A)
+    @Tag(ReportingTags.HAPPY_PATH)
     void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
         wallet.setSignedMetadataPreferred(false);
         var walletEntry = wallet.createWalletEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
-        final SwiyuDeeplink swiyuDeeplink = new SwiyuDeeplink(deeplink);
-
         walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
-
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
         walletEntry.setToken(wallet.collectToken(walletEntry));
 
@@ -134,7 +148,7 @@ class SignedMetadataTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable"},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {

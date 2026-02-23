@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
@@ -64,7 +65,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature payload encryption in deferred credential route is not available yet"
     )
     void payloadEncryptionCredentialIssuanceId2_withEncryptedPayload_thenSuccess(final boolean deferred) {
@@ -125,7 +126,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "The fix for supported media type not available yet"
     )
     void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
@@ -178,7 +179,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void deferredCredentialEncryption_whenKeyMismatch_thenRejected(final SwiyuApiVersionConfig apiVersion) {
@@ -223,7 +224,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "Fix for deferred encprytion is not available yet"
     )
     void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected(final SwiyuApiVersionConfig apiVersion) {
@@ -269,7 +270,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "rc", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
     void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(

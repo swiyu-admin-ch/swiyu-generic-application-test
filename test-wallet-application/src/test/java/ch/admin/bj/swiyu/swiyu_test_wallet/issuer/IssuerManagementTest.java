@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.StatusResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import lombok.extern.slf4j.Slf4j;
@@ -145,7 +146,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag(ReportingTags.UCI_C3)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {"stable", "staging"},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void updateCredentialStatus_InvalidTransition_thenRejected() {

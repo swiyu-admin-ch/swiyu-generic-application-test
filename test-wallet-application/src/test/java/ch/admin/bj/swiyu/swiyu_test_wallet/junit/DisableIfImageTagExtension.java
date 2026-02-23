@@ -8,7 +8,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 public final class DisableIfImageTagExtension implements ExecutionCondition {
 
