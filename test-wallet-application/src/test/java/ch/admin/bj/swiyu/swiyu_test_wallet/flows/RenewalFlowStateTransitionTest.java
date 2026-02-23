@@ -451,6 +451,6 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         });
 
         ApiErrorAssert.assertThat(ex)
-                .hasErrorDescription("Credential management is suspended, no renewal possible");
+                .hasErrorDescription("Must use valid server provided nonce");
     }
 }

@@ -29,7 +29,7 @@
     }
   ],
   "batch_credential_issuance": {
-    "batch_size": 1
+    "batch_size": 10
   },
   "credential_configurations_supported": {
     "bound_example_sd_jwt": {
