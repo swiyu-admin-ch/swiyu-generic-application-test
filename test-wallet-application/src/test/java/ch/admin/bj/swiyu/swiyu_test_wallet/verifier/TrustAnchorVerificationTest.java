@@ -7,7 +7,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -45,10 +44,8 @@ class TrustAnchorVerificationTest extends BaseTest {
         final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
-
         final TrustAnchor anchor = new TrustAnchor()
-                .did(did)
+                .did(issuerConfig.getIssuerDid())
                 .trustRegistryUri("trust-reg.trust-infra.swiyu-int.admin.ch");
         String deeplink = null;
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
@@ -92,10 +89,8 @@ class TrustAnchorVerificationTest extends BaseTest {
         final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
         assertThat(entry.getCredentialOffer()).isNotNull();
 
-        final String did = SdJwtSupport.extractIssuer(entry.getIssuerSdJwt());
-
         final TrustAnchor anchor = new TrustAnchor()
-                .did(did)
+                .did(issuerConfig.getIssuerDid())
                 .trustRegistryUri("fake-reg.trust-infra.swiyu-int.admin.ch");
         String deeplink = null;
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {

@@ -2,8 +2,6 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -95,12 +93,6 @@ public class WalletBatchEntry extends WalletEntry {
             holderKeyPairs.add(pair);
             holderPublicKeys.add(ec);
         }
-    }
-
-    public String getIssuerDid(final int index) {
-        final String vc = getIssuedCredentials().get(index);
-        final JsonNode payload = SdJwtSupport.extractPayload(vc);
-        return payload.get("iss").asText();
     }
 
     public void createProofs() {

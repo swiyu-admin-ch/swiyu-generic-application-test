@@ -3,7 +3,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
@@ -334,7 +336,7 @@ public class Wallet {
 
         if (useEncryption) {
             JWESupport.assertIsJWE(responseBody);
-            responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+            responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey());
         }
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
@@ -403,7 +405,7 @@ public class Wallet {
 
         if (useEncryption) {
             JWESupport.assertIsJWE(responseBody);
-            responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+            responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey());
         }
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
@@ -540,29 +542,10 @@ public class Wallet {
         final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
 
         if (useEncryption) {
-            final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
-            final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
-
-            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
-            final EncryptionMethod encryptionMethod = EncryptionMethod.parse(encAlg);
-
-            final JWEHeader jweHeader = new JWEHeader.Builder(JWEAlgorithm.parse(jsonWebKey.getAlg()), encryptionMethod)
-                    .contentType("JWT")
-                    .keyID(verifierPublicKey.getKeyID())
-                    .build();
-
             final Map<String, Object> payload = new LinkedHashMap<>();
             payload.put(VP_TOKEN, token);
             payload.put("presentation_submission", submission);
-
-            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(payload));
-            try {
-                jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
-            } catch (JOSEException e) {
-                throw new IllegalStateException("Failed to encrypt VP token response (ID2)", e);
-            }
-
-            formData.add("response", jweObject.serialize());
+            formData.add("response", buildEncryptedResponse(requestObject, payload));
         } else {
             formData.add("presentation_submission", submission);
             formData.add(VP_TOKEN, token);
@@ -583,30 +566,12 @@ public class Wallet {
 
     public void respondToVerificationV1(final RequestObject requestObject, final String token) {
         final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
-        final Map<String, List<String>> vpToken = Map.of(tokenId, List.of(token));
+        final Map<String, Object> vpToken = Map.of(tokenId, List.of(token));
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 
         if (useEncryption) {
-            final JsonWebKey jsonWebKey = requestObject.getClientMetadata().getJwks().getKeys().getFirst();
-            final String encAlg = requestObject.getClientMetadata().getEncryptedResponseEncValuesSupported().getFirst();
-
-            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
-            final EncryptionMethod encryptionMethod = EncryptionMethod.parse(encAlg);
-
-            final JWEHeader jweHeader = new JWEHeader.Builder(JWEAlgorithm.parse(jsonWebKey.getAlg()), encryptionMethod)
-                    .contentType("JWT")
-                    .keyID(verifierPublicKey.getKeyID())
-                    .build();
-
-            final JWEObject jweObject = new JWEObject(jweHeader, new Payload(Map.of(VP_TOKEN, vpToken)));
-            try {
-                jweObject.encrypt(new ECDHEncrypter(verifierPublicKey.toECPublicKey()));
-            } catch (JOSEException e) {
-                throw new IllegalStateException("Failed to encrypt VP token response (V1)", e);
-            }
-
-            formData.add("response", jweObject.serialize());
+            formData.add("response", buildEncryptedResponse(requestObject, vpToken));
         } else {
             formData.add(VP_TOKEN, new Gson().toJson(vpToken));
         }
@@ -725,7 +690,7 @@ public class Wallet {
         if (useEncryption) {
             try {
                 JWESupport.assertIsJWE(bodyAsString);
-                bodyAsString = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), bodyAsString);
+                bodyAsString = JweUtil.decrypt(bodyAsString, walletEntry.getEphemeralEncryptionKey());
             } catch (Exception e) {
                 throw new IllegalStateException("Error decrypting credential response", e);
             }
@@ -811,7 +776,7 @@ public class Wallet {
         if (useEncryption) {
             try {
                 JWESupport.assertIsJWE(responseBody);
-                responseBody = JWESupport.decryptJWE(walletEntry.getEphemeralEncryptionKey(), responseBody);
+                responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey());
             } catch (Exception e) {
                 throw new IllegalStateException("Error decrypting credential response", e);
             }
@@ -1042,6 +1007,21 @@ public class Wallet {
                 .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s]"
                         .formatted(credentialUri, responseCode, responseBody))
                 .isIn(List.of(200, 202));
+    }
+
+    private String buildEncryptedResponse(final RequestObject requestObject, final Map<String, Object> payload) {
+        try {
+            final JsonWebKey jsonWebKey = requestObject.getClientMetadata()
+                    .getJwks()
+                    .getKeys()
+                    .getFirst();
+            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
+            final String vpTokenPayload =
+                    new ObjectMapper().writeValueAsString(Map.of(VP_TOKEN, payload));
+            return JweUtil.encrypt(vpTokenPayload, verifierPublicKey);
+        } catch (Exception e) {
+            throw new WalletEncryptionException("Failed to build encrypted VP token response (JWE creation failed)", e);
+        }
     }
 
 }

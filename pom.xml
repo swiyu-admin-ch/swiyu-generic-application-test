@@ -29,6 +29,7 @@
         <mockserver.version>5.15.0</mockserver.version>
         <postgresql.version>42.7.10</postgresql.version>
         <xray-junit.version>1.0.1</xray-junit.version>
+        <generic-java-lib.version>1.2.0</generic-java-lib.version>
         <!-- Plugin Versions -->
         <openapi-generator-maven-plugin.version>7.7.0</openapi-generator-maven-plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
@@ -36,6 +37,32 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <!-- swiyu Generic Lib -->
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-jws-signature-service</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-did-resolver-adapter</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-jwe-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-jwt-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.admin.swiyu</groupId>
+                <artifactId>swiyu-dpop-util</artifactId>
+                <version>${generic-java-lib.version}</version>
+            </dependency>
             <!-- Gson -->
             <dependency>
                 <groupId>com.google.code.gson</groupId>

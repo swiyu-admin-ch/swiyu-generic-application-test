@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.SdJwtSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonObject;
 import com.nimbusds.jose.*;
@@ -29,6 +28,7 @@ import java.net.URLDecoder;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
@@ -186,9 +186,18 @@ public class WalletEntry {
     }
 
     public String getIssuerDid() {
-        var vc = getVerifiableCredential();
-        var payload = SdJwtSupport.extractPayload(vc);
-        return payload.get("iss").asText();
+        final String sdJwt = getVerifiableCredential();
+        final String jwt = sdJwt.split("~")[0];
+
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(jwt);
+            return signedJWT.getJWTClaimsSet().getIssuer();
+        } catch (ParseException e) {
+            throw new IllegalStateException("Invalid JWT", e);
+        }
+        //var vc = getVerifiableCredential();
+        //var payload = SdJwtSupport.extractPayload(vc);
+        //return payload.get("iss").asText();
     }
 
     public URI getIssuerCredentialUri() {
@@ -234,9 +243,15 @@ public class WalletEntry {
     }
 
     public String getVct() {
-        var vc = getVerifiableCredential();
-        var payload = SdJwtSupport.extractPayload(vc);
-        return payload.get("vct").asText();
+        final String sdJwt = getVerifiableCredential();
+        final String jwt = sdJwt.split("~")[0];
+
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(jwt);
+            return signedJWT.getJWTClaimsSet().getStringClaim("vct");
+        } catch (Exception e) {
+            throw new IllegalStateException("Invalid JWT", e);
+        }
     }
 
     public void generateEphemeralEncryptionKey() {

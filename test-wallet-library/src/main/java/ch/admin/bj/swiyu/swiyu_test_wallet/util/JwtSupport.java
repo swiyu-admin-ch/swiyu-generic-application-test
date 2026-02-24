@@ -20,14 +20,6 @@ public class JwtSupport {
         return parts(jwt)[0];
     }
 
-    public static String decodeHeader(String jwt) {
-        return new String(Base64.getUrlDecoder().decode(header(jwt)));
-    }
-
-    public static JsonNode decodeHeaderAsJsonNode(String jwt) {
-        return toJsonNode(decodeHeader(jwt));
-    }
-
     public static String payload(String jwt) {
         return parts(jwt)[1];
     }
@@ -62,18 +54,6 @@ public class JwtSupport {
             return SignedJWT.parse(jwt);
         } catch (ParseException e) {
             throw new IllegalStateException("Failed to parse JWT", e);
-        }
-    }
-
-    public static boolean verifySignature(String jwtString, ECKey publicKey) {
-        try {
-            SignedJWT jwt = SignedJWT.parse(jwtString);
-            if (!JWSAlgorithm.ES256.equals(jwt.getHeader().getAlgorithm())) {
-                throw new IllegalStateException("Unsupported alg");
-            }
-            return jwt.verify(new ECDSAVerifier(publicKey));
-        } catch (ParseException | JOSEException e) {
-            throw new IllegalStateException("Failed to verify JWT signature", e);
         }
     }
 }

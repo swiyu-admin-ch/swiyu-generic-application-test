@@ -2,12 +2,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.ECDHDecrypter;
-import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.experimental.UtilityClass;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,28 +20,6 @@ public class JWESupport {
         )
                 .keyID(jsonWebKey.getKid())
                 .build();
-    }
-
-    public static String encryptClaims(ECKey verifierKey, JWEHeader header, JWTClaimsSet claims) {
-        try {
-            var jweObject = new JWEObject(header, claims.toPayload());
-            jweObject.encrypt(new ECDHEncrypter(verifierKey.toECKey()));
-            return jweObject.serialize();
-        } catch (JOSEException e) {
-            throw new IllegalStateException("Failed to encrypt JWT claims with verifier key", e);
-        }
-    }
-
-    public static String decryptJWE(ECKey walletEphemeralKey, String encryptedResponse) {
-        try {
-            JWEObject jweObject = JWEObject.parse(encryptedResponse);
-            jweObject.decrypt(new ECDHDecrypter(walletEphemeralKey));
-            return jweObject.getPayload().toString();
-        } catch (JOSEException e) {
-            throw new IllegalStateException("Unable to decrypt ECDH-ES issuer credential response", e);
-        } catch (java.text.ParseException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     public static void assertIsJWE(String jwe) {
