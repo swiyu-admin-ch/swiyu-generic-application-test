@@ -191,7 +191,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     void retrieveStatusList_thenSuccess() {
         log.info("Retrieving status list resource...");
-        final String statusListUrl = currentStatusList.getStatusRegistryUrl();
+        final String statusListUrl = getCurrentStatusList().getStatusRegistryUrl();
         assertThat(statusListUrl).isNotBlank();
 
         log.info("Status list URL: {}", statusListUrl);

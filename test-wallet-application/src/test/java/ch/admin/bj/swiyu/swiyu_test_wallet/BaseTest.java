@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ApplicationTestConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
@@ -11,6 +12,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.mockserver.client.MockServerClient;
@@ -19,7 +21,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
@@ -86,11 +87,13 @@ public class BaseTest {
     protected PostgreSQLContainer<?> dbTestContainer;
     @Autowired
     protected MockServerContainer mockServerContainer;
+    @Autowired
+    protected MockServerClientConfig mockServerClientConfig;
     protected MockServerClient mockServerClient;
 
     protected Connection connection;
     protected Wallet wallet;
-    protected StatusList currentStatusList;
+    @Getter private StatusList currentStatusList;
     protected BusinessIssuer issuerManager;
     protected IssuanceService issuanceService;
     protected VerifierManager verifierManager;
@@ -101,6 +104,14 @@ public class BaseTest {
     protected PrivateKey unauthenticatedJwtKey;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
+
+    protected void setCurrentStatusList(StatusList currentStatusList) {
+        if (currentStatusList == null) {
+            throw new IllegalArgumentException("currentStatusList cannot be null");
+        }
+        this.currentStatusList = currentStatusList;
+        mockServerClientConfig.setCurrentStatusList(String.valueOf(currentStatusList.getStatusRegistryUrl()));
+    }
 
     protected int countVerifierCallbacks() {
         return mockServerClient
@@ -204,9 +215,9 @@ public class BaseTest {
         );
 
         if (issuerImageConfig.isEnableJwtAuth()) {
-            currentStatusList = issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 100000, 2);
+            setCurrentStatusList(issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 100000, 2));
         } else {
-            currentStatusList = issuerManager.createStatusList(100000, 2);
+            setCurrentStatusList(issuerManager.createStatusList(100000, 2));
         }
         connection = DriverManager.getConnection(
                 dbTestContainer.getJdbcUrl(),

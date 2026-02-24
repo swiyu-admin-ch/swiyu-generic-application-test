@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -163,8 +164,6 @@ class DPoPFlowTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void dpopRefreshFlow_happyPath() {
-        final int batchSize = 3;
-
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();
@@ -220,16 +219,16 @@ class DPoPFlowTest extends BaseTest {
 
         batchEntry.setToken(refreshedToken);
 
-        log.info("Wallet generates {} holder keys for credential renewal", batchSize);
+        log.info("Wallet generates {} holder keys for credential renewal", CredentialConfigurationFixtures.BATCH_SIZE);
         batchEntry.generateHolderKeys();
         batchEntry.createProofs();
 
-        log.info("Wallet requests batch of {} credentials with refreshed token", batchSize);
+        log.info("Wallet requests batch of {} credentials with refreshed token", CredentialConfigurationFixtures.BATCH_SIZE);
         var refreshedCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
 
         assertThat(refreshedCredentials)
-                .as("Issuer should return a batch of %s credentials using refreshed token", batchSize)
-                .hasSize(batchSize);
+                .as("Issuer should return a batch of %s credentials using refreshed token", CredentialConfigurationFixtures.BATCH_SIZE)
+                .hasSize(CredentialConfigurationFixtures.BATCH_SIZE);
 
         refreshedCredentials.forEach(cred ->
                 assertThat(cred)

@@ -63,13 +63,18 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig) {
+    public MockServerClientConfig mockServerClientConfig() {
+        return new MockServerClientConfig();
+    }
+
+    @Bean
+    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, MockServerClientConfig mockServerClientConfig) {
 
         var container = MockServerContainerConfig.createMockServerContainer(network);
 
         container.start();
 
-        MockServerClientConfig.createMockServerClient(container, issuerConfig);
+        mockServerClientConfig.createMockServerClient(container, issuerConfig);
 
         return container;
     }

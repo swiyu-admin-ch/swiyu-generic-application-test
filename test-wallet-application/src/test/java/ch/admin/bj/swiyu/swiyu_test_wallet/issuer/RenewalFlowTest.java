@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
@@ -67,7 +68,7 @@ class RenewalFlowTest extends BaseTest {
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, "bound_example_sd_jwt");
+                issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
 
         entry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         entry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(entry));

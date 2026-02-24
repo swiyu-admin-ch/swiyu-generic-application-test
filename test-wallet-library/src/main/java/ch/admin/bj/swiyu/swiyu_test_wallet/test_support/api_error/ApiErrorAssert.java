@@ -44,6 +44,20 @@ public final class ApiErrorAssert {
         return this;
     }
 
+    public ApiErrorAssert hasDetail(final String expectedDetail) {
+        Assertions.assertThat(errorBody)
+                .as("detail field")
+                .containsEntry("detail", expectedDetail);
+        return this;
+    }
+
+    public ApiErrorAssert hasErrorCode(final String expectedErrorCode) {
+        Assertions.assertThat(errorBody)
+                .as("error_code field")
+                .containsEntry("error_code", expectedErrorCode);
+        return this;
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> parseErrorBody(
             final HttpClientErrorException exception

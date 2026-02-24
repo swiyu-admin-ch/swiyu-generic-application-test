@@ -173,5 +173,18 @@ public class WalletBatchEntry extends WalletEntry {
     public List<String> getIssuedCredentials() {
         return Collections.unmodifiableList(issuedCredentials);
     }
-}
+    
+    public WalletBatchEntry duplicate() {
+        WalletBatchEntry copy = new WalletBatchEntry(this.getWallet());
 
+        copy.setIssuerVCDeepLink(this.getIssuerVCDeepLink());
+        copy.setCredentialOffer(this.getCredentialOffer());
+        copy.setIssuerWellKnownConfiguration(this.getIssuerWellKnownConfiguration());
+        copy.setIssuerMetadata(this.getIssuerMetadata());
+        copy.setToken(this.getToken());
+        copy.setIssuerSdJwt(this.getIssuerSdJwt());
+        copy.setTransactionId(this.getTransactionId());
+
+        return copy;
+    }
+}
