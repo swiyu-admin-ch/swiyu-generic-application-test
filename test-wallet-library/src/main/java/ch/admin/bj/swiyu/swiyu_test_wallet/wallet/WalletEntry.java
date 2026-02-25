@@ -195,9 +195,6 @@ public class WalletEntry {
         } catch (ParseException e) {
             throw new IllegalStateException("Invalid JWT", e);
         }
-        //var vc = getVerifiableCredential();
-        //var payload = SdJwtSupport.extractPayload(vc);
-        //return payload.get("iss").asText();
     }
 
     public URI getIssuerCredentialUri() {
