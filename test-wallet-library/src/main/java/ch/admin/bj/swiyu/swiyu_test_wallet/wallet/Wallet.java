@@ -152,7 +152,16 @@ public class Wallet {
 
         walletBatchEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(issuerDeepLink));
         walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
-        walletBatchEntry.setToken(collectToken(walletBatchEntry));
+
+        if (this.useDPoP) {
+            final String nonceInitial = getDpopNonce(walletBatchEntry);
+            final String tokenDPoP = DPoPSupport.createDpopProofForToken(
+                    walletBatchEntry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
+            walletBatchEntry.setToken(collectTokenWithDPoP(walletBatchEntry, tokenDPoP));
+        } else {
+            walletBatchEntry.setToken(collectToken(walletBatchEntry));
+        }
+
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
         walletBatchEntry.setCredentialConfigurationSupported();
 
@@ -173,7 +182,7 @@ public class Wallet {
         return walletBatchEntry;
     }
 
-    public OpenIdConfiguration getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
+    public OAuthAuthorizationServerMetadata getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
         final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
         final URI issuerOpenIdConfiguration = UriComponentsBuilder
                 .fromUri(issuerUri)
@@ -193,7 +202,7 @@ public class Wallet {
 
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            return objectMapper.convertValue(payload, OpenIdConfiguration.class);
+            return objectMapper.convertValue(payload, OAuthAuthorizationServerMetadata.class);
         }
 
         return restClient.get()
@@ -201,10 +210,10 @@ public class Wallet {
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
-                .body(OpenIdConfiguration.class);
+                .body(OAuthAuthorizationServerMetadata.class);
     }
 
-    public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
+    public ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
         final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
         final URI issuerOpenIdCredentialIssuer = UriComponentsBuilder
                 .fromUri(issuerUri)
@@ -220,20 +229,28 @@ public class Wallet {
                     .body(String.class);
 
             final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
-            final JsonObject metadata = new Gson().fromJson(payload.toString(), JsonObject.class);
+            try {
+                final ObjectMapper mapper = new ObjectMapper()
+                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                        .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-            return new IssuerMetadata(metadata);
+                final ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata gen =
+                        mapper.treeToValue(payload, ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata.class);
+
+                return new ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata(gen);
+
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse signed issuer metadata JWT payload", e);
+            }
         }
 
-        final Map<String, Object> rawMetadata = restClient.get()
+        final ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata rawMetadata = restClient.get()
                 .uri(issuerOpenIdCredentialIssuer)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
-                .body(Map.class);
+                .body(ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata.class);
 
-        JsonObject metadata = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
-
-        return new IssuerMetadata(metadata);
+        return new IssuerMetadata(rawMetadata);
     }
 
     public OAuthToken collectToken(WalletEntry walletEntry) {

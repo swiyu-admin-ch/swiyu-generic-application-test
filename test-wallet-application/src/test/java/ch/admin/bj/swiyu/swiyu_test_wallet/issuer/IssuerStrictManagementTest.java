@@ -1,10 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialInfoResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -55,7 +52,7 @@ class IssuerStrictManagementTest extends BaseTest {
 
         assertThat(credentialInfo).isNotNull();
 
-        final CredentialInfoResponse credentialManagement = issuerManager.getCredentialById(credentialInfo.getManagementId());
+        final CredentialManagementDto credentialManagement = issuerManager.getCredentialById(credentialInfo.getManagementId());
 
         assertThat(credentialManagement).isNotNull();
         assertThat(credentialManagement.getStatus()).isEqualTo(CredentialStatusType.OFFERED);

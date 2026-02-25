@@ -1,14 +1,12 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.springframework.web.client.RestClient;
-
-import java.util.Map;
 
 public class IssuanceService {
 
@@ -21,19 +19,16 @@ public class IssuanceService {
         wellKnownApi = new ch.admin.bj.swiyu.gen.issuer.api.WellKnownEndpointsApiApi(apiClient);
     }
 
-    public IssuerMetadata getWellKnownCredentialIssuerInfo() {
-        Map<String, Object> rawMetadata = wellKnownApi.getIssuerMetadata();
-
-        JsonObject rawMetadataJson = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
-
-        return new IssuerMetadata(rawMetadataJson);
+    public ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata getWellKnownCredentialIssuerInfo() {
+        // @TODO Remove the custom IssuerMetadata class
+        return new ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata(wellKnownApi.getIssuerMetadata());
     }
 
-    public OpenIdConfiguration getWellKnownOpenIdConfiguration() {
-        return wellKnownApi.getOpenIDConfiguration();
+    public OAuthAuthorizationServerMetadata getWellKnownOpenIdConfiguration() {
+        return wellKnownApi.getAuthorizationServerMetadata();
     }
 
-    public OpenIdConfiguration getWellKnownOAuthAuthorizationServer() {
-        return wellKnownApi.getOpenIDConfiguration();
+    public OAuthAuthorizationServerMetadata getWellKnownOAuthAuthorizationServer() {
+        return wellKnownApi.getAuthorizationServerMetadata();
     }
 }

@@ -4,28 +4,28 @@ info:
   description: Generic Verifier service
   version: "0.1"
 servers:
-  - url: http://localhost:8080
-    description: Generated server url
+- url: http://localhost:8080
+  description: Generated server url
 tags:
-  - name: Verifier Management API
-    description: This API allows the creation of a verfication process and retrieval
-      of its status.It is used by the business verifier to manage verifications. (IF-100)
-  - name: Verfifier OID4VP API
-    description: "Handles OpenID for Verifiable Presentations (OID4VP) endpoints, enabling\
+- name: Verifier Management API
+  description: This API allows the creation of a verfication process and retrieval
+    of its status.It is used by the business verifier to manage verifications. (IF-100)
+- name: Verfifier OID4VP API
+  description: "Handles OpenID for Verifiable Presentations (OID4VP) endpoints, enabling\
     \ verifiers to retrieve request objects, receive verification presentations, and\
     \ access OpenID client metadata as specified by the OID4VP protocol. This API\
     \ is intended for wallets to fetch credentials in compliance with OpenID standards.\
     \ (IF-101)"
-  - name: Actuator
-    description: Monitor and interact
-    externalDocs:
-      description: Spring Boot Actuator Web API Documentation
-      url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
+- name: Actuator
+  description: Monitor and interact
+  externalDocs:
+    description: Spring Boot Actuator Web API Documentation
+    url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
 paths:
   /oid4vp/api/request-object/{request_id}/response-data:
     post:
       tags:
-        - Verfifier OID4VP API
+      - Verfifier OID4VP API
       summary: Receive Verification Presentation (from e.g. Wallet)
       description: "Handles various types of verification presentations including\
         \ standard presentations, rejections, DCQL presentations, and encrypted DCQL\
@@ -36,23 +36,23 @@ paths:
         url: https://openid.net/specs/openid-4-verifiable-presentations-1_0-ID2.html#section-6.1
       operationId: receiveVerificationPresentation
       parameters:
-        - name: request_id
-          in: path
-          description: The unique identifier of the verification request
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: SWIYU-API-Version
-          in: header
-          description: "Optional API version. Supported values: 1 - This supports OID4VP\
+      - name: request_id
+        in: path
+        description: The unique identifier of the verification request
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: SWIYU-API-Version
+        in: header
+        description: "Optional API version. Supported values: 1 - This supports OID4VP\
           \ ID2 with DIF Presentation Exchange), 2 - This supports OID4VP 1.0"
-          required: false
-          schema:
-            type: string
-            enum:
-              - "1"
-              - "2"
+        required: false
+        schema:
+          type: string
+          enum:
+          - "1"
+          - "2"
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -73,7 +73,7 @@ paths:
   /management/api/verifications:
     post:
       tags:
-        - Verifier Management API
+      - Verifier Management API
       summary: Creates a new verification process with the given attributes
       operationId: createVerification
       requestBody:
@@ -98,18 +98,18 @@ paths:
   /oid4vp/api/request-object/{request_id}:
     get:
       tags:
-        - Verfifier OID4VP API
+      - Verfifier OID4VP API
       summary: Get Request Object
       description: Can return a RequestObjectDto as JSON Object or a SignedJwt String
         depending of JAR (JWT secured authorization request) flag in verifier management
       operationId: getRequestObject
       parameters:
-        - name: request_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: request_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
           description: Bad Request
@@ -138,7 +138,7 @@ paths:
   /oid4vp/api/openid-client-metadata.json:
     get:
       tags:
-        - Verfifier OID4VP API
+      - Verfifier OID4VP API
       summary: Get client metadata
       description: "Metadata providing further information about the verifier, such\
         \ as name and logo."
@@ -170,16 +170,16 @@ paths:
   /management/api/verifications/{verificationId}:
     get:
       tags:
-        - Verifier Management API
+      - Verifier Management API
       summary: Get verification by id
       operationId: getVerification
       parameters:
-        - name: verificationId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: verificationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
           description: Bad Request
@@ -202,7 +202,7 @@ paths:
   /actuator:
     get:
       tags:
-        - Actuator
+      - Actuator
       summary: Actuator root web endpoint
       operationId: links
       responses:
@@ -239,22 +239,22 @@ paths:
   /actuator/prometheus:
     get:
       tags:
-        - Actuator
+      - Actuator
       summary: Actuator web endpoint 'prometheus'
       operationId: scrape
       parameters:
-        - name: format
-          in: query
-          schema:
-            type: string
-            enum:
-              - CONTENT_TYPE_004
-              - CONTENT_TYPE_OPENMETRICS_100
-              - CONTENT_TYPE_PROTOBUF
-        - name: includedNames
-          in: query
-          schema:
-            type: string
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - CONTENT_TYPE_004
+          - CONTENT_TYPE_OPENMETRICS_100
+          - CONTENT_TYPE_PROTOBUF
+      - name: includedNames
+        in: query
+        schema:
+          type: string
       responses:
         "400":
           description: Bad Request
@@ -277,7 +277,7 @@ paths:
   /actuator/info:
     get:
       tags:
-        - Actuator
+      - Actuator
       summary: Actuator web endpoint 'info'
       operationId: info
       responses:
@@ -302,7 +302,7 @@ paths:
   /actuator/health:
     get:
       tags:
-        - Actuator
+      - Actuator
       summary: Actuator web endpoint 'health'
       operationId: health
       responses:
@@ -341,8 +341,8 @@ components:
             Standard/PE: "eyJhbGci...QMA"
             DCQL: {"my_credential": ["eyJhbGci...QMA", "eyJhbGci...QMA"]}
           oneOf:
-            - type: string
-            - { }
+          - type: string
+          - {}
         presentation_submission:
           type: string
           description: The presentation submission as defined in DIF presentation
@@ -354,14 +354,14 @@ components:
           type: string
           description: Error code for rejection (used for REJECTION)
           enum:
-            - invalid_scope
-            - invalid_request
-            - invalid_client
-            - vp_formats_not_supported
-            - invalid_presentation_definition_uri
-            - invalid_presentation_definition_reference
-            - client_rejected
-            - access_denied
+          - invalid_scope
+          - invalid_request
+          - invalid_client
+          - vp_formats_not_supported
+          - invalid_presentation_definition_uri
+          - invalid_presentation_definition_reference
+          - client_rejected
+          - access_denied
           example: client_rejected
         error_description:
           type: string
@@ -404,18 +404,18 @@ components:
           type: array
           description: Selection which properties are requested of the holder
           example:
-            - path:
-                - $.vct
-              filter:
-                type: string
-                const: test-sdjwt
-            - path:
-                - $.dateOfBirth
+          - path:
+            - $.vct
+            filter:
+              type: string
+              const: test-sdjwt
+          - path:
+            - $.dateOfBirth
           items:
             $ref: "#/components/schemas/Field"
           minItems: 1
       required:
-        - fields
+      - fields
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -433,7 +433,7 @@ components:
           type: array
           description: "The path to the claim within the credential. According to\
             \ OpenID for Verifiable Presentations 1.0, Section 6.3, property 'path'.https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#claims_path_pointer"
-          items: { }
+          items: {}
           minItems: 1
         values:
           type: array
@@ -443,9 +443,9 @@ components:
             \ type and value of the claim both match exactly for at least one of the\
             \ elements in the array. Details of the processing rules are defined in\
             \ Section 6.4.1."
-          items: { }
+          items: {}
       required:
-        - path
+      - path
     DcqlCredentialDto:
       type: object
       description: Represents a Credential Query within a DCQL query according to
@@ -521,9 +521,9 @@ components:
           items:
             $ref: "#/components/schemas/DcqlTrustedAuthoritiesDto"
       required:
-        - format
-        - id
-        - meta
+      - format
+      - id
+      - meta
     DcqlCredentialMetaDto:
       type: object
       description: Represents metadata parameters within a Credential Query according
@@ -580,7 +580,7 @@ components:
             \ is true)According to OpenID for Verifiable Presentations 1.0, 6.2. Credential\
             \ Set Query, property 'required'."
       required:
-        - options
+      - options
     DcqlQueryDto:
       type: object
       description: Represents the Digital Credentials Query Language (DCQL) query
@@ -588,35 +588,35 @@ components:
         **⚠️ Not yet implemented**
       example:
         credentials:
-          - id: identity_credential_dcql
-            format: dc+sd-jwt
-            meta:
-              vct_values:
-                - https://credentials.example.com/identity_credential
-            claims:
-              - path:
-                  - given_name
-              - path:
-                  - family_name
-              - path:
-                  - address
-                  - street_address
-            require_cryptographic_holder_binding: true
-          - id: university_degree_dcql
-            format: dc+sd-jwt
-            meta:
-              vct_values:
-                - https://credentials.example.com/university_degree
-            claims:
-              - path:
-                  - degree_name
-              - path:
-                  - graduation_year
+        - id: identity_credential_dcql
+          format: dc+sd-jwt
+          meta:
+            vct_values:
+            - https://credentials.example.com/identity_credential
+          claims:
+          - path:
+            - given_name
+          - path:
+            - family_name
+          - path:
+            - address
+            - street_address
+          require_cryptographic_holder_binding: true
+        - id: university_degree_dcql
+          format: dc+sd-jwt
+          meta:
+            vct_values:
+            - https://credentials.example.com/university_degree
+          claims:
+          - path:
+            - degree_name
+          - path:
+            - graduation_year
         credential_sets:
-          - options:
-              - - identity_credential_dcql
-              - - university_degree_dcql
-            required: true
+        - options:
+          - - identity_credential_dcql
+          - - university_degree_dcql
+          required: true
       properties:
         credentials:
           type: array
@@ -635,7 +635,7 @@ components:
           items:
             $ref: "#/components/schemas/DcqlCredentialSetDto"
       required:
-        - credentials
+      - credentials
       x-implementation-status:
         status: not-implemented
     DcqlTrustedAuthoritiesDto:
@@ -659,8 +659,8 @@ components:
             type: string
           minItems: 1
       required:
-        - type
-        - values
+      - type
+      - values
     Field:
       type: object
       properties:
@@ -686,7 +686,7 @@ components:
           description: (Optional) If present object with one or more properties matching
             the registered Claim Format
       required:
-        - path
+      - path
     Filter:
       type: object
       properties:
@@ -717,8 +717,8 @@ components:
             type: string
           minItems: 1
       required:
-        - kb-jwt_alg_values
-        - sd-jwt_alg_values
+      - kb-jwt_alg_values
+      - sd-jwt_alg_values
     InputDescriptor:
       type: object
       properties:
@@ -746,14 +746,14 @@ components:
           example:
             vc+sd-jwt:
               sd-jwt_alg_values:
-                - ES256
+              - ES256
               kb-jwt_alg_values:
-                - ES256
+              - ES256
         constraints:
           $ref: "#/components/schemas/Constraint"
       required:
-        - constraints
-        - id
+      - constraints
+      - id
     ManagementResponse:
       type: object
       properties:
@@ -801,9 +801,9 @@ components:
           example:
             vc+sd-jwt:
               sd-jwt_alg_values:
-                - ES256
+              - ES256
               kb-jwt_alg_values:
-                - ES256
+              - ES256
         input_descriptors:
           type: array
           description: Input Descriptors are objects used to describe the information
@@ -811,7 +811,7 @@ components:
           items:
             $ref: "#/components/schemas/InputDescriptor"
       required:
-        - input_descriptors
+      - input_descriptors
     ResponseData:
       type: object
       properties:
@@ -821,7 +821,7 @@ components:
           type: string
         credential_subject_data:
           type: object
-          additionalProperties: { }
+          additionalProperties: {}
     VerificationErrorResponseCode:
       type: string
       description: |
@@ -857,40 +857,40 @@ components:
         | invalid_presentation_definition_uri         | Presentation Definition URI can't be reached                                                                                                                                                                                                         |
         | invalid_presentation_definition_reference   | Presentation Definition URI can be reached, but the presentation_definition cannot be found there                                                                                                                                                    |
       enum:
-        - credential_invalid
-        - jwt_expired
-        - invalid_format
-        - credential_expired
-        - missing_nonce
-        - unsupported_format
-        - credential_revoked
-        - credential_suspended
-        - holder_binding_mismatch
-        - credential_missing_data
-        - unresolvable_status_list
-        - public_key_of_issuer_unresolvable
-        - client_rejected
-        - issuer_not_accepted
-        - authorization_request_object_not_found
-        - authorization_request_missing_error_param
-        - verification_process_closed
-        - invalid_presentation_definition
-        - malformed_credential
-        - presentation_submission_constraint_violated
-        - invalid_presentation_submission
-        - invalid_scope
-        - invalid_request
-        - invalid_client
-        - vp_formats_not_supported
-        - invalid_presentation_definition_uri
-        - invalid_presentation_definition_reference
-        - jwt_premature
+      - credential_invalid
+      - jwt_expired
+      - invalid_format
+      - credential_expired
+      - missing_nonce
+      - unsupported_format
+      - credential_revoked
+      - credential_suspended
+      - holder_binding_mismatch
+      - credential_missing_data
+      - unresolvable_status_list
+      - public_key_of_issuer_unresolvable
+      - client_rejected
+      - issuer_not_accepted
+      - authorization_request_object_not_found
+      - authorization_request_missing_error_param
+      - verification_process_closed
+      - invalid_presentation_definition
+      - malformed_credential
+      - presentation_submission_constraint_violated
+      - invalid_presentation_submission
+      - invalid_scope
+      - invalid_request
+      - invalid_client
+      - vp_formats_not_supported
+      - invalid_presentation_definition_uri
+      - invalid_presentation_definition_reference
+      - jwt_premature
     VerificationStatus:
       type: string
       enum:
-        - PENDING
-        - SUCCESS
-        - FAILED
+      - PENDING
+      - SUCCESS
+      - FAILED
     ConfigurationOverrideDto:
       type: object
       description: Override for Verifier configuration to be use for this one verification
@@ -931,7 +931,7 @@ components:
             Will be evaluated before trust anchor.
             If not specified and no trust anchor specified all dids are trusted.
           example:
-            - did:example:12345
+          - did:example:12345
           items:
             type: string
         trust_anchors:
@@ -949,11 +949,13 @@ components:
           description: Toggle whether the request-object is available as plain object
             oras jwt object signed by the verifier as additional security measure
         response_mode:
-          type: string
-          description: Requested Response Mode
-          enum:
-            - direct_post
-            - direct_post.jwt
+          $ref: "#/components/schemas/ResponseModeType"
+          description: |-
+            Requested Response Mode from the wallet to the verifier.
+            <ul>
+            <li>direct_post - the wallet sends a clear text response</li>
+            <li>direct_post.jwt - the wallet sends an encrypted response</li>
+            </ul>
         presentation_definition:
           $ref: "#/components/schemas/PresentationDefinition"
           description: Presentation definition according to https://identity.foundation/presentation-exchange/#presentation-definition
@@ -961,9 +963,15 @@ components:
           $ref: "#/components/schemas/ConfigurationOverrideDto"
           description: "Optional Parameter to override configured parameters, such\
             \ as the DID used or the HSM key used in singing the request object"
-          example: { }
+          example: {}
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+    ResponseModeType:
+      type: string
+      description: Supported response_mode as defined in OID4VP
+      enum:
+      - direct_post
+      - direct_post.jwt
     TrustAnchor:
       type: object
       properties:
@@ -980,8 +988,8 @@ components:
           example: https://trust-reg.trust-infra.swiyu-int.admin.ch
           minLength: 1
       required:
-        - did
-        - trust_registry_uri
+      - did
+      - trust_registry_uri
     JWKSet:
       type: object
       properties:
@@ -1016,7 +1024,7 @@ components:
         jwt_vp:
           $ref: "#/components/schemas/OpenIdClientMetadataVpFormatAlg"
       required:
-        - jwt_vp
+      - jwt_vp
     OpenIdClientMetadataVpFormatAlg:
       type: object
       properties:
@@ -1026,7 +1034,7 @@ components:
             type: string
           minItems: 1
       required:
-        - alg
+      - alg
     OpenIdClientMetadataVpFormatSdJwt:
       type: object
       properties:
@@ -1054,7 +1062,7 @@ components:
           type: string
         additionalProperties:
           type: object
-          additionalProperties: { }
+          additionalProperties: {}
           writeOnly: true
         client_id:
           type: string
@@ -1084,8 +1092,8 @@ components:
             An object containing a list of name/value pairs, where the name is a Credential Format Identifier and the
             value defines format-specific parameters that a Verifier supports.
       required:
-        - client_id
-        - vp_formats
+      - client_id
+      - vp_formats
     RequestObject:
       type: object
       description: |
@@ -1101,13 +1109,10 @@ components:
         response_type:
           type: string
         response_mode:
-          type: string
+          $ref: "#/components/schemas/ResponseModeType"
           description: |
             If "direct_post", expect the response to be sent via an HTTPS connection to response_uri.
             If "direct_post.jwt" expects the response to also be encrypted.
-          enum:
-            - direct_post
-            - direct_post.jwt
         response_uri:
           type: string
         nonce:

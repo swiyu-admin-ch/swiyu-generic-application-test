@@ -63,7 +63,7 @@ class SignedMetadataTest extends BaseTest {
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
         walletEntry.setToken(wallet.collectToken(walletEntry));
 
-        final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+        final ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
 
         assertThat(metadata).isNotNull();
         assertThat(metadata.getData()).isNotNull();
@@ -114,7 +114,7 @@ class SignedMetadataTest extends BaseTest {
         walletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(walletEntry));
         walletEntry.setToken(wallet.collectToken(walletEntry));
 
-        final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+        final ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
 
         assertThat(metadata).isNotNull();
         assertThat(metadata.getData()).isNotNull();

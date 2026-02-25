@@ -2,8 +2,8 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialResponseEncryption;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
@@ -50,7 +50,7 @@ public class WalletEntry {
     private URI issuerVCDeepLink;
     private CredentialOffer credentialOffer;
     private Map<String, Object> credentialConfigurationsSupported;
-    private OpenIdConfiguration issuerWellKnownConfiguration;
+    private OAuthAuthorizationServerMetadata issuerWellKnownConfiguration;
     private OAuthToken token;
     private IssuerMetadata issuerMetadata;
     private JsonObject credentialConfigurationSupported;

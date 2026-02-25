@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -73,7 +73,7 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
     void validateMetadata() {
-        IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
+        ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
         assertThat(metadata.getIssuerURI()).startsWith(TestConstants.ISSUER_URL);
         assertThat(metadata.getDisplay()).isNotNull();
@@ -115,7 +115,7 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.UCI_W1A)
     @Tag(ReportingTags.HAPPY_PATH)
     void validateOAuthAuthorizationServer() {
-        OpenIdConfiguration openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
+        OAuthAuthorizationServerMetadata openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
 
         assertThat(openIdConfig.getIssuer()).isNotNull();
         assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);

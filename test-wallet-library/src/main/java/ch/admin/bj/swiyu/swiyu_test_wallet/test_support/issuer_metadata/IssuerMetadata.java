@@ -1,15 +1,12 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata;
 
-import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
-import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialResponseEncryption;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonArray;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.ToString;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -18,85 +15,65 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @ToString
 public class IssuerMetadata {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private final JsonObject data;
+    private final ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata data;
 
-    public IssuerMetadata(JsonObject rawMetadata) {
+    public IssuerMetadata(ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata rawMetadata) {
+        if (rawMetadata == null) {
+            throw new IllegalArgumentException("IssuerMetadata must not be null");
+        }
         this.data = rawMetadata;
     }
 
     public String getIssuerURI() {
-        if (data.get("credential_issuer") == null) {
-            return null;
-        }
-
-        return data.get("credential_issuer").getAsString();
+        return data.getCredentialIssuer();
     }
 
     public URI getCredentialEndpointURI() {
-        var credentialEndpointValue = data.get("credential_endpoint").getAsString();
-        return toUri(credentialEndpointValue);
+        return data.getCredentialEndpoint() == null
+                ? null
+                : toUri(data.getCredentialEndpoint());
     }
 
     public URI getDeferredCredentialEndpointURI() {
-        var credentialEndpointValue = data.get("deferred_credential_endpoint").getAsString();
-        return toUri(credentialEndpointValue);
-    }
-
-    public JsonArray getDisplay() {
-        return data.get("display").getAsJsonArray();
-    }
-
-    public JsonObject getSupportedCredentialConfigurations() {
-        if (data.get("credential_configurations_supported") == null) {
-            return null;
-        }
-        return data.get("credential_configurations_supported").getAsJsonObject();
-    }
-
-    public JsonObject getCredentialConfigurationById(String supportedId) {
-        var credentialConfigurationsSupported = getSupportedCredentialConfigurations();
-        return credentialConfigurationsSupported.get(supportedId).getAsJsonObject();
+        return data.getDeferredCredentialEndpoint() == null
+                ? null
+                : toUri(data.getDeferredCredentialEndpoint());
     }
 
     public URI getNonceEndpointURI() {
-        if (data.get("nonce_endpoint") == null) {
+        return data.getNonceEndpoint() == null
+                ? null
+                : toUri(data.getNonceEndpoint());
+    }
+
+    public List<MetadataIssuerDisplayInfo> getDisplay() {
+        return data.getDisplay();
+    }
+
+    public Map<String, CredentialConfiguration> getSupportedCredentialConfigurations() {
+        return data.getCredentialConfigurationsSupported();
+    }
+
+    public CredentialConfiguration getCredentialConfigurationById(String supportedId) {
+        if (data.getCredentialConfigurationsSupported() == null) {
             return null;
         }
-
-        return toUri(data.get("nonce_endpoint").getAsString());
+        return data.getCredentialConfigurationsSupported().get(supportedId);
     }
 
     public IssuerCredentialResponseEncryption getCredentialResponseEncryption() {
-        return parseEncryptionObject("credential_response_encryption", IssuerCredentialResponseEncryption.class);
+        return data.getCredentialResponseEncryption();
     }
 
     public IssuerCredentialRequestEncryption getCredentialRequestEncryption() {
-        return parseEncryptionObject("credential_request_encryption", IssuerCredentialRequestEncryption.class);
-    }
-
-    private <T> T parseEncryptionObject(String key, Class<T> clazz) {
-        if (!data.has(key) || !data.get(key).isJsonObject()) {
-            return null;
-        }
-        try {
-            Map<String, Object> map = MAPPER.readValue(
-                    data.getAsJsonObject(key).toString(),
-                    new TypeReference<>() {
-                    }
-            );
-            return MAPPER.convertValue(map, clazz);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to parse " + key + " as " + clazz.getSimpleName(), e);
-        }
+        return data.getCredentialRequestEncryption();
     }
 
     public int getBatchSize() {
-        JsonObject batch = data.getAsJsonObject("batch_credential_issuance");
-        return batch != null && batch.has("batch_size")
-                ? batch.get("batch_size").getAsInt()
-                : 1;
+        if (data.getBatchCredentialIssuance() == null) {
+            return 1;
+        }
+        Integer size = data.getBatchCredentialIssuance().getBatchSize();
+        return size == null ? 1 : size;
     }
-
-
 }
