@@ -170,11 +170,8 @@ class IssuerManagementTest extends BaseTest {
                 .isEqualTo(400);
         final Map<String, String> error = errorJson(ex);
         Assertions.assertThat(error)
-                .containsEntry("error_description", "Bad Request");
-        Assertions.assertThat((String) error.get("detail"))
-                .as("detail should describe the failed state transition")
-                .contains("payload=ISSUE")
-                .contains("oldStatus=Cancelled");
+                .containsEntry("error_description", "Bad Request")
+                .containsEntry("detail", "Issuance process may not be skipped");
     }
 
     @Test

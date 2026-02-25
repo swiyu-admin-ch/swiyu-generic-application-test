@@ -71,7 +71,7 @@ class RandomizedIndexTest extends BaseTest {
         final int afterSingle = getUsedIndexesFromDb().size();
         assertThat(afterSingle)
                 .as("Expected one entry after single credential issuance")
-                .isEqualTo(3);
+                .isEqualTo(CredentialConfigurationFixtures.BATCH_SIZE);
         final CredentialWithDeeplinkResponse batchResponse =
                 issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         wallet.collectOfferV1(toUri(batchResponse.getOfferDeeplink()));
@@ -79,8 +79,8 @@ class RandomizedIndexTest extends BaseTest {
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
-                .as("Expected total of 4 credentials (1 single + 3 in batch)")
-                .hasSize(6);
+                .as("Expected total of two times the batch size")
+                .hasSize(CredentialConfigurationFixtures.BATCH_SIZE * 2);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")
