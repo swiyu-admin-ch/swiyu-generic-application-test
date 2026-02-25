@@ -25,7 +25,7 @@ public class JwtProof {
     public String toJwt() {
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(new JOSEObjectType("openid4vci-proof+jwt"))
-                .keyID(ECCryptoSupport.createDidJwkKey(keyPair.getPublic(), "wallet-proof-key-1"))
+                .keyID(ECCryptoSupport.createDidJwkKey(keyPair.getPublic(), null))
                 .build();
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()

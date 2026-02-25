@@ -7,9 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -19,8 +17,10 @@ import com.google.gson.*;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
@@ -34,6 +34,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
 import java.util.*;
 
@@ -59,17 +60,22 @@ public class Wallet {
     private final ServiceLocationContext verifierContext;
 
     private boolean useEncryption = false;
+    private boolean useDPoP = false;
     private boolean signedMetadataPreferred = false;
+    private KeyPair dpopKeyPair;
+    private ECKey dpopPublicKey;
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext) {
         this.restClient = restClient;
         this.issuerContext = issuerContext;
         this.verifierContext = verifierContext;
+        this.generateDPoPKey();
     }
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext, boolean useEncryption) {
         this(restClient, issuerContext, verifierContext);
         this.useEncryption = useEncryption;
+        this.generateDPoPKey();
     }
 
     public WalletEntry createWalletEntry() {
@@ -78,6 +84,16 @@ public class Wallet {
 
     public WalletBatchEntry createWalletBatchEntry() {
         return new WalletBatchEntry(this);
+    }
+
+    public void generateDPoPKey() {
+        dpopKeyPair = ECCryptoSupport.generateECKeyPair();
+        dpopPublicKey = new ECKey.Builder(
+                Curve.P_256,
+                (java.security.interfaces.ECPublicKey) dpopKeyPair.getPublic())
+                .keyUse(KeyUse.SIGNATURE)
+                .keyID("holder-dpop-key-" + UUID.randomUUID())
+                .build();
     }
 
     public String getIssuerTokenUri(WalletEntry walletEntry) {
@@ -263,7 +279,7 @@ public class Wallet {
         return credentialResponse.getBody().get(CREDENTIAL).getAsString();
     }
 
-    public List<String> getVerifiableCredentialFromIssuerV1(WalletBatchEntry batchEntry) {
+    public List<String> getVerifiableCredentialFromIssuerV1(final WalletBatchEntry batchEntry) {
         CredentialResponse credentialResponse = postCredentialRequest(SwiyuApiVersionConfig.V1, batchEntry);
 
         assertThat(credentialResponse.getBody()).isNotNull();
@@ -642,13 +658,29 @@ public class Wallet {
         return walletEntry;
     }
 
-    public WalletBatchEntry collectOfferV1(URI offerDeepLink) {
+    public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
+        final String nonce = getCNonce(batchEntry);
+        batchEntry.generateHolderKeys();
+        batchEntry.createProofs(nonce);
+
+        return postCredentialRequestV1(batchEntry);
+    }
+
+    public WalletBatchEntry collectOfferV1(final URI offerDeepLink) {
         var entry = createWalletBatchEntry();
         entry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
-        entry.setToken(collectToken(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
         entry.setCredentialConfigurationSupported();
+
+        if (this.useDPoP) {
+            final String nonceInitial = getDpopNonce(entry);
+            final String tokenDPoP = DPoPSupport.createDpopProofForToken(
+                    entry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
+            entry.setToken(collectTokenWithDPoP(entry, tokenDPoP));
+        } else {
+            entry.setToken(collectToken(entry));
+        }
 
         entry.generateHolderKeys();
         entry.createProofs();
@@ -680,7 +712,7 @@ public class Wallet {
             request.setProof(proofMap);
         }
 
-        if (useEncryption) {
+        if (this.useEncryption) {
             walletEntry.generateEphemeralEncryptionKey();
 
             var metadata = walletEntry.getIssuerMetadata();
@@ -757,7 +789,7 @@ public class Wallet {
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
-        if (useEncryption) {
+        if (this.useEncryption) {
             walletEntry.generateEphemeralEncryptionKey();
 
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
@@ -780,19 +812,17 @@ public class Wallet {
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
-        String doPProofForCredentialRequest = null;
-        if (token.getTokenType() != null && token.getTokenType().equals("DPoP")) {
-            doPProofForCredentialRequest = createDoPProofForCredentialRequest(walletEntry, credentialUri);
-        }
-
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
                 .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
                 .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
-        if (doPProofForCredentialRequest != null) {
-            requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
+        if (this.useDPoP) {
+            final String nonce = getDpopNonce(walletEntry);
+            final String dPoP = DPoPSupport.createDpopProofForToken(
+                    credentialUri.toString(), nonce, dpopKeyPair, dpopPublicKey, walletEntry.getToken().getAccessToken());
+            requestBuilder = requestBuilder.header("DPoP", dPoP);
         }
 
         final ResponseEntity<String> response = requestBuilder
