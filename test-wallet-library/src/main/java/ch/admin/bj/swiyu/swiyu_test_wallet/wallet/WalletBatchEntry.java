@@ -82,7 +82,7 @@ public class WalletBatchEntry extends WalletEntry {
     }
 
     public void generateHolderKeys() {
-        final int count = getIssuerMetadata().getBatchSize();
+        final int count = getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         holderKeyPairs.clear();
         holderPublicKeys.clear();
 
@@ -116,7 +116,7 @@ public class WalletBatchEntry extends WalletEntry {
                     getToken().getcNonce();
 
             var proof = new JwtProof(
-                    getIssuerMetadata().getIssuerURI(),
+                    getIssuerMetadata().getCredentialIssuer(),
                     uniqueNonce,
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
@@ -134,7 +134,7 @@ public class WalletBatchEntry extends WalletEntry {
 
         for (ECKey pub : holderPublicKeys) {
             var proof = new JwtProof(
-                    getIssuerMetadata().getIssuerURI(),
+                    getIssuerMetadata().getCredentialIssuer(),
                     uniqueNonce,
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))

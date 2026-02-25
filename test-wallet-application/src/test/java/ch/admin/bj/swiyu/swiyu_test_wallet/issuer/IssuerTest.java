@@ -1,12 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -73,12 +74,12 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
     void validateMetadata() {
-        ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
+        IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
-        assertThat(metadata.getIssuerURI()).startsWith(TestConstants.ISSUER_URL);
+        assertThat(metadata.getCredentialIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(metadata.getDisplay()).isNotNull();
-        assertThat(metadata.getSupportedCredentialConfigurations()).isNotNull();
-        assertThat(metadata.getSupportedCredentialConfigurations().get("bound_example_sd_jwt")).isNotNull();
+        assertThat(metadata.getCredentialConfigurationsSupported()).isNotNull();
+        assertThat(metadata.getCredentialConfigurationsSupported().get(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)).isNotNull();
     }
 
     @Test

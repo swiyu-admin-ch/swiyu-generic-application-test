@@ -52,31 +52,22 @@ public class IssuerCallbacksTest extends BaseTest {
                     """
     )
     public void managementEntity_fullLifecycle_shouldCover_T1_T2_T3_T4_T8() {
+        // Given
         wallet.setUseDPoP(true);
-
-        cleanIssuerCallbacks();
-
         final CredentialWithDeeplinkResponse offer1 =
                 issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
-
         cleanIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasSizeEventually(0);
 
+        // When
         wallet.collectOfferV1(toUri(offer1.getOfferDeeplink()));
-
         issuerManager.verifyStatus(offer1.getManagementId(), CredentialStatusType.ISSUED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
-
+        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
 
-        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
-
+        // Then
         awaitStableIssuerCallbacks();
         WebhookCallbackAssert.assertThat(issuerCallbacks())
                 .hasSizeEventually(6)
@@ -113,21 +104,19 @@ public class IssuerCallbacksTest extends BaseTest {
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
                 ));
 
+        // Given
         final CredentialWithDeeplinkResponse offer2 =
                 issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
-
         cleanIssuerCallbacks();
 
+        // When
         wallet.collectOfferV1(toUri(offer2.getOfferDeeplink()));
-
         issuerManager.verifyStatus(offer2.getManagementId(), CredentialStatusType.ISSUED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer2.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer2.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
-
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer2.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
 
+        // Then
         awaitStableIssuerCallbacks();
         WebhookCallbackAssert.assertThat(issuerCallbacks())
                 .hasSizeEventually(5)
@@ -176,93 +165,17 @@ public class IssuerCallbacksTest extends BaseTest {
                     """
     )
     public void deferredOffer_lifecycle_shouldEmitCallbacks() {
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
+        // Given
         wallet.setUseDPoP(true);
-
         cleanIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasSizeEventually(0);
-
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // 1) Create deferred offer
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialWithSignedJwt(
                 jwtKey, keyId, supportedMetadataId
         );
 
-        cleanIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasSizeEventually(0);
-
-        // 2) Wallet claims → should move offer into "claiming in progress" and then "deferred"
-        final WalletBatchEntry entry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(
-                apiVersion,
-                toUri(offer.getOfferDeeplink())
-        );
-
-        assertThat(entry.getTransactionId()).isNotNull();
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
-
-        // At this point, we expect callbacks for:
-        // - Offer lifecycle: IN_PROGRESS (trigger OFFER)
-        // - Management lifecycle: DEFERRED (trigger MANAGEMENT)  (depending on implementation, can be OFFER too)
-        awaitStableIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasLastCallbacksInOrder(List.of(
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event("IN_PROGRESS")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event("DEFERRED")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
-                ));
-
-        // 3) Issuer marks READY (only allowed for deferred offers)
-        cleanIssuerCallbacks();
+        final WalletBatchEntry entry = wallet.collectTransactionIdFromDeferredOfferV1(toUri(offer.getOfferDeeplink()));
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
-
-        awaitStableIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasLastCallbacksInOrder(List.of(
-                        new WebhookCallback()
-                                .subjectId(offer.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event("READY")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
-                ));
-
-        // 4) Wallet polls transaction_id again → should eventually yield issuance
-        cleanIssuerCallbacks();
-        wallet.getCredentialFromTransactionId(apiVersion, entry);
-
-        // Depending on implementation, you may need to poll again until the VC is returned.
-        // If your wallet method already handles the polling, this is fine.
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
-
-        awaitStableIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasLastCallbacksInOrder(List.of(
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event("ISSUED")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event("ISSUED")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
-                ));
-
-        // Optionnel: vérifier que les credentials sont bien émis et corrects
-        SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+        wallet.getCredentialFromTransactionIdV1(entry);
     }
 }

@@ -19,9 +19,8 @@ public class IssuanceService {
         wellKnownApi = new ch.admin.bj.swiyu.gen.issuer.api.WellKnownEndpointsApiApi(apiClient);
     }
 
-    public ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata getWellKnownCredentialIssuerInfo() {
-        // @TODO Remove the custom IssuerMetadata class
-        return new ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata(wellKnownApi.getIssuerMetadata());
+    public IssuerMetadata getWellKnownCredentialIssuerInfo() {
+        return wellKnownApi.getIssuerMetadata();
     }
 
     public OAuthAuthorizationServerMetadata getWellKnownOpenIdConfiguration() {

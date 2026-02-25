@@ -115,7 +115,7 @@ class DPoPFlowTest extends BaseTest {
 
         batchEntry.setToken(token);
 
-        final int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
+        final int batchSize = batchEntry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
 
         log.info("Wallet generates {} holder keys and creates proofs", batchSize);
         batchEntry.generateHolderKeys();
@@ -772,7 +772,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setToken(token);
 
         log.info("Wallet generates holder keys and creates holder binding proofs with unique nonces");
-        final int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
+        final int batchSize = batchEntry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         batchEntry.generateHolderKeys();
         batchEntry.createProofs();
 
