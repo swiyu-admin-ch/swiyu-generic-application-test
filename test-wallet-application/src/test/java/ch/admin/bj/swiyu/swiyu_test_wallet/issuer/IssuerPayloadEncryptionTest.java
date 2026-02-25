@@ -256,7 +256,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
                 .hasError("INVALID_TRANSACTION_ID")
-                .hasErrorDescription("Invalid transactional id");
+                .hasErrorDescription("Invalid transaction id");
     }
 
     @ParameterizedTest
