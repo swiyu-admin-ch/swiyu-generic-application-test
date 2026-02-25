@@ -91,7 +91,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
         for (int i = 0; i < batch1.size(); i++) {
             final String deepLink = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(entry.getIssuerDid(i))
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
                     .withUniversityDCQL()
                     .create();
 

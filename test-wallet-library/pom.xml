@@ -11,6 +11,32 @@
     <name>test-wallet-library</name>
     <description>Reusable test library for Swiyu Wallet</description>
     <dependencies>
+        <!-- swiyu Generic Lib -->
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jws-signature-service</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-did-resolver-adapter</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jwe-util</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-jwt-util</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>swiyu-dpop-util</artifactId>
+            <version>${generic-java-lib.version}</version>
+        </dependency>
         <!-- Development Tools -->
         <dependency>
             <groupId>org.projectlombok</groupId>

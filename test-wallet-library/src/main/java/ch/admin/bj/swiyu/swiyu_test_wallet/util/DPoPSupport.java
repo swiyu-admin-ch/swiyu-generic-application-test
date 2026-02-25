@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import ch.admin.bj.swiyu.dpop.DpopConstants;
+import ch.admin.bj.swiyu.dpop.DpopHashUtil;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -17,20 +19,6 @@ import java.util.UUID;
 
 @UtilityClass
 public class DPoPSupport {
-
-    static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
-
-    public static String tokenToAth(final String token) {
-        MessageDigest digest = null;
-        try {
-            digest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(String.format("%s algorithm not found", MESSAGE_DIGEST_ALGORITHM), e);
-        }
-        final byte[] hash = digest.digest(token.getBytes(StandardCharsets.US_ASCII));
-
-        return Base64.getUrlEncoder().encodeToString(hash);
-    }
 
     public static String createDpopProofForToken(
             String uri,
@@ -54,8 +42,12 @@ public class DPoPSupport {
             ECKey dpopPublicJwk,
             String token
     ) {
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .type(new JOSEObjectType("dpop+jwt"))
+        final JWSAlgorithm algorithm = JWSAlgorithm.parse(
+                DpopConstants.SUPPORTED_ALGORITHMS.get(0)
+        );
+
+        final JWSHeader header = new JWSHeader.Builder(algorithm)
+                .type(new JOSEObjectType(DpopConstants.DPOP_JWT_HEADER_TYP))
                 .jwk(dpopPublicJwk)
                 .build();
 
@@ -67,7 +59,7 @@ public class DPoPSupport {
                 .issueTime(new Date());
 
         if (token != null) {
-            claimsBuilder.claim("ath", tokenToAth(token));
+            claimsBuilder.claim("ath", DpopHashUtil.sha256(token));
         }
 
         try {
