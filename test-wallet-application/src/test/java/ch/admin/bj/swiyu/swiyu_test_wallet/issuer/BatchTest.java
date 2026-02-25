@@ -5,7 +5,10 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -54,24 +58,29 @@ class BatchTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void batchIssuanceFlow_thenSuccess() throws SQLException {
-        final int batchSize = 3;
-
+    void batchIssuanceFlow_thenSuccess() {
         issuerManager.createStatusList(10000, 2);
 
         wallet.setUseEncryption(true);
 
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final CredentialWithDeeplinkResponse response =
+                issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, subjectClaims);
 
         final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
 
-        assertThat(batchEntry.getIssuedCredentials()).hasSize(batchSize);
-
-        List<Integer> indexes = getUsedIndexesFromDb();
-
-        assertThat(areSequential(indexes))
-                .as("Indexes in status_list should not be strictly sequential")
-                .isFalse();
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+            .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+            .areUnique()
+            .haveUniqueIssuerSignatures()
+            .haveUniqueHolderBindingKeys()
+            .haveUniqueStatusListIndexes()
+            .haveNonSequentialStatusListIndexes()
+            .haveNonConstantCnfKid()
+            .haveUniqueCnfPublicKeys()
+            .haveDayRoundedIat()
+            .haveDayRoundedExpIfPresent()
+            .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
     }
 
     @Test

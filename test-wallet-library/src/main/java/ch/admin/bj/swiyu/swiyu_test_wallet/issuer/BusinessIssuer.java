@@ -140,7 +140,7 @@ public class BusinessIssuer {
     }
 
     private CredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata, Map<String, Object> subjectClaims) {
-        CredentialOfferRequest offer = new CredentialOfferRequest();
+        final CredentialOfferRequest offer = new CredentialOfferRequest();
         offer.setCredentialSubjectData(subjectClaims);
         offer.setStatusLists(List.of(statusList.getStatusRegistryUrl()));
         offer.setCredentialMetadata(credentialMetadata);
