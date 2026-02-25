@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import org.assertj.core.api.Assertions;
@@ -37,15 +36,15 @@ public final class SdJwtBatchAssert {
 
     private Long extractStatusIndex(String sdJwt) {
         try {
-            SignedJWT jwt = parse(sdJwt);
+            final SignedJWT jwt = parse(sdJwt);
 
-            Map<String, Object> status =
+            final Map<String, Object> status =
                     (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("status");
 
-            Map<String, Object> statusList =
+            final Map<String, Object> statusList =
                     (Map<String, Object>) status.get("status_list");
 
-            Object idxObj = statusList.get("idx");
+            final Object idxObj = statusList.get("idx");
 
             if (!(idxObj instanceof Number number)) {
                 throw new AssertionError("status_list.idx is not a number: " + idxObj);
@@ -90,7 +89,7 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveUniqueIssuerSignatures() {
-        long distinctCount = sdJwts.stream()
+        final long distinctCount = sdJwts.stream()
                 .map(this::parse)
                 .map(jwt -> jwt.getSignature().toString())
                 .distinct()
@@ -102,8 +101,7 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveUniqueHolderBindingKeys() {
-
-        long distinctCount = sdJwts.stream()
+        final long distinctCount = sdJwts.stream()
                 .map(this::parse)
                 .map(jwt -> {
                     try {
@@ -128,8 +126,7 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveUniqueStatusListIndexes() {
-
-        long distinctCount = sdJwts.stream()
+        final long distinctCount = sdJwts.stream()
                 .map(this::extractStatusIndex)
                 .distinct()
                 .count();
@@ -142,8 +139,7 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveNonSequentialStatusListIndexes() {
-
-        List<Long> indexes = sdJwts.stream()
+        final List<Long> indexes = sdJwts.stream()
                 .map(this::extractStatusIndex)
                 .sorted()
                 .toList();
@@ -165,8 +161,7 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveUniqueIat() {
-
-        List<Long> iats = sdJwts.stream()
+        final List<Long> iats = sdJwts.stream()
                 .map(this::parse)
                 .map(jwt -> {
                     try {
@@ -181,13 +176,13 @@ public final class SdJwtBatchAssert {
                 })
                 .toList();
 
-        Map<Long, Long> occurrences = iats.stream()
+        final Map<Long, Long> occurrences = iats.stream()
                 .collect(Collectors.groupingBy(
                         Function.identity(),
                         Collectors.counting()
                 ));
 
-        List<String> duplicates = occurrences.entrySet().stream()
+        final List<String> duplicates = occurrences.entrySet().stream()
                 .filter(e -> e.getValue() > 1)
                 .map(e -> String.format("iat=%d (count=%d)", e.getKey(), e.getValue()))
                 .toList();
@@ -202,74 +197,121 @@ public final class SdJwtBatchAssert {
     }
 
     public SdJwtBatchAssert haveUniqueCnfPublicKeys() {
+        final List<String> keyMaterial = sdJwts.stream()
+                .map(this::parse)
+                .map(jwt -> {
+                    try {
+                        Map<String, Object> cnf =
+                                (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("cnf");
 
-    List<String> keyMaterial = sdJwts.stream()
-            .map(this::parse)
-            .map(jwt -> {
-                try {
-                    Map<String, Object> cnf =
-                            (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("cnf");
+                        Map<String, Object> jwk =
+                                (Map<String, Object>) cnf.get("jwk");
 
-                    Map<String, Object> jwk =
-                            (Map<String, Object>) cnf.get("jwk");
+                        return jwk.get("x") + "|" + jwk.get("y");
 
-                    return jwk.get("x") + "|" + jwk.get("y");
+                    } catch (Exception e) {
+                        throw new AssertionError("Invalid cnf structure", e);
+                    }
+                })
+                .toList();
 
-                } catch (Exception e) {
-                    throw new AssertionError("Invalid cnf structure", e);
-                }
-            })
-            .toList();
+        final long distinct = keyMaterial.stream().distinct().count();
 
-    long distinct = keyMaterial.stream().distinct().count();
-
-    if (distinct != keyMaterial.size()) {
-        throw new AssertionError(
-                "cnf public keys (x,y) are not unique across batch"
-        );
-    }
-
-    return this;
-}
-
-public SdJwtBatchAssert haveNonConstantCnfKid() {
-
-    List<String> kids = sdJwts.stream()
-            .map(this::parse)
-            .map(jwt -> {
-                try {
-                    Map<String, Object> cnf =
-                            (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("cnf");
-
-                    Map<String, Object> jwk =
-                            (Map<String, Object>) cnf.get("jwk");
-
-                    Object kid = jwk.get("kid");
-                    return kid == null ? null : kid.toString();
-
-                } catch (Exception e) {
-                    throw new AssertionError("Invalid cnf structure", e);
-                }
-            })
-            .filter(Objects::nonNull)
-            .toList();
-
-    if (!kids.isEmpty()) {
-        long distinct = kids.stream().distinct().count();
-        if (distinct == 1) {
+        if (distinct != keyMaterial.size()) {
             throw new AssertionError(
-                    "cnf.jwk.kid is constant across batch → correlation signal: " + kids.get(0)
+                    "cnf public keys (x,y) are not unique across batch"
             );
         }
+
+        return this;
     }
 
-    return this;
-}
+    public SdJwtBatchAssert haveNonConstantCnfKid() {
+        final List<String> kids = sdJwts.stream()
+                .map(this::parse)
+                .map(jwt -> {
+                    try {
+                        Map<String, Object> cnf =
+                                (Map<String, Object>) jwt.getJWTClaimsSet().getClaim("cnf");
 
-    public SdJwtBatchAssert areNotLinkable() {
-        throw new TestSupportException("Not implemented yet");
+                        Map<String, Object> jwk =
+                                (Map<String, Object>) cnf.get("jwk");
+
+                        Object kid = jwk.get("kid");
+                        return kid == null ? null : kid.toString();
+
+                    } catch (Exception e) {
+                        throw new AssertionError("Invalid cnf structure", e);
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        if (!kids.isEmpty()) {
+            long distinct = kids.stream().distinct().count();
+            if (distinct == 1) {
+                throw new AssertionError(
+                        "cnf.jwk.kid is constant across batch → correlation signal: " + kids.get(0)
+                );
+            }
+        }
+
+        return this;
     }
 
+    public SdJwtBatchAssert haveDayRoundedIat() {
+        final List<Long> iats = sdJwts.stream()
+                .map(this::parse)
+                .map(jwt -> {
+                    try {
+                        Date issueTime = jwt.getJWTClaimsSet().getIssueTime();
+                        if (issueTime == null) {
+                            throw new AssertionError("Missing iat claim");
+                        }
+                        return issueTime.toInstant().getEpochSecond();
+                    } catch (ParseException e) {
+                        throw new AssertionError(e);
+                    }
+                })
+                .toList();
 
+        final long distinct = iats.stream().distinct().count();
+        if (distinct != 1) {
+            throw new AssertionError("iat values differ across batch: " + iats);
+        }
+
+        final long iat = iats.getFirst();
+
+        final long secondsInDay = 24 * 60 * 60;
+        if (iat % secondsInDay != 0) {
+            throw new AssertionError(
+                    "iat is not rounded to beginning of day (00:00:00 UTC). Value: " + iat
+            );
+        }
+
+        return this;
+    }
+
+    public SdJwtBatchAssert haveDayRoundedExpIfPresent() {
+        final long secondsInDay = 24 * 60 * 60;
+        for (String sdJwt : sdJwts) {
+            final SignedJWT jwt = parse(sdJwt);
+            try {
+                final Date exp = jwt.getJWTClaimsSet().getExpirationTime();
+                if (exp == null) {
+                    continue;
+                }
+                final long epoch = exp.toInstant().getEpochSecond();
+                if (epoch % secondsInDay != 0) {
+                    throw new AssertionError(
+                            "exp is not rounded to beginning of day (00:00:00 UTC). Value: " + epoch
+                    );
+                }
+            } catch (ParseException e) {
+                throw new AssertionError(e);
+            }
+        }
+        return this;
+    }
 }
 

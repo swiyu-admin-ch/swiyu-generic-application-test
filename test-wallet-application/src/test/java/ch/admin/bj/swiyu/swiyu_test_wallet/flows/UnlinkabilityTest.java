@@ -38,24 +38,28 @@ public class UnlinkabilityTest extends BaseTest {
                     This test validates the unlinkability property of the Batch Credential Issuance mechanism.
                     
                     A single credential offer results in the issuance of multiple credentials sharing
-                    the same credential subject claims and format. While the subject claims remains identical,
+                    the same credential subject claims and format. While the subject claims remain identical,
                     each issued credential must contain distinct cryptographic material in order to
                     prevent correlation between different presentations.
-
+                    
                     In addition to batch issuance, the test also validates unlinkability during
                     credential renewal flows. When a credential is renewed, even if the subject
                     claims remain unchanged, the newly issued credential
                     must not be cryptographically linkable to the previous one.
-
+                    
                     The test verifies that:
                     - All credentials share the same credential subject claims,
                     - Each credential contains a unique issuer signature,
                     - Each credential is bound to a unique holder binding key (cnf.jwk),
                     - Status list indexes are unique and non-sequential,
                     - No constant or reusable cryptographic identifiers (such as a static cnf.kid)
-                    introduce correlation signals.
+                    introduce correlation signals,
+                    - The issued-at (iat) claim is rounded down to the beginning of the day (00:00:00 UTC),
+                    ensuring that no fine-grained temporal information introduces unintended correlation.
+                    - The expiration (exp) claim is rounded down to the beginning of the day (00:00:00 UTC),
+                    ensuring that no fine-grained temporal information introduces unintended correlation.
                     
-                    This simulation ensures that issuer behavior prevent
+                    This simulation ensures that issuer behavior prevents
                     correlation across batch issuance and renewals.
                     """
     )
@@ -98,6 +102,8 @@ public class UnlinkabilityTest extends BaseTest {
                 .haveNonSequentialStatusListIndexes()
                 .haveNonConstantCnfKid()
                 .haveUniqueCnfPublicKeys()
+                .haveDayRoundedIat()
+                .haveDayRoundedExpIfPresent()
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
     }
 }

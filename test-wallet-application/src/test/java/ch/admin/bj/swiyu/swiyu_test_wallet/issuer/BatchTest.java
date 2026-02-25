@@ -78,6 +78,8 @@ class BatchTest extends BaseTest {
             .haveNonSequentialStatusListIndexes()
             .haveNonConstantCnfKid()
             .haveUniqueCnfPublicKeys()
+            .haveDayRoundedIat()
+            .haveDayRoundedExpIfPresent()
             .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
     }
 
