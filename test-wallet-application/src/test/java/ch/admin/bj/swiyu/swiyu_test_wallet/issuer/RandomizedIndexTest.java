@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -70,7 +71,7 @@ class RandomizedIndexTest extends BaseTest {
         final int afterSingle = getUsedIndexesFromDb().size();
         assertThat(afterSingle)
                 .as("Expected one entry after single credential issuance")
-                .isEqualTo(3);
+                .isEqualTo(CredentialConfigurationFixtures.BATCH_SIZE);
         final CredentialWithDeeplinkResponse batchResponse =
                 issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         wallet.collectOfferV1(toUri(batchResponse.getOfferDeeplink()));
@@ -78,8 +79,8 @@ class RandomizedIndexTest extends BaseTest {
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
-                .as("Expected total of 4 credentials (1 single + 3 in batch)")
-                .hasSize(6);
+                .as("Expected total of two times the batch size")
+                .hasSize(CredentialConfigurationFixtures.BATCH_SIZE * 2);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")
@@ -104,9 +105,9 @@ class RandomizedIndexTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void multipleConcurrentBatches_largeStatusList() throws Exception {
-        final int statusListLength = 10000;
+        final int batchSize = CredentialConfigurationFixtures.BATCH_SIZE;
         final int batchCount = 10;
-        final int batchSize = 3;
+        final int statusListLength = 10000;
 
         issuerManager.createStatusList(statusListLength, 2);
 
@@ -156,9 +157,12 @@ class RandomizedIndexTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void multipleConcurrentBatches_smallStatusList() throws Exception {
-        final int statusListLength = 20;
+        final int batchSize = CredentialConfigurationFixtures.BATCH_SIZE;
         final int batchCount = 10;
-        final int batchSize = 3;
+        final int statusListLength = batchSize * batchCount - 1; // Set capacity just below total needed for all batches
+
+        final int expectedBatchCountEntered = batchCount - 1;
+        final int expectedEntries = expectedBatchCountEntered * batchCount;
 
         issuerManager.createStatusList(statusListLength, 2);
 
@@ -182,8 +186,8 @@ class RandomizedIndexTest extends BaseTest {
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
-                .as("Expected %s total credentials (%s batches × %s each)", 18, batchCount, batchSize)
-                .hasSize(18);
+                .as("Expected %s total credentials (%s batches × %s each)", expectedEntries, batchCount, batchSize)
+                .hasSize(expectedEntries);
     }
 
     private List<Integer> getUsedIndexesFromDb() throws SQLException {
