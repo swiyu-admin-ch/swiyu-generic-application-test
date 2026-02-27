@@ -15,27 +15,22 @@
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jws-signature-service</artifactId>
-            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-did-resolver-adapter</artifactId>
-            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jwe-util</artifactId>
-            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-jwt-util</artifactId>
-            <version>${generic-java-lib.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.admin.swiyu</groupId>
             <artifactId>swiyu-dpop-util</artifactId>
-            <version>${generic-java-lib.version}</version>
         </dependency>
         <!-- Development Tools -->
         <dependency>
@@ -83,10 +78,10 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <scope>compile</scope>
         </dependency>
-        <!-- Multibyte & Encoding -->
+        <!-- Encoding -->
         <dependency>
-            <groupId>com.github.multiformats</groupId>
-            <artifactId>java-multibase</artifactId>
+            <groupId>org.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
         </dependency>
         <!-- JSON Canonicalization -->
         <dependency>
@@ -137,7 +132,6 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>${openapi-generator-maven-plugin.version}</version>
                 <configuration>
                     <configOptions>
                         <java8>true</java8>
@@ -176,7 +170,6 @@
                             </configOptions>
                         </configuration>
                     </execution>
-
                     <execution>
                         <id>verifier-generation</id>
                         <goals>
@@ -196,11 +189,9 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.5.0</version>
                 <executions>
                     <execution>
                         <goals>

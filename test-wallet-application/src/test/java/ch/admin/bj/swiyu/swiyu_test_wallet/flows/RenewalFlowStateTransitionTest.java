@@ -388,7 +388,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         });
 
         ApiErrorAssert.assertThat(ex)
-                .hasErrorDescription("Credential management is revoked, no renewal possible");
+                .hasErrorDescription("Credential management is REVOKED, no renewal possible");
     }
 
     @Test
@@ -443,14 +443,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                 renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
                 renewedEntry.getToken().getAccessToken());
 
-        wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
-
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
             wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
         });
 
         ApiErrorAssert.assertThat(ex)
-                .hasErrorDescription("Must use valid server provided nonce");
+                .hasErrorDescription("Credential management is SUSPENDED, no renewal possible");
     }
 }

@@ -70,11 +70,6 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <scope>compile</scope>
         </dependency>
-        <!-- Multibyte & Encoding -->
-        <dependency>
-            <groupId>com.github.multiformats</groupId>
-            <artifactId>java-multibase</artifactId>
-        </dependency>
         <!-- JSON Canonicalization -->
         <dependency>
             <groupId>io.github.erdtman</groupId>
@@ -134,7 +129,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.4</version>
                 <executions>
                     <execution>
                         <id>integration-tests</id>
