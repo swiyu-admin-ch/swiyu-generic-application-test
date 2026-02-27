@@ -443,8 +443,6 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                 renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
                 renewedEntry.getToken().getAccessToken());
 
-        wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
-
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
             wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
