@@ -138,6 +138,21 @@
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>${openapi-generator-maven-plugin.version}</version>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.java-json-tools.jackson-coreutils</groupId>
+            <artifactId>jackson-coreutils</artifactId>
+            <version>2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.java-json-tools.jackson-coreutils</groupId>
+            <artifactId>jackson-coreutils-equivalence</artifactId>
+            <version>2.0</version>
+        </dependency>
+    </dependencies>
+
+
                 <configuration>
                     <configOptions>
                         <java8>true</java8>
