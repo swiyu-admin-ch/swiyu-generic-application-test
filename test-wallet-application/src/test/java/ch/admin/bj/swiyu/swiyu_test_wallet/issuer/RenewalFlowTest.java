@@ -433,7 +433,7 @@ class RenewalFlowTest extends BaseTest {
                 .isEqualTo(400);
 
         assertThat(errorJson(ex))
-                .containsEntry("error_description", "Credential management is revoked, no renewal possible");
+                .containsEntry("error_description", "Credential management is REVOKED, no renewal possible");
     }
 
     @Test
