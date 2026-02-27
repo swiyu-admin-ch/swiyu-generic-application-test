@@ -35,17 +35,6 @@ jobs:
           cache: 'maven'
       - name: Configure Docker Java client API version
         run: echo "api.version=1.44" > ~/.docker-java.properties
-      - name: Show Maven version
-        run: mvn -version
-
-      - name: Print effective settings
-        run: mvn help:effective-settings
-
-      - name: Print dependency tree (jackson-coreutils)
-        run: mvn -B dependency:tree -Dverbose -Dincludes=jackson-coreutils || true
-      - name: Print full dependency tree
-        run: mvn -B dependency:tree -Dverbose || true
-
       - name: Build & test with Maven
         run: mvn --batch-mode clean verify -DskipTests=false
       - name: Perform CodeQL Analysis
