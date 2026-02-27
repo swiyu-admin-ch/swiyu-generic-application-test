@@ -78,10 +78,10 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <scope>compile</scope>
         </dependency>
-        <!-- Multibyte & Encoding -->
+        <!-- Encoding -->
         <dependency>
-            <groupId>com.github.multiformats</groupId>
-            <artifactId>java-multibase</artifactId>
+            <groupId>org.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
         </dependency>
         <!-- JSON Canonicalization -->
         <dependency>

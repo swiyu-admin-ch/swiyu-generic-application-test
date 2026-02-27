@@ -70,11 +70,6 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <scope>compile</scope>
         </dependency>
-        <!-- Multibyte & Encoding -->
-        <dependency>
-            <groupId>com.github.multiformats</groupId>
-            <artifactId>java-multibase</artifactId>
-        </dependency>
         <!-- JSON Canonicalization -->
         <dependency>
             <groupId>io.github.erdtman</groupId>

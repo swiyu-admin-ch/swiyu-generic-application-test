@@ -2,10 +2,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.ipfs.multibase.Base58;
 import lombok.experimental.UtilityClass;
 import org.erdtman.jcs.JsonCanonicalizer;
-
+import org.bitcoinj.base.Base58;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
