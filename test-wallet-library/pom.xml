@@ -138,13 +138,6 @@
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>${openapi-generator-maven-plugin.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>io.swagger.parser.v3</groupId>
-                        <artifactId>swagger-parser-v3</artifactId>
-                        <version>2.2.21</version>
-                    </dependency>
-                </dependencies>
                 <configuration>
                     <configOptions>
                         <java8>true</java8>
