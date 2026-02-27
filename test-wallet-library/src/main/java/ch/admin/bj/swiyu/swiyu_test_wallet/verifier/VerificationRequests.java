@@ -40,7 +40,7 @@ public class VerificationRequests {
                 .acceptedIssuerDids(null)
                 .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
-                .responseMode(CreateVerificationManagement.ResponseModeEnum.POST)
+                .responseMode(CreateVerificationManagement.ResponseModeEnum.DIRECT_POST)
                 .presentationDefinition(presentation);
     }
 
