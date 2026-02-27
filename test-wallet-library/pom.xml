@@ -138,6 +138,14 @@
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>${openapi-generator-maven-plugin.version}</version>
+                <dependencies>
+                    <!-- Fix for jackson-coreutils transitive dependency issue -->
+                    <dependency>
+                        <groupId>com.github.java-json-tools</groupId>
+                        <artifactId>jackson-coreutils</artifactId>
+                        <version>1.8</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <configOptions>
                         <java8>true</java8>
