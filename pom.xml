@@ -143,15 +143,19 @@
                 <artifactId>xray-junit-extensions</artifactId>
                 <version>${xray-junit.version}</version>
             </dependency>
+            <!-- Misc -->
+            <dependency>
+                <groupId>com.github.java-json-tools</groupId>
+                <artifactId>jackson-coreutils</artifactId>
+                <version>2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.java-json-tools</groupId>
+                <artifactId>jackson-coreutils-equivalence</artifactId>
+                <version>1.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
 
     <build>
         <pluginManagement>
