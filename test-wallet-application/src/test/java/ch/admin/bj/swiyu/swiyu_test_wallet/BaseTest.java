@@ -194,9 +194,6 @@ public class BaseTest {
         return previous.get();
     }
 
-
-
-
     @BeforeAll
     void setup() throws Exception {
         issuerConfig.setIssuerServiceUrl(

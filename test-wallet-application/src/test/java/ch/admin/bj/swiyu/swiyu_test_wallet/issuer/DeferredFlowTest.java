@@ -4,18 +4,21 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
+import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_offer_status_type.CredentialOfferStatusType;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponseAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
@@ -25,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -134,5 +138,92 @@ class DeferredFlowTest extends BaseTest {
                 .hasStatus(400)
                 .hasError("ISSUANCE_PENDING")
                 .hasErrorDescription("The credential is not marked as ready to be issued");
+    }
+
+    @Test
+    @XrayTest(
+            key = "@TODO",
+            summary = "Deferred credential issuance is cancelled and cannot be requested or reactivated",
+            description = """
+                    This test validates that a deffered credential offer that has been cancelled by the business issuer 
+                    cannot be requested by the wallet and cannot be reactivated by the issuer.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Deprecated(forRemoval = true)
+    void deferredCredentialRequestID2_whenCredentialCancelled_thenRejected() {
+        cleanIssuerCallbacks();
+
+        // Given
+        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.ID2;
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+
+        // When
+        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(
+                supportedMetadataId,
+                subjectClaims);
+        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion, toUri(offer.getOfferDeeplink()));
+        // Then
+        assertThat(entry.getTransactionId()).isNotNull();
+
+        // When
+        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.CANCELLED);
+
+        // Then
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.CANCELLED);
+
+        // When
+        HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
+                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+
+        // Then
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .hasError("CREDENTIAL_REQUEST_DENIED")
+                .hasErrorDescription("The credential cannot be issued anymore, the offer was either cancelled or expired");
+
+        // Given
+        final UpdateCredentialStatusRequestType newStatus = UpdateCredentialStatusRequestType.READY;
+
+        // When
+        ex = assertThrows(HttpClientErrorException.class,
+                () -> issuerManager.updateState(offer.getManagementId(), newStatus));
+
+        // Then
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .hasErrorDescription("Bad Request")
+                .containsDetail("Transition failed for GenericMessage")
+                .containsDetail(String.format("payload=%s", newStatus.getValue()))
+                .containsDetail("oldStatus=Cancelled")
+                .containsDetail(String.format("credentialId=%s", offer.getOfferId()));
+
+        awaitStableIssuerCallbacks();
+        WebhookCallbackAssert.assertThat(issuerCallbacks())
+                .hasSizeEventually(4)
+                .hasLastCallbacksInOrder(List.of(
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.IN_PROGRESS.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.DEFERRED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_DEFERRED)
+                                .event(CredentialOfferStatusType.DEFERRED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.CANCELLED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER)
+                ));
     }
 }

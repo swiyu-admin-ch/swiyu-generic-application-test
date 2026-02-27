@@ -7,7 +7,6 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.function.Predicate;
 
 @Slf4j
 public final class WebhookCallbackAssert {

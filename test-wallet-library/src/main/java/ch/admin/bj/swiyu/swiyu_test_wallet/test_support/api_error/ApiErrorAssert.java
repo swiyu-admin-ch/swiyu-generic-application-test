@@ -51,6 +51,18 @@ public final class ApiErrorAssert {
         return this;
     }
 
+    public ApiErrorAssert containsDetail(final String expectedDetail) {
+        Assertions.assertThat(errorBody)
+                .as("detail field")
+                .containsKey("detail");
+
+        Assertions.assertThat((String) errorBody.get("detail"))
+                .as("detail field content")
+                .contains(expectedDetail);
+
+        return this;
+    }
+
     public ApiErrorAssert hasErrorCode(final String expectedErrorCode) {
         Assertions.assertThat(errorBody)
                 .as("error_code field")
