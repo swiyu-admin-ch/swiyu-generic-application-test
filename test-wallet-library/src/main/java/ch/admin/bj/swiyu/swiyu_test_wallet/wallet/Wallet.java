@@ -589,7 +589,14 @@ public class Wallet {
         if (useEncryption) {
             formData.add("response", buildEncryptedResponse(requestObject, vpToken));
         } else {
-            formData.add(VP_TOKEN, new Gson().toJson(vpToken));
+            final ObjectMapper mapper = new ObjectMapper();
+            String jsonEncodedVpToken = null;
+            try {
+                jsonEncodedVpToken = mapper.writeValueAsString(Map.of(VP_TOKEN, vpToken));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            formData.add(VP_TOKEN, jsonEncodedVpToken);
         }
 
         final ResponseEntity<String> response = restClient.post()
