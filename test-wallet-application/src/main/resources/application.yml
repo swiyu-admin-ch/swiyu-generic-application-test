@@ -12,4 +12,11 @@ application:
   verifier:
     base-image: "${VERIFIER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
     image-tag: "${VERIFIER_IMAGE_TAG:dev}"
+  softhsm:
+    token-label: "dev-token"
+    pin: "1234"
+    so-pin: "5678"
+    key-label: "dev-issuer"
+    signing-algorithm: "ES512"
+    network-alias: "softhsm"
   trace: "${TRACE_TEST_REQUESTS:false}"
