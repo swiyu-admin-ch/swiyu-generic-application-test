@@ -16,7 +16,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.creat
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
-@EnableConfigurationProperties({ IssuerImageConfig.class, VerifierImageConfig.class })
+@EnableConfigurationProperties({ IssuerImageConfig.class, VerifierImageConfig.class, SoftHsmImageConfig.class })
 public class CompleteEnvironmentTestConfiguration {
 
     @Bean
@@ -89,6 +89,16 @@ public class CompleteEnvironmentTestConfiguration {
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 
         var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config, imageName, verifierImageConfig);
+
+        container.start();
+
+        return container;
+    }
+
+    @Bean
+    public GenericContainer<?> softHsmContainer(Network network, SoftHsmImageConfig softHsmImageConfig) {
+
+        var container = SoftHsmContainerConfig.createSoftHsmContainer(network, softHsmImageConfig);
 
         container.start();
 
