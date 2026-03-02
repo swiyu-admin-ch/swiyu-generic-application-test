@@ -89,6 +89,8 @@ public class BaseTest {
     protected MockServerContainer mockServerContainer;
     @Autowired
     protected MockServerClientConfig mockServerClientConfig;
+    @Autowired
+    protected GenericContainer<?> softHsmContainer;
     protected MockServerClient mockServerClient;
 
     protected Connection connection;
