@@ -181,7 +181,7 @@ Once you've finished testing your development builds, you can revert to using th
 source ./scripts/cleanup-local-testing.sh
 ```
 
-This script removes the environment variables that were set by `prepare-local-testing.sh`, allowing subsequent tests to use the default registry images again.
+This script removes the environment variables set by `prepare-local-testing.sh`, allowing for subsequent tests to use the default registry images again.
 
 ## Contributions and feedback
 
