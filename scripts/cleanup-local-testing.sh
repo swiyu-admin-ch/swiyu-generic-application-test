@@ -1,0 +1,7 @@
+#!/bin/bash
+
+unset ISSUER_IMAGE_NAME
+unset ISSUER_IMAGE_TAG
+unset VERIFIER_IMAGE_NAME
+unset VERIFIER_IMAGE_TAG
+
