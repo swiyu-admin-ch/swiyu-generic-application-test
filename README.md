@@ -77,7 +77,7 @@ This project uses **Testcontainers** to manage containerized services. Key depen
 
 These are automatically managed by Maven via `pom.xml`.
 
-Note that, container ports are dynamically mapped by Testcontainers, minimizing the risk of local port conflicts.
+Note that container ports are dynamically mapped by Testcontainers, minimizing the risk of local port conflicts.
 
 ## Project Structure
 
