@@ -33,7 +33,7 @@
         <!-- Plugin Versions -->
         <openapi-generator-maven-plugin.version>7.20.0</openapi-generator-maven-plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
-        <maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
+        <maven-failsafe-plugin.version>3.5.5</maven-failsafe-plugin.version>
     </properties>
     <dependencyManagement>
         <dependencies>
