@@ -108,7 +108,7 @@ When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated duri
 
 ## Custom Profiles
 
-You can create custom Spring profiles to configure issuer and verifier services with different environment variables. This allows you to test various deployment scenarios without modifying the core test code.
+Custom Spring profiles can be created to configure issuer and verifier services with different environment variables. This allows testing various deployment scenarios without modifying the core test code.
 
 ### Creating a Custom Profile
 
