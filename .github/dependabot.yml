@@ -16,3 +16,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+    - dependency-name: "org.springframework.boot:*" # Ignore major update to Spring boot 4
+      versions: ["4.x"]
