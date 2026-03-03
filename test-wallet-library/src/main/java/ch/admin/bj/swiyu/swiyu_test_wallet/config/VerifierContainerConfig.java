@@ -47,7 +47,7 @@ public class VerifierContainerConfig {
                     .withEnv("POSTGRES_DB_SCHEMA", verifierImageConfig.getDbSchema())
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
-                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "1") // Should be at zero but some images haven't the patch with the fix for no cache
+                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
