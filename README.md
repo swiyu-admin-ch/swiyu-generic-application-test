@@ -84,7 +84,7 @@ Note that, container ports are dynamically mapped by Testcontainers, minimizing 
 This is a **multi-module Maven project** organized as follows:
 
 - **test-wallet-library**: Contains reusable components including utilities, fixtures, test data builders, assertion helpers, and container configuration
-- **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using Spring Boot Test framework with custom profiles for different scenarios
+- **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using the Spring Boot Test framework with custom profiles for different scenarios
 
 ## Configuration
 
