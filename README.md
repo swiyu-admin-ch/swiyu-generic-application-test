@@ -24,7 +24,7 @@ The test framework runs the Generic Issuer and Generic Verifier components insid
 
 For E2E testing purposes, the Issuer Business System, Verifier Business System, and the Wallet are not deployed as real services. Their behavior is simulated by the tests in order to drive issuance and verification flows.
 
-This setup allows us to test the containerized components in isolation, with fully controlled and deterministic external interactions.
+This setup allows testing the containerized components in isolation, with fully controlled and deterministic external interactions.
 
 ```mermaid
 flowchart LR
