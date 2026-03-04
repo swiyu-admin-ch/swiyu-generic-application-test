@@ -142,17 +142,18 @@ class DeferredFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "@TODO",
-            summary = "Deferred credential issuance is cancelled and cannot be requested or reactivated",
+            key = "EIDOMNI-765",
+            summary = "Cancelled deferred offer blocks issuance and cannot return to READY",
             description = """
-                    This test validates that a deffered credential offer that has been cancelled by the business issuer 
-                    cannot be requested by the wallet and cannot be reactivated by the issuer.
-                    """
+                This test validates that after the issuer cancels a deferred credential offer,
+                the wallet cannot request issuance using the transaction ID.
+                It also confirms the issuer cannot transition the offer back to READY.
+                """
     )
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @Deprecated(forRemoval = true)
-    void deferredCredentialRequestID2_whenCredentialCancelled_thenRejected() {
+    void deferredOfferCancelled_shouldRejectWalletCredentialRequest_andRejectReadyTransition() {
         cleanIssuerCallbacks();
 
         // Given
@@ -208,22 +209,22 @@ class DeferredFlowTest extends BaseTest {
                                 .subjectId(offer.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.IN_PROGRESS.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.DEFERRED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_DEFERRED)
                                 .event(CredentialOfferStatusType.DEFERRED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.CANCELLED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER)
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER)
                 ));
     }
 }

@@ -88,7 +88,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         // Then
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasDcqlQuery()
-                .hasResponseMode(ResponseModeType.POST_JWT)
+                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT)
                 .hasClientMetadata()
                 .hasEncryptionJwks()
                 .hasEncryptionJwksWithAlgorithm(expectedAlgorithm)
@@ -146,7 +146,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.POST_JWT);
+                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
         String presentation;
@@ -205,7 +205,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.POST_JWT);
+                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
         String presentation;
@@ -264,7 +264,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.POST_JWT);
+                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
         String presentation;
@@ -341,7 +341,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.POST_JWT);
+                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
         String presentation;

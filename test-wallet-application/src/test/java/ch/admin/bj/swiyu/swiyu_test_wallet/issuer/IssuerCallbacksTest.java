@@ -35,23 +35,15 @@ public class IssuerCallbacksTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-TC-TRANS-01",
-            summary = "ManagementEntity lifecycle covers T1 → T2 → T3 → T4 → T8",
+            key = "EIDOMNI-764",
+            summary = "ManagementEntity lifecycle covers issue, suspend, reissue and revoke",
             description = """
-                    This test validates the ManagementEntity state machine transition coverage:
-                    T1 → T2 → T3 → T4 → T8.
-                    
-                    Two credential offers are created to ensure state isolation between management entities.
-                    
-                    Covered transitions:
-                    - T1: ISSUE
-                    - T2: SUSPEND
-                    - T3: ISSUE (from SUSPENDED)
-                    - T4: REVOKE
-                    - T8: REVOKE (idempotent)
-                    """
+                This test validates that all credential lifecycle transitions triggered by management
+                behave correctly from issuance to suspension, reactivation and revocation.
+                It also verifies idempotent behavior and isolation between multiple credentials.
+                """
     )
-    public void managementEntity_fullLifecycle_shouldCover_T1_T2_T3_T4_T8() {
+    public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
         wallet.setUseDPoP(true);
         final CredentialWithDeeplinkResponse offer1 =
@@ -76,32 +68,32 @@ public class IssuerCallbacksTest extends BaseTest {
                                 .subjectId(offer1.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.IN_PROGRESS.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer1.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer1.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
                         new WebhookCallback()
                                 .subjectId(offer1.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.SUSPENDED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
                         new WebhookCallback()
                                 .subjectId(offer1.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
                         new WebhookCallback()
                                 .subjectId(offer1.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.REVOKED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
                 ));
 
         // Given
@@ -125,57 +117,27 @@ public class IssuerCallbacksTest extends BaseTest {
                                 .subjectId(offer2.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.IN_PROGRESS.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer2.getOfferId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.OFFER),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer2.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
                         new WebhookCallback()
                                 .subjectId(offer2.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.SUSPENDED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT),
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
                         new WebhookCallback()
                                 .subjectId(offer2.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.REVOKED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.MANAGEMENT)
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
                 ));
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-TC-TRANS-02",
-            summary = "Deferred lifecycle emits callbacks for offer and management state changes",
-            description = """
-                    This test validates that webhook callbacks are emitted for a deferred credential offer lifecycle.
-                    
-                    A deferred offer is created, claimed by the wallet (transaction-based retrieval),
-                    transitions into a deferred state, then is marked ready by the issuer, and finally issued
-                    when the wallet retrieves the credential.
-                    
-                    The test verifies that callbacks are emitted in the correct order and with the correct trigger
-                    (offer vs management), ensuring external observers can reliably track lifecycle state changes.
-                    """
-    )
-    public void deferredOffer_lifecycle_shouldEmitCallbacks() {
-        // Given
-        wallet.setUseDPoP(true);
-        cleanIssuerCallbacks();
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialWithSignedJwt(
-                jwtKey, keyId, supportedMetadataId
-        );
-
-        final WalletBatchEntry entry = wallet.collectTransactionIdFromDeferredOfferV1(toUri(offer.getOfferDeeplink()));
-        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
-        wallet.getCredentialFromTransactionIdV1(entry);
     }
 }

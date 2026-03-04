@@ -157,7 +157,7 @@ public class Wallet {
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
 
         if (this.useDPoP) {
-            final String nonceInitial = getDpopNonce(walletBatchEntry);
+            final String nonceInitial = collectDPoPNonce(walletBatchEntry);
             final String tokenDPoP = DPoPSupport.createDpopProofForToken(
                     walletBatchEntry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
             walletBatchEntry.setToken(collectTokenWithDPoP(walletBatchEntry, tokenDPoP));
@@ -193,6 +193,8 @@ public class Wallet {
                 .build()
                 .toUri();
 
+        final JsonNode rawMetadata;
+
         if (this.isSignedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdConfiguration)
@@ -201,19 +203,28 @@ public class Wallet {
                     .retrieve()
                     .body(String.class);
 
-            final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
+            rawMetadata = JwtSupport.decodePayloadToJsonNode(jwt);
 
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            return objectMapper.convertValue(payload, OAuthAuthorizationServerMetadata.class);
+        } else {
+            rawMetadata = restClient.get()
+                    .uri(issuerOpenIdConfiguration)
+                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .retrieve()
+                    .body(JsonNode.class);
         }
 
-        return restClient.get()
-                .uri(issuerOpenIdConfiguration)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .retrieve()
-                .body(OAuthAuthorizationServerMetadata.class);
+        walletEntry.setIssuerWellKnownConfigurationRaw(rawMetadata);
+
+        try {
+            ObjectMapper mapper = new ObjectMapper()
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+            return mapper.treeToValue(rawMetadata, OAuthAuthorizationServerMetadata.class);
+
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to parse issuer well-known configuration", e);
+        }
     }
 
     public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
@@ -224,6 +235,8 @@ public class Wallet {
                 .build()
                 .toUri();
 
+        final JsonNode rawMetadata;
+
         if (this.isSignedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdCredentialIssuer)
@@ -231,25 +244,29 @@ public class Wallet {
                     .retrieve()
                     .body(String.class);
 
-            final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
-            try {
-                final ObjectMapper mapper = new ObjectMapper()
-                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-                        .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            rawMetadata = JwtSupport.decodePayloadToJsonNode(jwt);
 
-                return mapper.treeToValue(payload, IssuerMetadata.class);
-
-            } catch (Exception e) {
-                throw new IllegalStateException("Failed to parse signed issuer metadata JWT payload", e);
-            }
+        } else {
+            rawMetadata = restClient.get()
+                    .uri(issuerOpenIdCredentialIssuer)
+                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    .retrieve()
+                    .body(JsonNode.class);
         }
 
-        return restClient.get()
-                .uri(issuerOpenIdCredentialIssuer)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .retrieve()
-                .body(IssuerMetadata.class);
+        walletEntry.setIssuerMetadataRaw(rawMetadata);
+
+        try {
+            final ObjectMapper mapper = new ObjectMapper()
+                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+            return mapper.treeToValue(rawMetadata, IssuerMetadata.class);
+
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to parse issuer metadata", e);
+        }
     }
 
     public OAuthToken collectToken(WalletEntry walletEntry) {

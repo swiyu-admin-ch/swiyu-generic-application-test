@@ -10,6 +10,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,27 +67,26 @@ class SignedMetadataTest extends BaseTest {
         final IssuerMetadata metadata = wallet.getIssuerWellKnownMetadata(walletEntry);
 
         assertThat(metadata).isNotNull();
-        /*
-        @TODO
 
-        if (metadata.getData().has("iss")) {
-            assertThat(metadata.getData().get("iss").getAsString())
+        final JsonNode metadataRaw = walletEntry.getIssuerMetadataRaw();
+
+        if (metadataRaw.has("iss")) {
+            assertThat(metadataRaw.get("iss").asText())
                     .isEqualTo(issuerConfig.getIssuerDid());
         }
 
-        assertThat(metadata.getData().get("sub").getAsString())
+        assertThat(metadataRaw.get("sub").asText())
                 .isEqualTo(swiyuDeeplink.getCredentialIssuer());
 
-        assertThat(metadata.getData().has("iat"))
+        assertThat(metadataRaw.has("iat"))
                 .isTrue();
-        assertThat(metadata.getData().get("iat").getAsLong())
+        assertThat(metadataRaw.get("iat").asLong())
                 .isPositive();
 
-        if (metadata.getData().has("exp")) {
-            assertThat(metadata.getData().get("exp").getAsLong())
-                    .isGreaterThan(metadata.getData().get("iat").getAsLong());
+        if (metadataRaw.has("exp")) {
+            assertThat(metadataRaw.get("exp").asLong())
+                    .isGreaterThan(metadataRaw.get("iat").asLong());
         }
-         */
     }
 
     @Test
@@ -120,23 +120,22 @@ class SignedMetadataTest extends BaseTest {
 
         assertThat(metadata).isNotNull();
 
-        /*
-        if (metadata.getData().has("iss")) {
-            assertThat(metadata.getData().get("iss").getAsString())
+        final JsonNode metadataRaw = walletEntry.getIssuerMetadataRaw();
+
+        if (metadataRaw.has("iss")) {
+            assertThat(metadataRaw.get("iss").asText())
                     .isEqualTo(issuerConfig.getIssuerDid());
         }
 
-        assertThat(metadata.getData().get("sub")).isNull();
+        assertThat(metadataRaw.get("sub")).isNull();
 
-        assertThat(metadata.getData().has("iat"))
+        assertThat(metadataRaw.has("iat"))
                 .isFalse();
 
-        if (metadata.getData().has("exp")) {
-            assertThat(metadata.getData().get("exp").getAsLong())
-                    .isGreaterThan(metadata.getData().get("iat").getAsLong());
+        if (metadataRaw.has("exp")) {
+            assertThat(metadataRaw.get("exp").asLong())
+                    .isGreaterThan(metadataRaw.get("iat").asLong());
         }
-        @TODO
-         */
     }
 
     @Test

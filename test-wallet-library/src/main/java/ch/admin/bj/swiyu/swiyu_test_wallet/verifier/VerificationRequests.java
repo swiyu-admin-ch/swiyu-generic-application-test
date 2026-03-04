@@ -42,7 +42,7 @@ public class VerificationRequests {
                 .acceptedIssuerDids(null)
                 .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
-                .responseMode(ResponseModeType.POST)
+                .responseMode(ResponseModeType.DIRECT_POST)
                 .presentationDefinition(presentation);
     }
 

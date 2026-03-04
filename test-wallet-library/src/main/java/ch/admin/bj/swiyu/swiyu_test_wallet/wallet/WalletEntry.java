@@ -48,8 +48,10 @@ public class WalletEntry {
     private CredentialOffer credentialOffer;
     private Map<String, Object> credentialConfigurationsSupported;
     private OAuthAuthorizationServerMetadata issuerWellKnownConfiguration;
+    private JsonNode issuerWellKnownConfigurationRaw;
     private OAuthToken token;
     private IssuerMetadata issuerMetadata;
+    private JsonNode issuerMetadataRaw;
     private JsonObject credentialConfigurationSupported;
     private String issuerSdJwt;
     private RSAKey encrypterJwk;
@@ -134,7 +136,7 @@ public class WalletEntry {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
-        String audience = getIssuerMetadata().getIssuerURI();
+        String audience = getIssuerMetadata().getCredentialIssuer();
         return new JwtProof(audience, getCNonce(), proofPublicJwk, keyPair);
     }
 

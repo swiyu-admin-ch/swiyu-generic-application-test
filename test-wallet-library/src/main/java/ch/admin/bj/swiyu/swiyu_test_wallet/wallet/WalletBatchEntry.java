@@ -103,7 +103,7 @@ public class WalletBatchEntry extends WalletEntry {
 
         for (ECKey pub : holderPublicKeys) {
             final JwtProof proof = new JwtProof(
-                    getIssuerMetadata().getIssuerURI(),
+                    getIssuerMetadata().getCredentialIssuer(),
                     getCNonce(),
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
