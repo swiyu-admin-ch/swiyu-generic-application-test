@@ -7,7 +7,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -47,19 +46,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class DPoPFlowTest extends BaseTest {
-
-    private KeyPair dpopKeyPair;
-    private ECKey dpopPublicKey;
-
     @BeforeAll
     void setUp() {
-        dpopKeyPair = ECCryptoSupport.generateECKeyPair();
-        dpopPublicKey = new ECKey.Builder(
-                Curve.P_256,
-                (java.security.interfaces.ECPublicKey) dpopKeyPair.getPublic())
-                .keyUse(KeyUse.SIGNATURE)
-                .keyID("holder-dpop-key-" + UUID.randomUUID())
-                .build();
+        wallet.setUseDPoP(true);
     }
 
     @Test
@@ -86,7 +75,7 @@ class DPoPFlowTest extends BaseTest {
     )
     void dpopInitialIssuance_happyPath() {
         CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialOffer("bound_example_sd_jwt");
+                issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
         assertThat(offer).isNotNull();
         assertThat(offer.getOfferDeeplink()).isNotBlank();
 
@@ -100,7 +89,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet obtains DPoP nonce from /nonce endpoint");
-        String dpopNonce = wallet.getDpopNonce(batchEntry);
+        String dpopNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(dpopNonce).isNotBlank();
 
         log.info("Wallet creates DPoP proof for token endpoint");
@@ -115,6 +104,7 @@ class DPoPFlowTest extends BaseTest {
         log.info("Issuer responds with access_token (type=BEARER) and ready for batch issuance");
 
         batchEntry.setToken(token);
+        batchEntry.setCNonce(wallet.collectCNonce(batchEntry));
 
         final int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
 
@@ -180,7 +170,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests initial token with pre-authorized code and DPoP proof");
-        String initialDpopNonce = wallet.getDpopNonce(batchEntry);
+        String initialDpopNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(initialDpopNonce).isNotBlank();
 
         URI tokenUri = batchEntry.getIssuerTokenUri();
@@ -198,7 +188,7 @@ class DPoPFlowTest extends BaseTest {
         String initialRefreshToken = initialToken.getRefreshToken();
 
         log.info("Wallet requests new nonce for refresh operation");
-        String refreshDpopNonce = wallet.getDpopNonce(batchEntry);
+        String refreshDpopNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(refreshDpopNonce).isNotBlank();
 
         log.info("Wallet sends refresh_token request with new DPoP proof");
@@ -219,6 +209,8 @@ class DPoPFlowTest extends BaseTest {
                 .isNotEqualTo(initialRefreshToken);
 
         batchEntry.setToken(refreshedToken);
+        batchEntry.setCNonce(wallet.collectCNonce(batchEntry));
+
 
         log.info("Wallet generates {} holder keys for credential renewal", CredentialConfigurationFixtures.BATCH_SIZE);
         batchEntry.generateHolderKeys();
@@ -280,7 +272,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests nonce and creates token request with DPoP proof");
-        String firstNonce = wallet.getDpopNonce(batchEntry);
+        String firstNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(firstNonce).isNotBlank();
 
         URI tokenUri = batchEntry.getIssuerTokenUri();
@@ -345,7 +337,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet obtains initial token with refresh_token capability");
-        String initialNonce = wallet.getDpopNonce(batchEntry);
+        String initialNonce = wallet.collectDPoPNonce(batchEntry);
         URI tokenUri = batchEntry.getIssuerTokenUri();
         String initialDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", initialNonce);
         OAuthToken initialToken = wallet.collectTokenWithDPoP(batchEntry, initialDpopProof);
@@ -356,7 +348,7 @@ class DPoPFlowTest extends BaseTest {
                 .isNotBlank();
 
         log.info("Wallet requests nonce and refreshes token");
-        String firstRefreshNonce = wallet.getDpopNonce(batchEntry);
+        String firstRefreshNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(firstRefreshNonce).isNotBlank();
 
         String firstRefreshDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", firstRefreshNonce);
@@ -381,7 +373,7 @@ class DPoPFlowTest extends BaseTest {
         log.info("Replay attempt blocked");
 
         log.info("Wallet requests fresh nonce for second refresh");
-        String secondRefreshNonce = wallet.getDpopNonce(batchEntry);
+        String secondRefreshNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(secondRefreshNonce)
                 .as("New nonce must be different from the previous one")
                 .isNotEqualTo(firstRefreshNonce);
@@ -436,11 +428,12 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests token for first batch issuance");
-        String initialNonce = wallet.getDpopNonce(batchEntry);
+        String initialNonce = wallet.collectDPoPNonce(batchEntry);
         URI tokenUri = batchEntry.getIssuerTokenUri();
         String initialDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", initialNonce);
         OAuthToken token = wallet.collectTokenWithDPoP(batchEntry, initialDpopProof);
         batchEntry.setToken(token);
+        batchEntry.setCNonce(wallet.collectCNonce(batchEntry));
 
         log.info("Wallet requests first batch of credentials");
         batchEntry.generateHolderKeys();
@@ -473,10 +466,11 @@ class DPoPFlowTest extends BaseTest {
         batchEntry2.setCredentialConfigurationSupported();
 
         log.info("Wallet requests token for second batch with new nonce");
-        String secondInitialNonce = wallet.getDpopNonce(batchEntry2);
+        String secondInitialNonce = wallet.collectDPoPNonce(batchEntry2);
         String secondInitialDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", secondInitialNonce);
         OAuthToken secondToken = wallet.collectTokenWithDPoP(batchEntry2, secondInitialDpopProof);
         batchEntry2.setToken(secondToken);
+        batchEntry2.setCNonce(wallet.collectCNonce(batchEntry2));
 
         log.info("Wallet requests second batch of credentials");
         batchEntry2.generateHolderKeys();
@@ -526,7 +520,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         // Obtain a nonce and request a token with the first DPoP key
-        String nonce = wallet.getDpopNonce(batchEntry);
+        String nonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(nonce).isNotBlank();
         URI tokenUri = batchEntry.getIssuerTokenUri();
         String firstDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", nonce);
@@ -547,7 +541,7 @@ class DPoPFlowTest extends BaseTest {
                 .build();
 
         // get a nonce for the refresh flow
-        String refreshNonce = wallet.getDpopNonce(batchEntry);
+        String refreshNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(refreshNonce).isNotBlank();
 
         String secondDpopProofDifferentKey = createDpopProofForTokenWithKey(otherKeyPair, otherPub, tokenUri.toString(), "POST", refreshNonce);
@@ -628,7 +622,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests token from issuer with DPoP proof");
-        String tokenNonce = wallet.getDpopNonce(batchEntry);
+        String tokenNonce = wallet.collectDPoPNonce(batchEntry);
         URI tokenUri = batchEntry.getIssuerTokenUri();
         String dpopProofForToken = createDpopProofForToken(tokenUri.toString(), "POST", tokenNonce);
 
@@ -647,7 +641,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Attacker intercepts request and creates DPoP proof bound to attacker-url");
         URI attackerCredentialUri = URI.create("http://attacker-url:8080/oid4vci/api/credential");
-        String credentialNonce = wallet.getDpopNonce(batchEntry);
+        String credentialNonce = wallet.collectDPoPNonce(batchEntry);
         String attackerDpopProof = createDpopProofForCredentialRequest(attackerCredentialUri, credentialNonce);
 
         log.info("Attacker forwards request to real issuer with attacker's DPoP proof");
@@ -669,7 +663,7 @@ class DPoPFlowTest extends BaseTest {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(dpopPublicKey)
+                    .jwk(wallet.getDpopPublicKey())
                     .build();
 
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
@@ -685,7 +679,7 @@ class DPoPFlowTest extends BaseTest {
             JWTClaimsSet claims = claimsBuilder.build();
 
             SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
+            jwt.sign(ECCryptoSupport.createECDSASigner(wallet.getDpopKeyPair().getPrivate()));
             return jwt.serialize();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to create DPoP proof for credential request", e);
@@ -700,7 +694,7 @@ class DPoPFlowTest extends BaseTest {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(dpopPublicKey)
+                    .jwk(wallet.getDpopPublicKey())
                     .build();
 
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
@@ -717,7 +711,7 @@ class DPoPFlowTest extends BaseTest {
             JWTClaimsSet claims = claimsBuilder.build();
 
             SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(ECCryptoSupport.createECDSASigner(dpopKeyPair.getPrivate()));
+            jwt.sign(ECCryptoSupport.createECDSASigner(wallet.getDpopKeyPair().getPrivate()));
             return jwt.serialize();
         } catch (Exception e) {
             throw new IllegalStateException("Failed to create DPoP proof for token request", e);
@@ -765,12 +759,13 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.setCredentialConfigurationSupported();
 
         log.info("Wallet requests token for first credential batch");
-        final String tokenNonce = wallet.getDpopNonce(batchEntry);
+        final String tokenNonce = wallet.collectDPoPNonce(batchEntry);
         final URI tokenUri = batchEntry.getIssuerTokenUri();
         final String tokenDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", tokenNonce);
         final OAuthToken token = wallet.collectTokenWithDPoP(batchEntry, tokenDpopProof);
         assertThat(token).isNotNull();
         batchEntry.setToken(token);
+        batchEntry.setCNonce(wallet.collectCNonce(batchEntry));
 
         log.info("Wallet generates holder keys and creates holder binding proofs with unique nonces");
         final int batchSize = batchEntry.getIssuerMetadata().getBatchSize();
@@ -803,7 +798,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry2.setCredentialConfigurationSupported();
 
         log.info("Attacker obtains legitimate token with new pre-authorized code");
-        final String attackerTokenNonce = wallet.getDpopNonce(batchEntry2);
+        final String attackerTokenNonce = wallet.collectDPoPNonce(batchEntry2);
         final String attackerTokenProof = createDpopProofForToken(tokenUri.toString(), "POST", attackerTokenNonce);
         final OAuthToken attackerToken = wallet.collectTokenWithDPoP(batchEntry2, attackerTokenProof);
         batchEntry2.setToken(attackerToken);
