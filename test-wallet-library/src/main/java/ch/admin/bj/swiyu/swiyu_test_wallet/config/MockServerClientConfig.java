@@ -1,12 +1,15 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.JWK;
@@ -25,11 +28,8 @@ import org.testcontainers.containers.MockServerContainer;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -47,6 +47,19 @@ public class MockServerClientConfig {
 
     private static final Map<String, String> statusListBitsMap = new HashMap<>();
     private String currentStatusList = "";
+
+    private final List<WebhookCallback> receivedIssuerCallbacks = new CopyOnWriteArrayList<>();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules() // JavaTimeModule, etc.
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    public List<WebhookCallback> getIssuerCallbacks() {
+        return receivedIssuerCallbacks;
+    }
+
+    public void clearIssuerCallbacks() {
+        receivedIssuerCallbacks.clear();
+    }
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig) {
@@ -120,7 +133,16 @@ public class MockServerClientConfig {
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
 
         mockServerClient.when(request().withMethod("POST").withPath(ISSUER_CALLBACK_PATH))
-                .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
+                .respond(httpRequest -> {
+                    final WebhookCallback callback = OBJECT_MAPPER.readValue(
+                            httpRequest.getBodyAsString(),
+                            WebhookCallback.class
+                    );
+                    receivedIssuerCallbacks.add(callback);
+                    return response()
+                            .withStatusCode(204)
+                            .withContentType(MediaType.APPLICATION_JSON);
+                });
 
         mockServerClient.when(request().withMethod("POST").withPath(VERIFIER_CALLBACK_PATH))
                 .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));

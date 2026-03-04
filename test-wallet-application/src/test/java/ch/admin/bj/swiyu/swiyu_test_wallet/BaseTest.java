@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
+import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ApplicationTestConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
@@ -38,6 +39,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
@@ -104,6 +106,20 @@ public class BaseTest {
     protected PrivateKey unauthenticatedJwtKey;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
+
+    @BeforeEach
+    protected void resetIssuerCallbacks() {
+        mockServerClientConfig.clearIssuerCallbacks();
+    }
+
+    protected void cleanIssuerCallbacks() {
+        awaitStableIssuerCallbacks();
+        mockServerClientConfig.clearIssuerCallbacks();
+    }
+
+    protected List<WebhookCallback> issuerCallbacks() {
+        return mockServerClientConfig.getIssuerCallbacks();
+    }
 
     protected void setCurrentStatusList(StatusList currentStatusList) {
         if (currentStatusList == null) {
@@ -177,9 +193,6 @@ public class BaseTest {
 
         return previous.get();
     }
-
-
-
 
     @BeforeAll
     void setup() throws Exception {

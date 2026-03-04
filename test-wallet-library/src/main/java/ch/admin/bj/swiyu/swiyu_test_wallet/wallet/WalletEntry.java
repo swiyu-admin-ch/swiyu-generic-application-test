@@ -1,14 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialResponseEncryption;
-import ch.admin.bj.swiyu.gen.issuer.model.IssuerCredentialRequestEncryption;
-import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
-import ch.admin.bj.swiyu.gen.issuer.model.OpenIdConfiguration;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.Curve;
@@ -50,7 +47,7 @@ public class WalletEntry {
     private URI issuerVCDeepLink;
     private CredentialOffer credentialOffer;
     private Map<String, Object> credentialConfigurationsSupported;
-    private OpenIdConfiguration issuerWellKnownConfiguration;
+    private OAuthAuthorizationServerMetadata issuerWellKnownConfiguration;
     private OAuthToken token;
     private IssuerMetadata issuerMetadata;
     private JsonObject credentialConfigurationSupported;
@@ -74,7 +71,16 @@ public class WalletEntry {
         if (issuerMetadata == null) {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
-        credentialConfigurationSupported = issuerMetadata.getCredentialConfigurationById(credentialOffer.getCredentialConfiguraionId());
+        var config = issuerMetadata.getCredentialConfigurationsSupported()
+                .get(credentialOffer.getCredentialConfiguraionId());
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            var jsonString = mapper.writeValueAsString(config);
+            credentialConfigurationSupported = com.google.gson.JsonParser.parseString(jsonString).getAsJsonObject();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to convert credential configuration to JsonObject", e);
+        }
     }
 
     public void receiveDeepLinkAndValidateIt(URI deepLink) {
@@ -199,7 +205,7 @@ public class WalletEntry {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
-        return issuerMetadata.getCredentialEndpointURI();
+        return toUri(issuerMetadata.getCredentialEndpoint());
     }
 
     public URI getIssuerDeferredCredentialUri() {
@@ -207,7 +213,7 @@ public class WalletEntry {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
-        return issuerMetadata.getDeferredCredentialEndpointURI();
+        return toUri(issuerMetadata.getDeferredCredentialEndpoint());
     }
 
     public OAuthToken getToken() {
@@ -231,7 +237,7 @@ public class WalletEntry {
         try {
             return toUri(vct);
         } catch (RuntimeException e) {
-            var issuerURI = getIssuerMetadata().getIssuerURI();
+            var issuerURI = getIssuerMetadata().getCredentialIssuer();
             return toUri(issuerURI + "/oid4vci/vct/" + vct);
         }
     }
@@ -270,6 +276,9 @@ public class WalletEntry {
         }
 
         var encryptionMetadata = issuerMetadata.getCredentialResponseEncryption();
+        if (encryptionMetadata == null) {
+            throw new IllegalStateException("credential_response_encryption not available");
+        }
 
         var responseEncryption = new CredentialResponseEncryption();
         responseEncryption.setAlg(encryptionMetadata.getAlgValuesSupported().getFirst());

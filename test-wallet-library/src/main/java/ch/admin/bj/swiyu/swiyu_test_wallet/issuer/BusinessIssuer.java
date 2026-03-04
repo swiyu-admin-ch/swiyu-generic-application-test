@@ -104,7 +104,7 @@ public class BusinessIssuer {
         return createCredentialOffer(supportedMetadataId, subjectClaims, true);
     }
 
-    public CredentialWithDeeplinkResponse createCredential(CredentialOfferRequest offer) {
+    public CredentialWithDeeplinkResponse createCredential(CreateCredentialOfferRequest offer) {
         return credentialApi.createCredential1(offer);
     }
 
@@ -113,7 +113,7 @@ public class BusinessIssuer {
         updateVcStatus(id, newState);
     }
 
-    public CredentialInfoResponse getCredentialById(UUID id) {
+    public CredentialManagementDto getCredentialById(UUID id) {
         return credentialApi.getCredentialInformation(id);
     }
 
@@ -139,8 +139,8 @@ public class BusinessIssuer {
         return (Map<String, Object>) actuatorApi.health();
     }
 
-    private CredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata, Map<String, Object> subjectClaims) {
-        final CredentialOfferRequest offer = new CredentialOfferRequest();
+    private CreateCredentialOfferRequest createCredentialOfferRequest(String supportedMetadataId, CredentialOfferMetadataDto credentialMetadata, Map<String, Object> subjectClaims) {
+        final CreateCredentialOfferRequest offer = new CreateCredentialOfferRequest();
         offer.setCredentialSubjectData(subjectClaims);
         offer.setStatusLists(List.of(statusList.getStatusRegistryUrl()));
         offer.setCredentialMetadata(credentialMetadata);
@@ -169,10 +169,18 @@ public class BusinessIssuer {
         return statusList;
     }
 
+    public CredentialWithDeeplinkResponse createDeferredCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
+        return createCredentialWithSignedJwt(privateKey, keyId, supportedMetadataId, true);
+    }
+
     public CredentialWithDeeplinkResponse createCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
+        return createCredentialWithSignedJwt(privateKey, keyId, supportedMetadataId, false);
+    }
+
+    public CredentialWithDeeplinkResponse createCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId, final boolean deferred) {
         String jwt;
         try {
-            jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId);
+            jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, deferred);
         } catch (JsonProcessingException | JOSEException e) {
             throw new IllegalStateException(e);
         }
@@ -247,12 +255,18 @@ public class BusinessIssuer {
     private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
                                                 String supportedMetadataId) throws JsonProcessingException,
             JOSEException {
+        return createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, false);
+    }
+
+    private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
+                                                String supportedMetadataId, boolean deferred) throws JsonProcessingException,
+            JOSEException {
         final ObjectMapper mapper = new ObjectMapper();
 
         final CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
-        credentialOfferMetadataDto.setDeferred(false);
+        credentialOfferMetadataDto.setDeferred(deferred);
 
-        final CredentialOfferRequest offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto, CredentialOffer.defaultSubjectData());
+        final CreateCredentialOfferRequest offer = createCredentialOfferRequest(supportedMetadataId, credentialOfferMetadataDto, CredentialOffer.defaultSubjectData());
 
         final String data = mapper.writeValueAsString(offer);
 

@@ -6,6 +6,8 @@ import ch.admin.bj.swiyu.gen.verifier.model.Field;
 import ch.admin.bj.swiyu.gen.verifier.model.FormatAlgorithm;
 import ch.admin.bj.swiyu.gen.verifier.model.InputDescriptor;
 import ch.admin.bj.swiyu.gen.verifier.model.PresentationDefinition;
+import ch.admin.bj.swiyu.gen.verifier.model.ResponseModeType;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
@@ -40,7 +42,7 @@ public class VerificationRequests {
                 .acceptedIssuerDids(null)
                 .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
-                .responseMode(CreateVerificationManagement.ResponseModeEnum.DIRECT_POST)
+                .responseMode(ResponseModeType.POST)
                 .presentationDefinition(presentation);
     }
 

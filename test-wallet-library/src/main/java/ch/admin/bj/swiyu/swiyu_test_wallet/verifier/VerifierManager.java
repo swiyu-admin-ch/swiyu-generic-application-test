@@ -72,12 +72,12 @@ public class VerifierManager {
         }
 
         public VerificationRequestBuilder encrypted() {
-            request.responseMode(CreateVerificationManagement.ResponseModeEnum.DIRECT_POST_JWT);
+            request.responseMode(ResponseModeType.POST_JWT);
             return this;
         }
 
         public VerificationRequestBuilder unencrypted() {
-            request.responseMode(CreateVerificationManagement.ResponseModeEnum.DIRECT_POST);
+            request.responseMode(ResponseModeType.POST);
             return this;
         }
 

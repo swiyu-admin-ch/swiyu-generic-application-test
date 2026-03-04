@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -122,7 +121,7 @@ public class Wallet {
 
     public WalletEntry collectTransactionIdFromDeferredOffer(final SwiyuApiVersionConfig apiVersion, URI issuerDeepLink) {
         if (apiVersion == SwiyuApiVersionConfig.V1) {
-            return collectTransactionIdFromDeferredOfferV1(issuerDeepLink);
+            return (WalletBatchEntry) collectTransactionIdFromDeferredOfferV1(issuerDeepLink);
         }
         return collectTransactionIdFromDeferredOfferID2(issuerDeepLink);
     }
@@ -150,14 +149,23 @@ public class Wallet {
         return walletEntry;
     }
 
-    private WalletEntry collectTransactionIdFromDeferredOfferV1(URI issuerDeepLink) {
+    public WalletBatchEntry collectTransactionIdFromDeferredOfferV1(URI issuerDeepLink) {
         var walletBatchEntry = createWalletBatchEntry();
 
         walletBatchEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(issuerDeepLink));
         walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
-        walletBatchEntry.setToken(collectToken(walletBatchEntry));
+
+        if (this.useDPoP) {
+            final String nonceInitial = getDpopNonce(walletBatchEntry);
+            final String tokenDPoP = DPoPSupport.createDpopProofForToken(
+                    walletBatchEntry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
+            walletBatchEntry.setToken(collectTokenWithDPoP(walletBatchEntry, tokenDPoP));
+        } else {
+            walletBatchEntry.setToken(collectToken(walletBatchEntry));
+        }
         walletBatchEntry.setCNonce(collectCNonce(walletBatchEntry));
+
         walletBatchEntry.setCredentialConfigurationSupported();
 
         walletBatchEntry.generateHolderKeys();
@@ -177,7 +185,7 @@ public class Wallet {
         return walletBatchEntry;
     }
 
-    public OpenIdConfiguration getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
+    public OAuthAuthorizationServerMetadata getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
         final URI issuerUri = issuerContext.getContextualizedUri(walletEntry.getIssuerUri());
         final URI issuerOpenIdConfiguration = UriComponentsBuilder
                 .fromUri(issuerUri)
@@ -197,7 +205,7 @@ public class Wallet {
 
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            return objectMapper.convertValue(payload, OpenIdConfiguration.class);
+            return objectMapper.convertValue(payload, OAuthAuthorizationServerMetadata.class);
         }
 
         return restClient.get()
@@ -205,7 +213,7 @@ public class Wallet {
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
-                .body(OpenIdConfiguration.class);
+                .body(OAuthAuthorizationServerMetadata.class);
     }
 
     public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
@@ -224,20 +232,24 @@ public class Wallet {
                     .body(String.class);
 
             final JsonNode payload = JwtSupport.decodePayloadToJsonNode(jwt);
-            final JsonObject metadata = new Gson().fromJson(payload.toString(), JsonObject.class);
+            try {
+                final ObjectMapper mapper = new ObjectMapper()
+                        .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                        .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-            return new IssuerMetadata(metadata);
+                return mapper.treeToValue(payload, IssuerMetadata.class);
+
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse signed issuer metadata JWT payload", e);
+            }
         }
 
-        final Map<String, Object> rawMetadata = restClient.get()
+        return restClient.get()
                 .uri(issuerOpenIdCredentialIssuer)
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
-                .body(Map.class);
-
-        JsonObject metadata = new Gson().toJsonTree(rawMetadata).getAsJsonObject();
-
-        return new IssuerMetadata(metadata);
+                .body(IssuerMetadata.class);
     }
 
     public OAuthToken collectToken(WalletEntry walletEntry) {
@@ -257,7 +269,11 @@ public class Wallet {
     }
 
     public ResponseEntity<NonceResponse> collectNonce(WalletEntry walletEntry) {
-        final URI cnonceURI = issuerContext.getContextualizedUri(walletEntry.getIssuerMetadata().getNonceEndpointURI());
+        String nonceEndpointStr = walletEntry.getIssuerMetadata().getNonceEndpoint();
+        if (nonceEndpointStr == null) {
+            throw new IllegalStateException("nonce_endpoint not available in issuer metadata");
+        }
+        final URI cnonceURI = issuerContext.getContextualizedUri(URI.create(nonceEndpointStr));
         return restClient.post()
                 .uri(cnonceURI)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -914,7 +930,7 @@ public class Wallet {
                     .jwk(walletEntry.getProofPublicJwk())
                     .build();
 
-            String issuerIdentifier = walletEntry.getIssuerMetadata().getIssuerURI();
+            String issuerIdentifier = walletEntry.getIssuerMetadata().getCredentialIssuer();
 
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
                     .audience(issuerIdentifier)
