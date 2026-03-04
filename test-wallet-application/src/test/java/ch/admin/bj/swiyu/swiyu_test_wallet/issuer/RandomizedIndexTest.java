@@ -61,26 +61,29 @@ class RandomizedIndexTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void fullBatchFlow_withRandomIndexes() throws Exception {
+        int expectedCount = 0;
         final int statusListLength = 10000;
         issuerManager.createStatusList(statusListLength, 2);
 
         final CredentialWithDeeplinkResponse singleResponse =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
         wallet.collectOfferID2(toUri(singleResponse.getOfferDeeplink()));
+        expectedCount += 1;
 
         final int afterSingle = getUsedIndexesFromDb().size();
         assertThat(afterSingle)
                 .as("Expected one entry after single credential issuance")
-                .isEqualTo(CredentialConfigurationFixtures.BATCH_SIZE);
+                .isEqualTo(expectedCount);
         final CredentialWithDeeplinkResponse batchResponse =
                 issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         wallet.collectOfferV1(toUri(batchResponse.getOfferDeeplink()));
+        expectedCount += CredentialConfigurationFixtures.BATCH_SIZE;
 
         final List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
                 .as("Expected total of two times the batch size")
-                .hasSize(CredentialConfigurationFixtures.BATCH_SIZE * 2);
+                .hasSize(expectedCount);
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes must not be sequential even for a single + batch issuance")

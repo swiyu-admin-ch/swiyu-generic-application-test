@@ -60,6 +60,7 @@ public class WalletEntry {
     private UUID transactionId;
     private ECKey ephemeralEncryptionKey;
     private CredentialResponse credentialResponse;
+    private String cNonce;
 
     public WalletEntry(final Wallet wallet) {
         this.wallet = wallet;
@@ -123,16 +124,12 @@ public class WalletEntry {
         if (credentialOffer == null) {
             throw new IllegalStateException(CREDENTIAL_OFFER_NOT_SET);
         }
-        if (token == null) {
-            throw new IllegalStateException("token not set.");
-        }
         if (getIssuerMetadata() == null) {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
         }
 
-        String cNonce = token.getcNonce();
         String audience = getIssuerMetadata().getIssuerURI();
-        return new JwtProof(audience, cNonce, proofPublicJwk, keyPair);
+        return new JwtProof(audience, getCNonce(), proofPublicJwk, keyPair);
     }
 
     private static String hashSdJwt(String credentialsSdJwt) {

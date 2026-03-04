@@ -32,7 +32,6 @@ public class WalletBatchEntry extends WalletEntry {
     private final List<JwtProof> proofs = new ArrayList<>();
     private final List<String> issuedCredentials = new ArrayList<>();
     private final List<String> sdJwts = new ArrayList<>();
-    private String currentNonce;
 
     public WalletBatchEntry(Wallet wallet) {
         super(wallet);
@@ -96,20 +95,16 @@ public class WalletBatchEntry extends WalletEntry {
     }
 
     public void createProofs() {
-        if (getCredentialOffer() == null || getToken() == null) {
+        if (getCredentialOffer() == null) {
             throw new IllegalStateException("Offer or token missing for proof generation");
         }
 
         proofs.clear();
 
         for (ECKey pub : holderPublicKeys) {
-            String uniqueNonce = currentNonce != null ?
-                    currentNonce + "-" + UUID.randomUUID().toString() :
-                    getToken().getcNonce();
-
-            var proof = new JwtProof(
+            final JwtProof proof = new JwtProof(
                     getIssuerMetadata().getIssuerURI(),
-                    uniqueNonce,
+                    getCNonce(),
                     pub,
                     holderKeyPairs.get(holderPublicKeys.indexOf(pub))
             );
@@ -118,12 +113,10 @@ public class WalletBatchEntry extends WalletEntry {
     }
 
     public void createProofs(final String uniqueNonce) {
-        if (getCredentialOffer() == null || getToken() == null) {
+        if (getCredentialOffer() == null) {
             throw new IllegalStateException("Offer or token missing for proof generation");
         }
-
         proofs.clear();
-
         for (ECKey pub : holderPublicKeys) {
             var proof = new JwtProof(
                     getIssuerMetadata().getIssuerURI(),
@@ -174,6 +167,7 @@ public class WalletBatchEntry extends WalletEntry {
         copy.setIssuerWellKnownConfiguration(this.getIssuerWellKnownConfiguration());
         copy.setIssuerMetadata(this.getIssuerMetadata());
         copy.setToken(this.getToken());
+        copy.setCNonce(this.getCNonce());
         copy.setIssuerSdJwt(this.getIssuerSdJwt());
         copy.setTransactionId(this.getTransactionId());
 

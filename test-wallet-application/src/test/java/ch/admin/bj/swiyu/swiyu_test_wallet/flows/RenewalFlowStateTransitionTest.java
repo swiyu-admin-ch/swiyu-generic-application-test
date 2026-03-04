@@ -46,18 +46,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @ActiveProfiles({"issuer-strict"})
 public class RenewalFlowStateTransitionTest extends BaseTest {
 
-    private KeyPair dpopKeyPair;
-    private ECKey dpopPublicKey;
-
     @BeforeAll
     void setUp() {
-        dpopKeyPair = ECCryptoSupport.generateECKeyPair();
-        dpopPublicKey = new ECKey.Builder(
-                Curve.P_256,
-                (java.security.interfaces.ECPublicKey) dpopKeyPair.getPublic())
-                .keyUse(KeyUse.SIGNATURE)
-                .keyID("holder-dpop-key-" + UUID.randomUUID())
-                .build();
+        wallet.setUseDPoP(true);
     }
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
@@ -69,23 +60,19 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         entry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(entry));
         entry.setCredentialConfigurationSupported();
 
-        final String nonceInitial = wallet.getDpopNonce(entry);
+        final String nonceInitial = wallet.collectDPoPNonce(entry);
 
         final String dpopInitial = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
+                entry.getIssuerTokenUri().toString(), nonceInitial, wallet.getDpopKeyPair(), wallet.getDpopPublicKey());
 
         final OAuthToken token1 = wallet.collectTokenWithDPoP(entry, dpopInitial);
         entry.setToken(token1);
+        entry.setCNonce(wallet.collectDPoPNonce(entry));
 
         entry.generateHolderKeys();
         entry.createProofs();
 
-        final String nonceRenewalCredential = wallet.getDpopNonce(entry);
-
-        final String dpopRenewalCredential = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(), nonceRenewalCredential, dpopKeyPair, dpopPublicKey, entry.getToken().getAccessToken());
-
-        final var credentialResponseRenewal = wallet.postCredentialRequestWithRefreshToken(entry, entry.getToken().getAccessToken(), dpopRenewalCredential);
+        final var credentialResponseRenewal = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry);
         assertThat(credentialResponseRenewal).isNotNull();
         final List<String> batch1 = entry.getIssuedCredentials();
 
@@ -138,16 +125,16 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         final WalletBatchEntry renewedEntry = initialEntry.duplicate();
 
         // When - Renew credentials
-        String nonce = wallet.getCNonce(renewedEntry);
+        String nonce = wallet.collectCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.getDpopNonce(renewedEntry);
+        nonce = wallet.collectDPoPNonce(renewedEntry);
         final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
+                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
                 renewedEntry.getToken().getAccessToken());
 
-        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+        final var credentialResponse = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
 
         // Then - Wallet was able to successfully renew credentials in another batch
         assertThat(credentialResponse).isNotNull();
@@ -231,6 +218,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     )
     void credentialRenewal_whenSuspended_thenAllCredentialsAreRejected() {
         // Given
+        wallet.setUseDPoP(true);
+
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
         final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
@@ -238,16 +227,11 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         final WalletBatchEntry renewedEntry = initialEntry.duplicate();
 
         // When - Renew credentials
-        String nonce = wallet.getCNonce(renewedEntry);
+        String nonce = wallet.collectCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.getDpopNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
-                renewedEntry.getToken().getAccessToken());
-
-        final var credentialResponse = wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+        final var credentialResponse = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
 
         // Then - Wallet was able to successfully renew credentials in another batch
         assertThat(credentialResponse).isNotNull();
@@ -373,18 +357,18 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         );
 
         // When - Attempt to renew revoked credentials
-        String nonce = wallet.getCNonce(renewedEntry);
+        String nonce = wallet.collectCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.getDpopNonce(renewedEntry);
+        nonce = wallet.collectDPoPNonce(renewedEntry);
         final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
+                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
                 renewedEntry.getToken().getAccessToken());
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+            wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
         });
 
         ApiErrorAssert.assertThat(ex)
@@ -434,18 +418,18 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         );
 
         // When - Attempt to renew suspended credentials
-        String nonce = wallet.getCNonce(renewedEntry);
+        String nonce = wallet.collectCNonce(renewedEntry);
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.getDpopNonce(renewedEntry);
+        nonce = wallet.collectDPoPNonce(renewedEntry);
         final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, dpopKeyPair, dpopPublicKey,
+                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
                 renewedEntry.getToken().getAccessToken());
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequestWithRefreshToken(renewedEntry, renewedEntry.getToken().getAccessToken(), finalDpop);
+            wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
         });
 
         ApiErrorAssert.assertThat(ex)
