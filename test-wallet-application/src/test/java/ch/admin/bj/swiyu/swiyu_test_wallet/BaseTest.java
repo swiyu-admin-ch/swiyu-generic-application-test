@@ -183,7 +183,7 @@ public class BaseTest {
         final AtomicInteger previous = new AtomicInteger(-1);
 
         await()
-                .pollInterval(Duration.ofMillis(200))
+                .pollInterval(Duration.ofMillis(250))
                 .atMost(Duration.ofSeconds(3))
                 .until(() -> {
                     int current = counter.getAsInt();

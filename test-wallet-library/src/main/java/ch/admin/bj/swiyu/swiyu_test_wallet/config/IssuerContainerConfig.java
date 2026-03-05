@@ -62,7 +62,7 @@ public class IssuerContainerConfig {
                     .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(
                             ISSUER_CALLBACK_PATH).toString())
-                    .withEnv("WEBHOOK_INTERVAL", "100")
+                    .withEnv("WEBHOOK_INTERVAL", "10")
                     .withEnv("APPLICATION_DPOP_ENFORCE", String.valueOf(issuerImageConfig.isEnforceDpop()))
                     .withEnv("ENABLE_SIGNED_METADATA", String.valueOf(issuerImageConfig.isSignedMetadata()))
                     .withEnv("APPLICATION_ENCRYPTION_ENFORCE", String.valueOf(issuerImageConfig.isEncryptionEnforce()))
