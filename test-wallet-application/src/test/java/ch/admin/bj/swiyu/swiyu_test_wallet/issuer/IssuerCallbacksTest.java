@@ -7,9 +7,11 @@ import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -42,6 +44,10 @@ public class IssuerCallbacksTest extends BaseTest {
                 behave correctly from issuance to suspension, reactivation and revocation.
                 It also verifies idempotent behavior and isolation between multiple credentials.
                 """
+    )
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "The new callbacks are not available yet."
     )
     public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
