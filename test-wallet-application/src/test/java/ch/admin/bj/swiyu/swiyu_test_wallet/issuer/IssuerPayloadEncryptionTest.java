@@ -65,7 +65,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature payload encryption in deferred credential route is not available yet"
     )
     void payloadEncryptionCredentialIssuanceId2_withEncryptedPayload_thenSuccess(final boolean deferred) {
@@ -126,7 +126,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "The fix for supported media type not available yet"
     )
     void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
@@ -179,7 +179,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void deferredCredentialEncryption_whenKeyMismatch_thenRejected(final SwiyuApiVersionConfig apiVersion) {
@@ -224,8 +224,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
-            reason = "Fix for deferred encprytion is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "Fix for deferred encryption is not available yet"
     )
     void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected(final SwiyuApiVersionConfig apiVersion) {
         // Given
@@ -270,7 +270,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
     void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(

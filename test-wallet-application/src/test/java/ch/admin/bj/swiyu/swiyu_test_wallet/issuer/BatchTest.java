@@ -55,8 +55,8 @@ class BatchTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "This feature is not available yet (round iat batch issuance to start of the day)"
     )
     void batchIssuanceFlow_thenSuccess() {
         issuerManager.createStatusList(10000, 2);

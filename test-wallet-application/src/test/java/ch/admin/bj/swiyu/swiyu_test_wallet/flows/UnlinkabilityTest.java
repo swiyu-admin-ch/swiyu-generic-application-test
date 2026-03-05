@@ -4,8 +4,10 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -67,6 +69,10 @@ public class UnlinkabilityTest extends BaseTest {
     @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "Renewal flow not available on (stable). This rounded iat is not available yet. (rc)"
+    )
     public void shouldEnsureUnlinkabilityAcrossBatchIssuanceAndRenewals() {
         wallet.setUseEncryption(true);
         wallet.setUseDPoP(true);

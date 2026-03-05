@@ -49,7 +49,7 @@ class SignedMetadataTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void shouldSuccessfullyValidateSignedMetadata() {

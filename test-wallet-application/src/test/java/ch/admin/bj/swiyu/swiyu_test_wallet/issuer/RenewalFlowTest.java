@@ -118,7 +118,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void renewalFlow_happyPath_fullyAlignedWithSequenceDiagram() {
@@ -168,7 +168,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
@@ -230,7 +230,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withWrongDpopBinding_thenRejected() {
@@ -306,7 +306,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void renewalFlow_withNonceReplayAttack_thenRejected() {
@@ -375,7 +375,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet"
     )
     void renewalFlow_whenCredentialIsRevokedAfterRefreshToken_thenReject() {
@@ -438,7 +438,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void refreshToken_refreshWithInvalidToken_thenRejected() {
@@ -489,7 +489,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void refreshToken_refreshWithWrongDpopBinding_thenRejected() {
@@ -540,7 +540,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
     )
     void refreshToken_refreshNonceReplay_thenRejected() {
@@ -587,7 +587,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
     )
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {
@@ -638,7 +638,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {

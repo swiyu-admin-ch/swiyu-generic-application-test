@@ -57,8 +57,8 @@ class RandomizedIndexTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.STAGING, ImageTags.RC},
+            reason = "This feature is not available yet (stable, rc). Fix not available yet (staging)."
     )
     void fullBatchFlow_withRandomIndexes() throws Exception {
         int expectedCount = 0;
