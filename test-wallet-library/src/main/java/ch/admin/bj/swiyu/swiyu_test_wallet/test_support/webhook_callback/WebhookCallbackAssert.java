@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -25,7 +26,11 @@ public final class WebhookCallbackAssert {
                 .as("Callback list must not be null")
                 .isNotNull();
 
-        return new WebhookCallbackAssert(callbacks);
+        final List<WebhookCallback> sortedCallbacks = callbacks.stream()
+                .sorted(Comparator.comparing(WebhookCallback::getTimestamp))
+                .toList();
+
+        return new WebhookCallbackAssert(sortedCallbacks);
     }
 
     public WebhookCallbackAssert hasSizeEventually(final int expectedSize) {
