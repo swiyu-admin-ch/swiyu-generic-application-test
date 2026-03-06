@@ -75,8 +75,8 @@ class DeferredFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "The images don't accept null claims on creation yet."
     )
     void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted) {
         // Given
