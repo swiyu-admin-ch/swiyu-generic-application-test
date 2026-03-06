@@ -624,7 +624,7 @@ public class Wallet {
         if (useEncryption) {
             formData.add("response", buildEncryptedResponse(requestObject, vpToken));
         } else {
-            formData.add(VP_TOKEN, new Gson().toJson(vpToken));
+            formData.add(String.format("%s[%s]", VP_TOKEN, tokenId), token);
         }
 
         final ResponseEntity<String> response = restClient.post()
@@ -660,9 +660,10 @@ public class Wallet {
     }
 
     public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
-        final String nonce = collectCNonce(batchEntry);
+        batchEntry.setCNonce(collectCNonce(batchEntry));
+
         batchEntry.generateHolderKeys();
-        batchEntry.createProofs(nonce);
+        batchEntry.createProofs();
 
         return postCredentialRequestV1(batchEntry);
     }
