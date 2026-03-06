@@ -53,4 +53,18 @@ public final class CredentialSubjectFixtures {
 
         return subjectClaims;
     }
+
+    public static Map<String, Object> emptyEmployeeProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> partiallyMandatoryClaimsEmployeeProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
 }
