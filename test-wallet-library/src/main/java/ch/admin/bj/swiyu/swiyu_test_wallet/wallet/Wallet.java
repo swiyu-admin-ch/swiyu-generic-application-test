@@ -532,6 +532,10 @@ public class Wallet {
 
     public WalletBatchEntry collectOffer(final URI offerDeepLink, final Integer count) {
         final WalletBatchEntry entry = createWalletBatchEntry();
+        return collectOfferV1(entry, offerDeepLink);
+    }
+
+    public WalletBatchEntry collectOfferV1(final WalletBatchEntry entry, final URI offerDeepLink) {
         entry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
