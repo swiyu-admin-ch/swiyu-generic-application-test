@@ -1,0 +1,6 @@
+application:
+  issuer:
+    surname: "complete"
+    signed-metadata: true
+    encryption-enforce: true
+    enforce-dpop: true
