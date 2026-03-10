@@ -76,27 +76,34 @@ public class SignedRenewalFlowTest extends BaseTest {
                 .areUnique()
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
+        // Given
+        batchEntry.clearIssuedCredentials();
+
+        // When
         final var credentialResponse = wallet.renewedCredentials(batchEntry);
         assertThat(credentialResponse).isNotNull();
 
+        // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE * 2)
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique()
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // When
-        batchEntry.getIssuedCredentials().forEach(verifiableCredential -> {
+        for (int index = 0; index < batchEntry.getIssuedCredentials().size(); index++) {
             final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
+                    .withUniversityDCQL(true)
+                    .encrypted()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, verifiableCredential);
+            final String presentation = batchEntry.createPresentationForSdJwtIndex(index, verificationDetails);
+            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        });
+        }
     }
 }
 
