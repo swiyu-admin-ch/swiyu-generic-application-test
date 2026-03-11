@@ -1,14 +1,17 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -95,12 +98,28 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.UCI_W1)
     @Tag(ReportingTags.HAPPY_PATH)
     void validateConfiguration() {
-        var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
+        final OAuthAuthorizationServerMetadata openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
 
         assertThat(openIdConfig.getIssuer()).isNotNull();
         assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
-        assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
+        assertThat(openIdConfig.getTokenEndpoint()).isEqualTo(TestConstants.ISSUER_URL + "/oid4vci/api/token");
+        assertThat(openIdConfig.getDpopSigningAlgValuesSupported()).isNotNull().isNotEmpty();
+        assertThat(openIdConfig.getDpopSigningAlgValuesSupported().getFirst()).isEqualTo("ES256");
+
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final WalletBatchEntry batchEntry = wallet.createWalletBatchEntry();
+        batchEntry.receiveDeepLinkAndValidateIt(wallet.getIssuerContext().getContextualizedUri(toUri(offer.getOfferDeeplink())));
+        final OAuthAuthorizationServerMetadata openIdConfigTenantId = wallet.getIssuerWellKnownConfiguration(batchEntry);
+
+        assertThat(openIdConfigTenantId.getIssuer()).isNotNull();
+        assertThat(openIdConfigTenantId.getIssuer()).startsWith(TestConstants.ISSUER_URL);
+        assertThat(openIdConfigTenantId.getTokenEndpoint()).isNotNull();
+        assertThat(openIdConfigTenantId.getTokenEndpoint()).isEqualTo(TestConstants.ISSUER_URL + "/oid4vci/api/token");
+        assertThat(openIdConfigTenantId.getDpopSigningAlgValuesSupported()).isNotNull().isNotEmpty();
+        assertThat(openIdConfigTenantId.getDpopSigningAlgValuesSupported().getFirst()).isEqualTo("ES256");
+
+
     }
 
     @Test
