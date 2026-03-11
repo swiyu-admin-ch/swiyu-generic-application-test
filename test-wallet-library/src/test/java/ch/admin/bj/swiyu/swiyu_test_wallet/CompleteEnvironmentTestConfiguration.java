@@ -1,12 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -28,12 +22,18 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public IssuerConfig issuerConfig() {
         UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createIssueraConfig(toUri("https://mockserver:1080/api/v1/did/" + id));
+        return EnvironmentConfig.createIssueraConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
     }
 
     @Bean
     public Network network() {
         return Network.newNetwork();
+    }
+
+    @Bean
+    public TrustConfig trustConfig() {
+        UUID id = UUID.randomUUID();
+        return EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
     }
 
     @Bean
@@ -68,13 +68,13 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, MockServerClientConfig mockServerClientConfig) {
+    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, TrustConfig trustConfig, MockServerClientConfig mockServerClientConfig) {
 
         var container = MockServerContainerConfig.createMockServerContainer(network);
 
         container.start();
 
-        mockServerClientConfig.createMockServerClient(container, issuerConfig);
+        mockServerClientConfig.createMockServerClient(container, issuerConfig, trustConfig);
 
         return container;
     }
