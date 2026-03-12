@@ -30,11 +30,15 @@ public class EnvironmentConfig {
                 .issuerRegistryEntry(identifierRegistryUrl.toString())
                 .issuerDid(issuerDid)
                 .issuerDidLog(didLog)
-                .mockServerUri("http://mockserver:1080")
+                .mockServerUri(String.format("http://%s", MockServerClientConfig.MOCKSERVER_HOST))
                 .issuerAssertKeyId(issuerDid + "#assert-key-01")
                 .issuerAuthKeyId(issuerDid + "#assert-key-01")
                 .issuerAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .issuerAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
                 .build();
+    }
+
+    public static TrustConfig createTrustConfig(URI identifierRegistryUrl) {
+        return TrustConfig.createTrustDid(identifierRegistryUrl);
     }
 }
