@@ -11,12 +11,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_offer_status_type.CredentialOfferStatusType;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_offer_status_type.CredentialOfferStatusType;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponseAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -24,6 +24,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,6 +34,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +44,77 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class DeferredFlowTest extends BaseTest {
+
+    private static Stream<Arguments> claimsProvider() {
+        return Stream.of(
+                Arguments.of(null, true),
+                Arguments.of(CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile(), true),
+                Arguments.of(CredentialSubjectFixtures.completeEmployeeProfile(), true),
+                Arguments.of(CredentialSubjectFixtures.emptyEmployeeProfile(), false),
+                Arguments.of(CredentialSubjectFixtures.partiallyMandatoryClaimsEmployeeProfile(), false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("claimsProvider")
+    @XrayTest(
+            key = "EIDOMNI-772",
+            summary = "Deferred credential offer creation succeeds with valid claim sets and rejects invalid ones",
+            description = """
+                    This test validates the creation of a deferred credential offer with different claim sets.
+                    
+                    The issuer must accept requests containing either no claims, the minimum required claims,
+                    or a complete set of claims. In these cases, the deferred credential offer is successfully
+                    created and the issuance flow proceeds normally.
+                    
+                    For accepted requests, the test verifies that the deferred issuance flow works correctly:
+                    the wallet receives a transaction ID with a 202 response and is able to retrieve the
+                    issued credential batch once the issuer prepares the credential.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "The images don't accept null claims on creation yet."
+    )
+    void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted) {
+        // Given
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+
+        // When
+        if (!accepted) {
+            final HttpClientErrorException ex = assertThrows(
+                    HttpClientErrorException.class,
+                    () -> issuerManager.createDeferredCredentialOffer(supportedMetadataId, claims)
+            );
+
+            assertThat(errorCode(ex))
+                    .as("The ready transition should be refused")
+                    .isEqualTo(400);
+
+            assertThat(errorJson(ex))
+                    .containsEntry("error_description", "Bad Request");
+
+            return;
+        }
+        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId, claims);
+        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
+        // Then
+        assertThat(batchEntry.getTransactionId()).isNotNull();
+        CredentialResponseAssert.assertThat(batchEntry.getCredentialResponse()).hasCode(202);
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
+
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), subjectClaims);
+
+        wallet.getCredentialFromTransactionId(batchEntry);
+
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+    }
 
     @Test
     @XrayTest(
@@ -105,10 +180,10 @@ class DeferredFlowTest extends BaseTest {
             key = "EIDOMNI-765",
             summary = "Cancelled deferred offer blocks issuance and cannot return to READY",
             description = """
-                This test validates that after the issuer cancels a deferred credential offer,
-                the wallet cannot request issuance using the transaction ID.
-                It also confirms the issuer cannot transition the offer back to READY.
-                """
+                    This test validates that after the issuer cancels a deferred credential offer,
+                    the wallet cannot request issuance using the transaction ID.
+                    It also confirms the issuer cannot transition the offer back to READY.
+                    """
     )
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
