@@ -80,7 +80,6 @@ class DeferredFlowTest extends BaseTest {
     )
     void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted) {
         // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
@@ -101,7 +100,7 @@ class DeferredFlowTest extends BaseTest {
             return;
         }
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId, claims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(apiVersion, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         assertThat(batchEntry.getTransactionId()).isNotNull();
         CredentialResponseAssert.assertThat(batchEntry.getCredentialResponse()).hasCode(202);
@@ -109,7 +108,7 @@ class DeferredFlowTest extends BaseTest {
 
         issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), subjectClaims);
 
-        wallet.getCredentialFromTransactionId(apiVersion, batchEntry);
+        wallet.getCredentialFromTransactionId(batchEntry);
 
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
