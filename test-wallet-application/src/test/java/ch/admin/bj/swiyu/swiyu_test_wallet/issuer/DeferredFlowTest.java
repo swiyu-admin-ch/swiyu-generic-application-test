@@ -200,10 +200,7 @@ class DeferredFlowTest extends BaseTest {
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
                 .hasErrorDescription("Bad Request")
-                .containsDetail("Transition failed for GenericMessage")
-                .containsDetail(String.format("payload=%s", newStatus.getValue()))
-                .containsDetail("oldStatus=Cancelled")
-                .containsDetail(String.format("credentialId=%s", offer.getOfferId()));
+                .hasDetail("At least one offer must be set to deferred to set the credential management to ready");
 
         awaitStableIssuerCallbacks();
         WebhookCallbackAssert.assertThat(issuerCallbacks())
