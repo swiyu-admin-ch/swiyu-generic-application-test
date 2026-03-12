@@ -113,7 +113,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.createProofs();
 
         log.info("Wallet sends credential request with DPoP proof for batch of {}", batchSize);
-        var issuedCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
+        var issuedCredentials = wallet.getVerifiableCredentialFromIssuer(batchEntry);
 
         assertThat(issuedCredentials)
                 .as("Issuer should return a batch of %s credentials", batchSize)
@@ -217,7 +217,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.createProofs();
 
         log.info("Wallet requests batch of {} credentials with refreshed token", CredentialConfigurationFixtures.BATCH_SIZE);
-        var refreshedCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
+        var refreshedCredentials = wallet.getVerifiableCredentialFromIssuer(batchEntry);
 
         assertThat(refreshedCredentials)
                 .as("Issuer should return a batch of %s credentials using refreshed token", CredentialConfigurationFixtures.BATCH_SIZE)
@@ -439,7 +439,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.generateHolderKeys();
         batchEntry.createProofs();
 
-        var firstCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
+        var firstCredentials = wallet.getVerifiableCredentialFromIssuer(batchEntry);
 
         assertThat(firstCredentials)
                 .as("First credential request must succeed and return a list of credentials")
@@ -476,7 +476,7 @@ class DPoPFlowTest extends BaseTest {
         batchEntry2.generateHolderKeys();
         batchEntry2.createProofs();
 
-        var secondCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry2);
+        var secondCredentials = wallet.getVerifiableCredentialFromIssuer(batchEntry2);
 
         assertThat(secondCredentials)
                 .as("Second credential request with fresh nonce must succeed")
@@ -779,7 +779,7 @@ class DPoPFlowTest extends BaseTest {
                 .hasSize(batchSize);
 
         log.info("Wallet sends credential request with batch of {} holder binding proofs", batchSize);
-        final List<String> firstCredentials = wallet.getVerifiableCredentialFromIssuerV1(batchEntry);
+        final List<String> firstCredentials = wallet.getVerifiableCredentialFromIssuer(batchEntry);
         assertThat(firstCredentials)
                 .as("First credential batch must succeed")
                 .hasSize(batchSize);
@@ -813,7 +813,7 @@ class DPoPFlowTest extends BaseTest {
 
         log.info("Attacker sends credential request with replayed holder binding proof JWTs");
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.getVerifiableCredentialFromIssuerV1(batchEntry2)
+                wallet.getVerifiableCredentialFromIssuer(batchEntry2)
         );
 
         assertThat(errorCode(ex))

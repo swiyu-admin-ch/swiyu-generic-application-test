@@ -72,7 +72,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs();
 
-        final var credentialResponseRenewal = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry);
+        final var credentialResponseRenewal = wallet.postCredentialRequest(entry);
         assertThat(credentialResponseRenewal).isNotNull();
         final List<String> batch1 = entry.getIssuedCredentials();
 
@@ -134,7 +134,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                 renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
                 renewedEntry.getToken().getAccessToken());
 
-        final var credentialResponse = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
+        final var credentialResponse = wallet.postCredentialRequest(renewedEntry);
 
         // Then - Wallet was able to successfully renew credentials in another batch
         assertThat(credentialResponse).isNotNull();
@@ -231,7 +231,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        final var credentialResponse = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
+        final var credentialResponse = wallet.postCredentialRequest(renewedEntry);
 
         // Then - Wallet was able to successfully renew credentials in another batch
         assertThat(credentialResponse).isNotNull();
@@ -368,7 +368,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
+            wallet.postCredentialRequest(renewedEntry);
         });
 
         ApiErrorAssert.assertThat(ex)
@@ -429,7 +429,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, renewedEntry);
+            wallet.postCredentialRequest(renewedEntry);
         });
 
         ApiErrorAssert.assertThat(ex)

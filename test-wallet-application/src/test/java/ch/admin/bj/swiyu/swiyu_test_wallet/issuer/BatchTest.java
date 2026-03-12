@@ -67,7 +67,7 @@ class BatchTest extends BaseTest {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, subjectClaims);
 
-        final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
 
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
             .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
