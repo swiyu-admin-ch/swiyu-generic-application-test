@@ -202,7 +202,7 @@ public class IssuerCallbacksTest extends BaseTest {
         }).when(entry).createProofs();
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.collectOfferV1(entry, toUri(offer.getOfferDeeplink()))
+                wallet.collectOffer(entry, toUri(offer.getOfferDeeplink()))
         );
 
         assertThat(errorCode(ex)).isEqualTo(400);

@@ -527,15 +527,20 @@ public class Wallet {
     }
 
     public WalletBatchEntry collectOffer(final URI offerDeepLink) {
-        return collectOffer(offerDeepLink, null);
+        final WalletBatchEntry entry = createWalletBatchEntry();
+        return collectOffer(entry, offerDeepLink, null);
     }
 
     public WalletBatchEntry collectOffer(final URI offerDeepLink, final Integer count) {
         final WalletBatchEntry entry = createWalletBatchEntry();
-        return collectOfferV1(entry, offerDeepLink);
+        return collectOffer(entry, offerDeepLink, count);
     }
 
-    public WalletBatchEntry collectOfferV1(final WalletBatchEntry entry, final URI offerDeepLink) {
+    public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink) {
+        return collectOffer(entry, offerDeepLink, null);
+    }
+
+    public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
         entry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
