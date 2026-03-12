@@ -85,7 +85,7 @@ public class UnlinkabilityTest extends BaseTest {
                         CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
 
         final List<WalletBatchEntry> batchEntries = new ArrayList<>();
-        final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
         batchEntries.add(batchEntry);
 
         for (int i = 0; i < renewalCount; i++) {

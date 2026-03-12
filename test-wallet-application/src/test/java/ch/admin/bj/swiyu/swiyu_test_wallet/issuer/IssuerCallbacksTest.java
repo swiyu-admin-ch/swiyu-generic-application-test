@@ -57,7 +57,7 @@ public class IssuerCallbacksTest extends BaseTest {
         cleanIssuerCallbacks();
 
         // When
-        wallet.collectOfferV1(toUri(offer1.getOfferDeeplink()));
+        wallet.collectOffer(toUri(offer1.getOfferDeeplink()));
         issuerManager.verifyStatus(offer1.getManagementId(), CredentialStatusType.ISSUED);
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer1.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
@@ -108,7 +108,7 @@ public class IssuerCallbacksTest extends BaseTest {
         cleanIssuerCallbacks();
 
         // When
-        wallet.collectOfferV1(toUri(offer2.getOfferDeeplink()));
+        wallet.collectOffer(toUri(offer2.getOfferDeeplink()));
         issuerManager.verifyStatus(offer2.getManagementId(), CredentialStatusType.ISSUED);
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer2.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
         issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer2.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);

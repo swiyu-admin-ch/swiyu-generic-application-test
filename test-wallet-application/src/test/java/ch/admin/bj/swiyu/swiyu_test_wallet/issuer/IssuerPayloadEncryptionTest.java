@@ -24,6 +24,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -66,72 +67,10 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
-            reason = "This feature payload encryption in deferred credential route is not available yet"
-    )
-    void payloadEncryptionCredentialIssuanceId2_withEncryptedPayload_thenSuccess(final boolean deferred) {
-        // Given
-        final SwiyuApiVersionConfig issuanceApiVersion = SwiyuApiVersionConfig.ID2;
-        final Map<String, Object> temporarySubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final Map<String, Object> finalSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        CredentialWithDeeplinkResponse offer;
-        if (deferred) {
-            offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId, temporarySubjectClaims);
-        } else {
-            offer = issuerManager.createCredentialOffer(supportedMetadataId, finalSubjectClaims);
-        }
-
-        WalletEntry entry;
-        if (deferred) {
-            entry = wallet.collectTransactionIdFromDeferredOffer(issuanceApiVersion,
-                    toUri(offer.getOfferDeeplink()));
-            // Then
-            assertThat(entry.getTransactionId()).isNotNull();
-
-            // When
-            issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), finalSubjectClaims);
-            // Then
-            issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
-
-            // When
-            final CredentialResponse credentialResponse = wallet.getCredentialFromTransactionId(issuanceApiVersion, entry);
-            CredentialResponseAssert.assertThat(credentialResponse)
-                    .isResponseEncrypted();
-        } else {
-            // When
-            entry = wallet.collectOffer(issuanceApiVersion, toUri(offer.getOfferDeeplink()));
-            IssuerMetadataAssert.assertThat(entry.getIssuerMetadata())
-                    .requiresCredentialRequestEncryption()
-                    .requiresCredentialResponseEncryption()
-                    .supportsCredentialRequestEncryption(List.of("A128GCM"), List.of("DEF"))
-                    .supportsCredentialResponseEncryption(List.of("ECDH-ES"), List.of("A128GCM"), List.of("DEF"));
-        }
-        // Then
-        SdJwtAssert.assertThat(entry.getVerifiableCredential())
-                .hasExactlyInAnyOrderDisclosures(finalSubjectClaims);
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @XrayTest(key = "EIDOMNI-620", summary = "Successful deferred issuance and verification of a bound SD-JWT credential when components require encryption", description = """
-            This test validates the end-to-end deferred issuance flow for a bound SD-JWT credential
-            with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
-            and successfully constructs a presentation that satisfies the verifier's requirements.
-            The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
-            retrieved and their disclosures are properly validated.
-            """)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.HAPPY_PATH)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
             reason = "The fix for supported media type not available yet"
     )
     void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
         // Given
-        final SwiyuApiVersionConfig issuanceApiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> temporarySubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> finalSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
@@ -146,8 +85,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
 
         WalletBatchEntry batchEntry;
         if (deferred) {
-            batchEntry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(issuanceApiVersion,
-                    toUri(offer.getOfferDeeplink()));
+            batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
             // Then
             assertThat(batchEntry.getTransactionId()).isNotNull();
 
@@ -157,10 +95,10 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
             // When
-            wallet.getCredentialFromTransactionIdV1(batchEntry);
+            wallet.getCredentialFromTransactionId(batchEntry);
         } else {
             // When
-            batchEntry = (WalletBatchEntry) wallet.collectOffer(issuanceApiVersion, toUri(offer.getOfferDeeplink()));
+            batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         }
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
@@ -170,8 +108,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
     }
 
-    @ParameterizedTest
-    @EnumSource(SwiyuApiVersionConfig.class)
+    @Test
     @XrayTest(key = "EIDOMNI-629", summary = "Deferred credential with encryption key mismatch between credential request and deferred call", description = """
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
@@ -182,7 +119,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void deferredCredentialEncryption_whenKeyMismatch_thenRejected(final SwiyuApiVersionConfig apiVersion) {
+    void deferredCredentialEncryption_whenKeyMismatch_thenRejected() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -191,22 +128,22 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
         // Then
-        assertThat(entry.getTransactionId()).isNotNull();
+        assertThat(batchEntry.getTransactionId()).isNotNull();
 
         // Given
-        final ECKey originalKey = entry.getEphemeralEncryptionKey();
-        entry.generateEphemeralEncryptionKey();
-        final ECKey newKey = entry.getEphemeralEncryptionKey();
+        final ECKey originalKey = batchEntry.getEphemeralEncryptionKey();
+        batchEntry.generateEphemeralEncryptionKey();
+        final ECKey newKey = batchEntry.getEphemeralEncryptionKey();
         assertThat(newKey).as("New ephemeral key should be different from original key").isNotEqualTo(originalKey);
 
         // When
         final RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+                () -> wallet.getCredentialFromTransactionId(batchEntry));
 
         // Then
         assertThat(ex.getCause())
@@ -215,8 +152,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                 .contains("Tag mismatch");
     }
 
-    @ParameterizedTest
-    @EnumSource(SwiyuApiVersionConfig.class)
+    @Test
     @XrayTest(key = "EIDOMNI-629", summary = "Deferred credential with encryption key mismatch between credential request and deferred call", description = """
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
@@ -227,7 +163,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "Fix for deferred encryption is not available yet"
     )
-    void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected(final SwiyuApiVersionConfig apiVersion) {
+    void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -236,21 +172,21 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
         // Then
-        assertThat(entry.getTransactionId()).isNotNull();
+        assertThat(batchEntry.getTransactionId()).isNotNull();
 
         // Given
         final UUID invalidTransactionId = UUID.randomUUID();
-        assertThat(invalidTransactionId).as("Invalid transaction should be different from existing transaction").isNotEqualTo(entry.getTransactionId());
-        entry.setTransactionId(invalidTransactionId);
+        assertThat(invalidTransactionId).as("Invalid transaction should be different from existing transaction").isNotEqualTo(batchEntry.getTransactionId());
+        batchEntry.setTransactionId(invalidTransactionId);
 
         // When
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+                () -> wallet.getCredentialFromTransactionId(batchEntry));
 
         // Then
         ApiErrorAssert.assertThat(ex)
@@ -259,8 +195,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                 .hasErrorDescription("Invalid transaction id");
     }
 
-    @ParameterizedTest
-    @EnumSource(SwiyuApiVersionConfig.class)
+    @Test
     @XrayTest(key = "EIDOMNI-666",
             summary = "Deferred credential request rejected when encryption is required but wallet sends unencrypted",
             description = """
@@ -273,8 +208,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
-    void deferredCredentialRequest_whenUnencryptedPayload_thenRejected(
-            final SwiyuApiVersionConfig apiVersion) {
+    void deferredCredentialRequest_whenUnencryptedPayload_thenRejected() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -283,8 +217,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry entry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
         // Then
@@ -295,7 +229,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
 
         // When
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+                () -> wallet.getCredentialFromTransactionId(entry));
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)

@@ -11,6 +11,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager.VerificationRequestBuilder;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -125,17 +126,17 @@ class VerifierTest extends BaseTest {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
-        final WalletEntry entry =
-                wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
+        final WalletBatchEntry batchEntry =
+                wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
         final String deepLink = verifierManager.verificationRequest()
-                .acceptedIssuerDid(entry.getIssuerDid())
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversity()
                 .create();
 
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
-        final String res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+        final String res = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         // Spy wallet to simulate missing presentation_submission
         final Wallet spyWallet = Mockito.spy(wallet);
@@ -199,17 +200,17 @@ class VerifierTest extends BaseTest {
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
 
-        final WalletEntry entry =
-                wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
+        final WalletBatchEntry batchEntry =
+                wallet.collectOffer(toUri(response.getOfferDeeplink()));
+        assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
         final String deepLink = verifierManager.verificationRequest()
-                .acceptedIssuerDid(entry.getIssuerDid())
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversity()
                 .create();
 
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
-        final String res = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+        final String res = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         final int before = awaitStableVerifierCallbacks();
 

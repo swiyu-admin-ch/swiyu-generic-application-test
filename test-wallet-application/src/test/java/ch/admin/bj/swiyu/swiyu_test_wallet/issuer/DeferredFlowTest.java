@@ -58,7 +58,7 @@ class DeferredFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
     )
-    void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() throws InterruptedException {
+    void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() {
         // Given
         final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -68,7 +68,7 @@ class DeferredFlowTest extends BaseTest {
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(
                 supportedMetadataId,
                 subjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(apiVersion, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         assertThat(batchEntry.getTransactionId()).isNotNull();
         CredentialResponseAssert.assertThat(batchEntry.getCredentialResponse()).hasCode(202);
@@ -76,7 +76,7 @@ class DeferredFlowTest extends BaseTest {
 
         // When
         final UUID expectedTransactionId = batchEntry.getTransactionId();
-        final CredentialResponse credentialResponse = wallet.getCredentialFromTransactionId(apiVersion, batchEntry);
+        final CredentialResponse credentialResponse = wallet.getCredentialFromTransactionId(batchEntry);
 
         // Then
         CredentialResponseAssert.assertThat(credentialResponse)
@@ -86,7 +86,7 @@ class DeferredFlowTest extends BaseTest {
 
         // When
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
-        wallet.getCredentialFromTransactionId(apiVersion, batchEntry);
+        wallet.getCredentialFromTransactionId(batchEntry);
 
         // Then
         CredentialResponseAssert.assertThat(credentialResponse)
@@ -98,46 +98,6 @@ class DeferredFlowTest extends BaseTest {
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique()
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-668",
-            summary = "Deferred credential issuance returns immediate error for backward compatibility in deprecated ID2 API",
-            description = """
-                    This test validates the non-specification-compliant behavior of the ID2 API mode for backward compatibility purposes.
-                    The wallet receives a 400 error with ISSUANCE_PENDING status when requesting a deferred credential, rather than the 202 accepted response.
-                    This deprecated behavior prioritizes backward compatibility with legacy systems over specification compliance.
-                    The test confirms this legacy behavior is maintained during the deprecation period.
-                    """
-    )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.EDGE_CASE)
-    @Deprecated(forRemoval = true)
-    void deferredCredentialRequestID2_whenCredentialNotReady_remainsDeferred() {
-        // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.ID2;
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(
-                supportedMetadataId,
-                subjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion, toUri(offer.getOfferDeeplink()));
-        // Then
-        assertThat(entry.getTransactionId()).isNotNull();
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
-
-        // When
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
-
-        // Then
-        ApiErrorAssert.assertThat(ex)
-                .hasStatus(400)
-                .hasError("ISSUANCE_PENDING")
-                .hasErrorDescription("The credential is not marked as ready to be issued");
     }
 
     @Test
@@ -169,9 +129,10 @@ class DeferredFlowTest extends BaseTest {
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(
                 supportedMetadataId,
                 subjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(apiVersion, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
-        assertThat(entry.getTransactionId()).isNotNull();
+        assertThat(batchEntry.getTransactionId()).isNotNull();
 
         // When
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.CANCELLED);
@@ -181,7 +142,7 @@ class DeferredFlowTest extends BaseTest {
 
         // When
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.getCredentialFromTransactionId(apiVersion, entry));
+                () -> wallet.getCredentialFromTransactionId(batchEntry));
 
         // Then
         ApiErrorAssert.assertThat(ex)
@@ -200,10 +161,7 @@ class DeferredFlowTest extends BaseTest {
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
                 .hasErrorDescription("Bad Request")
-                .containsDetail("Transition failed for GenericMessage")
-                .containsDetail(String.format("payload=%s", newStatus.getValue()))
-                .containsDetail("oldStatus=Cancelled")
-                .containsDetail(String.format("credentialId=%s", offer.getOfferId()));
+                .hasDetail("At least one offer must be set to deferred to set the credential management to ready");
 
         awaitStableIssuerCallbacks();
         WebhookCallbackAssert.assertThat(issuerCallbacks())

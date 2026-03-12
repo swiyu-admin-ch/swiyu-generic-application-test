@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.*;
@@ -53,7 +54,7 @@ class SignedMetadataTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void shouldSuccessfullyValidateSignedMetadata() {
-        var walletEntry = wallet.createWalletEntry();
+        var walletEntry = wallet.createWalletBatchEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
@@ -108,7 +109,7 @@ class SignedMetadataTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
         wallet.setSignedMetadataPreferred(false);
-        var walletEntry = wallet.createWalletEntry();
+        var walletEntry = wallet.createWalletBatchEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
@@ -155,7 +156,7 @@ class SignedMetadataTest extends BaseTest {
             reason = "This feature is not available yet"
     )
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
-        final WalletEntry walletEntry = wallet.createWalletEntry();
+        final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 

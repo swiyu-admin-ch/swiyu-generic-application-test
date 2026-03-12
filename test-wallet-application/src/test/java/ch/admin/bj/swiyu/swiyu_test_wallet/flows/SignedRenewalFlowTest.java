@@ -67,7 +67,7 @@ public class SignedRenewalFlowTest extends BaseTest {
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final WalletBatchEntry batchEntry = wallet.collectOfferV1(toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // Then
         IssuerMetadataAssert.assertThat(batchEntry.getIssuerMetadata()).hasTenantId();

@@ -84,7 +84,7 @@ class RenewalFlowTest extends BaseTest {
         entry.createProofs();
 
 
-        final var credentialResponseRenewal = wallet.postCredentialRequestV1(entry);
+        final var credentialResponseRenewal = wallet.postCredentialRequest(entry);
         assertThat(credentialResponseRenewal).isNotNull();
         final List<String> batch1 = entry.getIssuedCredentials();
 
@@ -142,7 +142,7 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs();
 
-        final var credentialResponse = wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry);
+        final var credentialResponse = wallet.postCredentialRequest(entry);
         assertThat(credentialResponse).isNotNull();
 
         assertThat(entry.getIssuedCredentials())
@@ -203,7 +203,7 @@ class RenewalFlowTest extends BaseTest {
         entry.setToken(modifiedToken);
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry)
+                () -> wallet.postCredentialRequest(entry)
         );
 
         assertThat(errorCode(ex))
@@ -279,7 +279,7 @@ class RenewalFlowTest extends BaseTest {
         final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> spyWallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry)
+                () -> spyWallet.postCredentialRequest(entry)
         );
 
         assertThat(errorCode(ex))
@@ -342,14 +342,14 @@ class RenewalFlowTest extends BaseTest {
                 .when(spyWallet)
                 .generateDpopForCredentialEndpoint(any());
 
-        final var firstResponse = spyWallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry);
+        final var firstResponse = spyWallet.postCredentialRequest(entry);
 
         assertThat(firstResponse).isNotNull();
 
         log.info("Replay renew credentials using the same refresh token and dpop");
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> spyWallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry)
+                () -> spyWallet.postCredentialRequest(entry)
         );
 
         assertThat(errorCode(ex))
@@ -413,7 +413,7 @@ class RenewalFlowTest extends BaseTest {
         final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry)
+                () -> wallet.postCredentialRequest(entry)
         );
 
         assertThat(errorCode(ex))
@@ -717,7 +717,7 @@ class RenewalFlowTest extends BaseTest {
                 refreshedToken.getAccessToken()
         );
 
-        wallet.postCredentialRequest(SwiyuApiVersionConfig.V1, entry);
+        wallet.postCredentialRequest(entry);
     }
 
     private int countOffersForManagement(UUID managementId) throws SQLException {

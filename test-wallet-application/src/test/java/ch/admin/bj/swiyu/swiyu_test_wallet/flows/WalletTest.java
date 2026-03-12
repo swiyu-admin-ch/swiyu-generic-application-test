@@ -49,7 +49,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
-    void unboundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
+    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
@@ -57,10 +57,12 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry entry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         // Then
-        SdJwtAssert.assertThat(entry.getVerifiableCredential())
-                .hasExactlyInAnyOrderDisclosures(subjectClaims);
+        SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
@@ -69,7 +71,7 @@ class WalletTest extends BaseTest {
         final RequestObject verificationDetails = wallet
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential(0));
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
@@ -91,7 +93,7 @@ class WalletTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void unboundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
+    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
@@ -99,8 +101,7 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
@@ -136,7 +137,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1B)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
-    void unboundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
+    void unboundDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -145,8 +146,8 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.ID2,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
 
@@ -156,19 +157,20 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionIdID2(entry);
+        wallet.getCredentialFromTransactionId(batchEntry);
         // Then
-        SdJwtAssert.assertThat(entry.getVerifiableCredential())
+        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
                 .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(entry.getIssuerDid())
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential());
+        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails,
+                batchEntry.getVerifiableCredential(0));
         // Then
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
     }
@@ -191,7 +193,7 @@ class WalletTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void unboundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
+    void unboundDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -200,8 +202,7 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.V1,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
         assertThat(batchEntry.getTransactionId()).isNotNull();
@@ -212,7 +213,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionIdV1(batchEntry);
+        wallet.getCredentialFromTransactionId(batchEntry);
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
@@ -249,7 +250,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1A)
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
-    void boundNonDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
+    void boundNonDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
@@ -257,9 +258,9 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         // Then
-        SdJwtAssert.assertThat(entry.getVerifiableCredential())
+        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
                 .hasExactlyInAnyOrderDisclosures(subjectClaims);
 
         // When
@@ -269,7 +270,7 @@ class WalletTest extends BaseTest {
         final RequestObject verificationDetails = wallet
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(),
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0,
                 verificationDetails);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
         // Then
@@ -293,7 +294,7 @@ class WalletTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void boundNonDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
+    void boundNonDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
@@ -301,8 +302,7 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
@@ -338,7 +338,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1B)
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
-    void boundDeferredCredential_whenIssuedSingleAndVerifiedWithDif_thenSuccess() {
+    void boundDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -349,8 +349,8 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletEntry entry = wallet.collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.ID2,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry =
+                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
 
@@ -360,21 +360,21 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionIdID2(entry);
+        wallet.getCredentialFromTransactionId(batchEntry);
         // Then
-        SdJwtAssert.assertThat(entry.getVerifiableCredential())
+        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
                 .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(entry.getIssuerDid())
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .createManagementResponse();
         ;
         final RequestObject verificationDetails = wallet
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        final String presentation = entry.createPresentationForSdJwt(entry.getVerifiableCredential(), verificationDetails);
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
         wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -393,7 +393,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1B)
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
-    void boundDeferredCredential_whenIssuedBatchAndVerifiedWithDcql_thenSuccess() {
+    void boundDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -404,8 +404,7 @@ class WalletTest extends BaseTest {
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
                 initialSubjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectTransactionIdFromDeferredOffer(SwiyuApiVersionConfig.V1,
-                toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
         // Then
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
 
@@ -415,7 +414,7 @@ class WalletTest extends BaseTest {
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
 
         // When
-        wallet.getCredentialFromTransactionIdV1(batchEntry);
+        wallet.getCredentialFromTransactionId(batchEntry);
         // Then
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
@@ -456,16 +455,16 @@ class WalletTest extends BaseTest {
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
 
-        WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(offer.getOfferDeeplink()));
-        assertThat(entry.getCredentialOffer()).isNotNull();
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
         var deepLink = verifierManager.verificationRequest()
-                .acceptedIssuerDid(entry.getIssuerDid())
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL()
                 .create();
 
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
-        var res = entry.getVerifiableCredential();
+        var res = batchEntry.getVerifiableCredential(0);
 
         assert verificationDetails.getDcqlQuery() != null;
 

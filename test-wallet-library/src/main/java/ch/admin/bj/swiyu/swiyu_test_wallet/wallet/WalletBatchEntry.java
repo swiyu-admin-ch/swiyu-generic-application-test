@@ -80,6 +80,10 @@ public class WalletBatchEntry extends WalletEntry {
 
     public void generateHolderKeys() {
         final int count = getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
+        generateHolderKeys(count);
+    }
+
+    public void generateHolderKeys(int count) {
         holderKeyPairs.clear();
         holderPublicKeys.clear();
 
