@@ -577,7 +577,7 @@ public class Wallet {
         proofsDto.setJwt(walletEntry.getProofsAsJwt());
 
         var metadata = walletEntry.getIssuerMetadata();
-        var requestDto = new CredentialEndpointRequestV2()
+        var requestDto = new CreateCredentialRequest()
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
@@ -772,7 +772,7 @@ public class Wallet {
         final String bearerToken = token.getAccessToken();
         var proofsDto = new ProofsDto();
         proofsDto.setJwt(batchEntry.getProofsAsJwt());
-        var requestDto = new CredentialEndpointRequestV2()
+        var requestDto = new CreateCredentialRequest()
                 .credentialConfigurationId(batchEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
