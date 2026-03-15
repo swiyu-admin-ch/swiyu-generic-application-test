@@ -2,12 +2,11 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.Volume;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.*;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -45,8 +44,6 @@ public class IssuerContainerConfig {
                     .withEnv("SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET", "SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET")
                     .withEnv("SWIYU_STATUS_REGISTRY_ACCESS_TOKEN", "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN")
                     .withEnv("SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN", "SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN")
-                    .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
-                    .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString())
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
@@ -79,6 +76,43 @@ public class IssuerContainerConfig {
             if (issuerImageConfig.isEnableJwtAuth()) {
                 var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
                 containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
+            }
+
+            if (issuerImageConfig.isEnableHsm()) {
+                containerBuilder
+                    .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", "pkcs11")
+                    .withEnv("HSM_USER_PIN", issuerImageConfig.getHsmUserPin())
+                    .withEnv("HSM_KEY_ID", issuerImageConfig.getHsmKeyId())
+                    .withEnv("HSM_KEY_PIN", issuerImageConfig.getHsmKeyPin())
+                    .withEnv("HSM_STATUS_KEY_ID", issuerImageConfig.getHsmStatusKeyId())
+                    .withEnv("HSM_STATUS_KEY_PIN", issuerImageConfig.getHsmStatusKeyPin())
+
+                    .withCopyFileToContainer(
+                        MountableFile.forClasspathResource("softhsm/libs/libsofthsm2.so"),
+                        "/usr/lib/softhsm/libsofthsm2.so"
+                    )
+
+                    .withCreateContainerCmdModifier(cmd ->
+                        cmd.getHostConfig().withBinds(
+                            new Bind(
+                                SoftHsmContainerConfig.TOKEN_VOLUME,
+                                new Volume(SoftHsmContainerConfig.TOKEN_DIR)
+                            )
+                        )
+                    )
+
+                    .withEnv("STATUS_LIST_KEY", "")
+                    .withEnv("SDJWT_KEY", "")
+
+                    .withCopyFileToContainer(
+                        MountableFile.forClasspathResource("softhsm/pkcs11.cfg"),
+                        "/tmp/pkcs11.cfg"
+                    )
+                    .withEnv("HSM_CONFIG_PATH", "/tmp/pkcs11.cfg");
+            } else {
+                containerBuilder
+                    .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
+                    .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString());
             }
 
             return containerBuilder;

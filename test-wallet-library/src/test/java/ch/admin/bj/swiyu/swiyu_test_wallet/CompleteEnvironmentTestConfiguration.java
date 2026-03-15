@@ -51,12 +51,14 @@ public class CompleteEnvironmentTestConfiguration {
                                                PostgreSQLContainer<?> dbContainer,
                                                IssuerConfig config,
                                                MockServerContainer mockServer,
-                                               IssuerImageConfig issuerImageConfig) {
+                                               IssuerImageConfig issuerImageConfig,
+                                               GenericContainer<?> softHsmContainer) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
         var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig);
 
+        container.dependsOn(softHsmContainer);
         container.start();
 
         return container;

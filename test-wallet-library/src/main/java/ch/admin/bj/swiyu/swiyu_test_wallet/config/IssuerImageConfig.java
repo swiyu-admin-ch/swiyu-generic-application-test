@@ -21,6 +21,20 @@ public class IssuerImageConfig {
     private boolean signedMetadata = false;
     private boolean enableJwtAuth = false;
     private boolean encryptionEnforce = false;
+    private boolean enableHsm = true;
+
+    // HSM Configuration
+    private String hsmHost = "softhsm";
+    private int hsmPort = 5696;
+    private String hsmUser = "admin";
+    private String hsmPassword = "password";
+    private String hsmUserPin = "1234";
+    private String hsmKeyId = "dev-issuer";
+    private String hsmKeyPin = "1234";
+    private String hsmStatusKeyId = "dev-issuer";
+    private String hsmStatusKeyPin = "1234";
+    private String hsmLibPath = "/usr/lib/softhsm/libsofthsm2.so";
+    private String hsmConfigPath = "/tmp/pkcs11.cfg";
 
     private JwtKeyGenerator jwtKeyGenerator;
 
