@@ -57,7 +57,6 @@ public class BusinessIssuer {
 
     public StatusList createStatusList(int size, int bits) {
         ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
-        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
         statusListCreate.setMaxLength(size);
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
 
@@ -70,7 +69,6 @@ public class BusinessIssuer {
         applyJwt(jwt);
 
         ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
-        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
         statusListCreate.setMaxLength(size);
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
 
@@ -243,7 +241,6 @@ public class BusinessIssuer {
         final ObjectMapper mapper = new ObjectMapper();
 
         final StatusListCreate statusListCreate = new StatusListCreate();
-        statusListCreate.setType(StatusListCreate.TypeEnum.TOKEN_STATUS_LIST);
         statusListCreate.setMaxLength(size);
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
 

@@ -167,6 +167,7 @@
                                 <modelPackage>ch.admin.bj.swiyu.gen.issuer.model</modelPackage>
                                 <apiPackage>ch.admin.bj.swiyu.gen.issuer.api</apiPackage>
                                 <invokerPackage>ch.admin.bj.swiyu.gen.issuer.invoker</invokerPackage>
+                                <openApiNullable>false</openApiNullable>
                             </configOptions>
                         </configuration>
                     </execution>
@@ -184,6 +185,7 @@
                                 <modelPackage>ch.admin.bj.swiyu.gen.verifier.model</modelPackage>
                                 <apiPackage>ch.admin.bj.swiyu.gen.verifier.api</apiPackage>
                                 <invokerPackage>ch.admin.bj.swiyu.gen.verifier.invoker</invokerPackage>
+                                <openApiNullable>false</openApiNullable>
                             </configOptions>
                         </configuration>
                     </execution>

@@ -120,8 +120,99 @@
             { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
           ]
         }
+      },
+      "credential_metadata": {
+        "claims": [
+          {
+            "name": "name",
+            "mandatory": true,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Full name" },
+              { "locale": "de-CH", "name": "Vollständiger Name" },
+              { "locale": "fr-CH", "name": "Nom complet" },
+              { "locale": "it-CH", "name": "Nome completo" },
+              { "locale": "rm-CH", "name": "Num cumplet" }
+            ]
+          },
+          {
+            "name": "job_title",
+            "mandatory": false,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Job title" },
+              { "locale": "de-CH", "name": "Berufsbezeichnung" },
+              { "locale": "fr-CH", "name": "Intitulé du poste" },
+              { "locale": "it-CH", "name": "Titolo professionale" },
+              { "locale": "rm-CH", "name": "Titgel da professiun" }
+            ]
+          },
+          {
+            "name": "annual_salary",
+            "mandatory": true,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Annual salary" },
+              { "locale": "de-CH", "name": "Jahresgehalt" },
+              { "locale": "fr-CH", "name": "Salaire annuel" },
+              { "locale": "it-CH", "name": "Stipendio annuo" },
+              { "locale": "rm-CH", "name": "Paja annuala" }
+            ]
+          },
+          {
+            "name": "years_of_experience",
+            "mandatory": false,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Years of experience" },
+              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
+              { "locale": "fr-CH", "name": "Années d’expérience" },
+              { "locale": "it-CH", "name": "Anni di esperienza" },
+              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+            ]
+          },
+          {
+            "name": "profile_picture",
+            "mandatory": false,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Profile picture" },
+              { "locale": "de-CH", "name": "Profilbild" },
+              { "locale": "fr-CH", "name": "Photo de profil" },
+              { "locale": "it-CH", "name": "Immagine del profilo" },
+              { "locale": "rm-CH", "name": "Maletg dal profil" }
+            ]
+          },
+          {
+            "name": "signature_image",
+            "mandatory": true,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Signature image" },
+              { "locale": "de-CH", "name": "Unterschrift" },
+              { "locale": "fr-CH", "name": "Image de signature" },
+              { "locale": "it-CH", "name": "Immagine della firma" },
+              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+            ]
+          }
+        ],
+        "display": [
+          {
+            "name": "Mein Test Aussteller",
+            "locale": "de-CH",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            "name": "My test issuer",
+            "locale": "en-US",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
       }
-
     },
     "unbound_example_sd_jwt": {
       "format": "vc+sd-jwt",
@@ -201,6 +292,98 @@
             { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
           ]
         }
+      },
+      "credential_metadata": {
+        "claims": [
+          {
+            "name": "name",
+            "mandatory": true,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Full name" },
+              { "locale": "de-CH", "name": "Vollständiger Name" },
+              { "locale": "fr-CH", "name": "Nom complet" },
+              { "locale": "it-CH", "name": "Nome completo" },
+              { "locale": "rm-CH", "name": "Num cumplet" }
+            ]
+          },
+          {
+            "name": "job_title",
+            "mandatory": false,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Job title" },
+              { "locale": "de-CH", "name": "Berufsbezeichnung" },
+              { "locale": "fr-CH", "name": "Intitulé du poste" },
+              { "locale": "it-CH", "name": "Titolo professionale" },
+              { "locale": "rm-CH", "name": "Titgel da professiun" }
+            ]
+          },
+          {
+            "name": "annual_salary",
+            "mandatory": true,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Annual salary" },
+              { "locale": "de-CH", "name": "Jahresgehalt" },
+              { "locale": "fr-CH", "name": "Salaire annuel" },
+              { "locale": "it-CH", "name": "Stipendio annuo" },
+              { "locale": "rm-CH", "name": "Paja annuala" }
+            ]
+          },
+          {
+            "name": "years_of_experience",
+            "mandatory": false,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Years of experience" },
+              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
+              { "locale": "fr-CH", "name": "Années d’expérience" },
+              { "locale": "it-CH", "name": "Anni di esperienza" },
+              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+            ]
+          },
+          {
+            "name": "profile_picture",
+            "mandatory": false,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Profile picture" },
+              { "locale": "de-CH", "name": "Profilbild" },
+              { "locale": "fr-CH", "name": "Photo de profil" },
+              { "locale": "it-CH", "name": "Immagine del profilo" },
+              { "locale": "rm-CH", "name": "Maletg dal profil" }
+            ]
+          },
+          {
+            "name": "signature_image",
+            "mandatory": true,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Signature image" },
+              { "locale": "de-CH", "name": "Unterschrift" },
+              { "locale": "fr-CH", "name": "Image de signature" },
+              { "locale": "it-CH", "name": "Immagine della firma" },
+              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+            ]
+          }
+        ],
+        "display": [
+          {
+            "name": "Mein Test Aussteller",
+            "locale": "de-CH",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            "name": "My test issuer",
+            "locale": "en-US",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
       }
     },
     "university_example_high_key_attestation_required_sd_jwt": {
@@ -296,6 +479,98 @@
             { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
           ]
         }
+      },
+      "credential_metadata": {
+        "claims": [
+          {
+            "name": "name",
+            "mandatory": true,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Full name" },
+              { "locale": "de-CH", "name": "Vollständiger Name" },
+              { "locale": "fr-CH", "name": "Nom complet" },
+              { "locale": "it-CH", "name": "Nome completo" },
+              { "locale": "rm-CH", "name": "Num cumplet" }
+            ]
+          },
+          {
+            "name": "job_title",
+            "mandatory": false,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Job title" },
+              { "locale": "de-CH", "name": "Berufsbezeichnung" },
+              { "locale": "fr-CH", "name": "Intitulé du poste" },
+              { "locale": "it-CH", "name": "Titolo professionale" },
+              { "locale": "rm-CH", "name": "Titgel da professiun" }
+            ]
+          },
+          {
+            "name": "annual_salary",
+            "mandatory": true,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Annual salary" },
+              { "locale": "de-CH", "name": "Jahresgehalt" },
+              { "locale": "fr-CH", "name": "Salaire annuel" },
+              { "locale": "it-CH", "name": "Stipendio annuo" },
+              { "locale": "rm-CH", "name": "Paja annuala" }
+            ]
+          },
+          {
+            "name": "years_of_experience",
+            "mandatory": false,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Years of experience" },
+              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
+              { "locale": "fr-CH", "name": "Années d’expérience" },
+              { "locale": "it-CH", "name": "Anni di esperienza" },
+              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+            ]
+          },
+          {
+            "name": "profile_picture",
+            "mandatory": false,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Profile picture" },
+              { "locale": "de-CH", "name": "Profilbild" },
+              { "locale": "fr-CH", "name": "Photo de profil" },
+              { "locale": "it-CH", "name": "Immagine del profilo" },
+              { "locale": "rm-CH", "name": "Maletg dal profil" }
+            ]
+          },
+          {
+            "name": "signature_image",
+            "mandatory": true,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Signature image" },
+              { "locale": "de-CH", "name": "Unterschrift" },
+              { "locale": "fr-CH", "name": "Image de signature" },
+              { "locale": "it-CH", "name": "Immagine della firma" },
+              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+            ]
+          }
+        ],
+        "display": [
+          {
+            "name": "Mein Test Aussteller",
+            "locale": "de-CH",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            "name": "My test issuer",
+            "locale": "en-US",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
       }
     },
     "university_example_any_key_attestation_required_sd_jwt": {
@@ -387,6 +662,98 @@
             { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
           ]
         }
+      },
+      "credential_metadata": {
+        "claims": [
+          {
+            "name": "name",
+            "mandatory": true,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Full name" },
+              { "locale": "de-CH", "name": "Vollständiger Name" },
+              { "locale": "fr-CH", "name": "Nom complet" },
+              { "locale": "it-CH", "name": "Nome completo" },
+              { "locale": "rm-CH", "name": "Num cumplet" }
+            ]
+          },
+          {
+            "name": "job_title",
+            "mandatory": false,
+            "value_type": "string",
+            "display": [
+              { "locale": "en-CH", "name": "Job title" },
+              { "locale": "de-CH", "name": "Berufsbezeichnung" },
+              { "locale": "fr-CH", "name": "Intitulé du poste" },
+              { "locale": "it-CH", "name": "Titolo professionale" },
+              { "locale": "rm-CH", "name": "Titgel da professiun" }
+            ]
+          },
+          {
+            "name": "annual_salary",
+            "mandatory": true,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Annual salary" },
+              { "locale": "de-CH", "name": "Jahresgehalt" },
+              { "locale": "fr-CH", "name": "Salaire annuel" },
+              { "locale": "it-CH", "name": "Stipendio annuo" },
+              { "locale": "rm-CH", "name": "Paja annuala" }
+            ]
+          },
+          {
+            "name": "years_of_experience",
+            "mandatory": false,
+            "value_type": "number",
+            "display": [
+              { "locale": "en-CH", "name": "Years of experience" },
+              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
+              { "locale": "fr-CH", "name": "Années d’expérience" },
+              { "locale": "it-CH", "name": "Anni di esperienza" },
+              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+            ]
+          },
+          {
+            "name": "profile_picture",
+            "mandatory": false,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Profile picture" },
+              { "locale": "de-CH", "name": "Profilbild" },
+              { "locale": "fr-CH", "name": "Photo de profil" },
+              { "locale": "it-CH", "name": "Immagine del profilo" },
+              { "locale": "rm-CH", "name": "Maletg dal profil" }
+            ]
+          },
+          {
+            "name": "signature_image",
+            "mandatory": true,
+            "value_type": "image",
+            "display": [
+              { "locale": "en-CH", "name": "Signature image" },
+              { "locale": "de-CH", "name": "Unterschrift" },
+              { "locale": "fr-CH", "name": "Image de signature" },
+              { "locale": "it-CH", "name": "Immagine della firma" },
+              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+            ]
+          }
+        ],
+        "display": [
+          {
+            "name": "Mein Test Aussteller",
+            "locale": "de-CH",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            "name": "My test issuer",
+            "locale": "en-US",
+            "logo": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
       }
     }
   }

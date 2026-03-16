@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
@@ -298,12 +299,12 @@ class VerifierManagementTest extends BaseTest {
         // GIVEN – credential issued to wallet
         final CredentialWithDeeplinkResponse response =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
-        final WalletEntry entry = wallet.collectOffer(SwiyuApiVersionConfig.ID2, toUri(response.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
 
         // GIVEN – verifier initiates verification
         final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
-                .acceptedIssuerDid(entry.getIssuerDid());
+                .acceptedIssuerDid(issuerConfig.getIssuerDid());
 
         if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
             verifierManagerRequest.withUniversity();
@@ -320,8 +321,8 @@ class VerifierManagementTest extends BaseTest {
                 wallet.getVerificationDetailsUnsigned(managementResponse.getVerificationDeeplink());
 
         final String presentation =
-                entry.createPresentationForSdJwt(
-                        entry.getVerifiableCredential(),
+                batchEntry.createPresentationForSdJwtIndex(
+                        0,
                         verificationDetails
                 );
 

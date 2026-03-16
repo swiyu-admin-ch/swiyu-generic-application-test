@@ -42,7 +42,7 @@ public class MockServerClientConfig {
     public static final String ISSUER_CALLBACK_PATH = "/callbacks/issuer";
     @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
     public static final String VERIFIER_CALLBACK_PATH = "/callbacks/issuer";
-    private static final String MOCKSERVER_HOST = "mockserver:1080";
+    public static final String MOCKSERVER_HOST = "mockserver:1080";
     private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
 
     private static final Map<String, String> statusListBitsMap = new HashMap<>();
@@ -62,7 +62,8 @@ public class MockServerClientConfig {
     }
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
-            IssuerConfig issuerConfig) {
+            IssuerConfig issuerConfig,
+            TrustConfig trustConfig) {
 
         final String validFrom = LocalDate.now(ZoneOffset.UTC)
                 .minusDays(7)
@@ -122,12 +123,30 @@ public class MockServerClientConfig {
                     }
                     return response().withStatusCode(202);
                 });
-        mockServerClient.when(request().withMethod("GET").withPath("/api/v1/did/[a-zA-Z0-9-_]+\\/did.jsonl"))
-                .respond(
-                        httpRequest -> response()
+        mockServerClient
+                .when(request()
+                        .withMethod("GET")
+                        .withPath("/api/v1/did/.*/did.jsonl"))
+                .respond(httpRequest -> {
+
+                    String path = httpRequest.getPath().getValue();
+
+                    if (path.contains(extractDidId(issuerConfig.getIssuerDid()))) {
+                        return response()
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
-                                .withBody(issuerConfig.getIssuerDidLog()));
+                                .withBody(issuerConfig.getIssuerDidLog());
+                    }
+
+                    if (path.contains(extractDidId(trustConfig.getTrustDid()))) {
+                        return response()
+                                .withStatusCode(200)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
+                                .withBody(trustConfig.getTrustDidLog());
+                    }
+
+                    return response().withStatusCode(404);
+                });
         mockServerClient.when(request().withMethod("POST").withPath("/openid-connect/token"))
                 .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
@@ -167,7 +186,66 @@ public class MockServerClientConfig {
                     }
                 });
 
+        mockServerClient.when(
+                        request()
+                                .withMethod("GET")
+                                .withPath(".*/api/v1/truststatements/issuance")
+                )
+                .respond(httpRequest -> {
+                    try {
+                        String path = httpRequest.getPath().getValue();
+                        String vct = httpRequest.getFirstQueryStringParameter("vcSchemaId");
+
+                        if (path.startsWith("/trusted/")) {
+                            String trustStatement = generateTrustStatement(vct, issuerConfig, trustConfig);
+
+                            return response()
+                                    .withStatusCode(200)
+                                    .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                    .withBody(OBJECT_MAPPER.writeValueAsString(List.of(trustStatement)));
+                        }
+                        return response()
+                                .withStatusCode(200)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withBody("[]");
+                    } catch (Exception e) {
+                        return response().withStatusCode(500);
+                    }
+                });
+
         return mockServerClient;
+    }
+
+    private String extractDidId(String did) {
+        return did.substring(did.lastIndexOf(":") + 1);
+    }
+
+    private String generateTrustStatement(String vct, IssuerConfig issuerConfig, TrustConfig trustConfig)
+            throws JOSEException {
+
+        final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
+        final JWSSigner signer = new ECDSASigner(trustJwk.toECKey());
+
+        final String issuerDid = issuerConfig.getIssuerDid();
+
+        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .issuer(trustConfig.getTrustDid())
+                .subject(issuerDid)
+                .claim("canIssue", vct)
+                .issueTime(new Date())
+                .expirationTime(new Date(System.currentTimeMillis() + 3600_000))
+                .build();
+
+        final SignedJWT signedJWT = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.ES256)
+                        .keyID(trustConfig.getTrustAssertKeyId())
+                        .type(new JOSEObjectType("vc+sd-jwt"))
+                        .build(),
+                claimsSet);
+
+        signedJWT.sign(signer);
+
+        return signedJWT.serialize() + "~";
     }
 
     private String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)

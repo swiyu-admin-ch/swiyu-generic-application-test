@@ -2,10 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ApplicationTestConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -81,6 +78,8 @@ public class BaseTest {
     protected VerifierImageConfig verifierImageConfig;
     @Autowired
     protected IssuerConfig issuerConfig;
+    @Autowired
+    protected TrustConfig trustConfig;
     @Autowired
     protected GenericContainer<?> issuerContainer;
     @Autowired

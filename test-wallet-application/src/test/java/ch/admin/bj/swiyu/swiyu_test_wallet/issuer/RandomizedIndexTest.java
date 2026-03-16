@@ -67,7 +67,7 @@ class RandomizedIndexTest extends BaseTest {
 
         final CredentialWithDeeplinkResponse singleResponse =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
-        wallet.collectOfferID2(toUri(singleResponse.getOfferDeeplink()));
+        wallet.collectOffer(toUri(singleResponse.getOfferDeeplink()), 1);
         expectedCount += 1;
 
         final int afterSingle = getUsedIndexesFromDb().size();
@@ -76,7 +76,7 @@ class RandomizedIndexTest extends BaseTest {
                 .isEqualTo(expectedCount);
         final CredentialWithDeeplinkResponse batchResponse =
                 issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-        wallet.collectOfferV1(toUri(batchResponse.getOfferDeeplink()));
+        wallet.collectOffer(toUri(batchResponse.getOfferDeeplink()));
         expectedCount += CredentialConfigurationFixtures.BATCH_SIZE;
 
         final List<Integer> allIndexes = getUsedIndexesFromDb();
@@ -118,7 +118,7 @@ class RandomizedIndexTest extends BaseTest {
         Callable<Void> batchJob = () -> {
             CredentialWithDeeplinkResponse response =
                     issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+            wallet.collectOffer(toUri(response.getOfferDeeplink()));
             return null;
         };
 
@@ -173,7 +173,7 @@ class RandomizedIndexTest extends BaseTest {
         Callable<Void> batchJob = () -> {
             CredentialWithDeeplinkResponse response =
                     issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOfferV1(toUri(response.getOfferDeeplink()));
+            wallet.collectOffer(toUri(response.getOfferDeeplink()));
             return null;
         };
 

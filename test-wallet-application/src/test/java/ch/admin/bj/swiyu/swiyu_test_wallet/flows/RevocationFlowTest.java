@@ -63,7 +63,7 @@ public class RevocationFlowTest extends BaseTest {
         // When - Issue credential
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // Then - Verify credential was issued with correct claims
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
@@ -129,7 +129,7 @@ public class RevocationFlowTest extends BaseTest {
         // When - Issue credential
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
                 subjectClaims);
-        final WalletBatchEntry batchEntry = (WalletBatchEntry) wallet.collectOffer(SwiyuApiVersionConfig.V1, toUri(offer.getOfferDeeplink()));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // Then - Verify credential was issued with correct claims
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
