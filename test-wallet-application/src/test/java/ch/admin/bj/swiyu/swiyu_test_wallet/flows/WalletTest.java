@@ -14,6 +14,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.request_object.RequestObjectAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -116,6 +117,8 @@ class WalletTest extends BaseTest {
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            RequestObjectAssert.assertThat(verificationDetails)
+                            .hasState();
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, verifiableCredential);
             // Then
