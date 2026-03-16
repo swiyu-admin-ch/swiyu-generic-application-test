@@ -505,6 +505,10 @@ public class Wallet {
             formData.add(VP_TOKEN, new Gson().toJson(vpToken));
         }
 
+        if (requestObject.getState() != null) {
+            formData.add("state", requestObject.getState());
+        }
+
         final ResponseEntity<String> response = restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
