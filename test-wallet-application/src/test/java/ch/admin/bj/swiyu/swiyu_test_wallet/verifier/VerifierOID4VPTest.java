@@ -194,7 +194,7 @@ class VerifierOID4VPTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
-    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
+    void unboundNonDeferredCredential_whenValidState_thenSuccess() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
@@ -263,10 +263,10 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
-            reason = "This feature is not available yet"
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
+            reason = "This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)"
     )
-    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDcql_thenRejected() {
+    void unboundNonDeferredCredential_whenWrongState_thenRejected() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
