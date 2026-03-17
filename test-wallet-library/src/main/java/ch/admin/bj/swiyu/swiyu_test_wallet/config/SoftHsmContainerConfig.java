@@ -20,8 +20,9 @@ public class SoftHsmContainerConfig {
     public static final String TOKEN_DIR = "/var/lib/softhsm/tokens";
     public static final String TOKEN_VOLUME = "softhsm-tokens";
 
-    private static final String INIT_SCRIPT = """
+    public static final String INIT_SCRIPT = """
         #!/bin/sh
+        echo "INIT_SCRIPT RUN"
         set -eux
 
         : "${HSM_LIBRARY:?HSM_LIBRARY is required}"
@@ -80,7 +81,7 @@ public class SoftHsmContainerConfig {
 
         echo "HSM container initialised successfully"
 
-        sleep infinity
+        /app/entrypoint.sh app.jar
         """;
 
     private static final String DOCKERFILE = """
@@ -111,7 +112,7 @@ public class SoftHsmContainerConfig {
                 .withEnv("HSM_SO_PIN", hsmConfig.getSoPin())
                 .withEnv("HSM_LABEL", hsmConfig.getKeyLabel())
                 .withEnv("HSM_SIGNING_ALGORITHM", hsmConfig.getSigningAlgorithm())
-                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")))
+                //.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")))
                 .withCreateContainerCmdModifier(cmd ->
                         cmd.getHostConfig().withBinds(
                                 new Bind(TOKEN_VOLUME, new Volume(TOKEN_DIR))
