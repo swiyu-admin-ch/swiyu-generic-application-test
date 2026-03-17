@@ -1082,6 +1082,8 @@ components:
       type: object
       description: Request to the Credential Endpoint as defined in OID4VCI 1.0 specification
       properties:
+        format:
+          type: string
         credential_configuration_id:
           type: string
           description: |

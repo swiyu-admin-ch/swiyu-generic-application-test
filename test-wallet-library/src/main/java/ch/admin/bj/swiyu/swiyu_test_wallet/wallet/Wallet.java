@@ -585,6 +585,13 @@ public class Wallet {
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
 
+        try {
+            final String format = walletEntry.getIssuerMetadata().getCredentialConfigurationsSupported().get(walletEntry.getCredentialOffer().getCredentialConfiguraionId()).getFormat();
+            requestDto.format(format);
+        } catch (Exception e) {
+            requestDto.format(null);
+        }
+
         if (this.useEncryption) {
             walletEntry.generateEphemeralEncryptionKey();
 
@@ -611,7 +618,8 @@ public class Wallet {
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
                 .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken);
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
         if (this.useDPoP) {
             final String dPoP = generateDpopForCredentialEndpoint(walletEntry);
