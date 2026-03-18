@@ -87,19 +87,27 @@ public class IssuerContainerConfig {
                     .withEnv("HSM_CONFIG_PATH", "/tmp/pkcs11.cfg")
                     .withEnv("SOFTHSM2_CONF", "/tmp/softhsm2.conf")
                     .withEnv("HSM_TOKEN_DIR", "/tmp/softhsm-tokens")
-                    .withEnv("HSM_LIBRARY", "/usr/lib/softhsm/libsofthsm2.so")
+                    .withEnv("HSM_LIBRARY", "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so")
                     .withEnv("HSM_SO_PIN", "1234")
                     .withEnv("HSM_LABEL", issuerImageConfig.getHsmKeyId())
                     .withEnv("HSM_SIGNING_ALGORITHM", "ES256")
                     .withEnv("STATUS_LIST_KEY", "")
                     .withEnv("SDJWT_KEY", "")
                     .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("softhsm/libs/libsofthsm2.so"),
-                        "/usr/lib/softhsm/libsofthsm2.so"
+                            MountableFile.forClasspathResource("softhsm/libs/libsofthsm2.so", 0755),
+                            "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
                     )
                     .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("softhsm/libs/libsofthsm2.so"),
-                        "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+                            MountableFile.forClasspathResource("softhsm/libs/libopensc.so.8.0.0", 511),
+                            "/lib64/libopensc.so.8"
+                    )
+                    .withCopyFileToContainer(
+                            MountableFile.forClasspathResource("softhsm/bins/pkcs11-tool"),
+                            "/usr/local/bin/pkcs11-tool"
+                    )
+                    .withCopyFileToContainer(
+                            MountableFile.forClasspathResource("softhsm/bins/softhsm2-util"),
+                            "/usr/local/bin/softhsm2-util"
                     )
                     .withCopyFileToContainer(
                         MountableFile.forClasspathResource("softhsm/pkcs11.cfg"),
@@ -108,14 +116,6 @@ public class IssuerContainerConfig {
                     .withCopyFileToContainer(
                         MountableFile.forClasspathResource("softhsm/softhsm2.conf"),
                         "/tmp/softhsm2.conf"
-                    )
-                    .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("softhsm/bins/softhsm2-util"),
-                        "/usr/local/bin/softhsm2-util"
-                    )
-                    .withCopyFileToContainer(
-                            MountableFile.forClasspathResource("softhsm/bins/pkcs11-tool"),
-                            "/usr/local/bin/pkcs11-tool"
                     )
                     .withCopyFileToContainer(
                         MountableFile.forClasspathResource("softhsm/init-hsm.sh"),
