@@ -6,17 +6,10 @@ logging.level.org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 
 application:
   issuer:
-    base-image: "${ISSUER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
-    image-tag: "${ISSUER_IMAGE_TAG:dev}"
+    base-image: "swiyu-issuer"
+    image-tag: "local"
     signed-metadata: true
   verifier:
     base-image: "${VERIFIER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
     image-tag: "${VERIFIER_IMAGE_TAG:dev}"
-  softhsm:
-    token-label: "dev-token"
-    pin: "1234"
-    so-pin: "5678"
-    key-label: "dev-issuer"
-    signing-algorithm: "ES512"
-    network-alias: "softhsm"
   trace: "${TRACE_TEST_REQUESTS:false}"

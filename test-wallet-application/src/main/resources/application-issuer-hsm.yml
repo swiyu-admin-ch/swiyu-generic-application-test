@@ -1,0 +1,4 @@
+application:
+  issuer:
+    surname: "hsm"
+    enable-hsm: true
