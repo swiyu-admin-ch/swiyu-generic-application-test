@@ -26,24 +26,10 @@ else
     echo "==> Token already initialized"
 fi
 
-case "${HSM_SIGNING_ALGORITHM}" in
-  ES256)
-    GROUPNAME="secp256r1"
-    SIGALG="SHA256withECDSA"
-    ;;
-  ES384)
-    GROUPNAME="secp384r1"
-    SIGALG="SHA384withECDSA"
-    ;;
-  ES512)
-    GROUPNAME="secp521r1"
-    SIGALG="SHA512withECDSA"
-    ;;
-  *)
-    GROUPNAME="secp256r1"
-    SIGALG="SHA256withECDSA"
-    ;;
-esac
+# GROUPNAME="secp521r1"
+# SIGALG="SHA512withECDSA"
+GROUPNAME="secp256r1"
+SIGALG="SHA256withECDSA"
 
 if ! command -v keytool >/dev/null 2>&1; then
     echo "ERROR: keytool not found in image."
