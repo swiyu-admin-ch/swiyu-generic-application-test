@@ -6,8 +6,8 @@ logging.level.org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 
 application:
   issuer:
-    base-image: "${ISSUER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
-    image-tag: "${ISSUER_IMAGE_TAG:dev}"
+    base-image: "swiyu-issuer"
+    image-tag: "local"
     signed-metadata: true
   verifier:
     base-image: "${VERIFIER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
