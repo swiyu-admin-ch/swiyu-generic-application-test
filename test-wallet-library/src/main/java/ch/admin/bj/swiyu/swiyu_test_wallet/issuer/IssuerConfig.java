@@ -3,6 +3,8 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 import lombok.Builder;
 import lombok.Data;
 
+import java.security.KeyPair;
+
 @Builder
 @Data
 public class IssuerConfig {
@@ -17,4 +19,6 @@ public class IssuerConfig {
     private String issuerAuthKeyId;
     private String issuerAssertKeyPemString;
     private String issuerAuthKeyPemString;
+
+    private KeyPair keyPair;
 }

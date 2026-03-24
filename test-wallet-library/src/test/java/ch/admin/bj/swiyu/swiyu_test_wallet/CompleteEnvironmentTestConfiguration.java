@@ -10,6 +10,11 @@ import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.createPostgreSQLContainer;
@@ -20,9 +25,46 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 public class CompleteEnvironmentTestConfiguration {
 
     @Bean
-    public IssuerConfig issuerConfig() {
+    public String tokenDirPath() {
+        try {
+            String path = System.getProperty("user.dir") + "/target/softhsm-tokens";
+
+            Path tokenPath = Paths.get(path);
+
+            Files.deleteIfExists(tokenPath);
+            Files.createDirectories(tokenPath);
+
+            try {
+                Files.setPosixFilePermissions(
+                        tokenPath,
+                        PosixFilePermissions.fromString("rwxrwxrwx")
+                );
+            } catch (UnsupportedOperationException e) {
+                java.io.File file = tokenPath.toFile();
+                file.setReadable(true, false);
+                file.setWritable(true, false);
+                file.setExecutable(true, false);
+            }
+
+            return path;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create token directory", e);
+        }
+    }
+
+    @Bean
+    public HSMConfig hsmConfig() {
+        return new HSMConfig();
+    }
+
+    @Bean
+    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath, GenericContainer<?> softHsmContainer) {
         UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createIssueraConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+        return EnvironmentConfig.createIssueraConfig(
+                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
+                issuerImageConfig.isEnableHsm(),
+                issuerImageConfig.isEnableHsm() ? tokenDirPath : null
+        );
     }
 
     @Bean
@@ -47,16 +89,29 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
+    public GenericContainer<?> softHsmContainer(Network network, String tokenDirPath, HSMConfig hsmConfig) {
+
+        var container = HSMContainerConfig.createSoftHsmContainer(network, hsmConfig, tokenDirPath);
+
+        container.start();
+
+        return container;
+    }
+
+    @Bean
     public GenericContainer<?> issuerContainer(Network network,
                                                PostgreSQLContainer<?> dbContainer,
                                                IssuerConfig config,
                                                MockServerContainer mockServer,
-                                               IssuerImageConfig issuerImageConfig) {
+                                               IssuerImageConfig issuerImageConfig,
+                                               GenericContainer<?> softHsmContainer,
+                                               String tokenDirPath) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig);
+        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig, tokenDirPath);
 
+        container.dependsOn(softHsmContainer);
         container.start();
 
         return container;

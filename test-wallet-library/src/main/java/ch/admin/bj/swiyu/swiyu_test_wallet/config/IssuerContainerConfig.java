@@ -17,14 +17,15 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 @UtilityClass
 public class IssuerContainerConfig {
 
-    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    @SuppressWarnings("java:S1452")
     public static GenericContainer<?> createIssuerContainer(
             final Network network,
             final PostgreSQLContainer<?> dbContainer,
             final IssuerConfig config,
             final MockServerContainer mockServer,
             final String imageName,
-            final IssuerImageConfig issuerImageConfig) {
+            final IssuerImageConfig issuerImageConfig,
+            final String tokenDirPath) {
         try (GenericContainer<?> containerBuilder = new GenericContainer<>(imageName)) {
             containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
@@ -102,9 +103,7 @@ public class IssuerContainerConfig {
                         )
                 );
 
-                containerBuilder.withCreateContainerCmdModifier(cmd ->
-                        cmd.withEntrypoint("/bin/bash", HSMConfig.INIT_SCRIPT, "app.jar")
-                );
+                containerBuilder.withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE);
             } else {
                 containerBuilder
                     .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
