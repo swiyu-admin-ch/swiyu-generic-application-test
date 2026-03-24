@@ -20,9 +20,6 @@ public class HsmExportedKeyLoader {
 
     private static final Logger log = LoggerFactory.getLogger(HsmExportedKeyLoader.class);
 
-    /**
-     * Load public key from DER-encoded file exported by pkcs11-tool
-     */
     public static PublicKey loadPublicKeyFromDer(String derFilePath) {
         try {
             byte[] keyBytes = Files.readAllBytes(Paths.get(derFilePath));
@@ -51,52 +48,30 @@ public class HsmExportedKeyLoader {
     }
 
     /**
-     * Load private key from PKCS#8 encoded file (from resources/hsm-keys/)
+     * Load private key from classpath resource (resources/./softhsm/keys/key.pk8)
      */
-    public static PrivateKey loadPrivateKeyFromPkcs8(String pkcs8FilePath) {
-        try {
-            byte[] keyBytes = Files.readAllBytes(Paths.get(pkcs8FilePath));
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-            log.info("Loaded private key from PKCS#8 file: {}", pkcs8FilePath);
-            return privateKey;
-        } catch (Exception e) {
-            log.error("Failed to load private key from PKCS#8 file: {}", pkcs8FilePath, e);
-            return null;
-        }
-    }
-
-    /**
-     * Load private key from classpath resource (resources/hsm-keys/key.pk8)
-     */
-    public static PrivateKey loadPrivateKeyFromResources() {
+    public static PrivateKey loadPrivateKeyFromResources(String tokenDir, String keyType) {
         try {
             ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
 
-            try (InputStream inputStream = classLoader.getResourceAsStream("hsm-keys/key.pk8.pem")) {
-
+            try (InputStream inputStream = classLoader.getResourceAsStream("./softhsm/keys/" + keyType + "-key.pk8" +
+                    ".pem")) {
                 if (inputStream == null) {
-                    log.error("Private key file not found in resources: hsm-keys/key.pk8.pem");
+                    log.error("Private key file not found in resources: ./softhsm/keys/key.pk8.pem");
                     return null;
                 }
-
                 String pem = new String(inputStream.readAllBytes());
-
-                // 🔥 Nettoyage PEM
                 String sanitized = pem
                         .replace("-----BEGIN PRIVATE KEY-----", "")
                         .replace("-----END PRIVATE KEY-----", "")
                         .replaceAll("\\s", "");
-
                 byte[] keyBytes = java.util.Base64.getDecoder().decode(sanitized);
-
                 PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
                 KeyFactory keyFactory = KeyFactory.getInstance("EC");
 
                 PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
 
-                log.info("Loaded private key from PEM: hsm-keys/key.pk8.pem");
+                log.info("Loaded private key from PEM: ./softhsm/keys/key.pk8.pem");
 
                 return privateKey;
             }
@@ -116,17 +91,14 @@ public class HsmExportedKeyLoader {
                 return null;
             }
 
-            String pubKeyFile = keyType.equals("assert") ?
-                    "assert_key_pub.der" : "auth_key_pub.der";
-            String certFile = keyType.equals("assert") ?
-                    "assert_key.crt" : "auth_key.crt";
+            final String pubKeyFile = String.format("%s_key_pub.der", keyType);
+            final String certFile = String.format("%s.crt", keyType);
 
             Path pubKeyPath = exportDir.resolve(pubKeyFile);
             Path certPath = exportDir.resolve(certFile);
 
             PublicKey pubKey = null;
 
-            // Try loading from DER first
             if (Files.exists(pubKeyPath)) {
                 pubKey = loadPublicKeyFromDer(pubKeyPath.toString());
                 log.info("Loaded public key from DER: {}", pubKeyFile);
@@ -142,8 +114,7 @@ public class HsmExportedKeyLoader {
                 return null;
             }
 
-            // Load private key from resources/hsm-keys/key.pk8
-            PrivateKey privKey = loadPrivateKeyFromResources();
+            PrivateKey privKey = loadPrivateKeyFromResources(tokenDir, keyType);
 
             if (privKey == null) {
                 log.warn("Could not load private key from resources, returning public key only");
@@ -155,21 +126,6 @@ public class HsmExportedKeyLoader {
         } catch (Exception e) {
             log.error("Failed to load HSM exported key pair: {}", keyType, e);
             return null;
-        }
-    }
-
-    /**
-     * Check if exported keys are available
-     */
-    public static boolean areExportedKeysAvailable(String tokenDir) {
-        try {
-            Path exportDir = Paths.get(tokenDir, "exported");
-            return Files.exists(exportDir) &&
-                   Files.exists(exportDir.resolve("assert_key_pub.der")) &&
-                   Files.exists(exportDir.resolve("auth_key_pub.der"));
-        } catch (Exception e) {
-            log.error("Error checking for exported keys", e);
-            return false;
         }
     }
 }

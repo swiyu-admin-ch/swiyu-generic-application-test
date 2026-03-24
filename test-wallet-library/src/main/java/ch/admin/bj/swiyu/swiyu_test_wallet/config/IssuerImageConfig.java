@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("application.issuer")
 public class IssuerImageConfig {
 
-    // From application.yml and or env variables
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-issuer";
     private String imageTag = "latest";
 
@@ -33,7 +32,6 @@ public class IssuerImageConfig {
 
     private JwtKeyGenerator jwtKeyGenerator;
 
-    // set dynamically
     private String mockServerUri;
     private String swiyuPartnerId;
     private String issuerServiceUrl;

@@ -44,6 +44,8 @@ public class HSMContainerConfig {
                 .withEnv("SOFTHSM2_CONF", HSMConfig.SOFTHSM_CONF)
                 .withEnv("HSM_TOKEN_DIR", HSMConfig.TOKEN_DIR)
                 .withEnv("HSM_LIBRARY", HSMConfig.LIB_PATH)
+                .withEnv("HSM_CONFIG_PATH", HSMConfig.PKCS11_CFG)
+                .withEnv("KEYS_DIR", HSMConfig.KEYS_DIR)
                 .withEnv("STATUS_LIST_KEY", "")
                 .withEnv("SDJWT_KEY", "");
 
@@ -54,8 +56,8 @@ public class HSMContainerConfig {
                 )
         );
 
-        container.withCopyFileToContainer(MountableFile.forClasspathResource("./hsm-keys", 0755)
-                ,  "/opt/hsm-keys");
+        container.withCopyFileToContainer(MountableFile.forClasspathResource("./softhsm/keys", 0755)
+                ,  "/opt/keys");
 
         container
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")))
@@ -67,21 +69,5 @@ public class HSMContainerConfig {
                 );
 
         return container;
-    }
-
-    public static void cleanDirectory(String pathStr) throws IOException {
-        Path path = Path.of(pathStr);
-        if (Files.exists(path)) {
-            Files.walk(path)
-                    .sorted((a, b) -> b.compareTo(a)) // delete children first
-                    .forEach(p -> {
-                        try {
-                            Files.delete(p);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-        }
-        Files.createDirectories(path);
     }
 }

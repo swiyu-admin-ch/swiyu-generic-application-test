@@ -36,3 +36,6 @@ build/
 /codeql/
 /swiyu-application-test-codeql-db/
 codeql-results.sarif
+
+### SoftHSM ###
+test-wallet-library/src/main/resources/softhsm/keys/*
