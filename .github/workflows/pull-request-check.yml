@@ -53,7 +53,7 @@ jobs:
         with:
           sarif_file: pmd-report.sarif
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: fs
           scan-ref: .
