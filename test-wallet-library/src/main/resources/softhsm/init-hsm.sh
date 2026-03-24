@@ -162,6 +162,7 @@ keytool \
 
 echo "==> Exported key files:"
 ls -la "${EXPORT_DIR}/" || true
+chmod -R 777 "${HSM_TOKEN_DIR}" || true
 
 echo "==> HSM container initialised successfully"
 

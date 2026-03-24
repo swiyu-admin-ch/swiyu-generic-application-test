@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.FileSupport;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +32,7 @@ public class CompleteEnvironmentTestConfiguration {
 
             Path tokenPath = Paths.get(path);
 
-            Files.deleteIfExists(tokenPath);
+            FileSupport.deleteDirectory(tokenPath);
             Files.createDirectories(tokenPath);
 
             try {
