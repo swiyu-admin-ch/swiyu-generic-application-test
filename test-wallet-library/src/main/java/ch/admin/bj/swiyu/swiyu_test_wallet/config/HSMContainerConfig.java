@@ -56,7 +56,7 @@ public class HSMContainerConfig {
                 )
         );
 
-        container.withCopyFileToContainer(MountableFile.forClasspathResource("./softhsm/keys", 0755)
+        container.withCopyFileToContainer(MountableFile.forClasspathResource("softhsm/keys", 0755)
                 ,  "/opt/keys");
 
         container

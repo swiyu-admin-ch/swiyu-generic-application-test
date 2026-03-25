@@ -48,16 +48,16 @@ public class HsmExportedKeyLoader {
     }
 
     /**
-     * Load private key from classpath resource (resources/./softhsm/keys/key.pk8)
+     * Load private key from classpath resource (resources/softhsm/keys/key.pk8)
      */
     public static PrivateKey loadPrivateKeyFromResources(String tokenDir, String keyType) {
         try {
             ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
 
-            try (InputStream inputStream = classLoader.getResourceAsStream("./softhsm/keys/" + keyType + "-key.pk8" +
+            try (InputStream inputStream = classLoader.getResourceAsStream("softhsm/keys/" + keyType + "-key.pk8" +
                     ".pem")) {
                 if (inputStream == null) {
-                    log.error("Private key file not found in resources: ./softhsm/keys/key.pk8.pem");
+                    log.error("Private key file not found in resources: softhsm/keys/key.pk8.pem");
                     return null;
                 }
                 String pem = new String(inputStream.readAllBytes());
@@ -71,7 +71,7 @@ public class HsmExportedKeyLoader {
 
                 PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
 
-                log.info("Loaded private key from PEM: ./softhsm/keys/key.pk8.pem");
+                log.info("Loaded private key from PEM: softhsm/keys/key.pk8.pem");
 
                 return privateKey;
             }
