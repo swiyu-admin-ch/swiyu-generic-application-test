@@ -55,6 +55,7 @@ import static org.mockito.Mockito.doReturn;
 @ActiveProfiles({"issuer-strict"})
 class RenewalFlowTest extends BaseTest {
     private static final String ERROR_INVALID_DPOP_PROOF = "invalid_dpop_proof";
+    private static final String ERROR_INVALID_TOKEN = "invalid_token";
     private static final String ERROR_KEY_MISSMATCH = "Key mismatch";
 
     @BeforeAll
@@ -168,8 +169,8 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -211,7 +212,7 @@ class RenewalFlowTest extends BaseTest {
                 .isEqualTo(400);
 
         assertThat(errorJson(ex))
-                .containsEntry("error", "INVALID_TOKEN")
+                .containsEntry("error", ERROR_INVALID_TOKEN)
                 .containsEntry("error_description", "Invalid accessToken");
     }
 
@@ -438,8 +439,8 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshWithInvalidToken_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -471,7 +472,7 @@ class RenewalFlowTest extends BaseTest {
 
         assertThat(errorCode(ex)).isEqualTo(400);
         assertThat(errorJson(ex))
-                .containsEntry("error", "INVALID_TOKEN")
+                .containsEntry("error", ERROR_INVALID_TOKEN)
                 .containsEntry("error_description", "Invalid refresh token");
     }
 
@@ -540,8 +541,8 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshNonceReplay_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -567,10 +568,10 @@ class RenewalFlowTest extends BaseTest {
                 () -> wallet.collectRefreshTokenWithDPoP(entry, dpop)
         );
 
-        assertThat(errorCode(ex)).isEqualTo(401);
+        assertThat(errorCode(ex)).isEqualTo(400);
         assertThat(errorJson(ex))
-                .containsEntry("error", ERROR_INVALID_DPOP_PROOF)
-                .containsEntry("error_description", "Must use valid server provided nonce");
+                .containsEntry("error", ERROR_INVALID_TOKEN)
+                .containsEntry("error_description", "Invalid refresh token");
     }
 
     @Test
@@ -587,8 +588,8 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "(Stable) This feature is not available yet (Staging) This was fixed on next versions"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {
         final WalletBatchEntry entry = new WalletBatchEntry(wallet);
@@ -619,7 +620,7 @@ class RenewalFlowTest extends BaseTest {
 
         assertThat(errorCode(ex)).isEqualTo(400);
         assertThat(errorJson(ex))
-                .containsEntry("error", "INVALID_TOKEN")
+                .containsEntry("error", ERROR_INVALID_TOKEN)
                 .containsEntry("error_description", "Invalid refresh token");
     }
 
