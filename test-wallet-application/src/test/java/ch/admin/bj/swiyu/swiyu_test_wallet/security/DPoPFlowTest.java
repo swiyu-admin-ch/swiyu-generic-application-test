@@ -100,8 +100,8 @@ class DPoPFlowTest extends BaseTest {
         OAuthToken token = wallet.collectTokenWithDPoP(batchEntry, dpopProofForToken);
         assertThat(token).isNotNull();
         assertThat(token.getAccessToken()).isNotBlank();
-        assertThat(token.getTokenType()).isEqualTo("BEARER");
-        log.info("Issuer responds with access_token (type=BEARER) and ready for batch issuance");
+        assertThat(token.getTokenType()).isEqualTo("DPoP");
+        log.info("Issuer responds with access_token (type=DPoP) and ready for batch issuance");
 
         batchEntry.setToken(token);
         batchEntry.setCNonce(wallet.collectCNonce(batchEntry));
@@ -180,7 +180,7 @@ class DPoPFlowTest extends BaseTest {
         assertThat(initialToken).isNotNull();
         assertThat(initialToken.getAccessToken()).isNotBlank();
         assertThat(initialToken.getRefreshToken()).isNotBlank();
-        assertThat(initialToken.getTokenType()).isEqualTo("BEARER");
+        assertThat(initialToken.getTokenType()).isEqualTo("DPoP");
         log.info("Issuer issues initial token with refresh_token capability");
 
         batchEntry.setToken(initialToken);
