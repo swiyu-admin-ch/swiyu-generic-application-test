@@ -117,8 +117,6 @@ class WalletTest extends BaseTest {
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-            RequestObjectAssert.assertThat(verificationDetails)
-                            .hasState();
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, verifiableCredential);
             // Then

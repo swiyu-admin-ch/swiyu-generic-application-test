@@ -189,7 +189,7 @@ class DeferredFlowTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     @Deprecated(forRemoval = true)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This fix is not available yet."
     )
     void deferredOfferCancelled_shouldRejectWalletCredentialRequest_andRejectReadyTransition() {

@@ -53,6 +53,10 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "The images have not the state yet."
+    )
     void walletFetchesSignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)

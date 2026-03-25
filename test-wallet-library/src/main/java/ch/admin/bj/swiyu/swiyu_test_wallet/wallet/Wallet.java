@@ -323,6 +323,7 @@ public class Wallet {
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue())
                 .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken);
 
