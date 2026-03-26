@@ -10,6 +10,11 @@ export EXPORT_DIR="${HSM_TOKEN_DIR}/exported"
 mkdir -p "${EXPORT_DIR}"
 ls -la "${EXPORT_DIR}/" || true
 
+# As we might have perms issues with the mounted volume, we set the permissions to allow read/write access for all users.
+apply_perms() {
+  chmod -R 777 "${HSM_TOKEN_DIR}" || true
+}
+
 create_token() {
     local token="$1"
 
@@ -21,8 +26,7 @@ create_token() {
         --pin "${HSM_USER_PIN}" \
         --so-pin "${HSM_USER_PIN}"
 
-    # Set permissions for the token directory to allow read/write access for all users
-    chmod -R 777 "${HSM_TOKEN_DIR}" || true
+    apply_perms
 }
 
 import_key() {
@@ -50,6 +54,8 @@ import_key() {
         --type cert \
         --label "${alias}" \
         --id "${alias}"
+
+    apply_perms
 }
 
 export_key() {
@@ -67,6 +73,8 @@ export_key() {
         --type pubkey \
         --read-object \
         -o "${outfile}" || true
+
+    apply_perms
 }
 
 export_cert() {
@@ -84,6 +92,8 @@ export_cert() {
         -exportcert \
         -alias "${alias}" \
         -file "${outfile}" 2>/dev/null || true
+
+    apply_perms
 }
 
 ISSUER_TOKEN="issuer-token"
@@ -102,6 +112,8 @@ export_key "${ISSUER_TOKEN}" "02"
 echo "Exporting certificates"
 export_cert "01"
 export_cert "02"
+
+apply_perms
 
 echo "keytool entries :"
 keytool \
