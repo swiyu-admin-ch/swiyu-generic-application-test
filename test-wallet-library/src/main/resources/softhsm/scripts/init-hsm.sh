@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+# Expand dynamic linker search path with softhsm library
 export LD_LIBRARY_PATH="/usr/lib/softhsm:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
 export GROUPNAME="secp256r1"
 export SIGALG="SHA256withECDSA"
