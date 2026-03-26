@@ -59,24 +59,8 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath) {
-        UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createIssuerConfig(
-                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
-                issuerImageConfig.isEnableHsm(),
-                issuerImageConfig.isEnableHsm() ? tokenDirPath : null
-        );
-    }
-
-    @Bean
     public Network network() {
         return Network.newNetwork();
-    }
-
-    @Bean
-    public TrustConfig trustConfig() {
-        UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
     }
 
     @Bean
@@ -97,6 +81,22 @@ public class CompleteEnvironmentTestConfiguration {
         container.start();
 
         return container;
+    }
+
+    @Bean
+    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath, GenericContainer<?> softHsmContainer) {
+        UUID id = UUID.randomUUID();
+        return EnvironmentConfig.createIssuerConfig(
+                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
+                issuerImageConfig.isEnableHsm(),
+                issuerImageConfig.isEnableHsm() ? tokenDirPath : null
+        );
+    }
+
+    @Bean
+    public TrustConfig trustConfig(GenericContainer<?> softHsmContainer) {
+        UUID id = UUID.randomUUID();
+        return EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
     }
 
     @Bean

@@ -15,6 +15,8 @@ This project starts the Issuer and Verifier services inside containers and inter
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
 - [Custom Profiles](#custom-profiles)
+- [Hardware Security Module (HSM) Integration](#hardware-security-module-hsm-integration)
+- [Local Development and Testing](#local-development-and-testing)
 - [Contributions and feedback](#contributions-and-feedback)
 - [License](#license)
 
@@ -35,9 +37,11 @@ flowchart LR
     subgraph Containerized
         iss[Generic Issuer Service]
         ver[Generic Verifier Service]
+        hsm[SoftHSM Container]
 
         mock[Mock Trust Server]
         db[(PostgreSQL)]
+        tokens[(HSM Token Volume)]
     end
 
     issuer_bus -- HTTP --- iss
@@ -48,6 +52,9 @@ flowchart LR
 
     iss -- HTTP --- mock
     iss --- db
+    iss -- Read Tokens --- tokens
+    hsm -- Generate & Store Tokens --- tokens
+    mock -- Read Private Keys --- tokens
 
     ver -- HTTP --- mock
     ver --- db
@@ -130,6 +137,10 @@ class MyTest extends BaseTest {
     // Your test methods
 }
 ```
+
+## Hardware Security Module (HSM) Integration
+
+This test framework includes HSM integration using **SoftHSM** to simulate a real Hardware Security Module in a containerized test environment. This allows for realistic testing of HSM integration in generic components without requiring physical HSM hardware.
 
 ## Local Development and Testing
 
