@@ -17,7 +17,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 @UtilityClass
 public class IssuerContainerConfig {
 
-    @SuppressWarnings("java:S1452")
+    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
             final Network network,
             final PostgreSQLContainer<?> dbContainer,

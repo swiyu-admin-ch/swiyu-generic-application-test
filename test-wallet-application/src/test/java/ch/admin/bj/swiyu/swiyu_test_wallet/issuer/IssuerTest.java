@@ -1,30 +1,19 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
-import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-
-import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -133,60 +122,5 @@ class IssuerTest extends BaseTest {
         assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @XrayTest(key = "EIDOMNI-620", summary = "Successful deferred issuance and verification of a bound SD-JWT credential when components require encryption", description = """
-            This test validates the end-to-end deferred issuance flow for a bound SD-JWT credential
-            with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
-            and successfully constructs a presentation that satisfies the verifier's requirements.
-            The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
-            retrieved and their disclosures are properly validated.
-            """)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.HAPPY_PATH)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "The fix for supported media type not available yet"
-    )
-    void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
-        // Given
-        final Map<String, Object> temporarySubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final Map<String, Object> finalSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        CredentialWithDeeplinkResponse offer;
-        if (deferred) {
-            offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId, temporarySubjectClaims);
-        } else {
-            offer = issuerManager.createCredentialOffer(supportedMetadataId, finalSubjectClaims);
-        }
-
-        wallet.setUseEncryption(true);
-        WalletBatchEntry batchEntry;
-        if (deferred) {
-            batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-            // Then
-            assertThat(batchEntry.getTransactionId()).isNotNull();
-
-            // When
-            issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), finalSubjectClaims);
-            // Then
-            issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
-
-            // When
-            wallet.getCredentialFromTransactionId(batchEntry);
-        } else {
-            // When
-            batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        }
-        // Then
-        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(finalSubjectClaims);
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
     }
 }

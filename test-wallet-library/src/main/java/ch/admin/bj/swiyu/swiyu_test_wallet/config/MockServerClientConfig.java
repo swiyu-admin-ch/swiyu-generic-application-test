@@ -264,7 +264,6 @@ public class MockServerClientConfig {
     private String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)
             throws JOSEException, ParseException {
 
-        //final JWK jwk = JWK.parseFromPEMEncodedObjects(issuerConfig.getIssuerAssertKeyPemString());
         final JWK jwk = KeyUtil.createJWKFromKeyPair(issuerConfig.getKeyPair());
 
         final JWSSigner signer = new ECDSASigner(jwk.toECKey());
