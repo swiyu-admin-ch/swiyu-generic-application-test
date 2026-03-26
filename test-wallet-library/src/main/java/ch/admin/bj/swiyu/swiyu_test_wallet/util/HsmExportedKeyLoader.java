@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config;
+package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class HsmExportedKeyLoader {
             KeyFactory keyFactory = KeyFactory.getInstance("EC");
             return keyFactory.generatePublic(keySpec);
         } catch (Exception e) {
-            log.error("Failed to load public key from DER file: {}", derFilePath, e);
+            log.error("Failed to load public key from DER file", e);
             return null;
         }
     }
@@ -42,7 +42,7 @@ public class HsmExportedKeyLoader {
                     Files.newInputStream(Paths.get(certFilePath)));
             return cert.getPublicKey();
         } catch (Exception e) {
-            log.error("Failed to load public key from certificate: {}", certFilePath, e);
+            log.error("Failed to load public key from certificate", e);
             return null;
         }
     }
@@ -50,7 +50,7 @@ public class HsmExportedKeyLoader {
     /**
      * Load private key from classpath resource (resources/softhsm/keys/key.pk8)
      */
-    public static PrivateKey loadPrivateKeyFromResources(String tokenDir, String keyType) {
+    public static PrivateKey loadPrivateKeyFromResources(String keyType) {
         try {
             ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
 
@@ -87,7 +87,7 @@ public class HsmExportedKeyLoader {
             Path exportDir = Paths.get(tokenDir, "exported");
 
             if (!Files.exists(exportDir)) {
-                log.warn("Exported keys directory not found: {}", exportDir);
+                log.warn("Exported keys directory not found");
                 return null;
             }
 
@@ -114,7 +114,7 @@ public class HsmExportedKeyLoader {
                 return null;
             }
 
-            PrivateKey privKey = loadPrivateKeyFromResources(tokenDir, keyType);
+            PrivateKey privKey = loadPrivateKeyFromResources(keyType);
 
             if (privKey == null) {
                 log.warn("Could not load private key from resources, returning public key only");

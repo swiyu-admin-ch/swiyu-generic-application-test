@@ -59,7 +59,7 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath, GenericContainer<?> softHsmContainer) {
+    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath) {
         UUID id = UUID.randomUUID();
         return EnvironmentConfig.createIssuerConfig(
                 toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
