@@ -43,10 +43,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class IssuerHSMTest extends BaseTest {
 
     @Test
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
-    )
     void hsmSetupTest() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
