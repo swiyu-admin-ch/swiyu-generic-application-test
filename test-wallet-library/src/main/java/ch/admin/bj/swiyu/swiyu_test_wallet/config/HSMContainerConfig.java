@@ -18,15 +18,14 @@ import java.time.Duration;
 @UtilityClass
 public class HSMContainerConfig {
 
+    public static final String IMAGE_NAME = "eclipse-temurin:21-jre-ubi9-minimal";
 
     public static GenericContainer<?> createSoftHsmContainer(
             final Network network,
             final HSMConfig hsmConfig,
             final String tokenDirPath) {
 
-        var imageName = "bit-base-images-docker-hosted.nexus.bit.admin.ch/bit/eclipse-temurin:21-jre-ubi9-minimal";
-
-        GenericContainer<?> container = new GenericContainer<>(imageName)
+        GenericContainer<?> container = new GenericContainer<>(IMAGE_NAME)
                 .withNetwork(network)
                 .withNetworkAliases(hsmConfig.getNetworkAlias());
 
