@@ -35,7 +35,8 @@ generate_key() {
         -topk8 \
         -nocrypt \
         -in "${KEY_PEM}" \
-        -out "${KEY_PK8}"
+        -out "${KEY_PK8}" \
+        -outform PEM
 
     # Generate self-signed certificate
     echo "→ Generating self-signed certificate"

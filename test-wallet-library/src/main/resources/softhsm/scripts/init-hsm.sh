@@ -3,8 +3,6 @@ set -euo pipefail
 
 # Expand dynamic linker search path with softhsm library
 export LD_LIBRARY_PATH="/usr/lib/softhsm:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
-export GROUPNAME="secp256r1"
-export SIGALG="SHA256withECDSA"
 export EXPORT_DIR="${HSM_TOKEN_DIR}/exported"
 
 # Setup directories
@@ -26,8 +24,6 @@ create_token() {
         --label "${token}" \
         --pin "${HSM_USER_PIN}" \
         --so-pin "${HSM_USER_PIN}"
-
-    apply_perms
 }
 
 import_key() {
@@ -55,8 +51,6 @@ import_key() {
         --type cert \
         --label "${alias}" \
         --id "${alias}"
-
-    apply_perms
 }
 
 export_key() {
@@ -74,8 +68,6 @@ export_key() {
         --type pubkey \
         --read-object \
         -o "${outfile}" || true
-
-    apply_perms
 }
 
 export_cert() {
@@ -91,10 +83,9 @@ export_cert() {
         -providerArg "${HSM_CONFIG_PATH}" \
         -storepass "${HSM_USER_PIN}" \
         -exportcert \
+        -rfc \
         -alias "${alias}" \
         -file "${outfile}" 2>/dev/null || true
-
-    apply_perms
 }
 
 ISSUER_TOKEN="issuer-token"
@@ -134,5 +125,3 @@ pkcs11-tool \
     --list-objects || true
 
 echo "HSM container initialised successfully"
-
-sleep infinity

@@ -1,46 +1,31 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import ch.admin.bj.swiyu.jwssignatureservice.dto.SignatureConfigurationDto;
+import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategy;
+import com.nimbusds.jose.jwk.JWK;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 
+@Slf4j
 public class HsmExportedKeyLoader {
-
-    private static final Logger log = LoggerFactory.getLogger(HsmExportedKeyLoader.class);
-
-    public static PublicKey loadPublicKeyFromDer(String derFilePath) {
-        try {
-            byte[] keyBytes = Files.readAllBytes(Paths.get(derFilePath));
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            return keyFactory.generatePublic(keySpec);
-        } catch (Exception e) {
-            log.error("Failed to load public key from DER file", e);
-            return null;
-        }
-    }
 
     /**
      * Load public key from X.509 certificate file
      */
-    public static PublicKey loadPublicKeyFromCertificate(String certFilePath) {
+    public static PublicKey loadPublicKeyFromCertificate(final String certFilePath) {
         try {
-            CertificateFactory factory = CertificateFactory.getInstance("X.509");
-            X509Certificate cert = (X509Certificate) factory.generateCertificate(
-                    Files.newInputStream(Paths.get(certFilePath)));
-            return cert.getPublicKey();
+            final String pemCert = Files.readString(Paths.get(certFilePath));
+            final JWK jwk = JWK.parseFromPEMEncodedX509Cert(pemCert);
+
+            return jwk.toECKey().toPublicKey();
         } catch (Exception e) {
             log.error("Failed to load public key from certificate", e);
             return null;
@@ -50,28 +35,23 @@ public class HsmExportedKeyLoader {
     /**
      * Load private key from classpath resource (resources/softhsm/keys/key.pk8)
      */
-    public static PrivateKey loadPrivateKeyFromResources(String keyType) {
+    public static PrivateKey loadPrivateKeyFromResources(final String keyId) {
         try {
-            ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
+            final ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
+            final String relativeResourcePath = String.format("softhsm/keys/%s-key.pem", keyId);
 
-            try (InputStream inputStream = classLoader.getResourceAsStream("softhsm/keys/" + keyType + "-key.pk8" +
-                    ".pem")) {
+            try (final InputStream inputStream = classLoader.getResourceAsStream(relativeResourcePath)) {
+
                 if (inputStream == null) {
-                    log.error("Private key file not found in resources: softhsm/keys/key.pk8.pem");
+                    log.error("Private key file not found in resources: {}", relativeResourcePath);
                     return null;
                 }
-                String pem = new String(inputStream.readAllBytes());
-                String sanitized = pem
-                        .replace("-----BEGIN PRIVATE KEY-----", "")
-                        .replace("-----END PRIVATE KEY-----", "")
-                        .replaceAll("\\s", "");
-                byte[] keyBytes = java.util.Base64.getDecoder().decode(sanitized);
-                PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-                KeyFactory keyFactory = KeyFactory.getInstance("EC");
 
-                PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+                final String pem = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                final JWK jwk = JWK.parseFromPEMEncodedObjects(pem);
+                final PrivateKey privateKey = jwk.toECKey().toECPrivateKey();
 
-                log.info("Loaded private key from PEM: softhsm/keys/key.pk8.pem");
+                log.info("Loaded private key from PEM: {}", relativeResourcePath);
 
                 return privateKey;
             }
@@ -82,7 +62,7 @@ public class HsmExportedKeyLoader {
         }
     }
 
-    public static KeyPair loadHsmExportedKeyPair(String tokenDir, String keyType) {
+    public static KeyPair loadHsmExportedKeyPair(String tokenDir, String keyId) {
         try {
             Path exportDir = Paths.get(tokenDir, "exported");
 
@@ -91,30 +71,20 @@ public class HsmExportedKeyLoader {
                 return null;
             }
 
-            final String pubKeyFile = String.format("%s_key_pub.der", keyType);
-            final String certFile = String.format("%s.crt", keyType);
-
-            Path pubKeyPath = exportDir.resolve(pubKeyFile);
-            Path certPath = exportDir.resolve(certFile);
+            final String certFile = String.format("%s.crt", keyId);
+            final Path certPath = exportDir.resolve(certFile);
 
             PublicKey pubKey = null;
-
-            if (Files.exists(pubKeyPath)) {
-                pubKey = loadPublicKeyFromDer(pubKeyPath.toString());
-                log.info("Loaded public key from DER: {}", pubKeyFile);
-            }
-
-            if (pubKey == null && Files.exists(certPath)) {
+            if (Files.exists(certPath)) {
                 pubKey = loadPublicKeyFromCertificate(certPath.toString());
                 log.info("Loaded public key from certificate: {}", certFile);
             }
-
             if (pubKey == null) {
-                log.error("Could not load public key for: {}", keyType);
+                log.error("Could not load public key for: {} ({})", certPath, keyId);
                 return null;
             }
 
-            PrivateKey privKey = loadPrivateKeyFromResources(keyType);
+            final PrivateKey privKey = loadPrivateKeyFromResources(keyId);
 
             if (privKey == null) {
                 log.warn("Could not load private key from resources, returning public key only");
@@ -124,7 +94,7 @@ public class HsmExportedKeyLoader {
             return new KeyPair(pubKey, privKey);
 
         } catch (Exception e) {
-            log.error("Failed to load HSM exported key pair: {}", keyType, e);
+            log.error("Failed to load HSM exported key pair: {}", keyId, e);
             return null;
         }
     }
