@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -773,6 +774,8 @@ class DPoPFlowTest extends BaseTest {
         batchEntry.createProofs();
 
         log.info("Capturing initial holder binding proof JWT strings (containing nonces)");
+        final List<KeyPair> initialHolderKeyPairs = batchEntry.getHolderKeyPairs();
+        final List<ECKey> initialHolderPublicKeys = batchEntry.getHolderPublicKeys();
         final List<JwtProof> initialProofJwts = batchEntry.getProofs();
         assertThat(initialProofJwts)
                 .as("Initial proofs should be generated for batch size")
@@ -804,7 +807,8 @@ class DPoPFlowTest extends BaseTest {
         batchEntry2.setToken(attackerToken);
 
         log.info("Attacker replays captured holder binding proof JWTs");
-        batchEntry2.generateHolderKeys();
+        batchEntry2.setHolderKeyPairs(initialHolderKeyPairs);
+        batchEntry2.setHolderPublicKeys(initialHolderPublicKeys);
         batchEntry2.setProofsFromJwt(initialProofJwts);
 
         assertThat(batchEntry2.getProofs())
@@ -816,13 +820,10 @@ class DPoPFlowTest extends BaseTest {
                 wallet.getVerifiableCredentialFromIssuer(batchEntry2)
         );
 
-        assertThat(errorCode(ex))
-                .as("Issuer must reject credential request with replayed nonces")
-                .isEqualTo(422);
-        assertThat(errorJson(ex))
-                .as("Error should indicate proof validation failure due to nonce replay")
-                .containsEntry("error_description", "Unprocessable Entity")
-                .containsEntry("detail", "proofs.jwt: must not be empty");
+        ApiErrorAssert.assertThat(ex)
+            .hasStatus(400)
+            .hasError("INVALID_PROOF")
+            .hasErrorDescription("Audience claim is missing or incorrect");
     }
 }
 
