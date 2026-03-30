@@ -1,10 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
+import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
@@ -23,23 +21,18 @@ public class JwtProof {
     private KeyPair keyPair;
 
     public String toJwt() {
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+        final ECKey jwk = ECCryptoSupport.toPublicJwk(keyPair.getPublic(), null);
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(new JOSEObjectType("openid4vci-proof+jwt"))
-                .keyID(ECCryptoSupport.createDidJwkKey(keyPair.getPublic(), null))
+                .jwk(jwk.toPublicJWK())
                 .build();
-
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(credentialIssuerURI)
                 .issueTime(new Date())
                 .claim("nonce", cNonce)
                 .build();
-
-        var signedJWT = new SignedJWT(header, claimsSet);
-        try {
-            signedJWT.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
-        } catch (JOSEException e) {
-            throw new IllegalStateException(e);
-        }
+        final JWSSigner signer = ECCryptoSupport.createECDSASigner(keyPair.getPrivate());
+        final SignedJWT signedJWT = JwtUtil.signJwt(claimsSet, header, signer);
 
         return signedJWT.serialize();
     }

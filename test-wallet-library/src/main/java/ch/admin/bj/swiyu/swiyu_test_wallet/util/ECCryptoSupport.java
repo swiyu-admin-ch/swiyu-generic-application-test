@@ -15,7 +15,6 @@ import java.security.PublicKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
-import java.util.Base64;
 
 @UtilityClass
 public class ECCryptoSupport {
@@ -41,17 +40,15 @@ public class ECCryptoSupport {
         }
     }
 
-    public static String createDidJwkKey(PublicKey publicKey, String keyId) {
+    public static ECKey toPublicJwk(final PublicKey publicKey, final String keyId) {
         if (!(publicKey instanceof ECPublicKey)) {
             throw new IllegalArgumentException("Public key must be an instance of ECPublicKey");
         }
-        ECKey.Builder builder = new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey);
-        if (keyId != null)
+        final ECKey.Builder builder = new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey);
+        if (keyId != null) {
             builder.keyID(keyId);
-        ECKey ecJWK = builder
-                .build();
+        }
 
-        var jwkString = ecJWK.toJSONString();
-        return "did:jwk:" + Base64.getUrlEncoder().encodeToString(jwkString.getBytes());
+        return builder.build();
     }
 }

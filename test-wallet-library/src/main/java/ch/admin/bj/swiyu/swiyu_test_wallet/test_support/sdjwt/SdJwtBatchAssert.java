@@ -302,9 +302,9 @@ public final class SdJwtBatchAssert {
                     continue;
                 }
                 final long epoch = exp.toInstant().getEpochSecond();
-                if (epoch % secondsInDay != 0) {
+                if (epoch % secondsInDay != secondsInDay - 1) {
                     throw new AssertionError(
-                            "exp is not rounded to beginning of day (00:00:00 UTC). Value: " + epoch
+                            "exp is not rounded to end of day (23:59:59 UTC). Value: " + epoch
                     );
                 }
             } catch (ParseException e) {
