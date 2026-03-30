@@ -4,10 +4,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.MockServerContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.*;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -27,7 +24,8 @@ public class IssuerContainerConfig {
             final IssuerConfig config,
             final MockServerContainer mockServer,
             final String imageName,
-            final IssuerImageConfig issuerImageConfig) {
+            final IssuerImageConfig issuerImageConfig,
+            final String tokenDirPath) {
         try (GenericContainer<?> containerBuilder = new GenericContainer<>(imageName)) {
             containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
@@ -45,8 +43,6 @@ public class IssuerContainerConfig {
                     .withEnv("SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET", "SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET")
                     .withEnv("SWIYU_STATUS_REGISTRY_ACCESS_TOKEN", "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN")
                     .withEnv("SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN", "SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN")
-                    .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
-                    .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString())
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
@@ -79,6 +75,39 @@ public class IssuerContainerConfig {
             if (issuerImageConfig.isEnableJwtAuth()) {
                 var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
                 containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
+            }
+
+            if (issuerImageConfig.isEnableHsm()) {
+                
+                containerBuilder
+                        .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)
+                        .withEnv("HSM_USER", issuerImageConfig.getHsmUser())
+                        .withEnv("HSM_PASSWORD", issuerImageConfig.getHsmPassword())
+                        .withEnv("HSM_USER_PIN", issuerImageConfig.getHsmUserPin())
+                        .withEnv("HSM_LABEL", issuerImageConfig.getHsmKeyId())
+                        .withEnv("HSM_KEY_ID", issuerImageConfig.getHsmKeyId())
+                        .withEnv("HSM_KEY_PIN", issuerImageConfig.getHsmKeyPin())
+                        .withEnv("HSM_STATUS_KEY_ID", issuerImageConfig.getHsmStatusKeyId())
+                        .withEnv("HSM_STATUS_KEY_PIN", issuerImageConfig.getHsmStatusKeyPin())
+                        .withEnv("HSM_CONFIG_PATH", HSMConfig.PKCS11_CFG)
+                        .withEnv("SOFTHSM2_CONF", HSMConfig.SOFTHSM_CONF)
+                        .withEnv("HSM_TOKEN_DIR", HSMConfig.TOKEN_DIR)
+                        .withEnv("HSM_LIBRARY", HSMConfig.LIB_PATH)
+                        .withEnv("STATUS_LIST_KEY", "")
+                        .withEnv("SDJWT_KEY", "");
+
+                HSMConfig.FILES.forEach(file ->
+                        containerBuilder.withCopyFileToContainer(
+                                MountableFile.forClasspathResource((String) file[0], (int) file[2]),
+                                (String) file[1]
+                        )
+                );
+
+                containerBuilder.withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE);
+            } else {
+                containerBuilder
+                    .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())
+                    .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString());
             }
 
             return containerBuilder;

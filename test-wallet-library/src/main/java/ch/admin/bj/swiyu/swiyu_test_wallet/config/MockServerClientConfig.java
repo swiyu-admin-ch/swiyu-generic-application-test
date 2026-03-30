@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,6 +19,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.Setter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.protocol.HTTP;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.HttpRequest;
@@ -36,6 +38,7 @@ import static org.mockserver.model.HttpResponse.response;
 
 @Getter
 @Setter
+@Slf4j
 public class MockServerClientConfig {
 
     @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
@@ -81,21 +84,24 @@ public class MockServerClientConfig {
                 mockServer.getServerPort());
 
         // Register expectations
-        mockServerClient.when(request()
-                .withMethod("GET")
-                .withPath("/api/v1/statuslist/[a-zA-Z0-9-_]+\\.jwt"))
-                .respond(
-                        httpRequest -> response()
-                                .withHeader(HTTP.CONTENT_TYPE,
-                                        "application/statuslist+jwt")
-                                .withStatusCode(HttpStatusCode.OK_200.code())
-                                .withBody(getStatusListJwt(httpRequest, issuerConfig)));
+        mockServerClient.when(
+                request()
+                    .withMethod("GET")
+                    .withPath("/api/v1/statuslist/[a-zA-Z0-9-_]+\\.jwt"))
+                .respond(httpRequest -> {
+                    log.info("Entered GET expectation for status list retrieval with path: {}", httpRequest.getPath().getValue());
+                    return response()
+                            .withHeader(HTTP.CONTENT_TYPE, "application/statuslist+jwt")
+                            .withStatusCode(HttpStatusCode.OK_200.code())
+                            .withBody(getStatusListJwt(httpRequest, issuerConfig));
+                        });
         mockServerClient.when(
                 request()
                         .withMethod("POST")
                         .withPath("/api/v1/status/business-entities/{businessId}/status-list-entries/")
                         .withPathParameter("businessId", ".*"))
                 .respond(httpRequest -> {
+                    log.info("Entered POST expectation for status list creation with path: {}", httpRequest.getPath().getValue());
                     var id = UUID.randomUUID();
                     var payload = "{\"id\": \"%s\", \"statusRegistryUrl\": \"%s\"}"
                             .formatted(id, STATUSLIST_URI_PATTERN.formatted(id));
@@ -108,6 +114,7 @@ public class MockServerClientConfig {
                 "/api/v1/status/business-entities/{businessId}/status-list-entries/{statusListId}")
                 .withPathParameter("businessId", ".*").withPathParameter("statusListId", ".*"))
                 .respond(httpRequest -> {
+                    log.info("Entered PUT expectation for status list update with path: {}", httpRequest.getPath().getValue());
                     try {
                         final String path = httpRequest.getPath().getValue();
                         final String statusListId = extractStatusListIdFromPath(path);
@@ -223,6 +230,12 @@ public class MockServerClientConfig {
     private String generateTrustStatement(String vct, IssuerConfig issuerConfig, TrustConfig trustConfig)
             throws JOSEException {
 
+        // Vérifier que la clé de confiance est disponible
+        if (trustConfig.getTrustAssertKeyPemString() == null || trustConfig.getTrustAssertKeyPemString().isEmpty()) {
+            log.error("Trust key PEM not available, cannot generate trust statement");
+            throw new JOSEException("Trust key is not available");
+        }
+
         final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
         final JWSSigner signer = new ECDSASigner(trustJwk.toECKey());
 
@@ -251,7 +264,7 @@ public class MockServerClientConfig {
     private String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)
             throws JOSEException, ParseException {
 
-        final JWK jwk = JWK.parseFromPEMEncodedObjects(issuerConfig.getIssuerAssertKeyPemString());
+        final JWK jwk = KeyUtil.createJWKFromKeyPair(issuerConfig.getKeyPair());
 
         final JWSSigner signer = new ECDSASigner(jwk.toECKey());
 

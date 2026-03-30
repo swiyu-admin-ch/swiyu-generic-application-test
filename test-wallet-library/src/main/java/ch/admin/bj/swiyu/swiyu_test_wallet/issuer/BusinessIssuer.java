@@ -15,6 +15,7 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Getter
 @Slf4j
 public class BusinessIssuer {
 

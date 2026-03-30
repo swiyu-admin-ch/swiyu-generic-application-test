@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("application.issuer")
 public class IssuerImageConfig {
 
-    // From application.yml and or env variables
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-issuer";
     private String imageTag = "latest";
 
@@ -21,10 +20,18 @@ public class IssuerImageConfig {
     private boolean signedMetadata = false;
     private boolean enableJwtAuth = false;
     private boolean encryptionEnforce = false;
+    private boolean enableHsm = false;
+
+    private String hsmUser = "admin";
+    private String hsmPassword = "password";
+    private String hsmUserPin = "1234";
+    private String hsmKeyId = "01";
+    private String hsmKeyPin = "1234";
+    private String hsmStatusKeyId = "01";
+    private String hsmStatusKeyPin = "1234";
 
     private JwtKeyGenerator jwtKeyGenerator;
 
-    // set dynamically
     private String mockServerUri;
     private String swiyuPartnerId;
     private String issuerServiceUrl;
