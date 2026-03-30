@@ -136,10 +136,10 @@ public class WalletBatchEntry extends WalletEntry {
         return proofs.stream().map(JwtProof::toJwt).toList();
     }
 
-    public void setProofsFromJwt(List<JwtProof> proofs) {
-        proofs.clear();
+    public void setProofsFromJwt(final List<JwtProof> proofs) {
+        this.proofs.clear();
         for (JwtProof p : proofs) {
-            proofs.add(p);
+            this.proofs.add(p);
         }
     }
 
@@ -176,5 +176,19 @@ public class WalletBatchEntry extends WalletEntry {
         copy.setTransactionId(this.getTransactionId());
 
         return copy;
+    }
+
+    public void setHolderPublicKeys(final List<ECKey> initialHolderPublicKeys) {
+        this.holderPublicKeys.clear();
+        for (final ECKey pub : initialHolderPublicKeys) {
+            this.holderPublicKeys.add(pub);
+        }
+    }
+
+    public void setHolderKeyPairs(final List<KeyPair> initialHolderKeyPairs) {
+        this.holderKeyPairs.clear();
+        for (final KeyPair pair : initialHolderKeyPairs) {
+            this.holderKeyPairs.add(pair);
+        }
     }
 }
