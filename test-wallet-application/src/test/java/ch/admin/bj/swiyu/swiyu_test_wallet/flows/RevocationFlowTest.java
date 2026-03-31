@@ -1,8 +1,10 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.flows;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
+import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
@@ -14,7 +16,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
@@ -24,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.List;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -181,5 +186,95 @@ public class RevocationFlowTest extends BaseTest {
 
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-826",
+            summary = "During revokation, error event callback should be trigger if the status list throw an error",
+            description = """
+                    This test validates that when a status list update fails during revocation, the issuer correctly 
+                    handles the error without completing the revocation process. It ensures that the expected error 
+                    response is returned and that a specific error webhook callback is sent instead of a successful 
+                    revocation callback. Finally, it verifies that the credential remains valid and can still be 
+                    successfully verified.
+                    """)
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This fix is not available on other image tags"
+    )
+    void errorEventCallback_whenRevokeStatusListFailed_thenVCRemainsValidAndErrorCallbackSent() {
+        // Given
+        cleanIssuerCallbacks();
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+
+        // When
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        // Then
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+
+        // Given
+        mockServerClientConfig.enableStatusListError();
+
+        // When
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
+            issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+        });
+
+        // Then - Update should contains error
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .containsDetail("Transition failed for GenericMessage")
+                .containsDetail("payload=REVOKE");
+
+        // Then - Callbacks should contains status list failed
+        awaitStableIssuerCallbacks();
+        WebhookCallbackAssert.assertThat(issuerCallbacks())
+                .hasSizeEventually(4)
+                .hasLastCallbacksInOrder(List.of(
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.IN_PROGRESS.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.ISSUED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getManagementId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.ISSUED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
+                        new WebhookCallback()
+                                .subjectId(offer.getManagementId())
+                                .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
+                                .event("STATUS_LIST_UPDATE_FAILED")
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
+                ));
+
+        // Then - VC should still be valid
+        final ManagementResponse verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .createManagementResponse();
+        final RequestObject verificationDetails = wallet
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+
+        wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+                batchEntry.getVerifiableCredential(0));
+
+        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 }

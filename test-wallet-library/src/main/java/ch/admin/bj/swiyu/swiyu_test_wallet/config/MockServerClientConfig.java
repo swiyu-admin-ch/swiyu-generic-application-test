@@ -52,6 +52,7 @@ public class MockServerClientConfig {
     private String currentStatusList = "";
 
     private final List<WebhookCallback> receivedIssuerCallbacks = new CopyOnWriteArrayList<>();
+    private boolean throwStatusListError = false;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules() // JavaTimeModule, etc.
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
@@ -62,6 +63,16 @@ public class MockServerClientConfig {
 
     public void clearIssuerCallbacks() {
         receivedIssuerCallbacks.clear();
+    }
+
+    public void enableStatusListError() {
+        this.throwStatusListError = true;
+        log.debug("Status list error mode ENABLED - subsequent PUT requests will fail");
+    }
+
+    public void disableStatusListError() {
+        this.throwStatusListError = false;
+        log.debug("Status list error mode DISABLED");
     }
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
@@ -115,6 +126,15 @@ public class MockServerClientConfig {
                 .withPathParameter("businessId", ".*").withPathParameter("statusListId", ".*"))
                 .respond(httpRequest -> {
                     log.info("Entered PUT expectation for status list update with path: {}", httpRequest.getPath().getValue());
+
+                    if (throwStatusListError) {
+                        log.debug("Status list error mode enabled - returning 500 error");
+                        return response()
+                                .withStatusCode(500)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withBody("{\"error\": \"Internal server error - status list update failed\"}");
+                    }
+
                     try {
                         final String path = httpRequest.getPath().getValue();
                         final String statusListId = extractStatusListIdFromPath(path);
