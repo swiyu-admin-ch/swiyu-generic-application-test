@@ -27,11 +27,13 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.List;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
@@ -186,6 +188,94 @@ public class RevocationFlowTest extends BaseTest {
 
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-825",
+            summary = "During revokation, error event callback should be trigger if the database throw an error",
+            description = """
+                    This test validates that when a database event fails during revocation, the issuer correctly 
+                    handles the error without completing the revocation process. It ensures that the expected error 
+                    response is returned and that a specific error webhook callback is sent instead of a successful 
+                    revocation callback. Finally, it verifies that the credential remains valid and can still be 
+                    successfully verified.
+                    """)
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This fix is not available on other image tags"
+    )
+    void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
+        // Given
+        cleanIssuerCallbacks();
+        final String blockingTable = "swiyu_issuer_default.credential_management";
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+
+        // When
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        // Then
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+
+        // Given
+        blockTable(blockingTable);
+
+        // When
+        final HttpServerErrorException ex = assertThrows(HttpServerErrorException.class, () -> {
+            issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+        });
+        assertThat(ex.getStatusCode().value()).isEqualTo(500);
+
+        unblockTable(blockingTable);
+
+        // Then - Callbacks should contains status list failed
+        awaitStableIssuerCallbacks();
+        WebhookCallbackAssert.assertThat(issuerCallbacks())
+                .hasSizeEventually(4)
+                .hasLastCallbacksInOrder(List.of(
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.IN_PROGRESS.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getOfferId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.ISSUED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                        new WebhookCallback()
+                                .subjectId(offer.getManagementId())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.ISSUED.getValue())
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
+                        new WebhookCallback()
+                                .subjectId(offer.getManagementId())
+                                .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
+                                .event("STATUS_LIST_UPDATE_FAILED")
+                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
+                ));
+
+        // Then - VC should still be valid
+        final ManagementResponse verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .createManagementResponse();
+        final RequestObject verificationDetails = wallet
+                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+
+        wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+                batchEntry.getVerifiableCredential(0));
+
+        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
     @Test
