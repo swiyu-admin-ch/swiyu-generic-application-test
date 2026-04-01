@@ -33,6 +33,7 @@ import java.security.PrivateKey;
 import java.security.spec.ECGenParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.HashMap;
@@ -325,5 +326,23 @@ public class BaseTest {
     @SuppressWarnings("unchecked")
     public static int errorCode(HttpClientErrorException ex) {
         return ex.getStatusCode().value();
+    }
+
+    protected void blockTable(String tableName) {
+        try {
+            stmt.execute("ALTER TABLE " + tableName +
+                    " ADD CONSTRAINT test_block_table CHECK (false) NOT VALID");
+        } catch (SQLException e) {
+            throw new RuntimeException(String.format("The blocking of the table %s failed.", tableName), e);
+        }
+    }
+
+    protected void unblockTable(String tableName) {
+        try {
+            stmt.execute("ALTER TABLE " + tableName +
+                    " DROP CONSTRAINT IF EXISTS test_block_table");
+        } catch (SQLException e) {
+            throw new RuntimeException(String.format("The unblocking of the table %s failed.", tableName), e);
+        }
     }
 }
