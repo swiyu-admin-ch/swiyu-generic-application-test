@@ -87,16 +87,18 @@ public class IssuerCallbacksTest extends BaseTest {
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.IN_PROGRESS.getValue())
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer1.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer1.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
+                        List.of(
+                            new WebhookCallback()
+                                    .subjectId(offer1.getOfferId())
+                                    .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                    .event(CredentialStatusType.ISSUED.getValue())
+                                    .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                            new WebhookCallback()
+                                    .subjectId(offer1.getManagementId())
+                                    .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                    .event(CredentialStatusType.ISSUED.getValue())
+                                    .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
+                        ),
                         new WebhookCallback()
                                 .subjectId(offer1.getManagementId())
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)

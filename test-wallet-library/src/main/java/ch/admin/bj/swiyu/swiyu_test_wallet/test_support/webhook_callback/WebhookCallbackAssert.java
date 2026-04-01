@@ -6,8 +6,8 @@ import org.assertj.core.api.Assertions;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public final class WebhookCallbackAssert {
@@ -66,25 +66,80 @@ public final class WebhookCallbackAssert {
         return this;
     }
 
-    public WebhookCallbackAssert hasLastCallbacksInOrder(List<WebhookCallback> expected) {
+    /**
+     * Validates callbacks with support for groups that can appear in any order within the group.
+     * For example: [A, B, (C, D), E, F] means A, then B, then either (C,D) or (D,C), then E, then F.
+     *
+     * @param expectedGroups A list where each element is either:
+     *                       - A single WebhookCallback (strict order)
+     *                       - A List<WebhookCallback> (flexible order within group)
+     */
+    public WebhookCallbackAssert hasLastCallbacksInOrder(List<?> expectedGroups) {
         final int actualSize = callbacks.size();
-        final int expectedSize = expected.size();
+
+        int totalExpected = 0;
+        for (Object group : expectedGroups) {
+            if (group instanceof WebhookCallback) {
+                totalExpected++;
+            } else if (group instanceof List<?>) {
+                totalExpected += ((List<?>) group).size();
+            }
+        }
+
         Assertions.assertThat(actualSize)
                 .as("Actual callback list size (%s) must be >= expected size (%s)",
-                        actualSize, expectedSize)
-                .isGreaterThanOrEqualTo(expectedSize);
+                        actualSize, totalExpected)
+                .isGreaterThanOrEqualTo(totalExpected);
 
-        final int offset = actualSize - expectedSize;
-        for (int i = 0; i < expectedSize; i++) {
-            final WebhookCallback actualCb = callbacks.get(offset + i);
-            final WebhookCallback expectedCb = expected.get(i);
-            Assertions.assertThat(actualCb)
-                    .as("Callback mismatch at relative index %s (actual index %s)", i, offset + i)
-                    .usingRecursiveComparison()
-                    .ignoringFields("timestamp")
-                    .isEqualTo(expectedCb);
+        final int offset = actualSize - totalExpected;
+        int currentIndex = offset;
+
+        for (Object group : expectedGroups) {
+            if (group instanceof WebhookCallback) {
+                final WebhookCallback actualCb = callbacks.get(currentIndex);
+                final WebhookCallback expectedCb = (WebhookCallback) group;
+
+                Assertions.assertThat(actualCb)
+                        .as("Callback mismatch at index %d", currentIndex)
+                        .usingRecursiveComparison()
+                        .ignoringFields("timestamp")
+                        .isEqualTo(expectedCb);
+
+                currentIndex++;
+            } else if (group instanceof List<?>) {
+                @SuppressWarnings("unchecked")
+                List<WebhookCallback> expectedCallbacks = (List<WebhookCallback>) group;
+                int groupSize = expectedCallbacks.size();
+
+                List<WebhookCallback> actualGroup = callbacks.subList(currentIndex, currentIndex + groupSize);
+                for (WebhookCallback expected : expectedCallbacks) {
+                    boolean found = actualGroup.stream()
+                            .anyMatch(actual -> compareCallbacks(actual, expected));
+
+                    Assertions.assertThat(found)
+                            .as("Expected callback not found in group at index %d: %s", currentIndex, expected)
+                            .isTrue();
+                }
+
+                currentIndex += groupSize;
+            }
         }
 
         return this;
+    }
+
+    /**
+     * Compares two callbacks, ignoring the timestamp field.
+     */
+    private boolean compareCallbacks(WebhookCallback actual, WebhookCallback expected) {
+        try {
+            Assertions.assertThat(actual)
+                    .usingRecursiveComparison()
+                    .ignoringFields("timestamp")
+                    .isEqualTo(expected);
+            return true;
+        } catch (AssertionError e) {
+            return false;
+        }
     }
 }
