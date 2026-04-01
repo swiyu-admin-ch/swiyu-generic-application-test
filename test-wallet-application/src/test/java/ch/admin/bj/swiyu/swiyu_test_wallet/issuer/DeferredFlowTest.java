@@ -249,13 +249,13 @@ class DeferredFlowTest extends BaseTest {
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.DEFERRED.getValue())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_DEFERRED)
+                                .event(CredentialOfferStatusType.DEFERRED.getValue())
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_DEFERRED)
-                                .event(CredentialOfferStatusType.DEFERRED.getValue())
+                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                .event(CredentialStatusType.DEFERRED.getValue())
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
                         new WebhookCallback()
                                 .subjectId(offer.getOfferId())
