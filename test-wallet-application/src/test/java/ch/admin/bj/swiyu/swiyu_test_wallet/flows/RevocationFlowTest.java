@@ -320,6 +320,8 @@ public class RevocationFlowTest extends BaseTest {
             issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
         });
 
+        mockServerClientConfig.disableStatusListError();
+
         // Then - Update should contains error
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
