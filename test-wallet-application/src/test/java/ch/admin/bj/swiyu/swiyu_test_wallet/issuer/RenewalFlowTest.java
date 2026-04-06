@@ -177,7 +177,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void completeRenewalFlow_whenDeferredOffer_thenAccepted() {
