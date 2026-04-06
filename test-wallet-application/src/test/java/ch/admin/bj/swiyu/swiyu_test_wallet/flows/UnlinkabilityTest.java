@@ -70,8 +70,8 @@ public class UnlinkabilityTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "Renewal flow not available on (stable). This rounded iat is not available yet. (rc)"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Renewal flow not available on (stable). This rounded iat is not available yet. (rc, staging)"
     )
     public void shouldEnsureUnlinkabilityAcrossBatchIssuanceAndRenewals() {
         wallet.setUseEncryption(true);
