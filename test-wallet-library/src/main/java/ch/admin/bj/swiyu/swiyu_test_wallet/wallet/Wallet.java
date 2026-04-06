@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
+import ch.admin.bj.swiyu.dpop.DpopHashUtil;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
@@ -52,9 +53,11 @@ public class Wallet {
     public static final String GRANT_TYPE = "grant_type";
     public static final String CREDENTIAL = "credential";
     public static final String CREDENTIALS = "credentials";
+    public static final String TRANSACTION_ID = "transaction_id";
     public static final String SWIYU_API_VERSION_HEADER = "SWIYU-API-Version";
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String VP_TOKEN = "vp_token";
+    public static final String DPOP = "DPoP";
 
     private final RestClient restClient;
     private final ServiceLocationContext issuerContext;
@@ -115,9 +118,12 @@ public class Wallet {
                 """).toString();
     }
 
-    public WalletBatchEntry collectTransactionIdFromDeferredOffer(URI issuerDeepLink) {
-        var walletBatchEntry = createWalletBatchEntry();
+    public WalletBatchEntry collectTransactionIdFromDeferredOffer(final URI issuerDeepLink) {
+        final WalletBatchEntry walletBatchEntry = createWalletBatchEntry();
+        return collectTransactionIdFromDeferredOffer(walletBatchEntry, issuerDeepLink);
+    }
 
+    public WalletBatchEntry collectTransactionIdFromDeferredOffer(final WalletBatchEntry walletBatchEntry, final URI issuerDeepLink) {
         walletBatchEntry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(issuerDeepLink));
         walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
@@ -142,7 +148,7 @@ public class Wallet {
         assertThat(deferredCredentialTransactionIdResponse)
                 .isNotNull();
 
-        var transactionIdNode = deferredCredentialTransactionIdResponse.getBody().get("transaction_id");
+        var transactionIdNode = deferredCredentialTransactionIdResponse.getBody().get(TRANSACTION_ID);
         assertThat(transactionIdNode).isNotNull();
         var transactionId = transactionIdNode.getAsString();
         assertThat(transactionId).isNotNull();
@@ -317,8 +323,14 @@ public class Wallet {
         String bearerToken = token.getAccessToken();
 
         String doPProofForCredentialRequest = null;
-        if (token.getTokenType() != null && token.getTokenType().equals("DPoP")) {
-            doPProofForCredentialRequest = createDoPProofForCredentialRequest(walletEntry, deferredCredentialUri);
+        if (DPOP.equals(token.getTokenType())) {
+            doPProofForCredentialRequest = DPoPSupport.createDpopProofForToken(
+                    deferredCredentialUri.toString(),
+                    collectDPoPNonce(walletEntry),
+                    dpopKeyPair,
+                    dpopPublicKey,
+                    token.getAccessToken()
+            );
         }
 
         var requestBuilder = restClient.post()
@@ -328,7 +340,7 @@ public class Wallet {
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken);
 
         if (doPProofForCredentialRequest != null) {
-            requestBuilder = requestBuilder.header("DPoP", doPProofForCredentialRequest);
+            requestBuilder = requestBuilder.header(DPOP, doPProofForCredentialRequest);
         }
 
         final ResponseEntity<String> response = requestBuilder
@@ -358,6 +370,11 @@ public class Wallet {
                 final String credential = c.getAsJsonObject().get(CREDENTIAL).getAsString();
                 walletEntry.addIssuedCredential(credential);
             });
+        }
+
+        if (credentialResponse.has(TRANSACTION_ID)) {
+            final String transactionIdRaw = credentialResponse.get(TRANSACTION_ID).getAsString();
+            walletEntry.setTransactionId(UUID.fromString(transactionIdRaw));
         }
 
         final CredentialResponse completeCredentialResponse = new CredentialResponse(responseCode, credentialResponse, rawResponse);
@@ -624,7 +641,7 @@ public class Wallet {
 
         if (this.useDPoP) {
             final String dPoP = generateDpopForCredentialEndpoint(walletEntry);
-            requestBuilder = requestBuilder.header("DPoP", dPoP);
+            requestBuilder = requestBuilder.header(DPOP, dPoP);
         }
 
         final ResponseEntity<String> response = requestBuilder
@@ -660,6 +677,11 @@ public class Wallet {
             });
         }
 
+        if (credentialResponse.has(TRANSACTION_ID)) {
+            final String transactionIdRaw = credentialResponse.get(TRANSACTION_ID).getAsString();
+            walletEntry.setTransactionId(UUID.fromString(transactionIdRaw));
+        }
+
         final CredentialResponse completeCredentialResponse = new CredentialResponse(responseCode, credentialResponse, rawResponse);
 
         walletEntry.setCredentialResponse(completeCredentialResponse);
@@ -683,7 +705,7 @@ public class Wallet {
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .header("DPoP", doPProof)
+                .header(DPOP, doPProof)
                 .body(params)
                 .retrieve()
                 .toEntity(OAuthToken.class);
@@ -702,7 +724,7 @@ public class Wallet {
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .header("DPoP", doPProof)
+                .header(DPOP, doPProof)
                 .body(params)
                 .retrieve()
                 .toEntity(OAuthToken.class);
@@ -724,60 +746,13 @@ public class Wallet {
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .header("DPoP", doPProof)
+                .header(DPOP, doPProof)
                 .body(params)
                 .retrieve()
                 .toEntity(OAuthToken.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
-    }
-
-    private String createDoPProofForCredentialRequest(WalletEntry walletEntry, URI credentialUri) {
-        try {
-            String nonce = collectDPoPNonce(walletEntry);
-
-            String accessToken = walletEntry.getToken().getAccessToken();
-
-            String uri = credentialUri.toString();
-
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("openid4vci-proof+jwt"))
-                    .jwk(walletEntry.getProofPublicJwk())
-                    .build();
-
-            String issuerIdentifier = walletEntry.getIssuerMetadata().getCredentialIssuer();
-
-            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .audience(issuerIdentifier)
-                    .claim("htm", "POST")
-                    .claim("htu", uri)
-                    .issueTime(new Date())
-                    .jwtID(UUID.randomUUID().toString())
-                    .claim("nonce", nonce);
-
-            if (accessToken != null) {
-                claimsBuilder.claim("ath", hashAccessToken(accessToken));
-            }
-
-            JWTClaimsSet claims = claimsBuilder.build();
-
-            SignedJWT signedJWT = new SignedJWT(header, claims);
-            signedJWT.sign(new ECDSASigner((ECPrivateKey) walletEntry.getKeyPair().getPrivate()));
-            return signedJWT.serialize();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create DPoP proof for credential request", e);
-        }
-    }
-
-    private String hashAccessToken(String accessToken) {
-        try {
-            var digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(accessToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
-        }
     }
 
     public void postCredentialRequestWithCustomDPoP(WalletBatchEntry batchEntry, String customDpopProof, URI credentialUri) {
@@ -802,7 +777,7 @@ public class Wallet {
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken);
 
         if (customDpopProof != null) {
-            requestBuilder = requestBuilder.header("DPoP", customDpopProof);
+            requestBuilder = requestBuilder.header(DPOP, customDpopProof);
         }
 
         final ResponseEntity<String> response = requestBuilder

@@ -338,21 +338,23 @@ public class RevocationFlowTest extends BaseTest {
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.IN_PROGRESS.getValue())
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                        List.of(
+                            new WebhookCallback()
+                                    .subjectId(offer.getOfferId())
+                                    .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                    .event(CredentialStatusType.ISSUED.getValue())
+                                    .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
+                            new WebhookCallback()
+                                    .subjectId(offer.getManagementId())
+                                    .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
+                                    .event(CredentialStatusType.ISSUED.getValue())
+                                    .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
+                        ),
                         new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.ISSUED.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT),
-                        new WebhookCallback()
-                                .subjectId(offer.getManagementId())
-                                .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
-                                .event("STATUS_LIST_UPDATE_FAILED")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
+                            .subjectId(offer.getManagementId())
+                            .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
+                            .event("STATUS_LIST_UPDATE_FAILED")
+                            .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
                 ));
 
         // Then - VC should still be valid

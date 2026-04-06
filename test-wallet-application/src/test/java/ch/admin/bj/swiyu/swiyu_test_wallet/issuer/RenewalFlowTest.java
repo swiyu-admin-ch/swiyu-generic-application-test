@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -63,10 +64,11 @@ class RenewalFlowTest extends BaseTest {
         wallet.setUseDPoP(true);
     }
 
-    private CredentialWithDeeplinkResponse initializeCredentials(WalletBatchEntry entry) {
+    private CredentialWithDeeplinkResponse initializeCredentials(WalletBatchEntry entry, final boolean deferred) {
         wallet.setUseDPoP(true);
         final CredentialWithDeeplinkResponse offer =
-                issuerManager.createCredentialWithSignedJwt(jwtKey, keyId, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+                issuerManager.createCredentialWithSignedJwt(jwtKey, keyId,
+                        CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, deferred);
 
         entry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         entry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(entry));
@@ -84,25 +86,32 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs();
 
+        if (deferred) {
+            wallet.postCredentialRequest(entry);
+        } else {
+            final var credentialResponseRenewal = wallet.postCredentialRequest(entry);
+            assertThat(credentialResponseRenewal).isNotNull();
+            final List<String> batch1 = entry.getIssuedCredentials();
 
-        final var credentialResponseRenewal = wallet.postCredentialRequest(entry);
-        assertThat(credentialResponseRenewal).isNotNull();
-        final List<String> batch1 = entry.getIssuedCredentials();
+            for (int i = 0; i < batch1.size(); i++) {
+                final String deepLink = verifierManager.verificationRequest()
+                        .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                        .withUniversityDCQL()
+                        .create();
 
-        for (int i = 0; i < batch1.size(); i++) {
-            final String deepLink = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL()
-                    .create();
+                final RequestObject details = wallet.getVerificationDetailsUnsigned(deepLink);
+                final String presentation = entry.createPresentationForSdJwtIndex(i, details);
 
-            final RequestObject details = wallet.getVerificationDetailsUnsigned(deepLink);
-            final String presentation = entry.createPresentationForSdJwtIndex(i, details);
-
-            wallet.respondToVerificationV1(details, presentation);
-            verifierManager.verifyState();
+                wallet.respondToVerificationV1(details, presentation);
+                verifierManager.verifyState();
+            }
         }
 
         return offer;
+    }
+
+    private CredentialWithDeeplinkResponse initializeCredentials(WalletBatchEntry entry) {
+        return initializeCredentials(entry, false);
     }
 
     @Test
@@ -154,6 +163,64 @@ class RenewalFlowTest extends BaseTest {
                 .doesNotHaveDuplicates();
     }
 
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-745",
+            summary = "Refresh token and renewal flow on deferred offer",
+            description = """
+                    This test validates the complete renewal flow where a wallet successfully obtains
+                    initial credentials on a deferred offer and then renews the batch by refreshing the token and issuing
+                    a second batch of credentials using the DPoP-bound refresh token mechanism.
+                    """
+    )
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I2)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE},
+            reason = "This feature is not available yet"
+    )
+    void completeRenewalFlow_whenDeferredOffer_thenAccepted() {
+        wallet.setUseDPoP(true);
+
+        final WalletBatchEntry entry = new WalletBatchEntry(wallet);
+
+        log.info("Create initial credentials");
+        var aa = initializeCredentials(entry, true);
+
+        log.info("Retrieve a refresh token");
+        String nonce = wallet.collectCNonce(entry);
+        String dpop = DPoPSupport.createDpopProofForToken(
+                entry.getIssuerTokenUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
+                entry.getToken().getRefreshToken());
+        final OAuthToken token = wallet.collectRefreshTokenWithDPoP(entry, dpop);
+        entry.setToken(token);
+        entry.setCNonce(wallet.collectCNonce(entry));
+
+        log.info("Generate proofs with a fresh nonce");
+        entry.generateHolderKeys();
+        entry.createProofs();
+
+        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, aa.getManagementId(),
+                UpdateCredentialStatusRequestType.READY);
+
+        wallet.getCredentialFromTransactionId(entry);
+
+        assertThat(entry.getIssuedCredentials())
+                .as("All credentials have been issued")
+                .isNotNull()
+                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 1)
+                .as("All credential JWTs must be unique")
+                .doesNotHaveDuplicates();
+
+        wallet.renewedCredentials(entry);
+        assertThat(entry.getIssuedCredentials())
+                .as("All credentials have been issued")
+                .isNotNull()
+                .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2)
+                .as("All credential JWTs must be unique")
+                .doesNotHaveDuplicates();
+    }
 
     @Test
     @XrayTest(
