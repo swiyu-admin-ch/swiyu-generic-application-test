@@ -20,7 +20,7 @@
         <java.version>21</java.version>
         <!-- Dependency Versions -->
         <gson.version>2.13.2</gson.version>
-        <nimbus-jose-jwt.version>10.8</nimbus-jose-jwt.version>
+        <nimbus-jose-jwt.version>10.9</nimbus-jose-jwt.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
         <bitcoinj-core.version>0.17</bitcoinj-core.version>
