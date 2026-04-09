@@ -110,18 +110,24 @@ public class VerifierManager {
         }
 
         public VerificationRequestBuilder withDCQL() {
+            final List<DcqlClaimDto> claims = List.of(
+                new DcqlClaimDto()
+                    .path(List.of("name"))
+                    .id(null)
+                    .values(null)
+                );
+            return this.withDCQL(claims);
+        }
+
+        public VerificationRequestBuilder withDCQL(final List<DcqlClaimDto> claims) {
             DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
                     .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
                     .typeValues(null);
-            DcqlClaimDto claim = new DcqlClaimDto()
-                    .path(List.of("name"))
-                    .id(null)
-                    .values(null);
             DcqlCredentialDto credential = new DcqlCredentialDto()
                     .id("VerifiableCredential")
                     .format("vc+sd-jwt")
                     .meta(meta)
-                    .claims(List.of(claim))
+                    .claims(claims)
                     .claimSets(null)
                     .requireCryptographicHolderBinding(true);
 
@@ -172,13 +178,17 @@ public class VerifierManager {
         return (Map<String, Object>) actuatorApi.health();
     }
 
-    public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status) {
+    public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status, final String assertMessage) {
 
         managementResponse = managementApi.getVerification(verificationId);
 
-        assertThat(managementResponse.getState()).isEqualTo(status);
+        assertThat(managementResponse.getState()).as(assertMessage).isEqualTo(status);
 
         return managementResponse;
+    }
+
+    public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status) {
+        return verifyState(verificationId, status, null);
     }
 
     public ManagementResponse verifyState(final VerificationStatus status) {

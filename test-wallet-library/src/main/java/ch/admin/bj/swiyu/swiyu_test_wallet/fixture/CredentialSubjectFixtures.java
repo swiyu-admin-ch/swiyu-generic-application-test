@@ -3,8 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.fixture;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CredentialSubjectFixtures {
@@ -26,6 +25,20 @@ public final class CredentialSubjectFixtures {
 
     public static final String IMAGE_OPTIONAL_CLAIM_KEY = "profile_picture";
     public static final String IMAGE_OPTIONAL_DEFAULT_VALUE = "data:image/png;base64,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";
+
+        public static final String ARRAY_MANDATORY = "array_mandatory";
+    public static final List<Object> ARRAY_MANDATORY_DEFAULT_VALUE =
+            Arrays.asList("red", 42, "blue", 3, "green");
+
+    public static final String ARRAY_OPTIONAL = "array_optional";
+    public static final List<Object> ARRAY_OPTIONAL_DEFAULT_VALUE =
+            Arrays.asList("red", 42, "blue", 3, "green");
+
+    public static Map<String, Object> empty() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        return subjectClaims;
+    }
 
     public static Map<String, Object> completeEmployeeProfile() {
         final Map<String, Object> subjectClaims = new HashMap<>();
@@ -67,4 +80,231 @@ public final class CredentialSubjectFixtures {
 
         return subjectClaims;
     }
+
+    public static Map<String, Object> completeArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, ARRAY_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> mandatoryArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, ARRAY_MANDATORY_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> mandatoryNullArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, Arrays.asList((Object) null));
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> emptyArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, Collections.emptyList());
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> nullArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, null);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> singleElementArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+        subjectClaims.put(ARRAY_MANDATORY, Arrays.asList("red"));
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> mixedTypeArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        List<Object> mixedArray = new ArrayList<>();
+        mixedArray.add("Berlin");
+        mixedArray.add(42);
+        mixedArray.add("Germany");
+        mixedArray.add(13);
+
+        subjectClaims.put(ARRAY_MANDATORY, mixedArray);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> arrayWithNestedObjectsProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        List<Map<String, Object>> degrees = new ArrayList<>();
+
+        Map<String, Object> degree1 = new HashMap<>();
+        degree1.put("type", "Bachelor of Science");
+        degree1.put("university", "University of Zurich");
+        degrees.add(degree1);
+
+        Map<String, Object> degree2 = new HashMap<>();
+        degree2.put("type", "Master of Science");
+        degree2.put("university", "University of Bern");
+        degrees.add(degree2);
+
+        Map<String, Object> degree3 = new HashMap<>();
+        degree3.put("type", "PhD in Computer Science");
+        degree3.put("university", "University of Lausanne");
+        degrees.add(degree3);
+
+        subjectClaims.put(ARRAY_MANDATORY, degrees);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> arrayWithVariableNestedObjectsProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        List<Map<String, Object>> degrees = new ArrayList<>();
+
+        Map<String, Object> degree1 = new HashMap<>();
+        degree1.put("type", "Bachelor of Science");
+        degree1.put("university", "University of Zurich");
+        degree1.put("graduation_year", 2015);
+        degrees.add(degree1);
+
+        Map<String, Object> degree2 = new HashMap<>();
+        degree2.put("type", "Master of Science");
+        degree2.put("university", "University of Bern");
+        degrees.add(degree2);
+
+        Map<String, Object> degree3 = new HashMap<>();
+        degree3.put("type", "Certificate");
+        degree3.put("provider", "Online Academy");
+        degrees.add(degree3);
+
+        subjectClaims.put(ARRAY_MANDATORY, degrees);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> arrayWithDeeplyNestedObjectsProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        List<Map<String, Object>> experiences = new ArrayList<>();
+
+        Map<String, Object> exp1 = new HashMap<>();
+        exp1.put("company", "TechCorp");
+        Map<String, Object> address1 = new HashMap<>();
+        address1.put("street_address", "Bahnhofstrasse 11");
+        address1.put("locality", "Zürich");
+        address1.put("postal_code", "8011");
+        exp1.put("address", address1);
+        exp1.put("role", "Senior Engineer");
+        experiences.add(exp1);
+
+        Map<String, Object> exp2 = new HashMap<>();
+        exp2.put("company", "InnovateCo");
+        Map<String, Object> address2 = new HashMap<>();
+        address2.put("street_address", "Zentrale strasse 22");
+        address2.put("locality", "Bern");
+        address2.put("country", "CH");
+        exp2.put("address", address2);
+        exp2.put("role", "Lead Architect");
+        experiences.add(exp2);
+
+        subjectClaims.put(ARRAY_MANDATORY, experiences);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> singleNestedObjectArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put(TEXT_MANDATORY_CLAIM_KEY, TEXT_MANDATORY_DEFAULT_VALUE);
+
+        List<Map<String, Object>> degrees = new ArrayList<>();
+
+        Map<String, Object> degree1 = new HashMap<>();
+        degree1.put("type", "Bachelor of Science");
+        degree1.put("university", "University of Zurich");
+        degrees.add(degree1);
+
+        subjectClaims.put(ARRAY_MANDATORY, degrees);
+        subjectClaims.put(ARRAY_OPTIONAL, ARRAY_OPTIONAL_DEFAULT_VALUE);
+
+        return subjectClaims;
+    }
+
+    public static Map<String, Object> multipleNestedObjectsArrayProfile() {
+        final Map<String, Object> subjectClaims = new HashMap<>();
+
+        subjectClaims.put("name", "Arthur Dent");
+
+        Map<String, Object> address = new HashMap<>();
+        address.put("street_address", "42 Market Street");
+        address.put("locality", "Milliways");
+        address.put("postal_code", "12345");
+        subjectClaims.put("address", address);
+
+        List<Map<String, Object>> degrees = new ArrayList<>();
+
+        Map<String, Object> degree1 = new HashMap<>();
+        degree1.put("type", "Bachelor of Science");
+        degree1.put("university", "University of Betelgeuse");
+        degrees.add(degree1);
+
+        Map<String, Object> degree2 = new HashMap<>();
+        degree2.put("type", "Master of Science");
+        degree2.put("university", "University of Betelgeuse");
+        degrees.add(degree2);
+
+        subjectClaims.put("degrees", degrees);
+
+        subjectClaims.put("nationalities", Arrays.asList("British", "Betelgeusian"));
+
+        subjectClaims.put("birth_year", 1978);
+
+        subjectClaims.put("favorite_numbers", Arrays.asList(3, 7, 42));
+
+        subjectClaims.put("portrait", "https://example.com/images/arthur_dent.png");
+
+        subjectClaims.put("additional_info", "some-random-value");
+
+        subjectClaims.put("additional_info_list", Arrays.asList(
+                "string",
+                123,
+                true,
+                null
+        ));
+
+        return subjectClaims;
+    }
 }
+
