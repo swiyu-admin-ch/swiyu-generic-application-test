@@ -11,6 +11,12 @@ public final class CredentialConfigurationFixtures {
     public static final String BOUND_EXAMPLE_SD_JWT =
             "bound_example_sd_jwt";
 
+    public static final String BOUND_DISCLOSURE_EXAMPLE_SD_JWT =
+            "bound_disclosure_example_sd_jwt";
+
+    public static final String BOUND_IDENTITY_PROFILE_SD_JWT =
+            "bound_identity_profile_sd_jwt";
+
     public static final String UNBOUND_EXAMPLE_SD_JWT =
             "unbound_example_sd_jwt";
 
@@ -19,4 +25,6 @@ public final class CredentialConfigurationFixtures {
 
     public static final String UNIVERSITY_EXAMPLE_ANY_KEY_ATTESTATION_REQUIRED_SD_JWT =
             "university_example_any_key_attestation_required_sd_jwt";
+
+    public static final String NESTED_EXAMPLE = "bound_nested_example_sd_jwt";
 }
