@@ -42,6 +42,12 @@ public class CredentialClaimsBuilder {
         return this;
     }
 
+    public CredentialClaimsBuilder withEmptyObject(String key) {
+        final Map<String, Object> empty = new HashMap<>();
+        claims.put(key, empty);
+        return this;
+    }
+
     @SuppressWarnings("unchecked")
     public CredentialClaimsBuilder addToArray(String key, Object value) {
         List<Object> list = new java.util.ArrayList<>(
