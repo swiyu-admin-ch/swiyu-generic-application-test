@@ -34,7 +34,7 @@ public class WalletBatchEntry extends WalletEntry {
 
     private record SdJwtParts(String jwt, List<String> disclosures) {}
 
-    private record DisclosureMatch(boolean matched, Set<String> satisfiedClaimKeys) {}
+    private record DisclosureMatch(boolean matchedPath, boolean matchedValue, Set<String> satisfiedClaimKeys) {}
 
     private final List<KeyPair> holderKeyPairs = new ArrayList<>();
     private final List<ECKey> holderPublicKeys = new ArrayList<>();
@@ -89,9 +89,10 @@ public class WalletBatchEntry extends WalletEntry {
             final JsonNode payload = extractPayload(parts.jwt());
 
             final Map<String, List<Object>> digestToPath = buildDigestPathMap(payload, new ArrayList<>());
+            augmentDigestMapFromDisclosures(parts.disclosures(), digestToPath);
 
             final List<String> selectedDisclosures = new ArrayList<>();
-            final Set<String> satisfiedClaimIds = new HashSet<>();
+            final Set<String> pathSatisfiedClaimIds = new HashSet<>();
 
             for (String disclosure : parts.disclosures()) {
                 final DisclosureMatch match = matchDisclosureToRequestedClaims(
@@ -100,13 +101,11 @@ public class WalletBatchEntry extends WalletEntry {
                         requestedClaims
                 );
 
-                if (match.matched()) {
+                if (match.matchedPath()) {
                     selectedDisclosures.add(disclosure);
-                    satisfiedClaimIds.addAll(match.satisfiedClaimKeys());
+                    pathSatisfiedClaimIds.addAll(match.satisfiedClaimKeys());
                 }
             }
-
-            ensureAllRequiredClaimsSatisfied(requestedClaims, satisfiedClaimIds);
 
             final String filteredSdJwt = rebuildSdJwt(parts.jwt(), selectedDisclosures);
 
@@ -253,22 +252,87 @@ public class WalletBatchEntry extends WalletEntry {
         return result;
     }
 
+    private void augmentDigestMapFromDisclosures(List<String> disclosures, Map<String, List<Object>> digestToPath) {
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String disclosure : disclosures) {
+                final List<Object> decodedParts = decodeDisclosure(disclosure);
+                if (decodedParts.size() != 3) {
+                    continue;
+                }
+
+                final String digest = hashAsciiSha256Base64Url(disclosure);
+                final List<Object> parentPath = digestToPath.get(digest);
+                if (parentPath == null) {
+                    continue;
+                }
+
+                final Object key = decodedParts.get(1);
+                if (!(key instanceof String)) {
+                    continue;
+                }
+
+                final List<Object> valuePath = new ArrayList<>(parentPath);
+                valuePath.add(key);
+
+                final Object value = decodedParts.get(2);
+
+                // Case 1: value is an object with _sd — nested disclosed object fields (e.g. address)
+                if (value instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    final Map<String, Object> valueMap = (Map<String, Object>) value;
+                    final Object sdNode = valueMap.get("_sd");
+                    if (sdNode instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        final List<String> nestedDigests = (List<String>) sdNode;
+                        for (final String nestedDigest : nestedDigests) {
+                            if (!digestToPath.containsKey(nestedDigest)) {
+                                digestToPath.put(nestedDigest, new ArrayList<>(valuePath));
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+
+                // Case 2: value is an array with {"...": digest} wrappers — disclosed array elements (e.g. nationalities, degrees)
+                if (value instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    final List<Object> arrayValue = (List<Object>) value;
+                    for (int i = 0; i < arrayValue.size(); i++) {
+                        final Object element = arrayValue.get(i);
+                        if (element instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            final Map<String, Object> elementMap = (Map<String, Object>) element;
+                            final Object elementDigest = elementMap.get("...");
+                            if (elementDigest instanceof String) {
+                                if (!digestToPath.containsKey((String) elementDigest)) {
+                                    final List<Object> elementPath = new ArrayList<>(valuePath);
+                                    elementPath.add(i);
+                                    digestToPath.put((String) elementDigest, elementPath);
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private DisclosureMatch matchDisclosureToRequestedClaims(
             String disclosure,
             Map<String, List<Object>> digestToPath,
             List<DcqlClaimDto> requestedClaims
     ) {
-        String digest = hashAsciiSha256Base64Url(disclosure);
         List<Object> actualPath = resolveDisclosurePath(disclosure, digestToPath);
 
         if (actualPath == null) {
-            return new DisclosureMatch(false, Set.of());
+            return new DisclosureMatch(false, false, Set.of());
         }
 
-        List<Object> decodedDisclosure = decodeDisclosure(disclosure);
-        Object disclosedValue = extractDisclosedValue(decodedDisclosure);
-
         Set<String> satisfied = new HashSet<>();
+        boolean anyPathMatch = false;
 
         for (int i = 0; i < requestedClaims.size(); i++) {
             DcqlClaimDto claim = requestedClaims.get(i);
@@ -283,15 +347,11 @@ public class WalletBatchEntry extends WalletEntry {
                 continue;
             }
 
-            boolean valueMatches = matchesRequestedValues(disclosedValue, claim.getValues());
-            if (!valueMatches) {
-                continue;
-            }
-
+            anyPathMatch = true;
             satisfied.add(claimKey(i, claim));
         }
 
-        return new DisclosureMatch(!satisfied.isEmpty(), satisfied);
+        return new DisclosureMatch(anyPathMatch, false, satisfied);
     }
     private Object extractDisclosedValue(List<Object> disclosureParts) {
         if (disclosureParts.size() == 3) {
@@ -315,13 +375,35 @@ public class WalletBatchEntry extends WalletEntry {
             return true;
         }
 
-        // Wildcard array element: ["nationalities", null]
+        if (actualPath.size() < requestedPath.size()
+                && requestedPath.subList(0, actualPath.size()).equals(actualPath)) {
+            return true;
+        }
+
         if (requestedPath.size() == 2
                 && requestedPath.get(0) instanceof String
                 && requestedPath.get(1) == null) {
             return actualPath.size() == 2
                     && Objects.equals(actualPath.get(0), requestedPath.get(0))
                     && actualPath.get(1) instanceof Integer;
+        }
+
+        if (requestedPath.size() == 3
+                && requestedPath.get(0) instanceof String
+                && requestedPath.get(1) == null
+                && requestedPath.get(2) instanceof String) {
+            return actualPath.size() == 2
+                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
+                    && actualPath.get(1) instanceof Integer;
+        }
+
+        if (requestedPath.size() == 3
+                && requestedPath.get(0) instanceof String
+                && requestedPath.get(1) instanceof Integer
+                && requestedPath.get(2) instanceof String) {
+            return actualPath.size() == 2
+                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
+                    && Objects.equals(actualPath.get(1), requestedPath.get(1));
         }
 
         return false;
@@ -339,22 +421,6 @@ public class WalletBatchEntry extends WalletEntry {
         }
 
         return false;
-    }
-
-    private void ensureAllRequiredClaimsSatisfied(
-            List<DcqlClaimDto> requestedClaims,
-            Set<String> satisfiedClaimIds
-    ) {
-        for (int i = 0; i < requestedClaims.size(); i++) {
-            DcqlClaimDto claim = requestedClaims.get(i);
-            String key = claimKey(i, claim);
-
-            if (!satisfiedClaimIds.contains(key)) {
-                throw new IllegalStateException(
-                        "Cannot satisfy requested DCQL claim path: " + claim.getPath()
-                );
-            }
-        }
     }
 
     private String claimKey(int index, DcqlClaimDto claim) {

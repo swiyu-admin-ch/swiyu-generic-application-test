@@ -34,11 +34,27 @@ public class VerificationClaimsBuilder {
         return this;
     }
 
+    public VerificationClaimsBuilder arrayAllWithValues(String key, List<Object> values) {
+        claims.add(new DcqlClaimDto()
+                .path(Arrays.asList(key, null))
+                .id(null)
+                .values(values));
+        return this;
+    }
+
     public VerificationClaimsBuilder arrayIndex(String key, int index) {
         claims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, index))
                 .id(null)
                 .values(null));
+        return this;
+    }
+
+    public VerificationClaimsBuilder arrayIndex(String key, int index, List<Object> values) {
+        claims.add(new DcqlClaimDto()
+                .path(Arrays.asList(key, index))
+                .id(null)
+                .values(values));
         return this;
     }
 
@@ -59,6 +75,14 @@ public class VerificationClaimsBuilder {
                 .path(Arrays.asList(path))
                 .id(null)
                 .values(null));
+        return this;
+    }
+
+    public VerificationClaimsBuilder nestedWithValues(List<Object> values, String... path) {
+        claims.add(new DcqlClaimDto()
+                .path(Arrays.asList(path))
+                .id(null)
+                .values(values));
         return this;
     }
 

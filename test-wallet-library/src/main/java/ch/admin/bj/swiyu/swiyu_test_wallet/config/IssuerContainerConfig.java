@@ -62,6 +62,7 @@ public class IssuerContainerConfig {
                     .withEnv("WEBHOOK_INTERVAL", "10")
                     .withEnv("APPLICATION_DPOP_ENFORCE", String.valueOf(issuerImageConfig.isEnforceDpop()))
                     .withEnv("ENABLE_SIGNED_METADATA", String.valueOf(issuerImageConfig.isSignedMetadata()))
+                    .withEnv("RECURSIVE_DISCLOSURE_ENABLED", String.valueOf(true))
                     .withEnv("APPLICATION_ENCRYPTION_ENFORCE", String.valueOf(issuerImageConfig.isEncryptionEnforce()))
                     .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                     .withNetwork(network)
