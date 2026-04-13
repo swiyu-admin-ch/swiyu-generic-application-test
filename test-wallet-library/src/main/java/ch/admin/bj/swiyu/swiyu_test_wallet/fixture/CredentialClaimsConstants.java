@@ -39,6 +39,5 @@ public class CredentialClaimsConstants {
             "https://example.com/images/portrait.png";
     public static final String DEFAULT_ADDITIONAL_INFO = "some-random-value";
     public static final List<Object> DEFAULT_ADDITIONAL_INFO_LIST =
-            Arrays.asList("string", 123, true, null);
-
+            Arrays.asList("word", 123, 45);
 }
