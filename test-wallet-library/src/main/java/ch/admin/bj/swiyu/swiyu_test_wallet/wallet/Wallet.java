@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.dpop.DpopHashUtil;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
@@ -18,13 +17,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
-import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.HttpHeaders;
@@ -37,7 +33,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.security.KeyPair;
-import java.security.interfaces.ECPrivateKey;
 import java.util.*;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
@@ -48,7 +43,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class Wallet {
 
     public static final String BEARER_PREFIX = "Bearer ";
-    public static final String VC_SD_JWT = "vc+sd-jwt";
     public static final String APPLICATION_JWT = "application/jwt";
     public static final String GRANT_TYPE = "grant_type";
     public static final String CREDENTIAL = "credential";
@@ -58,6 +52,7 @@ public class Wallet {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String VP_TOKEN = "vp_token";
     public static final String DPOP = "DPoP";
+    public static final String ALG = "alg";
 
     private final RestClient restClient;
     private final ServiceLocationContext issuerContext;
@@ -613,11 +608,12 @@ public class Wallet {
         if (this.useEncryption) {
             walletEntry.generateEphemeralEncryptionKey();
 
+            final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
             var responseEncryption = new CredentialResponseEncryption()
-                    .alg(encryptionMetadata.getAlgValuesSupported().getFirst())
+                    .alg(jwk.get(ALG).toString())
                     .enc(encryptionMetadata.getEncValuesSupported().getFirst())
-                    .jwk(walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject());
+                    .jwk(jwk);
 
             requestDto.credentialResponseEncryption(responseEncryption);
         }
