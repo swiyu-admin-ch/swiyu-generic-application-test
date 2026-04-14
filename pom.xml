@@ -29,7 +29,7 @@
         <mockserver.version>5.15.0</mockserver.version>
         <postgresql.version>42.7.10</postgresql.version>
         <xray-junit.version>1.0.1</xray-junit.version>
-        <generic-java-lib.version>1.3.0</generic-java-lib.version>
+        <generic-java-lib.version>1.4.0</generic-java-lib.version>
         <!-- Plugin Versions -->
         <openapi-generator-maven-plugin.version>7.21.0</openapi-generator-maven-plugin.version>
         <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
