@@ -29,7 +29,7 @@ docker build -t swiyu-verifier:local .
 popd >/dev/null
 
 export APPLICATION_ISSUER_BASE_IMAGE=swiyu-issuer
-export APPLICATION_APPLICATION_ISSUER_IMAGE_TAG=local
+export APPLICATION_ISSUER_IMAGE_TAG=local
 export APPLICATION_VERIFIER_BASE_IMAGE=swiyu-verifier
-export APPLICATION_APPLICATION_VERIFIER_IMAGE_TAG=local
+export APPLICATION_VERIFIER_IMAGE_TAG=local
 

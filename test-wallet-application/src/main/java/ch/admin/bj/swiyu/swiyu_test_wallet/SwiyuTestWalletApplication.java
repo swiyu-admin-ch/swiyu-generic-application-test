@@ -18,8 +18,12 @@ public class SwiyuTestWalletApplication {
     }
 
     @Bean
-    public RestClient.Builder restClientBuilder() {
-        var objectMapper = new ObjectMapper();
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
+
+    @Bean
+    public RestClient.Builder restClientBuilder(ObjectMapper objectMapper) {
         RestClient.Builder builder = RestClient.builder();
 
         builder.requestInterceptor(new LoggingRequestInterceptor());
