@@ -6,10 +6,10 @@ logging.level.org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 
 application:
   issuer:
-    base-image: "${ISSUER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
-    image-tag: "${ISSUER_IMAGE_TAG:dev}"
+    base-image: "${APPLICATION_ISSUER_BASE_IMAGE:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
+    image-tag: "${APPLICATION_APPLICATION_ISSUER_IMAGE_TAG:dev}"
     signed-metadata: true
   verifier:
-    base-image: "${VERIFIER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
-    image-tag: "${VERIFIER_IMAGE_TAG:dev}"
+    base-image: "${APPLICATION_VERIFIER_BASE_IMAGE:ghcr.io/swiyu-admin-ch/swiyu-verifier}"
+    image-tag: "${APPLICATION_APPLICATION_VERIFIER_IMAGE_TAG:dev}"
   trace: "${TRACE_TEST_REQUESTS:false}"

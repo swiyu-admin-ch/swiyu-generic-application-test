@@ -54,11 +54,11 @@ jobs:
         run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE_TAG=dev" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "APPLICATION_ISSUER_IMAGE_TAG=dev" >> $GITHUB_ENV
+          echo "APPLICATION_VERIFIER_IMAGE_TAG=dev" >> $GITHUB_ENV
           echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_DEV" >> $GITHUB_ENV
-          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Issuer image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B verify
       - name: Collect Surefire reports
@@ -109,11 +109,11 @@ jobs:
         run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE_TAG=staging" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "APPLICATION_ISSUER_IMAGE_TAG=staging" >> $GITHUB_ENV
+          echo "APPLICATION_VERIFIER_IMAGE_TAG=staging" >> $GITHUB_ENV
           echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STAGING" >> $GITHUB_ENV
-          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Issuer image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B verify
       - name: Collect Surefire reports
@@ -164,11 +164,11 @@ jobs:
         run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE_TAG=rc" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "APPLICATION_ISSUER_IMAGE_TAG=rc" >> $GITHUB_ENV
+          echo "APPLICATION_VERIFIER_IMAGE_TAG=rc" >> $GITHUB_ENV
           echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_RC" >> $GITHUB_ENV
-          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Issuer image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B verify
       - name: Collect Surefire reports
@@ -219,11 +219,11 @@ jobs:
         run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Prepare images
         run: |
-          echo "ISSUER_IMAGE_TAG=stable" >> $GITHUB_ENV
-          echo "VERIFIER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "APPLICATION_ISSUER_IMAGE_TAG=stable" >> $GITHUB_ENV
+          echo "APPLICATION_VERIFIER_IMAGE_TAG=stable" >> $GITHUB_ENV
           echo "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN=SWIYU_STATUS_REGISTRY_ACCESS_TOKEN_STABLE" >> $GITHUB_ENV
-          echo "Issuer image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
-          echo "Verifier image tag: ${ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Issuer image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
+          echo "Verifier image tag: ${APPLICATION_ISSUER_IMAGE_TAG}" >> $GITHUB_STEP_SUMMARY
       - name: Maven verify
         run: mvn -B verify
       - name: Collect Surefire reports

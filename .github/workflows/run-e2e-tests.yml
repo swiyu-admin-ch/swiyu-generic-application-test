@@ -20,8 +20,8 @@ jobs:
       checks: write
       pull-requests: write
     env:
-      ISSUER_IMAGE_TAG: ${{ github.event.inputs['issuer-image-tag'] }}
-      VERIFIER_IMAGE_TAG: ${{ github.event.inputs['verifier-image-tag'] }}
+      APPLICATION_ISSUER_IMAGE_TAG: ${{ github.event.inputs['issuer-image-tag'] }}
+      APPLICATION_VERIFIER_IMAGE_TAG: ${{ github.event.inputs['verifier-image-tag'] }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

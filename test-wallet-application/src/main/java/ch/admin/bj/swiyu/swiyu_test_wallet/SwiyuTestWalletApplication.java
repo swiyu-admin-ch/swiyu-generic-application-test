@@ -18,7 +18,7 @@ public class SwiyuTestWalletApplication {
     }
 
     @Bean
-    public RestClient restClient() {
+    public RestClient.Builder restClientBuilder() {
         var objectMapper = new ObjectMapper();
         RestClient.Builder builder = RestClient.builder();
 
@@ -28,6 +28,11 @@ public class SwiyuTestWalletApplication {
             c.removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
             c.add(new MappingJackson2HttpMessageConverter(objectMapper));
         });
-        return builder.build();
+        return builder;
+    }
+
+    @Bean
+    public RestClient restClient(RestClient.Builder restClientBuilder) {
+        return restClientBuilder.build();
     }
 }

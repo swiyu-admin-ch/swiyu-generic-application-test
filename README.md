@@ -101,10 +101,10 @@ The following environment variables can be used to configure the test execution:
 
 | Variable | Purpose | Default | Example |
 |----------|---------|---------|---------|
-| `ISSUER_IMAGE_NAME` | Docker image name for the Issuer service | `ghcr.io/swiyu-admin-ch/swiyu-issuer` | `ghcr.io/swiyu-admin-ch/swiyu-issuer` |
-| `ISSUER_IMAGE_TAG` | Docker image tag for the Issuer service | `dev` | `dev`, `stable`, `rc`, `staging` |
-| `VERIFIER_IMAGE_NAME` | Docker image name for the Verifier service | `ghcr.io/swiyu-admin-ch/swiyu-verifier` | `ghcr.io/swiyu-admin-ch/swiyu-verifier` |
-| `VERIFIER_IMAGE_TAG` | Docker image tag for the Verifier service | `dev` | `dev`, `stable`, `rc`, `staging` |
+| `APPLICATION_ISSUER_BASE_IMAGE` | Docker image name for the Issuer service | `ghcr.io/swiyu-admin-ch/swiyu-issuer` | `ghcr.io/swiyu-admin-ch/swiyu-issuer` |
+| `APPLICATION_ISSUER_IMAGE_TAG` | Docker image tag for the Issuer service | `dev` | `dev`, `stable`, `rc`, `staging` |
+| `APPLICATION_VERIFIER_BASE_IMAGE` | Docker image name for the Verifier service | `ghcr.io/swiyu-admin-ch/swiyu-verifier` | `ghcr.io/swiyu-admin-ch/swiyu-verifier` |
+| `APPLICATION_VERIFIER_IMAGE_TAG` | Docker image tag for the Verifier service | `dev` | `dev`, `stable`, `rc`, `staging` |
 | `TRACE_TEST_REQUESTS` | Enable stack trace logging for each test | `false` | `true`, `false` |
 
 ### Trace Output
@@ -166,8 +166,8 @@ This script performs the following steps:
 1. Builds Maven packages for both services (`mvn clean package -DskipTests`)
 2. Creates Docker images with the `local` tag
 3. Sets environment variables to use the locally built images:
-   - `ISSUER_IMAGE_NAME=swiyu-issuer` and `ISSUER_IMAGE_TAG=local`
-   - `VERIFIER_IMAGE_NAME=swiyu-verifier` and `VERIFIER_IMAGE_TAG=local`
+   - `APPLICATION_ISSUER_BASE_IMAGE=swiyu-issuer` and `APPLICATION_ISSUER_IMAGE_TAG=local`
+   - `APPLICATION_VERIFIER_BASE_IMAGE=swiyu-verifier` and `APPLICATION_VERIFIER_IMAGE_TAG=local`
 
 After running this script, all subsequent test executions will use your locally built development images.
 
