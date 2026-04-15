@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
@@ -63,6 +64,7 @@ public class Wallet {
     private boolean signedMetadataPreferred = false;
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
+    private MockAttestationAuthority mockAttestationAuthority;
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext) {
         this.restClient = restClient;

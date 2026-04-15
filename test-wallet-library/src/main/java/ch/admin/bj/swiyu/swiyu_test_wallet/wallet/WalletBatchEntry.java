@@ -110,7 +110,8 @@ public class WalletBatchEntry extends WalletEntry {
                     getIssuerMetadata().getCredentialIssuer(),
                     getCNonce(),
                     pub,
-                    holderKeyPairs.get(holderPublicKeys.indexOf(pub))
+                    holderKeyPairs.get(holderPublicKeys.indexOf(pub)),
+                    wallet.getMockAttestationAuthority()
             );
             proofs.add(proof);
         }
@@ -126,7 +127,8 @@ public class WalletBatchEntry extends WalletEntry {
                     getIssuerMetadata().getCredentialIssuer(),
                     uniqueNonce,
                     pub,
-                    holderKeyPairs.get(holderPublicKeys.indexOf(pub))
+                    holderKeyPairs.get(holderPublicKeys.indexOf(pub)),
+                    wallet.getMockAttestationAuthority()
             );
             proofs.add(proof);
         }

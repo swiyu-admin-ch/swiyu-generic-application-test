@@ -77,7 +77,8 @@ public class MockServerClientConfig {
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig,
-            TrustConfig trustConfig) {
+            TrustConfig trustConfig,
+            MockAttestationAuthority attestationAuthority) {
 
         final String validFrom = LocalDate.now(ZoneOffset.UTC)
                 .minusDays(7)
@@ -170,6 +171,13 @@ public class MockServerClientConfig {
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
                                 .withBody(trustConfig.getTrustDidLog());
+                    }
+
+                    if (attestationAuthority != null && path.contains(extractDidId(attestationAuthority.getDid()))) {
+                        return response()
+                                .withStatusCode(200)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
+                                .withBody(attestationAuthority.getDidLog());
                     }
 
                     return response().withStatusCode(404);

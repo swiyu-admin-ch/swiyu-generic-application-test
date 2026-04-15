@@ -91,6 +91,8 @@ public class BaseTest {
     protected MockServerContainer mockServerContainer;
     @Autowired
     protected MockServerClientConfig mockServerClientConfig;
+    @Autowired
+    protected MockAttestationAuthority mockAttestationAuthority;
     protected MockServerClient mockServerClient;
 
     protected Connection connection;
