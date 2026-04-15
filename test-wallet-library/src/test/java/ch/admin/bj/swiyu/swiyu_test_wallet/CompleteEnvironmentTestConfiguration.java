@@ -100,6 +100,12 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
+    public MockAttestationAuthority mockAttestationAuthority() {
+        UUID id = UUID.randomUUID();
+        return new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+    }
+
+    @Bean
     public GenericContainer<?> issuerContainer(Network network,
                                                PostgreSQLContainer<?> dbContainer,
                                                IssuerConfig config,
@@ -124,13 +130,13 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, TrustConfig trustConfig, MockServerClientConfig mockServerClientConfig) {
+    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, TrustConfig trustConfig, MockServerClientConfig mockServerClientConfig, MockAttestationAuthority mockAttestationAuthority) {
 
         var container = MockServerContainerConfig.createMockServerContainer(network);
 
         container.start();
 
-        mockServerClientConfig.createMockServerClient(container, issuerConfig, trustConfig);
+        mockServerClientConfig.createMockServerClient(container, issuerConfig, trustConfig, mockAttestationAuthority);
 
         return container;
     }

@@ -1,6 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.jwtutil.JwtUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.AttestationFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
@@ -19,21 +21,38 @@ public class JwtProof {
     private String cNonce;
     private ECKey publicJwk;
     private KeyPair keyPair;
+    private MockAttestationAuthority attestationAuthority;
 
     public String toJwt() {
         final ECKey jwk = ECCryptoSupport.toPublicJwk(keyPair.getPublic(), null);
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+
+        JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.ES256)
                 .type(new JOSEObjectType("openid4vci-proof+jwt"))
-                .jwk(jwk.toPublicJWK())
-                .build();
+                .jwk(jwk.toPublicJWK());
+
+        if (attestationAuthority != null) {
+            final String attestation = AttestationFactory.validHighAttestation(
+                    publicJwk,
+                    attestationAuthority.getDid(),
+                    attestationAuthority.getSigningPrivateKey(),
+                    attestationAuthority.getKid()
+            );
+            headerBuilder.customParam("key_attestation", attestation);
+        }
+
+        final JWSHeader header = headerBuilder.build();
+
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(credentialIssuerURI)
                 .issueTime(new Date())
                 .claim("nonce", cNonce)
                 .build();
+
         final JWSSigner signer = ECCryptoSupport.createECDSASigner(keyPair.getPrivate());
         final SignedJWT signedJWT = JwtUtil.signJwt(claimsSet, header, signer);
 
         return signedJWT.serialize();
     }
 }
+
+

@@ -199,7 +199,8 @@ public class IssuerCallbacksTest extends BaseTest {
                         entry.getIssuerMetadata().getCredentialIssuer(),
                         wallet.collectCNonce(entry),
                         entry.getProofPublicJwk(),
-                        ECCryptoSupport.generateECKeyPair()
+                        ECCryptoSupport.generateECKeyPair(),
+                        null
                 ));;
             }
             return null;

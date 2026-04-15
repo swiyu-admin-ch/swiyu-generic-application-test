@@ -41,7 +41,7 @@ public class WalletEntry {
     public static final String CREDENTIAL_OFFER_KEY_AND_EQUAL = "credential_offer=";
     public static final String ISSUER_METADATA_NOT_SET = "issuer metadata is not set.";
     public static final String CREDENTIAL_OFFER_NOT_SET = "credential offer not set.";
-    private final Wallet wallet;
+    protected final Wallet wallet;
     private final KeyPair keyPair;
     private final ECKey proofPublicJwk;
     private URI issuerVCDeepLink;
@@ -137,7 +137,7 @@ public class WalletEntry {
         }
 
         String audience = getIssuerMetadata().getCredentialIssuer();
-        return new JwtProof(audience, getCNonce(), proofPublicJwk, keyPair);
+        return new JwtProof(audience, getCNonce(), proofPublicJwk, keyPair, null);
     }
 
     private static String hashSdJwt(String credentialsSdJwt) {
