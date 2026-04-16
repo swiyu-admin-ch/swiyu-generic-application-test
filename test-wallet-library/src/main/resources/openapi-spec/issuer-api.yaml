@@ -1646,7 +1646,9 @@ components:
         how a certain claim in the Credential is displayed to the End-User.
       properties:
         path:
-          type: string
+          type: array
+          items:
+            type: string
         mandatory:
           type: boolean
         display:
