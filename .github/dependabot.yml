@@ -12,10 +12,10 @@ updates:
       - "/test-wallet-library"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "org.springframework.boot:*" # Ignore major update to Spring boot 4 as it requires jackson 3, not compatible with current libraries defined in the pom.xml
+        versions: [ "4.x" ]
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-    ignore:
-    - dependency-name: "org.springframework.boot:*" # Ignore major update to Spring boot 4
-      versions: ["4.x"]
