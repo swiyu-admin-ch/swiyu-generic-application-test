@@ -25,7 +25,7 @@
         <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
         <bitcoinj-core.version>0.17</bitcoinj-core.version>
         <java-json-canonicalization.version>1.1</java-json-canonicalization.version>
-        <bouncycastle.version>1.83</bouncycastle.version>
+        <bouncycastle.version>1.84</bouncycastle.version>
         <mockserver.version>5.15.0</mockserver.version>
         <postgresql.version>42.7.10</postgresql.version>
         <xray-junit.version>1.0.1</xray-junit.version>
