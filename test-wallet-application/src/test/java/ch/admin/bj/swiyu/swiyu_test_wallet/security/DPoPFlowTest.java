@@ -822,7 +822,7 @@ class DPoPFlowTest extends BaseTest {
 
         ApiErrorAssert.assertThat(ex)
             .hasStatus(400)
-            .hasError("INVALID_PROOF")
+            .hasError("invalid_proof")
             .hasErrorDescription("Audience claim is missing or incorrect");
     }
 }
