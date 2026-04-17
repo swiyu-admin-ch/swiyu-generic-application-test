@@ -77,13 +77,13 @@ class DeferredFlowTest extends BaseTest {
                 Arguments.of(CredentialClaimsBuilder.base()
                                 .withEmptyArray(CredentialClaimsConstants.KEY_NATIONALITIES)
                                 .build(),
-                        false,
+                        true,
                         CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
                 ),
                 Arguments.of(CredentialClaimsBuilder.base()
                                 .withEmptyObject(CredentialClaimsConstants.KEY_ADDRESS)
                                 .build(),
-                        false,
+                        true,
                         CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
                 )
         );
@@ -259,7 +259,7 @@ class DeferredFlowTest extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("CREDENTIAL_REQUEST_DENIED")
+                .hasError("credential_request_denied")
                 .hasErrorDescription("The credential cannot be issued anymore, the offer was either cancelled or expired");
 
         // Given

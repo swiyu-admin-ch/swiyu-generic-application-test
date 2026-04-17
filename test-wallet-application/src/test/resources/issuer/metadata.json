@@ -1692,98 +1692,6 @@
         }
       },
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
-      "claims": {
-        "name": {
-          "mandatory": true,
-          "value_type": "string",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Full name"
-            }
-          ]
-        },
-        "address": {
-          "mandatory": true,
-          "value_type": "object",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Address"
-            }
-          ]
-        },
-        "nationalities": {
-          "mandatory": true,
-          "value_type": "array",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Nationalities"
-            }
-          ]
-        },
-        "birth_year": {
-          "mandatory": true,
-          "value_type": "number",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Year of birth"
-            }
-          ]
-        },
-        "degrees": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Degrees"
-            }
-          ]
-        },
-        "rsrs": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Favorite numbers"
-            }
-          ]
-        },
-        "portrait": {
-          "mandatory": false,
-          "value_type": "string",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Portrait image"
-            }
-          ]
-        },
-        "additional_info": {
-          "mandatory": false,
-          "value_type": "string",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Additional information"
-            }
-          ]
-        },
-        "additional_info_list": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            {
-              "locale": "en-CH",
-              "name": "Additional information list"
-            }
-          ]
-        }
-      },
       "credential_metadata": {
         "claims": [
           {
@@ -1804,13 +1712,21 @@
               "address"
             ],
             "mandatory": true,
-            "value_type": "object",
             "display": [
               {
                 "locale": "en-CH",
                 "name": "Address"
               }
             ]
+          },
+          {
+            "path": [ "address", "street_address" ]
+          },
+          {
+            "path": [ "address", "locality" ]
+          },
+          {
+            "path": [ "address", "postal_code" ]
           },
           {
             "path": [
@@ -1850,6 +1766,18 @@
                 "name": "Degrees"
               }
             ]
+          },
+          {
+            "path": [
+              "degrees", null, "type"
+            ],
+            "mandatory": false
+          },
+          {
+            "path": [
+              "degrees", null, "university"
+            ],
+            "mandatory": false
           },
           {
             "path": [
