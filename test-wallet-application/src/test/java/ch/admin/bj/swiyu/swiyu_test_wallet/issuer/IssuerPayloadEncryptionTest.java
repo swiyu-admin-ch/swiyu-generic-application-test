@@ -191,7 +191,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("INVALID_TRANSACTION_ID")
+                .hasError("invalid_transaction_id")
                 .hasErrorDescription("Invalid transaction id");
     }
 
@@ -233,7 +233,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("INVALID_ENCRYPTION_PARAMETERS")
+                .hasError("invalid_encryption_parameters")
                 .hasErrorDescription("Request encryption is mandatory with content type set to application/jwt");
     }
 }

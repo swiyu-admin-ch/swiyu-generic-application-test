@@ -112,11 +112,12 @@ public class CompleteEnvironmentTestConfiguration {
                                                MockServerContainer mockServer,
                                                IssuerImageConfig issuerImageConfig,
                                                GenericContainer<?> softHsmContainer,
-                                               String tokenDirPath) {
+                                               String tokenDirPath,
+                                               MockAttestationAuthority mockAttestationAuthority) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig, tokenDirPath);
+        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig, tokenDirPath, mockAttestationAuthority);
 
         container.dependsOn(softHsmContainer);
         container.start();

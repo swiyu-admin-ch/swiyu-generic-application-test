@@ -37,7 +37,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING, ImageTags.RC},
             reason = "This feature is not available yet"
     )
     void boundNonDeferredCredential_whenKeyAttestationIsValid_thenSuccess() {
@@ -83,7 +83,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     """)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
+            issuer = {ImageTags.STABLE, ImageTags.STAGING, ImageTags.RC},
             reason = "This feature is not available yet"
     )
     void boundNonDeferredCredential_whenKeyAttestationSignatureIsMismatched_thenIssuanceRejected() {
@@ -102,7 +102,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
 
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("INVALID_PROOF")
+                .hasError("invalid_proof")
                 .hasErrorDescription("Key attestation key is not supported or not matching the signature!");
     }
 
