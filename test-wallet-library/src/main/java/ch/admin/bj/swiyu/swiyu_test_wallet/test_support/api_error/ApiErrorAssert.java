@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error;
 
+import java.util.List;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
@@ -41,6 +42,13 @@ public final class ApiErrorAssert {
         Assertions.assertThat(errorBody)
                 .as("error_description field")
                 .containsEntry("error_description", expectedDescription);
+        return this;
+    }
+
+    public ApiErrorAssert hasErrorDescription(final List<String> expectedDescriptions) {
+        Assertions.assertThat((String) errorBody.get("error_description"))
+                .as("error_description field")
+                .isIn(expectedDescriptions);
         return this;
     }
 

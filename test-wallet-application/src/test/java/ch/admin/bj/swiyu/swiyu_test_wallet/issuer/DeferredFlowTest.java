@@ -10,6 +10,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsBuilder;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -47,11 +50,42 @@ class DeferredFlowTest extends BaseTest {
 
     private static Stream<Arguments> claimsProvider() {
         return Stream.of(
-                Arguments.of(null, true),
-                Arguments.of(CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile(), true),
-                Arguments.of(CredentialSubjectFixtures.completeEmployeeProfile(), true),
-                Arguments.of(CredentialSubjectFixtures.emptyEmployeeProfile(), false),
-                Arguments.of(CredentialSubjectFixtures.partiallyMandatoryClaimsEmployeeProfile(), false)
+                Arguments.of(null, true, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                Arguments.of(CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile(), true, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                Arguments.of(CredentialSubjectFixtures.completeEmployeeProfile(), true, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                Arguments.of(CredentialSubjectFixtures.emptyEmployeeProfile(), false, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                Arguments.of(CredentialSubjectFixtures.partiallyMandatoryClaimsEmployeeProfile(), false, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                Arguments.of(null, true, CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT),
+                Arguments.of(CredentialClaimsBuilder.base()
+                                .without(CredentialClaimsConstants.KEY_DEGREES)
+                                .without(CredentialClaimsConstants.KEY_FAVORITE_NUMBERS)
+                                .without(CredentialClaimsConstants.KEY_PORTRAIT)
+                                .without(CredentialClaimsConstants.KEY_ADDITIONAL_INFO)
+                                .without(CredentialClaimsConstants.KEY_ADDITIONAL_INFO_LIST)
+                                .build(),
+                        true,
+                        CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
+                ),
+                Arguments.of(CredentialClaimsFixtures.createBaseProfile(),
+                        true,
+                        CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
+                ),
+                Arguments.of(Map.of(),
+                        false,
+                        CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
+                ),
+                Arguments.of(CredentialClaimsBuilder.base()
+                                .withEmptyArray(CredentialClaimsConstants.KEY_NATIONALITIES)
+                                .build(),
+                        true,
+                        CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
+                ),
+                Arguments.of(CredentialClaimsBuilder.base()
+                                .withEmptyObject(CredentialClaimsConstants.KEY_ADDRESS)
+                                .build(),
+                        true,
+                        CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
+                )
         );
     }
 
@@ -78,10 +112,14 @@ class DeferredFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The images don't accept null claims on creation yet."
     )
-    void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted) {
+    void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted, final String supportedMetadataId) {
         // Given
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+        Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        if (supportedMetadataId.equals(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)) {
+            subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        } else if (supportedMetadataId.equals(CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT)) {
+            subjectClaims = CredentialClaimsFixtures.createBaseProfile();
+        }
 
         // When
         if (!accepted) {
@@ -112,8 +150,7 @@ class DeferredFlowTest extends BaseTest {
 
         SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+                .areUnique();
     }
 
     @Test

@@ -27,7 +27,8 @@ public class VerifierContainerConfig {
             String imageName,
             VerifierImageConfig verifierImageConfig) {
         try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
-            container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
+            container
+                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
                     .withExposedPorts(8080)
                     .withEnv("VERIFIER_DID", config.getIssuerDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
