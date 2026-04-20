@@ -48,78 +48,338 @@
         }
       },
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
+      "claims": {
+        "name": {
+          "mandatory": true,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Full name"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Vollständiger Name"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Nom complet"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Nome completo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Num cumplet"
+            }
+          ]
+        },
+        "job_title": {
+          "mandatory": false,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Job title"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufsbezeichnung"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Intitulé du poste"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Titolo professionale"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Titgel da professiun"
+            }
+          ]
+        },
+        "annual_salary": {
+          "mandatory": true,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Annual salary"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Jahresgehalt"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Salaire annuel"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Stipendio annuo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Paja annuala"
+            }
+          ]
+        },
+        "years_of_experience": {
+          "mandatory": false,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Years of experience"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufserfahrung (Jahre)"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Années d’expérience"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Anni di esperienza"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Onns d’experientscha"
+            }
+          ]
+        },
+        "profile_picture": {
+          "mandatory": false,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Profile picture"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Profilbild"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Photo de profil"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine del profilo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg dal profil"
+            }
+          ]
+        },
+        "signature_image": {
+          "mandatory": true,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Signature image"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Unterschrift"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Image de signature"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine della firma"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg da la suttascripziun"
+            }
+          ]
+        }
+      },
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
-            "path": [ "name" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" },
-              { "locale": "de-CH", "name": "Vollständiger Name" },
-              { "locale": "fr-CH", "name": "Nom complet" },
-              { "locale": "it-CH", "name": "Nome completo" },
-              { "locale": "rm-CH", "name": "Num cumplet" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Vollständiger Name"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Nom complet"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Nome completo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Num cumplet"
+              }
             ]
           },
           {
-            "name": "job_title",
+            "path": [
+              "job_title"
+            ],
             "mandatory": false,
-            "path": [ "job_title" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Job title" },
-              { "locale": "de-CH", "name": "Berufsbezeichnung" },
-              { "locale": "fr-CH", "name": "Intitulé du poste" },
-              { "locale": "it-CH", "name": "Titolo professionale" },
-              { "locale": "rm-CH", "name": "Titgel da professiun" }
+              {
+                "locale": "en-CH",
+                "name": "Job title"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufsbezeichnung"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Intitulé du poste"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Titolo professionale"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Titgel da professiun"
+              }
             ]
           },
           {
-            "name": "annual_salary",
+            "path": [
+              "annual_salary"
+            ],
             "mandatory": true,
-            "path": [ "annual_salary" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Annual salary" },
-              { "locale": "de-CH", "name": "Jahresgehalt" },
-              { "locale": "fr-CH", "name": "Salaire annuel" },
-              { "locale": "it-CH", "name": "Stipendio annuo" },
-              { "locale": "rm-CH", "name": "Paja annuala" }
+              {
+                "locale": "en-CH",
+                "name": "Annual salary"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Jahresgehalt"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Salaire annuel"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Stipendio annuo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Paja annuala"
+              }
             ]
           },
           {
-            "name": "years_of_experience",
+            "path": [
+              "years_of_experience"
+            ],
             "mandatory": false,
-            "path": [ "years_of_experience" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Years of experience" },
-              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
-              { "locale": "fr-CH", "name": "Années d’expérience" },
-              { "locale": "it-CH", "name": "Anni di esperienza" },
-              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+              {
+                "locale": "en-CH",
+                "name": "Years of experience"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufserfahrung (Jahre)"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Années d’expérience"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Anni di esperienza"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Onns d’experientscha"
+              }
             ]
           },
           {
-            "name": "profile_picture",
+            "path": [
+              "profile_picture"
+            ],
             "mandatory": false,
-            "path": [ "profile_picture" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Profile picture" },
-              { "locale": "de-CH", "name": "Profilbild" },
-              { "locale": "fr-CH", "name": "Photo de profil" },
-              { "locale": "it-CH", "name": "Immagine del profilo" },
-              { "locale": "rm-CH", "name": "Maletg dal profil" }
+              {
+                "locale": "en-CH",
+                "name": "Profile picture"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Profilbild"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Photo de profil"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine del profilo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg dal profil"
+              }
             ]
           },
           {
-            "name": "signature_image",
+            "path": [
+              "signature_image"
+            ],
             "mandatory": true,
-            "path": [ "signature_image" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Signature image" },
-              { "locale": "de-CH", "name": "Unterschrift" },
-              { "locale": "fr-CH", "name": "Image de signature" },
-              { "locale": "it-CH", "name": "Immagine della firma" },
-              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+              {
+                "locale": "en-CH",
+                "name": "Signature image"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Unterschrift"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Image de signature"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine della firma"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg da la suttascripziun"
+              }
             ]
           }
         ],
@@ -147,78 +407,338 @@
         "ES256"
       ],
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
+      "claims": {
+        "name": {
+          "mandatory": true,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Full name"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Vollständiger Name"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Nom complet"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Nome completo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Num cumplet"
+            }
+          ]
+        },
+        "job_title": {
+          "mandatory": false,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Job title"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufsbezeichnung"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Intitulé du poste"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Titolo professionale"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Titgel da professiun"
+            }
+          ]
+        },
+        "annual_salary": {
+          "mandatory": true,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Annual salary"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Jahresgehalt"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Salaire annuel"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Stipendio annuo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Paja annuala"
+            }
+          ]
+        },
+        "years_of_experience": {
+          "mandatory": false,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Years of experience"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufserfahrung (Jahre)"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Années d’expérience"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Anni di esperienza"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Onns d’experientscha"
+            }
+          ]
+        },
+        "profile_picture": {
+          "mandatory": false,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Profile picture"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Profilbild"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Photo de profil"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine del profilo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg dal profil"
+            }
+          ]
+        },
+        "signature_image": {
+          "mandatory": true,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Signature image"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Unterschrift"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Image de signature"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine della firma"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg da la suttascripziun"
+            }
+          ]
+        }
+      },
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
-            "path": [ "name" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" },
-              { "locale": "de-CH", "name": "Vollständiger Name" },
-              { "locale": "fr-CH", "name": "Nom complet" },
-              { "locale": "it-CH", "name": "Nome completo" },
-              { "locale": "rm-CH", "name": "Num cumplet" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Vollständiger Name"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Nom complet"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Nome completo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Num cumplet"
+              }
             ]
           },
           {
-            "name": "job_title",
+            "path": [
+              "job_title"
+            ],
             "mandatory": false,
-            "path": [ "job_title" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Job title" },
-              { "locale": "de-CH", "name": "Berufsbezeichnung" },
-              { "locale": "fr-CH", "name": "Intitulé du poste" },
-              { "locale": "it-CH", "name": "Titolo professionale" },
-              { "locale": "rm-CH", "name": "Titgel da professiun" }
+              {
+                "locale": "en-CH",
+                "name": "Job title"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufsbezeichnung"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Intitulé du poste"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Titolo professionale"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Titgel da professiun"
+              }
             ]
           },
           {
-            "name": "annual_salary",
+            "path": [
+              "annual_salary"
+            ],
             "mandatory": true,
-            "path": [ "annual_salary" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Annual salary" },
-              { "locale": "de-CH", "name": "Jahresgehalt" },
-              { "locale": "fr-CH", "name": "Salaire annuel" },
-              { "locale": "it-CH", "name": "Stipendio annuo" },
-              { "locale": "rm-CH", "name": "Paja annuala" }
+              {
+                "locale": "en-CH",
+                "name": "Annual salary"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Jahresgehalt"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Salaire annuel"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Stipendio annuo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Paja annuala"
+              }
             ]
           },
           {
-            "name": "years_of_experience",
+            "path": [
+              "years_of_experience"
+            ],
             "mandatory": false,
-            "path": [ "years_of_experience" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Years of experience" },
-              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
-              { "locale": "fr-CH", "name": "Années d’expérience" },
-              { "locale": "it-CH", "name": "Anni di esperienza" },
-              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+              {
+                "locale": "en-CH",
+                "name": "Years of experience"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufserfahrung (Jahre)"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Années d’expérience"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Anni di esperienza"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Onns d’experientscha"
+              }
             ]
           },
           {
-            "name": "profile_picture",
+            "path": [
+              "profile_picture"
+            ],
             "mandatory": false,
-            "path": [ "profile_picture" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Profile picture" },
-              { "locale": "de-CH", "name": "Profilbild" },
-              { "locale": "fr-CH", "name": "Photo de profil" },
-              { "locale": "it-CH", "name": "Immagine del profilo" },
-              { "locale": "rm-CH", "name": "Maletg dal profil" }
+              {
+                "locale": "en-CH",
+                "name": "Profile picture"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Profilbild"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Photo de profil"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine del profilo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg dal profil"
+              }
             ]
           },
           {
-            "name": "signature_image",
+            "path": [
+              "signature_image"
+            ],
             "mandatory": true,
-            "path": [ "signature_image" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Signature image" },
-              { "locale": "de-CH", "name": "Unterschrift" },
-              { "locale": "fr-CH", "name": "Image de signature" },
-              { "locale": "it-CH", "name": "Immagine della firma" },
-              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+              {
+                "locale": "en-CH",
+                "name": "Signature image"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Unterschrift"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Image de signature"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine della firma"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg da la suttascripziun"
+              }
             ]
           }
         ],
@@ -261,78 +781,338 @@
         }
       },
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
+      "claims": {
+        "name": {
+          "mandatory": true,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Full name"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Vollständiger Name"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Nom complet"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Nome completo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Num cumplet"
+            }
+          ]
+        },
+        "job_title": {
+          "mandatory": false,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Job title"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufsbezeichnung"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Intitulé du poste"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Titolo professionale"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Titgel da professiun"
+            }
+          ]
+        },
+        "annual_salary": {
+          "mandatory": true,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Annual salary"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Jahresgehalt"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Salaire annuel"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Stipendio annuo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Paja annuala"
+            }
+          ]
+        },
+        "years_of_experience": {
+          "mandatory": false,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Years of experience"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufserfahrung (Jahre)"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Années d’expérience"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Anni di esperienza"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Onns d’experientscha"
+            }
+          ]
+        },
+        "profile_picture": {
+          "mandatory": false,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Profile picture"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Profilbild"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Photo de profil"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine del profilo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg dal profil"
+            }
+          ]
+        },
+        "signature_image": {
+          "mandatory": true,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Signature image"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Unterschrift"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Image de signature"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine della firma"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg da la suttascripziun"
+            }
+          ]
+        }
+      },
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
-            "path": [ "name" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" },
-              { "locale": "de-CH", "name": "Vollständiger Name" },
-              { "locale": "fr-CH", "name": "Nom complet" },
-              { "locale": "it-CH", "name": "Nome completo" },
-              { "locale": "rm-CH", "name": "Num cumplet" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Vollständiger Name"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Nom complet"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Nome completo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Num cumplet"
+              }
             ]
           },
           {
-            "name": "job_title",
+            "path": [
+              "job_title"
+            ],
             "mandatory": false,
-            "path": [ "job_title" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Job title" },
-              { "locale": "de-CH", "name": "Berufsbezeichnung" },
-              { "locale": "fr-CH", "name": "Intitulé du poste" },
-              { "locale": "it-CH", "name": "Titolo professionale" },
-              { "locale": "rm-CH", "name": "Titgel da professiun" }
+              {
+                "locale": "en-CH",
+                "name": "Job title"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufsbezeichnung"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Intitulé du poste"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Titolo professionale"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Titgel da professiun"
+              }
             ]
           },
           {
-            "name": "annual_salary",
+            "path": [
+              "annual_salary"
+            ],
             "mandatory": true,
-            "path": [ "annual_salary" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Annual salary" },
-              { "locale": "de-CH", "name": "Jahresgehalt" },
-              { "locale": "fr-CH", "name": "Salaire annuel" },
-              { "locale": "it-CH", "name": "Stipendio annuo" },
-              { "locale": "rm-CH", "name": "Paja annuala" }
+              {
+                "locale": "en-CH",
+                "name": "Annual salary"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Jahresgehalt"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Salaire annuel"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Stipendio annuo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Paja annuala"
+              }
             ]
           },
           {
-            "name": "years_of_experience",
+            "path": [
+              "years_of_experience"
+            ],
             "mandatory": false,
-            "path": [ "years_of_experience" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Years of experience" },
-              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
-              { "locale": "fr-CH", "name": "Années d’expérience" },
-              { "locale": "it-CH", "name": "Anni di esperienza" },
-              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+              {
+                "locale": "en-CH",
+                "name": "Years of experience"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufserfahrung (Jahre)"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Années d’expérience"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Anni di esperienza"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Onns d’experientscha"
+              }
             ]
           },
           {
-            "name": "profile_picture",
+            "path": [
+              "profile_picture"
+            ],
             "mandatory": false,
-            "path": [ "profile_picture" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Profile picture" },
-              { "locale": "de-CH", "name": "Profilbild" },
-              { "locale": "fr-CH", "name": "Photo de profil" },
-              { "locale": "it-CH", "name": "Immagine del profilo" },
-              { "locale": "rm-CH", "name": "Maletg dal profil" }
+              {
+                "locale": "en-CH",
+                "name": "Profile picture"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Profilbild"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Photo de profil"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine del profilo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg dal profil"
+              }
             ]
           },
           {
-            "name": "signature_image",
+            "path": [
+              "signature_image"
+            ],
             "mandatory": true,
-            "path": [ "signature_image" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Signature image" },
-              { "locale": "de-CH", "name": "Unterschrift" },
-              { "locale": "fr-CH", "name": "Image de signature" },
-              { "locale": "it-CH", "name": "Immagine della firma" },
-              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+              {
+                "locale": "en-CH",
+                "name": "Signature image"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Unterschrift"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Image de signature"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine della firma"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg da la suttascripziun"
+              }
             ]
           }
         ],
@@ -371,78 +1151,338 @@
         }
       },
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
+      "claims": {
+        "name": {
+          "mandatory": true,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Full name"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Vollständiger Name"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Nom complet"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Nome completo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Num cumplet"
+            }
+          ]
+        },
+        "job_title": {
+          "mandatory": false,
+          "value_type": "string",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Job title"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufsbezeichnung"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Intitulé du poste"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Titolo professionale"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Titgel da professiun"
+            }
+          ]
+        },
+        "annual_salary": {
+          "mandatory": true,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Annual salary"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Jahresgehalt"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Salaire annuel"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Stipendio annuo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Paja annuala"
+            }
+          ]
+        },
+        "years_of_experience": {
+          "mandatory": false,
+          "value_type": "number",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Years of experience"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Berufserfahrung (Jahre)"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Années d’expérience"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Anni di esperienza"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Onns d’experientscha"
+            }
+          ]
+        },
+        "profile_picture": {
+          "mandatory": false,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Profile picture"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Profilbild"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Photo de profil"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine del profilo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg dal profil"
+            }
+          ]
+        },
+        "signature_image": {
+          "mandatory": true,
+          "value_type": "image",
+          "display": [
+            {
+              "locale": "en-CH",
+              "name": "Signature image"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Unterschrift"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Image de signature"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Immagine della firma"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Maletg da la suttascripziun"
+            }
+          ]
+        }
+      },
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
-            "path": [ "name" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" },
-              { "locale": "de-CH", "name": "Vollständiger Name" },
-              { "locale": "fr-CH", "name": "Nom complet" },
-              { "locale": "it-CH", "name": "Nome completo" },
-              { "locale": "rm-CH", "name": "Num cumplet" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Vollständiger Name"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Nom complet"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Nome completo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Num cumplet"
+              }
             ]
           },
           {
-            "name": "job_title",
+            "path": [
+              "job_title"
+            ],
             "mandatory": false,
-            "path": [ "job_title" ],
+            "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Job title" },
-              { "locale": "de-CH", "name": "Berufsbezeichnung" },
-              { "locale": "fr-CH", "name": "Intitulé du poste" },
-              { "locale": "it-CH", "name": "Titolo professionale" },
-              { "locale": "rm-CH", "name": "Titgel da professiun" }
+              {
+                "locale": "en-CH",
+                "name": "Job title"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufsbezeichnung"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Intitulé du poste"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Titolo professionale"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Titgel da professiun"
+              }
             ]
           },
           {
-            "name": "annual_salary",
+            "path": [
+              "annual_salary"
+            ],
             "mandatory": true,
-            "path": [ "annual_salary" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Annual salary" },
-              { "locale": "de-CH", "name": "Jahresgehalt" },
-              { "locale": "fr-CH", "name": "Salaire annuel" },
-              { "locale": "it-CH", "name": "Stipendio annuo" },
-              { "locale": "rm-CH", "name": "Paja annuala" }
+              {
+                "locale": "en-CH",
+                "name": "Annual salary"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Jahresgehalt"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Salaire annuel"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Stipendio annuo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Paja annuala"
+              }
             ]
           },
           {
-            "name": "years_of_experience",
+            "path": [
+              "years_of_experience"
+            ],
             "mandatory": false,
-            "path": [ "years_of_experience" ],
+            "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Years of experience" },
-              { "locale": "de-CH", "name": "Berufserfahrung (Jahre)" },
-              { "locale": "fr-CH", "name": "Années d’expérience" },
-              { "locale": "it-CH", "name": "Anni di esperienza" },
-              { "locale": "rm-CH", "name": "Onns d’experientscha" }
+              {
+                "locale": "en-CH",
+                "name": "Years of experience"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufserfahrung (Jahre)"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Années d’expérience"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Anni di esperienza"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Onns d’experientscha"
+              }
             ]
           },
           {
-            "name": "profile_picture",
+            "path": [
+              "profile_picture"
+            ],
             "mandatory": false,
-            "path": [ "profile_picture" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Profile picture" },
-              { "locale": "de-CH", "name": "Profilbild" },
-              { "locale": "fr-CH", "name": "Photo de profil" },
-              { "locale": "it-CH", "name": "Immagine del profilo" },
-              { "locale": "rm-CH", "name": "Maletg dal profil" }
+              {
+                "locale": "en-CH",
+                "name": "Profile picture"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Profilbild"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Photo de profil"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine del profilo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg dal profil"
+              }
             ]
           },
           {
-            "name": "signature_image",
+            "path": [
+              "signature_image"
+            ],
             "mandatory": true,
-            "path": [ "signature_image" ],
+            "value_type": "image",
             "display": [
-              { "locale": "en-CH", "name": "Signature image" },
-              { "locale": "de-CH", "name": "Unterschrift" },
-              { "locale": "fr-CH", "name": "Image de signature" },
-              { "locale": "it-CH", "name": "Immagine della firma" },
-              { "locale": "rm-CH", "name": "Maletg da la suttascripziun" }
+              {
+                "locale": "en-CH",
+                "name": "Signature image"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Unterschrift"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Image de signature"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Immagine della firma"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Maletg da la suttascripziun"
+              }
             ]
           }
         ],
@@ -485,64 +1525,136 @@
           "mandatory": true,
           "value_type": "string",
           "display": [
-            { "locale": "en-CH", "name": "Full name" },
-            { "locale": "de-CH", "name": "Vollständiger Name" },
-            { "locale": "fr-CH", "name": "Nom complet" },
-            { "locale": "it-CH", "name": "Nome completo" },
-            { "locale": "rm-CH", "name": "Num cumplet" }
+            {
+              "locale": "en-CH",
+              "name": "Full name"
+            },
+            {
+              "locale": "de-CH",
+              "name": "Vollständiger Name"
+            },
+            {
+              "locale": "fr-CH",
+              "name": "Nom complet"
+            },
+            {
+              "locale": "it-CH",
+              "name": "Nome completo"
+            },
+            {
+              "locale": "rm-CH",
+              "name": "Num cumplet"
+            }
           ]
         },
         "array_mandatory": {
           "mandatory": true,
           "value_type": "array",
           "display": [
-            { "locale": "en-CH", "name": "Array mandatory" }
+            {
+              "locale": "en-CH",
+              "name": "Array mandatory"
+            }
           ]
         },
         "array_optional": {
           "mandatory": false,
           "value_type": "array",
           "display": [
-            { "locale": "en-CH", "name": "Array optional" }
+            {
+              "locale": "en-CH",
+              "name": "Array optional"
+            }
           ]
         }
       },
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
             "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" },
-              { "locale": "de-CH", "name": "Vollständiger Name" },
-              { "locale": "fr-CH", "name": "Nom complet" },
-              { "locale": "it-CH", "name": "Nome completo" },
-              { "locale": "rm-CH", "name": "Num cumplet" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Vollständiger Name"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Nom complet"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Nome completo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Num cumplet"
+              }
             ]
           },
           {
-            "name": "array_mandatory",
+            "path": [
+              "array_mandato"
+            ],
             "mandatory": true,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Job title" },
-              { "locale": "de-CH", "name": "Berufsbezeichnung" },
-              { "locale": "fr-CH", "name": "Intitulé du poste" },
-              { "locale": "it-CH", "name": "Titolo professionale" },
-              { "locale": "rm-CH", "name": "Titgel da professiun" }
+              {
+                "locale": "en-CH",
+                "name": "Job title"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Berufsbezeichnung"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Intitulé du poste"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Titolo professionale"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Titgel da professiun"
+              }
             ]
           },
           {
-            "name": "array_optional",
+            "path": [
+              "array_option"
+            ],
             "mandatory": true,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Annual salary" },
-              { "locale": "de-CH", "name": "Jahresgehalt" },
-              { "locale": "fr-CH", "name": "Salaire annuel" },
-              { "locale": "it-CH", "name": "Stipendio annuo" },
-              { "locale": "rm-CH", "name": "Paja annuala" }
+              {
+                "locale": "en-CH",
+                "name": "Annual salary"
+              },
+              {
+                "locale": "de-CH",
+                "name": "Jahresgehalt"
+              },
+              {
+                "locale": "fr-CH",
+                "name": "Salaire annuel"
+              },
+              {
+                "locale": "it-CH",
+                "name": "Stipendio annuo"
+              },
+              {
+                "locale": "rm-CH",
+                "name": "Paja annuala"
+              }
             ]
           }
         ],
@@ -580,157 +1692,146 @@
         }
       },
       "vct": "${external-url}/oid4vci/vct/my-vct-v01",
-
-      "claims": {
-        "name": {
-          "mandatory": true,
-          "value_type": "string",
-          "display": [
-            { "locale": "en-CH", "name": "Full name" }
-          ]
-        },
-
-        "address": {
-          "mandatory": true,
-          "value_type": "object",
-          "display": [
-            { "locale": "en-CH", "name": "Address" }
-          ]
-        },
-
-        "nationalities": {
-          "mandatory": true,
-          "value_type": "array",
-          "display": [
-            { "locale": "en-CH", "name": "Nationalities" }
-          ]
-        },
-
-        "birth_year": {
-          "mandatory": true,
-          "value_type": "number",
-          "display": [
-            { "locale": "en-CH", "name": "Year of birth" }
-          ]
-        },
-
-        "degrees": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            { "locale": "en-CH", "name": "Degrees" }
-          ]
-        },
-
-        "favorite_numbers": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            { "locale": "en-CH", "name": "Favorite numbers" }
-          ]
-        },
-
-        "portrait": {
-          "mandatory": false,
-          "value_type": "string",
-          "display": [
-            { "locale": "en-CH", "name": "Portrait image" }
-          ]
-        },
-
-        "additional_info": {
-          "mandatory": false,
-          "value_type": "string",
-          "display": [
-            { "locale": "en-CH", "name": "Additional information" }
-          ]
-        },
-
-        "additional_info_list": {
-          "mandatory": false,
-          "value_type": "array",
-          "display": [
-            { "locale": "en-CH", "name": "Additional information list" }
-          ]
-        }
-      },
-
       "credential_metadata": {
         "claims": [
           {
-            "name": "name",
+            "path": [
+              "name"
+            ],
             "mandatory": true,
             "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Full name" }
+              {
+                "locale": "en-CH",
+                "name": "Full name"
+              }
             ]
           },
           {
-            "name": "address",
+            "path": [
+              "address"
+            ],
             "mandatory": true,
-            "value_type": "object",
             "display": [
-              { "locale": "en-CH", "name": "Address" }
+              {
+                "locale": "en-CH",
+                "name": "Address"
+              }
             ]
           },
           {
-            "name": "nationalities",
+            "path": [ "address", "street_address" ]
+          },
+          {
+            "path": [ "address", "locality" ]
+          },
+          {
+            "path": [ "address", "postal_code" ]
+          },
+          {
+            "path": [
+              "nationalities"
+            ],
             "mandatory": true,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Nationalities" }
+              {
+                "locale": "en-CH",
+                "name": "Nationalities"
+              }
             ]
           },
           {
-            "name": "birth_year",
+            "path": [
+              "birth_year"
+            ],
             "mandatory": true,
             "value_type": "number",
             "display": [
-              { "locale": "en-CH", "name": "Year of birth" }
+              {
+                "locale": "en-CH",
+                "name": "Year of birth"
+              }
             ]
           },
           {
-            "name": "degrees",
+            "path": [
+              "degrees"
+            ],
             "mandatory": false,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Degrees" }
+              {
+                "locale": "en-CH",
+                "name": "Degrees"
+              }
             ]
           },
           {
-            "name": "favorite_numbers",
+            "path": [
+              "degrees", null, "type"
+            ],
+            "mandatory": false
+          },
+          {
+            "path": [
+              "degrees", null, "university"
+            ],
+            "mandatory": false
+          },
+          {
+            "path": [
+              "favorite_numbers"
+            ],
             "mandatory": false,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Favorite numbers" }
+              {
+                "locale": "en-CH",
+                "name": "Favorite numbers"
+              }
             ]
           },
           {
-            "name": "portrait",
+            "path": [
+              "portrait"
+            ],
             "mandatory": false,
             "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Portrait image" }
+              {
+                "locale": "en-CH",
+                "name": "Portrait image"
+              }
             ]
           },
           {
-            "name": "additional_info",
+            "path": [
+              "additional_info"
+            ],
             "mandatory": false,
             "value_type": "string",
             "display": [
-              { "locale": "en-CH", "name": "Additional information" }
+              {
+                "locale": "en-CH",
+                "name": "Additional information"
+              }
             ]
           },
           {
-            "name": "additional_info_list",
+            "path": [
+              "additional_info_list"
+            ],
             "mandatory": false,
             "value_type": "array",
             "display": [
-              { "locale": "en-CH", "name": "Additional information list" }
+              {
+                "locale": "en-CH",
+                "name": "Additional information list"
+              }
             ]
           }
         ],
-
         "display": [
           {
             "name": "Identity Profile Issuer",

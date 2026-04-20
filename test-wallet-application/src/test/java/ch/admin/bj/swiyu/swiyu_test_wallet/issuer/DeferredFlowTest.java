@@ -77,21 +77,13 @@ class DeferredFlowTest extends BaseTest {
                 Arguments.of(CredentialClaimsBuilder.base()
                                 .withEmptyArray(CredentialClaimsConstants.KEY_NATIONALITIES)
                                 .build(),
-<<<<<<< HEAD
                         true,
-=======
-                        false,
->>>>>>> 5c32e96 (feat(EIDOMNI-832): Add deferred flow test cases)
                         CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
                 ),
                 Arguments.of(CredentialClaimsBuilder.base()
                                 .withEmptyObject(CredentialClaimsConstants.KEY_ADDRESS)
                                 .build(),
-<<<<<<< HEAD
                         true,
-=======
-                        false,
->>>>>>> 5c32e96 (feat(EIDOMNI-832): Add deferred flow test cases)
                         CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT
                 )
         );
