@@ -92,7 +92,6 @@ public class WalletBatchEntry extends WalletEntry {
             augmentDigestMapFromDisclosures(parts.disclosures(), digestToPath);
 
             final List<String> selectedDisclosures = new ArrayList<>();
-            final Set<String> pathSatisfiedClaimIds = new HashSet<>();
 
             for (String disclosure : parts.disclosures()) {
                 final DisclosureMatch match = matchDisclosureToRequestedClaims(
@@ -103,7 +102,6 @@ public class WalletBatchEntry extends WalletEntry {
 
                 if (match.matchedPath()) {
                     selectedDisclosures.add(disclosure);
-                    pathSatisfiedClaimIds.addAll(match.satisfiedClaimKeys());
                 }
             }
 
