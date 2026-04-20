@@ -25,7 +25,8 @@ public class IssuerContainerConfig {
             final MockServerContainer mockServer,
             final String imageName,
             final IssuerImageConfig issuerImageConfig,
-            final String tokenDirPath) {
+            final String tokenDirPath,
+            final MockAttestationAuthority mockAttestationAuthority) {
         try (GenericContainer<?> containerBuilder = new GenericContainer<>(imageName)) {
             containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
@@ -69,6 +70,10 @@ public class IssuerContainerConfig {
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("issuer/metadata.json")), "/tmp/metadata.json")
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
+                    .withEnv(
+                            "APPLICATION_TRUSTED_ATTESTATION_PROVIDERS",
+                            mockAttestationAuthority.getDid()
+                    )
                     .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
                     .dependsOn(dbContainer, mockServer);
 

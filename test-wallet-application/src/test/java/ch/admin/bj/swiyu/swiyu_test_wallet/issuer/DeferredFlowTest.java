@@ -222,7 +222,7 @@ class DeferredFlowTest extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasError("CREDENTIAL_REQUEST_DENIED")
+                .hasError("credential_request_denied")
                 .hasErrorDescription("The credential cannot be issued anymore, the offer was either cancelled or expired");
 
         // Given
