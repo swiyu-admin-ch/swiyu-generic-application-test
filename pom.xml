@@ -23,7 +23,7 @@
         <nimbus-jose-jwt.version>10.9</nimbus-jose-jwt.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
-        <bitcoinj-core.version>0.17</bitcoinj-core.version>
+        <bitcoinj-core.version>0.17.1</bitcoinj-core.version>
         <java-json-canonicalization.version>1.1</java-json-canonicalization.version>
         <bouncycastle.version>1.84</bouncycastle.version>
         <mockserver.version>5.15.0</mockserver.version>
