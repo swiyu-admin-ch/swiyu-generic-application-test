@@ -1,19 +1,27 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -122,5 +130,53 @@ class IssuerTest extends BaseTest {
         assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-910",
+            summary = "Successful issuance exposes expected VCT application level claims",
+            description = """
+                This test validates a happy path issuance flow and verifies that
+                application level claims such as vct_version and vct_subtype are
+                available as regular disclosed claims when supported by the credential
+                profile.
+                """)
+    @Tag(ReportingTags.UCI_C1A)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
+    void unboundNonDeferredCredential_whenIssued_thenContainsExpectedVctApplicationClaims() {
+        final Map<String, Object> subjectClaims =
+                CredentialClaimsFixtures.createBaseProfile();
+
+        subjectClaims.put("vct_version", "1.0");
+        subjectClaims.put("vct_subtype", "employee");
+
+        final String supportedMetadataId =
+                CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT;
+
+        final CredentialWithDeeplinkResponse offer =
+                issuerManager.createCredentialOffer(
+                        supportedMetadataId,
+                        subjectClaims
+                );
+
+        final WalletBatchEntry entry =
+                wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+
+        SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique();
+
+        entry.getIssuedCredentials().forEach(credential ->
+                SdJwtAssert.assertThat(credential)
+                        .hasDisclosure(CredentialClaimsConstants.KEY_NAME)
+                        .hasDisclosure(CredentialClaimsConstants.KEY_BIRTH_YEAR)
+                        .hasDisclosure("vct_version", "1.0")
+                        .hasDisclosure("vct_subtype", "employee")
+                        .hasNotDisclosure("iss")
+                        .hasNotDisclosure("exp")
+                        .hasNotDisclosure("iat")
+        );
     }
 }

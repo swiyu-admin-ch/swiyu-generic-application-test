@@ -117,6 +117,22 @@ public final class SdJwtAssert {
         return this;
     }
 
+    public SdJwtAssert hasNotDisclosure(final String claimName) {
+        final boolean found = disclosures.stream()
+                .anyMatch(disclosureJson -> {
+                    final List<?> parts =
+                            JsonPath.read(disclosureJson, "$");
+                    return parts.size() >= 2
+                            && claimName.equals(parts.get(1));
+                });
+
+        Assertions.assertThat(found)
+                .as("Disclosure for claim '%s' should not exist", claimName)
+                .isFalse();
+
+        return this;
+    }
+
     public SdJwtAssert hasExactlyInAnyOrderDisclosures(
             final Map<String, Object> expectedDisclosures
     ) {
