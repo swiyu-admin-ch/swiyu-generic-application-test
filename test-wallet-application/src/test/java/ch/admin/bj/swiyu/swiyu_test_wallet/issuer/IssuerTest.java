@@ -1,23 +1,34 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.web.client.HttpClientErrorException;
+
+import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -122,5 +133,56 @@ class IssuerTest extends BaseTest {
         assertThat(openIdConfig.getIssuer()).startsWith(TestConstants.ISSUER_URL);
         assertThat(openIdConfig.getTokenEndpoint()).isNotNull();
         assertThat(openIdConfig.getTokenEndpoint()).isEqualTo("http://default-issuer-url.admin.ch/oid4vci/api/token");
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-930",
+            summary = "Repeated token request after issued credential returns generic rejection",
+            description = """
+                This test validates that the token endpoint rejects a repeated
+                pre-authorized_code exchange after the related credential was already issued
+                and no detailed internal error message is exposed.
+                """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    void unboundNonDeferredCredential_whenTokenRequestedAgainAfterIssuance_thenRequestIsRejected() {
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+
+        final CredentialWithDeeplinkResponse offer =
+                issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+
+        final WalletBatchEntry batchEntry =
+                wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+
+        final HttpClientErrorException reusedCodeException = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.collectToken(batchEntry)
+        );
+
+        final WalletBatchEntry invalidCodeEntry = spy(batchEntry);
+
+        doReturn("unknown-pre-authorized-code")
+                .when(invalidCodeEntry)
+                .getPreAuthorizedCode();
+
+        final HttpClientErrorException unknownCodeException = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.collectToken(invalidCodeEntry)
+        );
+
+        assertThat(reusedCodeException.getStatusCode())
+                .isEqualTo(unknownCodeException.getStatusCode());
+
+        assertThat(reusedCodeException.getResponseBodyAsString())
+                .isEqualTo(unknownCodeException.getResponseBodyAsString());
     }
 }
