@@ -484,7 +484,7 @@ public class SubjectClaimsTest extends BaseTest {
         log.info("DCQL: {}", verificationDetails.getDcqlQuery().getCredentials().getFirst().getClaims());
         log.info("VC: {}", entry.getIssuedCredentials().get(0));
         log.info("VP: {}", presentation);
-        wallet.respondToVerificationV1(verificationDetails, presentation);
+        wallet.respondToVerification(verificationDetails, presentation);
 
         // Thenm6m
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS, assertMessage);
@@ -536,7 +536,7 @@ public class SubjectClaimsTest extends BaseTest {
         log.info("VC: {}", entry.getIssuedCredentials().get(0));
         log.info("VP: {}", presentation);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.respondToVerificationV1(verificationDetails, presentation),
+                () -> wallet.respondToVerification(verificationDetails, presentation),
                 assertMessage);
 
         // Then
@@ -595,7 +595,7 @@ public class SubjectClaimsTest extends BaseTest {
         log.info("VC: {}", entry.getIssuedCredentials().get(0));
         log.info("VP: {}", presentation);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.respondToVerificationV1(verificationDetails, presentation),
+                () -> wallet.respondToVerification(verificationDetails, presentation),
                 assertMessage);
 
         // Then

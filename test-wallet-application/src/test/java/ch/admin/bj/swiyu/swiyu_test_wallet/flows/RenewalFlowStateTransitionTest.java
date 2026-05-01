@@ -85,7 +85,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             final RequestObject details = wallet.getVerificationDetailsUnsigned(deepLink);
             final String presentation = entry.createPresentationForSdJwtIndex(i, details);
 
-            wallet.respondToVerificationV1(details, presentation);
+            wallet.respondToVerification(details, presentation);
             verifierManager.verifyState();
         }
 
@@ -161,7 +161,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+                wallet.respondToVerification(verificationDetails, presentation);
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
@@ -179,7 +179,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+                wallet.respondToVerification(verificationDetails, presentation);
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
@@ -257,7 +257,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+                wallet.respondToVerification(verificationDetails, presentation);
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
@@ -275,7 +275,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+                wallet.respondToVerification(verificationDetails, presentation);
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
@@ -299,7 +299,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            wallet.respondToVerification(verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
 
@@ -311,7 +311,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            wallet.respondToVerification(verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
     }

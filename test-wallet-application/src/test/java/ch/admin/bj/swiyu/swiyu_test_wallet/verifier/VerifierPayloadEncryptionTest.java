@@ -104,69 +104,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         } else {
             presentation = batchEntry.getVerifiableCredential(0);
         }
-        wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+        wallet.respondToVerification(verificationDetails, presentation);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
-            CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
-    @XrayTest(
-            key = "EIDOMNI-452",
-            summary = "Reject unencrypted presentation when Business Verifier requires encrypted payload (ID2 retrocompatible)",
-            description = """
-                    This test validates that the Verifier rejects unencrypted presentations when the Business Verifier explicitly requests encrypted payloads.
-                    The Wallet intentionally sends an unencrypted presentation to verify the Verifier enforces encryption requirements.
-                    The verification state remains PENDING as the presentation does not meet security requirements.
-                    """
-    )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.EDGE_CASE)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "The stable tag is not yet ready with batch issuance."
-    )
-    @Deprecated(forRemoval = true)
-    void rejectPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
-        // Given
-        final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.ID2;
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final boolean holderBindingRequired =
-                supportedMetadataId.equalsIgnoreCase(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest(holderBindingRequired)
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .encrypted()
-                .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-
-        RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
-
-        // Given
-        String presentation;
-        if (holderBindingRequired) {
-            presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        } else {
-            presentation = batchEntry.getVerifiableCredential(0);
-        }
-
-        // When - Wallet will not encrypt the payload for the next request
-        wallet.setUseEncryption(false);
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.respondToVerification(swiyuApiVersion, verificationDetails, presentation)
-        );
-
-        ApiErrorAssert.assertThat(ex)
-                .hasStatus(400)
-                .hasErrorDescription("Lacking encryption. All elements of the response should be encrypted.");
-
-        verifierManager.verifyState(VerificationStatus.PENDING);
     }
 
     @ParameterizedTest
@@ -218,90 +159,13 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         // When - Wallet will not encrypt the payload for the next request
         wallet.setUseEncryption(false);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.respondToVerification(swiyuApiVersion, verificationDetails, presentation)
+                wallet.respondToVerification(verificationDetails, presentation)
         );
 
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
                 .hasErrorDescription("Lacking encryption. All elements of the response should be encrypted.");
 
-        verifierManager.verifyState(VerificationStatus.PENDING);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
-            CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
-    @XrayTest(
-            key = "EIDOMNI-461",
-            summary = "Reject encrypted presentation when encrypted with wrong key (ID2 retrocompatible)",
-            description = """
-                    This test validates that the Verifier rejects presentations encrypted with an incorrect key that does not match the Business Verifier's public keys.
-                    The Wallet sends a properly encrypted presentation but using a wrong encryption key to verify the Verifier enforces key validation.
-                    The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
-                    """
-    )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.EDGE_CASE)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "The stable tag is not yet ready with batch issuance."
-    )
-    @Deprecated(forRemoval = true)
-    void rejectPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
-        // Given
-        final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.ID2;
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final boolean holderBindingRequired =
-                supportedMetadataId.equalsIgnoreCase(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest(holderBindingRequired)
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .encrypted()
-                .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-
-        RequestObjectAssert.assertThat(verificationDetails)
-                .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
-
-        // Given
-        String presentation;
-        if (holderBindingRequired) {
-            presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        } else {
-            presentation = batchEntry.getVerifiableCredential(0);
-        }
-
-        // When - Wallet will encrypt the payload but with the wrong key
-        final RequestObject modifiedVerificationRequest = Mockito.spy(verificationDetails);
-        final String wrongKeyId = "wrong-key-id";
-        final ECKey wrongECKey = new ECKeyGenerator(Curve.P_256).keyID(wrongKeyId).generate();
-        final JsonWebKey wrongKey = new JsonWebKey()
-                .crv("P-256")
-                .alg("ECDH-ES")
-                .x(wrongECKey.getX().toString())
-                .y(wrongECKey.getY().toString())
-                .kid(wrongKeyId);
-
-        final OpenidClientMetadataDto clientMetadata = Mockito.spy(verificationDetails.getClientMetadata());
-        Mockito.doReturn(new JWKSet().addKeysItem(wrongKey))
-                .when(clientMetadata)
-                .getJwks();
-        Mockito.doReturn(clientMetadata)
-                .when(modifiedVerificationRequest)
-                .getClientMetadata();
-
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.respondToVerification(swiyuApiVersion, modifiedVerificationRequest, presentation)
-        );
-
-        // Then
-        ApiErrorAssert.assertThat(ex)
-                .hasStatus(400)
-                .hasErrorDescription(String.format("No matching JWK for keyId %s found. Unable to decrypt response.",
-                        wrongKeyId));
         verifierManager.verifyState(VerificationStatus.PENDING);
     }
 
@@ -371,7 +235,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .getClientMetadata();
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.respondToVerification(swiyuApiVersion, modifiedVerificationRequest, presentation)
+                wallet.respondToVerification(modifiedVerificationRequest, presentation)
         );
 
         // Then

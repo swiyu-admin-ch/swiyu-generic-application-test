@@ -50,46 +50,6 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
-    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
-        // Given
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
-                subjectClaims);
-        final WalletBatchEntry entry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .createManagementResponse();
-        final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, entry.getVerifiableCredential(0));
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-386",
-            summary = "Successful verification of an unbound SD-JWT credential (non-deferred)",
-            description = """
-                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential
-                    through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
-                    collects the non-deferred credential and presents it to a verifier for validation.
-                    """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -118,62 +78,10 @@ class WalletTest extends BaseTest {
             final RequestObject verificationDetails = wallet
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, verifiableCredential);
+            wallet.respondToVerification(verificationDetails, verifiableCredential);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         });
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-389",
-            summary = "Successful deferred issuance and verification of an unbound SD-JWT credential",
-            description = """
-                    This test validates the end-to-end deferred issuance flow for an unbound SD-JWT credential,
-                    where the wallet retrieves a transaction ID during the initial offer collection phase and
-                    collects the credential after the issuer marks it as READY. The credential is subsequently
-                    verified through the OID4VP interface.
-                    """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.HAPPY_PATH)
-    void unboundDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
-        // Given
-        final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
-                initialSubjectClaims);
-        final WalletBatchEntry batchEntry =
-                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
-
-        // When
-        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
-
-        // When
-        wallet.getCredentialFromTransactionId(batchEntry);
-        // Then
-        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
-                .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .createManagementResponse();
-        final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails,
-                batchEntry.getVerifiableCredential(0));
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
     }
 
     @Test
@@ -231,51 +139,11 @@ class WalletTest extends BaseTest {
             final RequestObject verificationDetails = wallet
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+            wallet.respondToVerification(verificationDetails,
                     verifiableCredential);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         });
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-393",
-            summary = "Successful issuance and verification of a bound SD-JWT credential with selective disclosure",
-            description = """
-                    This test validates the immediate issuance of a bound SD-JWT credential that requires selective
-                    disclosure during verification. The wallet constructs a derived presentation based on the verifier's
-                    requirements and the credential is successfully validated.
-                    """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1A)
-    @Tag(ReportingTags.UCV_O2A)
-    @Tag(ReportingTags.HAPPY_PATH)
-    void boundNonDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
-        // Given
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
-                subjectClaims);
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
-                .hasExactlyInAnyOrderDisclosures(subjectClaims);
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .createManagementResponse();
-        final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        final String presentation = batchEntry.createPresentationForSdJwtIndex(0,
-                verificationDetails);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
     @Test
@@ -320,65 +188,10 @@ class WalletTest extends BaseTest {
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            wallet.respondToVerification(verificationDetails, presentation);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-390",
-            summary = "Successful deferred issuance and verification of a bound SD-JWT credential",
-            description = """
-                    This test validates the end-to-end deferred issuance flow for a bound SD-JWT credential
-                    with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
-                    and successfully constructs a presentation that satisfies the verifier's requirements.
-                    """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2A)
-    @Tag(ReportingTags.HAPPY_PATH)
-    void boundDeferredCredential_whenIssuedAndVerifiedWithDif_thenSuccess() {
-        // Given
-        final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        updatedSubjectClaims.put(CredentialSubjectFixtures.NUMBER_MANDATORY_CLAIM_KEY, 15.0);
-        updatedSubjectClaims.remove(CredentialSubjectFixtures.NUMBER_OPTIONAL_CLAIM_KEY);
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
-                initialSubjectClaims);
-        final WalletBatchEntry batchEntry =
-                wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
-
-        // When
-        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
-
-        // When
-        wallet.getCredentialFromTransactionId(batchEntry);
-        // Then
-        SdJwtAssert.assertThat(batchEntry.getVerifiableCredential(0))
-                .hasExactlyInAnyOrderDisclosures(updatedSubjectClaims);
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
-
-        // When
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .createManagementResponse();
-        ;
-        final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        wallet.respondToVerification(SwiyuApiVersionConfig.ID2, verificationDetails, presentation);
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
     @Test
@@ -432,7 +245,7 @@ class WalletTest extends BaseTest {
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            wallet.respondToVerification(verificationDetails, presentation);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }
@@ -470,7 +283,7 @@ class WalletTest extends BaseTest {
         assert verificationDetails.getDcqlQuery() != null;
 
         assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerificationV1(verificationDetails, res);
+            wallet.respondToVerification(verificationDetails, res);
         });
     }
 }

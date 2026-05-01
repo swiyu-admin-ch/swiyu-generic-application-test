@@ -227,7 +227,7 @@ class VerifierOID4VPTest extends BaseTest {
 
         // When
         wallet.setUseEncryption(false);
-        wallet.respondToVerificationV1(verificationDetails, verifiableCredential);
+        wallet.respondToVerification(verificationDetails, verifiableCredential);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -246,7 +246,7 @@ class VerifierOID4VPTest extends BaseTest {
 
         // When
         wallet.setUseEncryption(true);
-        wallet.respondToVerificationV1(verificationDetails, verifiableCredential);
+        wallet.respondToVerification(verificationDetails, verifiableCredential);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -304,7 +304,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(false);
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerificationV1(verificationDetailsUnencryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsUnencryptedFaked, verifiableCredential);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
@@ -332,7 +332,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(true);
         ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerificationV1(verificationDetailsEncryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsEncryptedFaked, verifiableCredential);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)

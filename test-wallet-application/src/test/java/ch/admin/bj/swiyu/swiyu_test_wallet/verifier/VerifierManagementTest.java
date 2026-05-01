@@ -5,7 +5,6 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -13,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,111 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class VerifierManagementTest extends BaseTest {
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-549",
-            summary = "Business verifier initiates a verification process and receives a deeplink",
-            description = """
-                    This test validates that a Business Verifier can successfully initiate a verification process
-                    through the management API, persist the verification entry with presentation definition constraints,
-                    and return a verification deeplink suitable for QR code generation.
-                    """
-    )
-    @Tag(ReportingTags.UCV_M1)
-    @Tag(ReportingTags.HAPPY_PATH)
-    void verifierInitiatesVerification_thenManagementEntryAndDeeplinkCreated() {
-
-        // GIVEN
-        final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
-                .verificationRequest(true)
-                .acceptedIssuerDid(acceptedIssuerDid)
-                .withUniversity();
-
-        final PresentationDefinition expectedPresentationDefinition =
-                verifierManagerRequest.getRequest().getPresentationDefinition();
-        final List<Field> expectedFields = expectedPresentationDefinition.getInputDescriptors().getFirst().getConstraints().getFields();
-
-        // WHEN
-        final ManagementResponse managementResponse =
-                verifierManagerRequest
-                        .createManagementResponse();
-
-        // THEN – response returned
-        assertThat(managementResponse)
-                .as("Management response must be returned when initiating a verification")
-                .isNotNull();
-
-        // THEN – deeplink created (UCV_M1B)
-        assertThat(managementResponse.getVerificationDeeplink())
-                .as("Verification deeplink must be provided to allow QR code generation")
-                .isNotNull()
-                .startsWith("swiyu-verify://");
-
-        assertThat(managementResponse.getId())
-                .as("Verification management entry must expose a verificationId for tracking")
-                .isNotNull();
-
-        // THEN – management entry persisted (UCV_M1A)
-        final ManagementResponse persistedEntry =
-                verifierManager.getVerificationById(managementResponse.getId());
-        final InputDescriptor persistedInputDescriptor =
-                persistedEntry.getPresentationDefinition().getInputDescriptors().getFirst();
-        final List<Field> persistedFields = persistedInputDescriptor.getConstraints().getFields();
-
-        assertThat(persistedEntry)
-                .as("Verification management entry must be persisted and retrievable by id")
-                .isNotNull();
-
-        assertThat(persistedEntry.getState())
-                .as("Newly created verification must start in PENDING state")
-                .isEqualTo(VerificationStatus.PENDING);
-
-        assertThat(persistedEntry.getId())
-                .as("Persisted entry id must match the management response id")
-                .isEqualTo(managementResponse.getId());
-
-        assertThat(persistedEntry.getPresentationDefinition().getId())
-                .as("Persisted presentation definition must keep the same id")
-                .isNotNull()
-                .isEqualTo(verifierManagerRequest.getRequest().getPresentationDefinition().getId());
-
-        assertThat(persistedEntry.getPresentationDefinition().getName())
-                .as("Persisted presentation definition must keep the same name")
-                .isNotNull()
-                .isEqualTo(expectedPresentationDefinition.getName());
-
-        assertThat(persistedEntry.getPresentationDefinition())
-                .as("Presentation definition must be persisted with the verification entry")
-                .isNotNull();
-
-        assertThat(persistedEntry.getPresentationDefinition().getInputDescriptors())
-                .as("Presentation definition must contain exactly one input descriptor")
-                .hasSameSizeAs(expectedPresentationDefinition.getInputDescriptors());
-
-        assertThat(persistedInputDescriptor.getId())
-                .as("Input descriptor must expose an id")
-                .isNotNull();
-
-        assertThat(persistedFields)
-                .as("Input descriptor constraints must define expected fields")
-                .hasSameSizeAs(expectedFields);
-
-        assertThat(
-                List.of(
-                        persistedFields.get(0).getPath().getFirst(),
-                        persistedFields.get(1).getPath().getFirst(),
-                        persistedFields.get(2).getPath().getFirst()
-                )
-        )
-                .as("Input descriptor must request the same claim paths as provided")
-                .containsExactlyInAnyOrder(
-                        expectedFields.get(0).getPath().getFirst(),
-                        expectedFields.get(1).getPath().getFirst(),
-                        expectedFields.get(2).getPath().getFirst()
-                );
-    }
 
     @Test
     @XrayTest(
@@ -281,20 +173,18 @@ class VerifierManagementTest extends BaseTest {
                 .containsEntry("error_description", "PresentationDefinition must be provided");
     }
 
-    @ParameterizedTest
-    @EnumSource(SwiyuApiVersionConfig.class)
     @XrayTest(
             key = "EIDOMNI-552",
-            summary = "Business verifier retrieves verification result after successful verification",
+            summary = "Business verifier retrieves verification result after successful DCQL verification",
             description = """
-                    This parameterized test validates that a Business Verifier can successfully retrieve the final
-                    verification result after a wallet has completed a successful presentation and verification flow.
-                    It runs for both SWIYU API versions (OID4VP standard and DCQL-based).
+                    This test validates that a Business Verifier can successfully retrieve the final
+                    verification result after a wallet has completed a successful DCQL presentation and verification flow.
                     """
     )
     @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.HAPPY_PATH)
-    void verifierRetrievesVerificationResult_afterSuccessfulVerification(final SwiyuApiVersionConfig swiyuApiVersion) {
+    @Test
+    void verifierRetrievesVerificationResult_afterSuccessfulVerification() {
 
         // GIVEN – credential issued to wallet
         final CredentialWithDeeplinkResponse response =
@@ -303,14 +193,9 @@ class VerifierManagementTest extends BaseTest {
 
         // GIVEN – verifier initiates verification
         final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
-                .verificationRequest(true)
-                .acceptedIssuerDid(issuerConfig.getIssuerDid());
-
-        if (swiyuApiVersion == SwiyuApiVersionConfig.ID2) {
-            verifierManagerRequest.withUniversity();
-        } else if (swiyuApiVersion == SwiyuApiVersionConfig.V1) {
-            verifierManagerRequest.withUniversityDCQL();
-        }
+                .verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL();
 
         final ManagementResponse managementResponse =
                 verifierManagerRequest
@@ -326,11 +211,7 @@ class VerifierManagementTest extends BaseTest {
                         verificationDetails
                 );
 
-        wallet.respondToVerification(
-                swiyuApiVersion,
-                verificationDetails,
-                presentation
-        );
+        wallet.respondToVerification(verificationDetails, presentation);
 
         // THEN – verifier retrieves verification result (UCV_M3)
         final ManagementResponse verificationResult =
