@@ -473,42 +473,7 @@ public class Wallet {
         return ((VerificationRequestObject.Signed) request).jwt();
     }
 
-    public void respondToVerification(final SwiyuApiVersionConfig apiVersion, RequestObject requestObject, String token) {
-        if (apiVersion == SwiyuApiVersionConfig.V1) {
-            respondToVerificationV1(requestObject, token);
-            return;
-        }
-        respondToVerificationID2(requestObject, token);
-    }
-
-    public void respondToVerificationID2(RequestObject requestObject, String token) {
-        final String submission = getPresentationSubmissionPayload();
-        final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-
-        if (useEncryption) {
-            final Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put(VP_TOKEN, token);
-            payload.put("presentation_submission", submission);
-            formData.add("response", buildEncryptedResponse(requestObject, payload));
-        } else {
-            formData.add("presentation_submission", submission);
-            formData.add(VP_TOKEN, token);
-        }
-
-        final var response = restClient.post()
-                .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
-                .headers(headers -> {
-                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
-                    headers.add(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.ID2.getValue());
-                })
-                .body(formData)
-                .retrieve()
-                .toEntity(String.class);
-
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-    }
-
-    public void respondToVerificationV1(final RequestObject requestObject, final String token) {
+    public void respondToVerification(RequestObject requestObject, String token) {
         final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
         final Map<String, Object> vpToken = Map.of(tokenId, List.of(token));
 

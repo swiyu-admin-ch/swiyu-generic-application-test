@@ -36,10 +36,8 @@ public class VerifierContainerConfig {
                     .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
                     .withEnv("SIGNING_KEY", config.getIssuerAuthKeyPemString())
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
-                    .withEnv("ACCEPTED_STATUS_LIST_HOSTS", config.getMockServerUri())
                     .withEnv("client_id_scheme", "did")
                     .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
-                    .withEnv("ACCEPTED_STATUS_LIST_HOSTS", "swiyu-demo-verifier-service")
                     .withEnv("MANAGEMENT_HEALTH_KUBERNETES_ENABLED", "false")
                     .withEnv("MANAGEMENT_INFO_KUBERNETES_ENABLED", "false")
                     .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, verifierImageConfig.getDbSchema()))
@@ -62,4 +60,3 @@ public class VerifierContainerConfig {
         }
     }
 }
-

@@ -63,7 +63,7 @@ class VerifierOID4VPTest extends BaseTest {
         final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid("did:swiyu:university")
-                .withUniversity()
+                .withUniversityDCQL()
                 .jwtSecure();
         final ManagementResponse managementResponse = verifierManagerRequest.createManagementResponse();
 
@@ -227,7 +227,7 @@ class VerifierOID4VPTest extends BaseTest {
 
         // When
         wallet.setUseEncryption(false);
-        wallet.respondToVerificationV1(verificationDetails, verifiableCredential);
+        wallet.respondToVerification(verificationDetails, verifiableCredential);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -246,7 +246,7 @@ class VerifierOID4VPTest extends BaseTest {
 
         // When
         wallet.setUseEncryption(true);
-        wallet.respondToVerificationV1(verificationDetails, verifiableCredential);
+        wallet.respondToVerification(verificationDetails, verifiableCredential);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -267,7 +267,7 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV, ImageTags.LOCAL},
             reason = "This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)"
     )
     void unboundNonDeferredCredential_whenWrongState_thenRejected() {
@@ -304,7 +304,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(false);
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerificationV1(verificationDetailsUnencryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsUnencryptedFaked, verifiableCredential);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
@@ -332,7 +332,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(true);
         ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerificationV1(verificationDetailsEncryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsEncryptedFaked, verifiableCredential);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)

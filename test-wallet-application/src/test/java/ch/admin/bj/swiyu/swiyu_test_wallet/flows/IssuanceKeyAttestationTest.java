@@ -66,7 +66,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+            wallet.respondToVerification(verificationDetails, presentation);
             // Then
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
         }

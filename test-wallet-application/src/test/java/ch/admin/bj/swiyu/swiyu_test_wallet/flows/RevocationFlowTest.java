@@ -93,7 +93,7 @@ public class RevocationFlowTest extends BaseTest {
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, presentation);
+                wallet.respondToVerification(verificationDetails, presentation);
             });
 
             ApiErrorAssert.assertThat(ex)
@@ -159,7 +159,7 @@ public class RevocationFlowTest extends BaseTest {
 
             final int index = i;
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails, batchEntry.getVerifiableCredential(index));
+                wallet.respondToVerification(verificationDetails, batchEntry.getVerifiableCredential(index));
             });
 
             ApiErrorAssert.assertThat(ex)
@@ -183,7 +183,7 @@ public class RevocationFlowTest extends BaseTest {
                     .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
-            wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+            wallet.respondToVerification(verificationDetails,
                     batchEntry.getVerifiableCredential(i));
 
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -206,7 +206,7 @@ public class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV, ImageTags.LOCAL},
             reason = "This fix is not available yet on other image tags"
     )
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
@@ -272,7 +272,7 @@ public class RevocationFlowTest extends BaseTest {
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
-        wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+        wallet.respondToVerification(verificationDetails,
                 batchEntry.getVerifiableCredential(0));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -366,7 +366,7 @@ public class RevocationFlowTest extends BaseTest {
                 .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
-        wallet.respondToVerification(SwiyuApiVersionConfig.V1, verificationDetails,
+        wallet.respondToVerification(verificationDetails,
                 batchEntry.getVerifiableCredential(0));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);

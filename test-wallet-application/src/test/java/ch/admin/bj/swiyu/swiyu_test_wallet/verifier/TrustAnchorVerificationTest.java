@@ -65,7 +65,7 @@ class TrustAnchorVerificationTest extends BaseTest {
 
         final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        wallet.respondToVerificationV1(verificationDetails, presentation);
+        wallet.respondToVerification(verificationDetails, presentation);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -103,7 +103,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.respondToVerificationV1(verificationDetails, presentation));
+                () -> wallet.respondToVerification(verificationDetails, presentation));
 
         // Then
         ApiErrorAssert.assertThat(ex)
