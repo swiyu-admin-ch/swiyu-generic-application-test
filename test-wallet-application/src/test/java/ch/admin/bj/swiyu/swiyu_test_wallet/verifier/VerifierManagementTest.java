@@ -98,20 +98,6 @@ class VerifierManagementTest extends BaseTest {
                 .as("Persisted entry id must match the management response id")
                 .isEqualTo(managementResponse.getId());
 
-        assertThat(persistedEntry.getPresentationDefinition().getId())
-                .as("Persisted presentation definition must keep the same id")
-                .isNotNull()
-                .isEqualTo(verifierManagerRequest.getRequest().getPresentationDefinition().getId());
-
-        assertThat(persistedEntry.getPresentationDefinition().getName())
-                .as("Persisted presentation definition must keep the same name")
-                .isNotNull()
-                .isEqualTo(expectedPresentationDefinition.getName());
-
-        assertThat(persistedEntry.getPresentationDefinition())
-                .as("Presentation definition must be persisted with the verification entry")
-                .isNotNull();
-
         assertThat(persistedDcqlQuery)
                 .as("DCQL query must be persisted with the verification entry")
                 .isNotNull();
@@ -170,7 +156,7 @@ class VerifierManagementTest extends BaseTest {
                 .as("Invalid refresh token must be rejected")
                 .isEqualTo(400);
         assertThat(errorJson(ex))
-                .containsEntry("error_description", "PresentationDefinition must be provided");
+                .containsEntry("error_description", "dcqlQuery: must not be null");
     }
 
     @XrayTest(

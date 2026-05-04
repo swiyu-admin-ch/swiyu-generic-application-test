@@ -63,7 +63,7 @@ class VerifierOID4VPTest extends BaseTest {
         final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid("did:swiyu:university")
-                .withUniversity()
+                .withUniversityDCQL()
                 .jwtSecure();
         final ManagementResponse managementResponse = verifierManagerRequest.createManagementResponse();
 
@@ -267,7 +267,7 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV, ImageTags.LOCAL},
             reason = "This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)"
     )
     void unboundNonDeferredCredential_whenWrongState_thenRejected() {

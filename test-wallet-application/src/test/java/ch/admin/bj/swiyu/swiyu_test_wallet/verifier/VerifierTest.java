@@ -40,7 +40,7 @@ class VerifierTest extends BaseTest {
     @Tag(ReportingTags.UCV_M1B)
     @Tag(ReportingTags.HAPPY_PATH)
     void verifierProvidesDeeplink() {
-        final ManagementResponse deeplink = verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).createManagementResponse();
+        final ManagementResponse deeplink = verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).withUniversityDCQL().createManagementResponse();
         assertThat(deeplink.getVerificationDeeplink())
                 .isNotNull()
                 .startsWith("swiyu-verify://");
@@ -71,7 +71,7 @@ class VerifierTest extends BaseTest {
 
         assertThat(errorJson(ex))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        "error_description", "PresentationDefinition must be provided"
+                        "error_description", "dcqlQuery: must not be null"
                 ));
     }
 
