@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustRegistryMockServerConfigurer;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
@@ -95,7 +96,22 @@ public class MockServerClientConfig {
                 mockServer.getHost(),
                 mockServer.getServerPort());
 
-        // Register expectations
+        registerStatusListRoutes(mockServerClient, issuerConfig);
+        registerDidResolutionRoutes(mockServerClient, issuerConfig, trustConfig, attestationAuthority);
+        registerOauthAndCallbacks(mockServerClient);
+        registerRenewalRoute(mockServerClient, validFrom, validUntil);
+        registerLegacyTrustRoutes(mockServerClient, issuerConfig, trustConfig);
+        Tp2TrustRegistryMockServerConfigurer.registerRoutes(
+                mockServerClient,
+                issuerConfig,
+                trustConfig,
+                OBJECT_MAPPER
+        );
+
+        return mockServerClient;
+    }
+
+    private void registerStatusListRoutes(MockServerClient mockServerClient, IssuerConfig issuerConfig) {
         mockServerClient.when(
                 request()
                     .withMethod("GET")
@@ -151,6 +167,12 @@ public class MockServerClientConfig {
                     }
                     return response().withStatusCode(202);
                 });
+    }
+
+    private void registerDidResolutionRoutes(MockServerClient mockServerClient,
+                                             IssuerConfig issuerConfig,
+                                             TrustConfig trustConfig,
+                                             MockAttestationAuthority attestationAuthority) {
         mockServerClient
                 .when(request()
                         .withMethod("GET")
@@ -182,6 +204,9 @@ public class MockServerClientConfig {
 
                     return response().withStatusCode(404);
                 });
+    }
+
+    private void registerOauthAndCallbacks(MockServerClient mockServerClient) {
         mockServerClient.when(request().withMethod("POST").withPath("/openid-connect/token"))
                 .respond(response().withStatusCode(200).withContentType(MediaType.APPLICATION_JSON)
                         .withBody("{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}"));
@@ -200,7 +225,9 @@ public class MockServerClientConfig {
 
         mockServerClient.when(request().withMethod("POST").withPath(VERIFIER_CALLBACK_PATH))
                 .respond(response().withStatusCode(204).withContentType(MediaType.APPLICATION_JSON));
+    }
 
+    private void registerRenewalRoute(MockServerClient mockServerClient, String validFrom, String validUntil) {
         mockServerClient
                 .when(request().withMethod("POST").withPath("/renewal"))
                 .respond(httpRequest -> {
@@ -220,7 +247,11 @@ public class MockServerClientConfig {
                         throw new TestSupportException("Cannot parse correctly data");
                     }
                 });
+    }
 
+    private void registerLegacyTrustRoutes(MockServerClient mockServerClient,
+                                           IssuerConfig issuerConfig,
+                                           TrustConfig trustConfig) {
         mockServerClient.when(
                         request()
                                 .withMethod("GET")
@@ -247,8 +278,6 @@ public class MockServerClientConfig {
                         return response().withStatusCode(500);
                     }
                 });
-
-        return mockServerClient;
     }
 
     private String extractDidId(String did) {
