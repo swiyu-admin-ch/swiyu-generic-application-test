@@ -25,8 +25,12 @@ final class Tp2TrustRegistryStatementFactory {
 
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:2.0.0";
     static final String TP2_DEFAULT_VERIFIER_SUBJECT = "did:tdw:mock-verifier";
+    static final String TP2_PROTECTED_VCT = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+    static final String TP2_AUTHORIZED_FIELD = "personal_administrative_number";
 
     private static final String TP2_DEFAULT_VERIFICATION_QUERY_ID = "employment-verification";
+    private static final String TP2_DEFAULT_VERIFICATION_SCOPE = "ch.swiyu.tp2.employment.presentation";
+    private static final String TP2_STATUS_LIST_URI = "https://mockserver:1080/api/v1/statuslist/tp2-trust-statements.jwt";
     private static final String IDENTITY_TRUST_STATEMENT_TYPE = "swiyu-identity-trust-statement+jwt";
     private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE =
             "swiyu-verification-query-public-statement+jwt";
@@ -36,8 +40,8 @@ final class Tp2TrustRegistryStatementFactory {
             "swiyu-protected-issuance-authorization-trust-statement+jwt";
     private static final String PROTECTED_ISSUANCE_TRUST_LIST_STATEMENT_TYPE =
             "swiyu-protected-issuance-trust-list-statement+jwt";
-    private static final List<String> PROTECTED_FIELD_NAMES = List.of("personal_administrative_number");
-    private static final List<String> PROTECTED_VCT_VALUES = List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+    private static final List<String> PROTECTED_FIELD_NAMES = List.of(TP2_AUTHORIZED_FIELD);
+    private static final List<String> PROTECTED_VCT_VALUES = List.of(TP2_PROTECTED_VCT);
 
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
@@ -64,9 +68,10 @@ final class Tp2TrustRegistryStatementFactory {
                 subject,
                 deterministicUuid("tp2-identity-" + subject),
                 Map.of(
+                        "status", buildStatusClaim(),
                         "entity_name", resolveEntityName(subject),
                         "is_state_actor", Boolean.TRUE,
-                        "registry_ids", List.of(Map.of("registry", "mock-trust-registry", "id", subject))
+                        "registry_ids", List.of(Map.of("type", "UID", "value", "CHE-123.456.789"))
                 )
         );
     }
@@ -77,10 +82,11 @@ final class Tp2TrustRegistryStatementFactory {
                 subject,
                 jti,
                 Map.of(
-                        "queries", List.of(Map.of(
-                                "id", TP2_DEFAULT_VERIFICATION_QUERY_ID,
-                                "purpose", "Mock TP2 verification query used by application tests"
-                        ))
+                        "purpose_name", "Employment check",
+                        "purpose_name#de-CH", "Beschaeftigungspruefung",
+                        "purpose_description", "Mock TP2 verification request used by application tests.",
+                        "purpose_description#de-CH", "Mock-TP2-Verifizierungsanfrage fuer Anwendungstests.",
+                        "request", buildVerificationRequest()
                 )
         );
     }
@@ -91,8 +97,8 @@ final class Tp2TrustRegistryStatementFactory {
                 subject,
                 jti,
                 Map.of(
-                        "authorized", Boolean.TRUE,
-                        "protected_fields", PROTECTED_FIELD_NAMES
+                        "status", buildStatusClaim(),
+                        "authorized_fields", PROTECTED_FIELD_NAMES
                 )
         );
     }
@@ -103,8 +109,14 @@ final class Tp2TrustRegistryStatementFactory {
                 subject,
                 jti,
                 Map.of(
-                        "authorized", Boolean.TRUE,
-                        "vct_values", PROTECTED_VCT_VALUES
+                        "status", buildStatusClaim(),
+                        "can_issue", Map.of(
+                                "vct", TP2_PROTECTED_VCT,
+                                "vct_name", "Bound Example SD-JWT VC",
+                                "vct_name#de-CH", "Gebundene Beispiel-SD-JWT-VC",
+                                "reason", "This issuer is allowed to issue the protected example credential.",
+                                "reason#de-CH", "Dieser Issuer darf das geschuetzte Beispiel-Credential ausstellen."
+                        )
                 )
         );
     }
@@ -114,7 +126,10 @@ final class Tp2TrustRegistryStatementFactory {
                 PROTECTED_ISSUANCE_TRUST_LIST_STATEMENT_TYPE,
                 trustConfig.getTrustDid(),
                 jti,
-                Map.of("vct_values", PROTECTED_VCT_VALUES)
+                Map.of(
+                        "status", buildStatusClaim(),
+                        "vct_values", PROTECTED_VCT_VALUES
+                )
         );
     }
 
@@ -123,7 +138,14 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     Map<String, Object> buildNonComplianceTrustList() {
-        return Map.of("non_compliant_actors", List.of());
+        return Map.of(
+                "non_compliant_actors", List.of(Map.of(
+                        "actor", "did:tdw:mock-bad-actor",
+                        "flagged_at", "2026-02-25T07:07:35Z",
+                        "reason", "Mock bad actor entry used by application tests.",
+                        "reason#de-CH", "Mock-Eintrag fuer boeswilligen Akteur in Anwendungstests."
+                ))
+        );
     }
 
     String defaultVerifierSubject() {
@@ -156,6 +178,33 @@ final class Tp2TrustRegistryStatementFactory {
 
     String protectedIssuanceTrustListJti() {
         return deterministicUuid("tp2-protected-issuance-trust-list");
+    }
+
+    private Map<String, Object> buildStatusClaim() {
+        return Map.of(
+                "status_list", Map.of(
+                        "idx", 0,
+                        "uri", TP2_STATUS_LIST_URI
+                )
+        );
+    }
+
+    private Map<String, Object> buildVerificationRequest() {
+        return Map.of(
+                "type", "DCQL",
+                "scope", TP2_DEFAULT_VERIFICATION_SCOPE,
+                "query", Map.of(
+                        "credentials", List.of(Map.of(
+                                "id", TP2_DEFAULT_VERIFICATION_QUERY_ID,
+                                "format", "dc+sd-jwt",
+                                "meta", Map.of("vct_values", PROTECTED_VCT_VALUES),
+                                "claims", List.of(
+                                        Map.of("path", List.of("last_name")),
+                                        Map.of("path", List.of("first_name"))
+                                )
+                        ))
+                )
+        );
     }
 
     private String createStatement(String type, String subject, String jti, Map<String, Object> claims) {

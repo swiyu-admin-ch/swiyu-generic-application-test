@@ -45,6 +45,8 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statement.getJWTClaimsSet().getIssuer()).isEqualTo(trustConfig.getTrustDid());
         assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(issuerConfig.getIssuerDid());
         assertThat(statement.getJWTClaimsSet().getStringClaim("entity_name")).isEqualTo("Mock TP2 Issuer");
+        assertThat(statement.getJWTClaimsSet().getJSONObjectClaim("status"))
+                .containsKey("status_list");
     }
 
     @Test
@@ -56,9 +58,12 @@ class Tp2TrustRegistryMockSupportTest {
                 )
         );
 
-        assertThat(statement.getJWTClaimsSet().getBooleanClaim("authorized")).isTrue();
-        assertThat(statement.getJWTClaimsSet().getStringListClaim("vct_values"))
-                .containsExactly(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> canIssue = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("can_issue");
+
+        assertThat(canIssue)
+                .containsEntry("vct", CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                .containsEntry("vct_name", "Bound Example SD-JWT VC");
     }
 
     @Test
