@@ -22,6 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class Tp2TrustRegistryMockSupportTest {
 
+    private static final String TRUST_DID =
+            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
+    private static final String ISSUER_DID =
+            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
+
     private Tp2TrustRegistryStatementFactory statementFactory;
     private Tp2MockServerResponseFactory responseFactory;
     private IssuerConfig issuerConfig;
@@ -42,7 +47,13 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statement.getHeader().getType().toString()).isEqualTo("swiyu-identity-trust-statement+jwt");
         assertThat(statement.getHeader().getCustomParam("profile_version"))
                 .isEqualTo(Tp2TrustRegistryStatementFactory.TP2_PROFILE_VERSION);
-        assertThat(statement.getJWTClaimsSet().getIssuer()).isEqualTo(trustConfig.getTrustDid());
+        assertThat(statement.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
+        assertThat(statement.getHeader().getKeyID()).isEqualTo(trustConfig.getTrustAssertKeyId());
+        assertThat(statement.getJWTClaimsSet().getIssuer()).isNull();
+        assertThat(statement.getJWTClaimsSet().getJWTID()).isNull();
+        assertThat(statement.getJWTClaimsSet().getIssueTime()).isNotNull();
+        assertThat(statement.getJWTClaimsSet().getNotBeforeTime()).isNotNull();
+        assertThat(statement.getJWTClaimsSet().getExpirationTime()).isNotNull();
         assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(issuerConfig.getIssuerDid());
         assertThat(statement.getJWTClaimsSet().getStringClaim("entity_name")).isEqualTo("Mock TP2 Issuer");
         assertThat(statement.getJWTClaimsSet().getJSONObjectClaim("status"))
@@ -74,9 +85,115 @@ class Tp2TrustRegistryMockSupportTest {
     }
 
     @Test
+    void identityTrustStatements_whenUnknownSubjectRequested_thenReturnEmptyList() {
+        List<String> statements = statementFactory.buildIdentityTrustStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did");
+
+        assertThat(statements).isEmpty();
+    }
+
+    @Test
+    void verificationQueryPublicStatementRegistration_whenValidPayload_thenBuildsSignedVqPs() throws ParseException {
+        SignedJWT statement = SignedJWT.parse(
+                statementFactory.buildVerificationQueryPublicStatementFromRegistration(tmsRegistrationRequest())
+        );
+
+        assertThat(statement.getHeader().getType().toString())
+                .isEqualTo("swiyu-verification-query-public-statement+jwt");
+        assertThat(statement.getHeader().getCustomParam("profile_version"))
+                .isEqualTo(Tp2TrustRegistryStatementFactory.TP2_PROFILE_VERSION);
+        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT);
+        assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
+        assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name#en")).isEqualTo("Age verification");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> request = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("request");
+        assertThat(request).containsEntry("type", "DCQL")
+                .containsEntry("scope", "com.example.age_verification_presentation");
+    }
+
+    @Test
+    void verificationQueryPublicStatementRegistration_whenDcqlHasNoVctValues_thenRejectsPayload() {
+        Map<String, Object> request = tmsRegistrationRequest();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> verificationRequest = (Map<String, Object>) request.get("request");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> query = (Map<String, Object>) verificationRequest.get("query");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) query.get("credentials");
+        credentials.getFirst().put("meta", Map.of("vct_values", List.of()));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> statementFactory.buildVerificationQueryPublicStatementFromRegistration(request)
+        );
+    }
+
+    @Test
+    void statementJtis_whenBuiltForTp2Statements_thenUseUuidV4() {
+        assertThat(statementFactory.verificationQueryPublicJti()).satisfies(this::assertUuidV4);
+        assertThat(statementFactory.protectedVerificationAuthorizationJti()).satisfies(this::assertUuidV4);
+        assertThat(statementFactory.protectedIssuanceAuthorizationJti()).satisfies(this::assertUuidV4);
+        assertThat(statementFactory.protectedIssuanceTrustListJti()).satisfies(this::assertUuidV4);
+    }
+
+    @Test
+    void fixedRegistryDataset_whenQueriedByKnownSubjectOrJti_thenMatchesOnlyConfiguredEntries() {
+        assertThat(statementFactory.buildVerificationQueryPublicStatements(
+                Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
+        )).hasSize(1);
+        assertThat(statementFactory.buildVerificationQueryPublicStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+                .isEmpty();
+        assertThat(statementFactory.buildProtectedVerificationAuthorizationStatements(
+                Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
+        )).hasSize(1);
+        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements(issuerConfig.getIssuerDid()))
+                .hasSize(1);
+        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+                .isEmpty();
+        assertThat(statementFactory.isKnownVerificationQueryPublicStatementJti(statementFactory.verificationQueryPublicJti()))
+                .isTrue();
+        assertThat(statementFactory.isKnownProtectedVerificationAuthorizationStatementJti(
+                statementFactory.protectedVerificationAuthorizationJti()
+        )).isTrue();
+        assertThat(statementFactory.isKnownProtectedIssuanceAuthorizationStatementJti(
+                statementFactory.protectedIssuanceAuthorizationJti()
+        )).isTrue();
+        assertThat(statementFactory.isKnownProtectedIssuanceTrustListStatementJti(
+                statementFactory.protectedIssuanceTrustListJti()
+        )).isTrue();
+    }
+
+    @Test
+    void trustListEndpoints_whenBuilt_thenReturnSerializedTrustListStatements() throws ParseException {
+        SignedJWT protectedIssuanceTrustList = SignedJWT.parse(statementFactory.buildProtectedIssuanceTrustList());
+        SignedJWT nonComplianceTrustList = SignedJWT.parse(statementFactory.buildNonComplianceTrustList());
+
+        assertThat(protectedIssuanceTrustList.getHeader().getType().toString())
+                .isEqualTo("swiyu-protected-issuance-trust-list-statement+jwt");
+        assertThat(protectedIssuanceTrustList.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
+        assertThat(protectedIssuanceTrustList.getJWTClaimsSet().getSubject()).isNull();
+
+        assertThat(nonComplianceTrustList.getHeader().getType().toString())
+                .isEqualTo("swiyu-non-compliance-trust-list-statement+jwt");
+        assertThat(nonComplianceTrustList.getJWTClaimsSet().getClaim("non_compliant_actors")).isInstanceOf(List.class);
+        assertThat(nonComplianceTrustList.getJWTClaimsSet().getSubject()).isNull();
+    }
+
+    @Test
+    void trustStatusListJwt_whenBuilt_thenIsIssuedByTrustRegistry() throws ParseException {
+        SignedJWT statusList = SignedJWT.parse(statementFactory.buildTrustStatusListJwt());
+
+        assertThat(statusList.getHeader().getType().toString()).isEqualTo("statuslist+jwt");
+        assertThat(statusList.getHeader().getKeyID()).isEqualTo(trustConfig.getTrustAssertKeyId());
+        assertThat(statusList.getHeader().getCustomParam("profile_version")).isNull();
+        assertThat(statusList.getJWTClaimsSet().getIssuer()).isEqualTo(trustConfig.getTrustDid());
+        assertThat(statusList.getJWTClaimsSet().getJSONObjectClaim("status_list")).containsKeys("bits", "lst");
+    }
+
+    @Test
     void pagedContent_whenPageAndSizeRequested_thenEchoesPagingShape() {
         HttpRequest request = HttpRequest.request()
-                .withQueryStringParameter("page", "2")
+                .withQueryStringParameter("page", "0")
                 .withQueryStringParameter("size", "5");
 
         Map<String, Object> response = responseFactory.pagedContent(List.of("a", "b"), request);
@@ -87,18 +204,45 @@ class Tp2TrustRegistryMockSupportTest {
 
         assertThat(response).containsKeys("content", "page");
         assertThat(content).containsExactly("a", "b");
-        assertThat(page).containsEntry("number", 2)
-                .containsEntry("size", 5)
+        assertThat(page).containsEntry("number", 0)
+                .containsEntry("size", 2)
+                .containsEntry("totalPages", 1)
                 .containsEntry("totalElements", 2);
+    }
+
+    private void assertUuidV4(String value) {
+        assertThat(java.util.UUID.fromString(value).version()).isEqualTo(4);
+    }
+
+    private static Map<String, Object> tmsRegistrationRequest() {
+        return new java.util.LinkedHashMap<>(Map.of(
+                "sub", Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT,
+                "purpose_name#en", "Age verification",
+                "purpose_description#en", "Verification of age for purchasing restricted goods",
+                "request", new java.util.LinkedHashMap<>(Map.of(
+                        "type", "DCQL",
+                        "scope", "com.example.age_verification_presentation",
+                        "query", new java.util.LinkedHashMap<>(Map.of(
+                                "credentials", List.of(new java.util.LinkedHashMap<>(Map.of(
+                                        "id", "age-verification",
+                                        "format", "dc+sd-jwt",
+                                        "meta", new java.util.LinkedHashMap<>(Map.of(
+                                                "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                                        )),
+                                        "claims", List.of(Map.of("path", List.of("birth_date")))
+                                )))
+                        ))
+                ))
+        ));
     }
 
     private static TrustConfig buildTrustConfig() {
         KeyPair trustKeyPair = generateEcKeyPair();
         return TrustConfig.builder()
-                .trustDid("did:tdw:mock-trust-registry")
+                .trustDid(TRUST_DID)
                 .trustDidLog("mock-trust-did-log")
-                .trustAssertKeyId("did:tdw:mock-trust-registry#assert-key-01")
-                .trustAuthKeyId("did:tdw:mock-trust-registry#auth-key-01")
+                .trustAssertKeyId(TRUST_DID + "#assert-key-01")
+                .trustAuthKeyId(TRUST_DID + "#auth-key-01")
                 .trustAssertKeyPemString(toPem(trustKeyPair))
                 .trustAuthKeyPemString(toPem(trustKeyPair))
                 .build();
@@ -107,10 +251,10 @@ class Tp2TrustRegistryMockSupportTest {
     private static IssuerConfig buildIssuerConfig() {
         KeyPair issuerKeyPair = generateEcKeyPair();
         return IssuerConfig.builder()
-                .issuerDid("did:tdw:mock-issuer")
+                .issuerDid(ISSUER_DID)
                 .issuerDidLog("mock-issuer-did-log")
-                .issuerAssertKeyId("did:tdw:mock-issuer#assert-key-01")
-                .issuerAuthKeyId("did:tdw:mock-issuer#auth-key-01")
+                .issuerAssertKeyId(ISSUER_DID + "#assert-key-01")
+                .issuerAuthKeyId(ISSUER_DID + "#auth-key-01")
                 .issuerAssertKeyPemString(toPem(issuerKeyPair))
                 .issuerAuthKeyPemString(toPem(issuerKeyPair))
                 .keyPair(issuerKeyPair)
