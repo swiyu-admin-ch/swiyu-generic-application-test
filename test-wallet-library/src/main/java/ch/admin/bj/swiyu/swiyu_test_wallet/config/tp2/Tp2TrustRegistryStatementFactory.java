@@ -1,11 +1,16 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
-import ch.admin.bj.swiyu.jwtutil.JwtUtil;
-import ch.admin.bj.swiyu.jwtutil.JwtUtilException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
+import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
+import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;
+import ch.admin.bj.swiyu.tsbuilder.PiTlsBuilder;
+import ch.admin.bj.swiyu.tsbuilder.PiaTsBuilder;
+import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
+import ch.admin.bj.swiyu.tsbuilder.Tp2BuilderAccess;
+import ch.admin.bj.swiyu.tsbuilder.VqPsBuilder;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -14,32 +19,32 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 
-import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 final class Tp2TrustRegistryStatementFactory {
 
-    static final String TP2_PROFILE_VERSION = "swiss-profile-trust:2.0.0";
-    static final String TP2_DEFAULT_VERIFIER_SUBJECT = "did:tdw:mock-verifier";
+    static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
+    static final String TP2_DEFAULT_VERIFIER_SUBJECT =
+            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
     static final String TP2_PROTECTED_VCT = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
     static final String TP2_AUTHORIZED_FIELD = "personal_administrative_number";
 
+    private static final String TP2_BAD_ACTOR_SUBJECT =
+            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did";
     private static final String TP2_DEFAULT_VERIFICATION_QUERY_ID = "employment-verification";
     private static final String TP2_DEFAULT_VERIFICATION_SCOPE = "ch.swiyu.tp2.employment.presentation";
     private static final String TP2_STATUS_LIST_URI = "https://mockserver:1080/api/v1/statuslist/tp2-trust-statements.jwt";
-    private static final String IDENTITY_TRUST_STATEMENT_TYPE = "swiyu-identity-trust-statement+jwt";
-    private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE =
-            "swiyu-verification-query-public-statement+jwt";
-    private static final String PROTECTED_VERIFICATION_AUTHORIZATION_TYPE =
-            "swiyu-protected-verification-authorization-trust-statement+jwt";
-    private static final String PROTECTED_ISSUANCE_AUTHORIZATION_TYPE =
-            "swiyu-protected-issuance-authorization-trust-statement+jwt";
-    private static final String PROTECTED_ISSUANCE_TRUST_LIST_STATEMENT_TYPE =
-            "swiyu-protected-issuance-trust-list-statement+jwt";
+    private static final String STATUS_LIST_TYPE = "statuslist+jwt";
+    private static final String TP2_STATUS_LIST_BITS =
+            "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ";
     private static final List<String> PROTECTED_FIELD_NAMES = List.of(TP2_AUTHORIZED_FIELD);
     private static final List<String> PROTECTED_VCT_VALUES = List.of(TP2_PROTECTED_VCT);
 
@@ -53,98 +58,228 @@ final class Tp2TrustRegistryStatementFactory {
 
     List<String> buildIdentityTrustStatements(String requestedSubject) {
         if (requestedSubject != null) {
-            return List.of(buildIdentityTrustStatement(requestedSubject));
+            return knownIdentitySubjects().stream()
+                    .filter(subject -> Objects.equals(subject, requestedSubject))
+                    .map(this::buildIdentityTrustStatement)
+                    .toList();
         }
 
-        return List.of(
-                buildIdentityTrustStatement(issuerSubject()),
-                buildIdentityTrustStatement(defaultVerifierSubject())
-        );
+        return knownIdentitySubjects().stream()
+                .map(this::buildIdentityTrustStatement)
+                .toList();
     }
 
     String buildIdentityTrustStatement(String subject) {
-        return createStatement(
-                IDENTITY_TRUST_STATEMENT_TYPE,
-                subject,
-                deterministicUuid("tp2-identity-" + subject),
-                Map.of(
-                        "status", buildStatusClaim(),
-                        "entity_name", resolveEntityName(subject),
-                        "is_state_actor", Boolean.TRUE,
-                        "registry_ids", List.of(Map.of("type", "UID", "value", "CHE-123.456.789"))
+        String entityName = resolveEntityName(subject);
+        SignedJWT statement = Tp2BuilderAccess.identity(
+                        new IdTsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        subject,
+                        now(),
+                        expiresAt()
                 )
-        );
+                .withStatus(0, TP2_STATUS_LIST_URI)
+                .addEntityName(entityName)
+                .addEntityName(entityName, "en")
+                .addEntityName(entityName + " Schweiz", "de-CH")
+                .withIsStateActor(true)
+                .addRegistryId("UID", "CHE-123.456.789")
+                .addRegistryId("LEI", "0A1B2C3D4E5F6G7H8J9I")
+                .build();
+
+        return sign(statement);
     }
 
     String buildVerificationQueryPublicStatement(String subject, String jti) {
-        return createStatement(
-                VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE,
-                subject,
-                jti,
-                Map.of(
-                        "purpose_name", "Employment check",
-                        "purpose_name#de-CH", "Beschaeftigungspruefung",
-                        "purpose_description", "Mock TP2 verification request used by application tests.",
-                        "purpose_description#de-CH", "Mock-TP2-Verifizierungsanfrage fuer Anwendungstests.",
-                        "request", buildVerificationRequest()
+        SignedJWT statement = Tp2BuilderAccess.verificationQueryPublic(
+                        new VqPsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        subject,
+                        now(),
+                        expiresAt()
                 )
-        );
+                .withJti(jti)
+                .addPurposeName("Employment check")
+                .addPurposeName("Employment check", "en")
+                .addPurposeName("Beschaeftigungspruefung", "de-CH")
+                .addPurposeDesc("Mock TP2 verification request used by application tests.")
+                .addPurposeDesc("Mock TP2 verification request used by application tests.", "en")
+                .addPurposeDesc("Mock-TP2-Verifizierungsanfrage fuer Anwendungstests.", "de-CH")
+                .withRequest(TP2_DEFAULT_VERIFICATION_SCOPE, buildVerificationQuery())
+                .build();
+
+        return sign(statement);
+    }
+
+    List<String> buildVerificationQueryPublicStatements(String requestedSubject) {
+        if (requestedSubject != null && !requestedSubject.equals(defaultVerifierSubject())) {
+            return List.of();
+        }
+
+        return List.of(buildVerificationQueryPublicStatement(defaultVerifierSubject(), verificationQueryPublicJti()));
+    }
+
+    String buildVerificationQueryPublicStatementFromRegistration(Map<String, Object> registrationRequest) {
+        final String subject = requiredString(registrationRequest, "sub");
+        final Map<String, Object> request = requiredMap(registrationRequest, "request");
+        validateVerificationRequest(request);
+
+        if (localizedClaimsMissing(registrationRequest, "purpose_name")) {
+            throw new IllegalArgumentException("purpose_name is required");
+        }
+        if (localizedClaimsMissing(registrationRequest, "purpose_description")) {
+            throw new IllegalArgumentException("purpose_description is required");
+        }
+
+        final VqPsBuilder builder = Tp2BuilderAccess.verificationQueryPublic(
+                        new VqPsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        subject,
+                        now(),
+                        expiresAt()
+                )
+                .withJti(UUID.randomUUID().toString());
+
+        addPurposeNames(builder, registrationRequest);
+        addPurposeDescriptions(builder, registrationRequest);
+        builder.withRequest(requiredString(request, "scope"), requiredMap(request, "query"));
+
+        return sign(builder.build());
     }
 
     String buildProtectedVerificationAuthorizationStatement(String subject, String jti) {
-        return createStatement(
-                PROTECTED_VERIFICATION_AUTHORIZATION_TYPE,
-                subject,
-                jti,
-                Map.of(
-                        "status", buildStatusClaim(),
-                        "authorized_fields", PROTECTED_FIELD_NAMES
+        SignedJWT statement = Tp2BuilderAccess.protectedVerificationAuthorization(
+                        new PvaTsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        subject,
+                        now(),
+                        expiresAt()
                 )
-        );
+                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withJti(jti)
+                .withAuthorizedFields(PROTECTED_FIELD_NAMES)
+                .build();
+
+        return sign(statement);
+    }
+
+    List<String> buildProtectedVerificationAuthorizationStatements(String requestedSubject) {
+        if (requestedSubject != null && !requestedSubject.equals(defaultVerifierSubject())) {
+            return List.of();
+        }
+
+        return List.of(buildProtectedVerificationAuthorizationStatement(
+                defaultVerifierSubject(),
+                protectedVerificationAuthorizationJti()
+        ));
     }
 
     String buildProtectedIssuanceAuthorizationStatement(String subject, String jti) {
-        return createStatement(
-                PROTECTED_ISSUANCE_AUTHORIZATION_TYPE,
-                subject,
-                jti,
-                Map.of(
-                        "status", buildStatusClaim(),
-                        "can_issue", Map.of(
-                                "vct", TP2_PROTECTED_VCT,
-                                "vct_name", "Bound Example SD-JWT VC",
-                                "vct_name#de-CH", "Gebundene Beispiel-SD-JWT-VC",
-                                "reason", "This issuer is allowed to issue the protected example credential.",
-                                "reason#de-CH", "Dieser Issuer darf das geschuetzte Beispiel-Credential ausstellen."
-                        )
+        SignedJWT statement = Tp2BuilderAccess.protectedIssuanceAuthorization(
+                        new PiaTsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        subject,
+                        now(),
+                        expiresAt()
                 )
-        );
+                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withJti(jti)
+                .withCanIssue(
+                        TP2_PROTECTED_VCT,
+                        null,
+                        "Bound Example SD-JWT VC",
+                        "Protected example issuance."
+                )
+                .build();
+
+        return sign(statement);
+    }
+
+    List<String> buildProtectedIssuanceAuthorizationStatements(String requestedSubject) {
+        if (requestedSubject != null && !requestedSubject.equals(issuerSubject())) {
+            return List.of();
+        }
+
+        return List.of(buildProtectedIssuanceAuthorizationStatement(
+                issuerSubject(),
+                protectedIssuanceAuthorizationJti()
+        ));
     }
 
     String buildProtectedIssuanceTrustListStatement(String jti) {
-        return createStatement(
-                PROTECTED_ISSUANCE_TRUST_LIST_STATEMENT_TYPE,
-                trustConfig.getTrustDid(),
-                jti,
-                Map.of(
-                        "status", buildStatusClaim(),
-                        "vct_values", PROTECTED_VCT_VALUES
+        SignedJWT statement = Tp2BuilderAccess.protectedIssuanceTrustList(
+                        new PiTlsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        now(),
+                        expiresAt()
                 )
-        );
+                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withJti(jti)
+                .withVctValues(PROTECTED_VCT_VALUES)
+                .build();
+
+        return sign(statement);
     }
 
-    Map<String, Object> buildProtectedIssuanceTrustList() {
-        return Map.of("vct_values", PROTECTED_VCT_VALUES);
+    List<String> buildProtectedIssuanceTrustListStatements() {
+        return List.of(buildProtectedIssuanceTrustListStatement(protectedIssuanceTrustListJti()));
     }
 
-    Map<String, Object> buildNonComplianceTrustList() {
-        return Map.of(
-                "non_compliant_actors", List.of(Map.of(
-                        "actor", "did:tdw:mock-bad-actor",
-                        "flagged_at", "2026-02-25T07:07:35Z",
-                        "reason", "Mock bad actor entry used by application tests.",
-                        "reason#de-CH", "Mock-Eintrag fuer boeswilligen Akteur in Anwendungstests."
-                ))
+    String buildProtectedIssuanceTrustList() {
+        return buildProtectedIssuanceTrustListStatement(protectedIssuanceTrustListJti());
+    }
+
+    String buildNonComplianceTrustList() {
+        SignedJWT statement = Tp2BuilderAccess.nonComplianceTrustList(
+                        new NcTlsBuilder(),
+                        trustConfig.getTrustAssertKeyId(),
+                        now(),
+                        expiresAt()
+                )
+                .withStatus(0, TP2_STATUS_LIST_URI)
+                .addNonCompliantActor(
+                        new NcTlsBuilder.NonCompliantActorBuilder(
+                                TP2_BAD_ACTOR_SUBJECT,
+                                "2026-02-25T07:07:35Z",
+                                "Mock bad actor entry used by application tests.")
+                                .addReason("de", "Mock bad actor entry used by application tests. (DE)")
+                                .addReason("en", "Mock bad actor entry used by application tests. (EN)")
+                                .addReason("fr-CH", "Mock bad actor entry used by application tests. (FR)")
+                                .addReason("it-CH", "Mock bad actor entry used by application tests. (IT)")
+                                .addReason("rm-CH", "Mock bad actor entry used by application tests. (RM)")
+                                .build()
+                )
+                .addNonCompliantActor(
+                        new NcTlsBuilder.NonCompliantActorBuilder(
+                                defaultVerifierSubject(),
+                                "2025-01-13T07:13:00Z",
+                                "Mock verifier non-compliance entry used by application tests.")
+                                .addReason("de", "Mock verifier non-compliance entry used by application tests. (DE)")
+                                .addReason("en", "Mock verifier non-compliance entry used by application tests. (EN)")
+                                .addReason("fr-CH", "Mock verifier non-compliance entry used by application tests. (FR)")
+                                .addReason("it-CH", "Mock verifier non-compliance entry used by application tests. (IT)")
+                                .addReason("rm-CH", "Mock verifier non-compliance entry used by application tests. (RM)")
+                                .build()
+                )
+                .build();
+
+        return sign(statement);
+    }
+
+    String buildTrustStatusListJwt() {
+        return createSignedJwt(
+                STATUS_LIST_TYPE,
+                new JWTClaimsSet.Builder()
+                        .issuer(trustConfig.getTrustDid())
+                        .subject(TP2_STATUS_LIST_URI)
+                        .issueTime(new Date())
+                        .expirationTime(new Date(System.currentTimeMillis() + 3_600_000))
+                        .claim("status_list", Map.of(
+                                "bits", "2",
+                                "lst", TP2_STATUS_LIST_BITS
+                        ))
+                        .build(),
+                false
         );
     }
 
@@ -156,82 +291,173 @@ final class Tp2TrustRegistryStatementFactory {
         return issuerConfig.getIssuerDid();
     }
 
-    String resolveVerifierSubject(String requestedSubject) {
-        return requestedSubject == null || requestedSubject.isBlank() ? defaultVerifierSubject() : requestedSubject;
-    }
-
-    String resolveIssuerSubject(String requestedSubject) {
-        return requestedSubject == null || requestedSubject.isBlank() ? issuerSubject() : requestedSubject;
-    }
-
     String verificationQueryPublicJti() {
-        return deterministicUuid("tp2-verification-query-public");
+        return "07f289d5-8b1f-4604-bf72-53bdcb71ee05";
     }
 
     String protectedVerificationAuthorizationJti() {
-        return deterministicUuid("tp2-protected-verification-authorization");
+        return "a8b1110d-f7c5-46da-9db1-8f4c89e8ff0d";
     }
 
     String protectedIssuanceAuthorizationJti() {
-        return deterministicUuid("tp2-protected-issuance-authorization");
+        return "d6ce2b08-e91d-4504-8fe3-0f214465db25";
     }
 
     String protectedIssuanceTrustListJti() {
-        return deterministicUuid("tp2-protected-issuance-trust-list");
+        return "fd841f09-e413-4ef3-9db2-9c1d7538c3a1";
     }
 
-    private Map<String, Object> buildStatusClaim() {
+    boolean isKnownIdentitySubject(String subject) {
+        return knownIdentitySubjects().contains(subject);
+    }
+
+    boolean isKnownVerificationQueryPublicStatementJti(String jti) {
+        return verificationQueryPublicJti().equals(jti);
+    }
+
+    boolean isKnownProtectedVerificationAuthorizationStatementJti(String jti) {
+        return protectedVerificationAuthorizationJti().equals(jti);
+    }
+
+    boolean isKnownProtectedIssuanceAuthorizationStatementJti(String jti) {
+        return protectedIssuanceAuthorizationJti().equals(jti);
+    }
+
+    boolean isKnownProtectedIssuanceTrustListStatementJti(String jti) {
+        return protectedIssuanceTrustListJti().equals(jti);
+    }
+
+    private Instant now() {
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private Instant expiresAt() {
+        return now().plus(1, ChronoUnit.HOURS);
+    }
+
+    private Map<String, Object> buildVerificationQuery() {
         return Map.of(
-                "status_list", Map.of(
-                        "idx", 0,
-                        "uri", TP2_STATUS_LIST_URI
-                )
+                "credentials", List.of(Map.of(
+                        "id", TP2_DEFAULT_VERIFICATION_QUERY_ID,
+                        "format", "dc+sd-jwt",
+                        "meta", Map.of("vct_values", PROTECTED_VCT_VALUES),
+                        "claims", List.of(
+                                Map.of("path", List.of("last_name")),
+                                Map.of("path", List.of("first_name"))
+                        )
+                ))
         );
     }
 
-    private Map<String, Object> buildVerificationRequest() {
-        return Map.of(
-                "type", "DCQL",
-                "scope", TP2_DEFAULT_VERIFICATION_SCOPE,
-                "query", Map.of(
-                        "credentials", List.of(Map.of(
-                                "id", TP2_DEFAULT_VERIFICATION_QUERY_ID,
-                                "format", "dc+sd-jwt",
-                                "meta", Map.of("vct_values", PROTECTED_VCT_VALUES),
-                                "claims", List.of(
-                                        Map.of("path", List.of("last_name")),
-                                        Map.of("path", List.of("first_name"))
-                                )
-                        ))
-                )
-        );
+    private String requiredString(Map<String, Object> source, String claimName) {
+        final Object value = source.get(claimName);
+        if (!(value instanceof String stringValue) || stringValue.isBlank()) {
+            throw new IllegalArgumentException(claimName + " is required");
+        }
+        return stringValue;
     }
 
-    private String createStatement(String type, String subject, String jti, Map<String, Object> claims) {
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> requiredMap(Map<String, Object> source, String claimName) {
+        final Object value = source.get(claimName);
+        if (!(value instanceof Map<?, ?> mapValue)) {
+            throw new IllegalArgumentException(claimName + " is required");
+        }
+        return (Map<String, Object>) mapValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateVerificationRequest(Map<String, Object> request) {
+        if (!"DCQL".equals(request.get("type"))) {
+            throw new IllegalArgumentException("request.type must be DCQL");
+        }
+        if (!(request.get("scope") instanceof String scope) || scope.isBlank()) {
+            throw new IllegalArgumentException("request.scope is required");
+        }
+        final Object query = request.get("query");
+        if (!(query instanceof Map<?, ?> queryMap)) {
+            throw new IllegalArgumentException("request.query is required");
+        }
+        final Object credentials = queryMap.get("credentials");
+        if (!(credentials instanceof List<?> credentialList) || credentialList.isEmpty()) {
+            throw new IllegalArgumentException("query.credentials must be a non-empty array");
+        }
+        for (Object credential : credentialList) {
+            if (!(credential instanceof Map<?, ?> credentialMap)) {
+                throw new IllegalArgumentException("query.credentials entries must be objects");
+            }
+            final Object meta = credentialMap.get("meta");
+            if (!(meta instanceof Map<?, ?> metaMap)) {
+                throw new IllegalArgumentException("query.credentials.meta is required");
+            }
+            final Object vctValues = metaMap.get("vct_values");
+            if (!(vctValues instanceof List<?> vctValuesList) || vctValuesList.isEmpty()) {
+                throw new IllegalArgumentException("query.credentials.meta.vct_values must be a non-empty array");
+            }
+        }
+    }
+
+    private boolean localizedClaimsMissing(Map<String, Object> source, String baseClaim) {
+        return source.keySet().stream()
+                .noneMatch(key -> key.equals(baseClaim) || key.startsWith(baseClaim + "#"));
+    }
+
+    private void addPurposeNames(VqPsBuilder builder, Map<String, Object> source) {
+        source.forEach((key, value) -> {
+            if (key.equals("purpose_name")) {
+                builder.addPurposeName(asString(value, key));
+            } else if (key.startsWith("purpose_name#")) {
+                builder.addPurposeName(asString(value, key), key.substring("purpose_name#".length()));
+            }
+        });
+    }
+
+    private void addPurposeDescriptions(VqPsBuilder builder, Map<String, Object> source) {
+        source.forEach((key, value) -> {
+            if (key.equals("purpose_description")) {
+                builder.addPurposeDesc(asString(value, key));
+            } else if (key.startsWith("purpose_description#")) {
+                builder.addPurposeDesc(asString(value, key), key.substring("purpose_description#".length()));
+            }
+        });
+    }
+
+    private String asString(Object value, String claimName) {
+        if (!(value instanceof String stringValue) || stringValue.isBlank()) {
+            throw new IllegalArgumentException(claimName + " must be a non-empty string");
+        }
+        return stringValue;
+    }
+
+    private String sign(SignedJWT statement) {
         try {
-            final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
-            final JWSSigner signer = new ECDSASigner(trustJwk.toECKey());
+            statement.sign(trustSigner());
+            return statement.serialize();
+        } catch (JOSEException e) {
+            throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage());
+        }
+    }
 
-            final Date now = new Date();
-            final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-                    .issuer(trustConfig.getTrustDid())
-                    .subject(subject)
-                    .jwtID(jti)
-                    .issueTime(now)
-                    .expirationTime(new Date(now.getTime() + 3_600_000));
-
-            claims.forEach(builder::claim);
-
-            final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+    private String createSignedJwt(String type, JWTClaimsSet claimsSet, boolean includeProfileVersion) {
+        try {
+            final JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .keyID(trustConfig.getTrustAssertKeyId())
-                    .type(new JOSEObjectType(type))
-                    .customParam("profile_version", TP2_PROFILE_VERSION)
-                    .build();
+                    .type(new JOSEObjectType(type));
+            if (includeProfileVersion) {
+                headerBuilder.customParam("profile_version", TP2_PROFILE_VERSION);
+            }
 
-            return JwtUtil.signJwt(builder.build(), header, signer).serialize();
-        } catch (JOSEException | JwtUtilException e) {
+            SignedJWT statement = new SignedJWT(headerBuilder.build(), claimsSet);
+            statement.sign(trustSigner());
+            return statement.serialize();
+        } catch (JOSEException e) {
             throw new TestSupportException("Cannot build TP2 trust-registry statement: " + e.getMessage());
         }
+    }
+
+    private JWSSigner trustSigner() throws JOSEException {
+        final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
+        return new ECDSASigner(trustJwk.toECKey());
     }
 
     private String resolveEntityName(String subject) {
@@ -247,7 +473,7 @@ final class Tp2TrustRegistryStatementFactory {
         return "Mock TP2 Actor";
     }
 
-    private String deterministicUuid(String seed) {
-        return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
+    private List<String> knownIdentitySubjects() {
+        return List.of(issuerSubject(), defaultVerifierSubject());
     }
 }

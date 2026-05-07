@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.protocol.HTTP;
 import org.mockserver.model.HttpRequest;
@@ -39,16 +40,73 @@ final class Tp2MockServerResponseFactory {
                 .withBody(jwt);
     }
 
+    HttpResponse statusListJwtResponse(String jwt) {
+        return response()
+                .withStatusCode(HttpStatusCode.OK_200.code())
+                .withHeader(HTTP.CONTENT_TYPE, "application/statuslist+jwt")
+                .withBody(jwt);
+    }
+
+    HttpResponse badRequestResponse(String message) {
+        return jsonErrorResponse(HttpStatusCode.BAD_REQUEST_400, message);
+    }
+
+    HttpResponse unauthorizedResponse(String message) {
+        return jsonErrorResponse(HttpStatusCode.UNAUTHORIZED_401, message);
+    }
+
+    HttpResponse notFoundResponse(String message) {
+        return jsonErrorResponse(HttpStatusCode.NOT_FOUND_404, message);
+    }
+
+    HttpResponse tmsRegistrationSuccessResponse(String vqPs) {
+        return jsonResponse(Map.of(
+                "status", "success",
+                "data", Map.of(
+                        "vqPS", vqPs,
+                        "expires_in", 3600
+                )
+        ));
+    }
+
+    HttpResponse tmsValidationErrorResponse(String message, String field, String error) {
+        return response()
+                .withStatusCode(HttpStatusCode.BAD_REQUEST_400.code())
+                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                .withBody("""
+                        {"status":"error","message":"%s","details":[{"field":"%s","error":"%s"}]}\
+                        """.formatted(message, field, error));
+    }
+
+    Map<String, Object> requestBodyAsMap(HttpRequest request) {
+        try {
+            return objectMapper.readValue(request.getBodyAsString(), new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("request body must be a JSON object");
+        }
+    }
+
+    private HttpResponse jsonErrorResponse(HttpStatusCode statusCode, String message) {
+        return response()
+                .withStatusCode(statusCode.code())
+                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                .withBody("{\"error\":\"%s\"}".formatted(message));
+    }
+
     Map<String, Object> pagedContent(List<String> content, HttpRequest httpRequest) {
-        final int requestedPage = parseIntOrDefault(httpRequest.getFirstQueryStringParameter("page"), 0);
-        final int requestedSize = parseIntOrDefault(httpRequest.getFirstQueryStringParameter("size"), content.size());
+        final int requestedPage = Math.max(parseIntOrDefault(httpRequest.getFirstQueryStringParameter("page"), 0), 0);
+        final int requestedSize = Math.max(parseIntOrDefault(httpRequest.getFirstQueryStringParameter("size"), 20), 1);
+        final int fromIndex = Math.min(requestedPage * requestedSize, content.size());
+        final int toIndex = Math.min(fromIndex + requestedSize, content.size());
+        final List<String> pageContent = content.subList(fromIndex, toIndex);
 
         return Map.of(
-                "content", content,
+                "content", pageContent,
                 "page", Map.of(
-                        "size", requestedSize,
+                        "size", pageContent.size(),
                         "number", requestedPage,
-                        "totalPages", content.isEmpty() ? 0 : 1,
+                        "totalPages", content.isEmpty() ? 0 : (int) Math.ceil((double) content.size() / requestedSize),
                         "totalElements", content.size()
                 )
         );
