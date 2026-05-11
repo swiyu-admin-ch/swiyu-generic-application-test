@@ -176,7 +176,7 @@ public class IssuerCallbacksTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The fix is not available yet"
     )
     void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {

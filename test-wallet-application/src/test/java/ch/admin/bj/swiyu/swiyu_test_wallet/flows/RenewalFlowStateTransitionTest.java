@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -113,7 +114,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc"},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenRevoked_thenAllCredentialsAreRejected() {
@@ -213,7 +214,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc"},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenSuspended_thenAllCredentialsAreRejected() {
@@ -338,7 +339,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc"},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenRevokedBeforeRenewal_thenRenewalIsRejected() {
@@ -399,7 +400,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {"stable", "staging", "rc"},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenSuspendedBeforeRenewal_thenNoValidRenewedCredentialsAreIssued() {

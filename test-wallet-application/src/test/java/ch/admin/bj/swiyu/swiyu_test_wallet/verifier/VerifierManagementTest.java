@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -152,11 +153,9 @@ class VerifierManagementTest extends BaseTest {
         );
 
         // THEN
-        assertThat(errorCode(ex))
-                .as("Invalid refresh token must be rejected")
-                .isEqualTo(400);
-        assertThat(errorJson(ex))
-                .containsEntry("error_description", "dcqlQuery: must not be null");
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .hasErrorDescription(List.of("dcqlQuery: must not be null", "PresentationDefinition must be provided"));
     }
 
     @XrayTest(

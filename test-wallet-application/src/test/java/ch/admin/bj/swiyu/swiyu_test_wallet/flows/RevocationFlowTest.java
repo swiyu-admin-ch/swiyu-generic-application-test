@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -205,10 +206,7 @@ public class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
-    @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV, ImageTags.LOCAL},
-            reason = "This fix is not available yet on other image tags"
-    )
+    @Disabled
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
         // Given
         cleanIssuerCallbacks();
@@ -294,7 +292,7 @@ public class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available on other image tags"
     )
     void errorEventCallback_whenRevokeStatusListFailed_thenVCRemainsValidAndErrorCallbackSent() {

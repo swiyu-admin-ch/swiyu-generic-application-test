@@ -8,7 +8,9 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
@@ -453,6 +455,10 @@ public class SubjectClaimsTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Array disclosure feature not available yet"
+    )
     void boundNonDeferredCredential_whenIssuedWithArrayDisclosureAndVerified_thenSuccess(final String assertMessage, final Map<String, Object> subjectClaims, final List<DcqlClaimDto> verificationClaims) {
         // Given
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT;
@@ -504,6 +510,10 @@ public class SubjectClaimsTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Array disclosure feature not available yet"
+    )
     void boundNonDeferredCredential_whenIssuedWithArrayDisclosureAndVerified_thenRejected(final String assertMessage, final Map<String, Object> subjectClaims, final List<DcqlClaimDto> verificationClaims) {
         // Given
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_IDENTITY_PROFILE_SD_JWT;
@@ -561,6 +571,10 @@ public class SubjectClaimsTest extends BaseTest {
     @Tag(ReportingTags.UCI_C1A)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Array disclosure feature not available yet"
+    )
     void boundNonDeferredCredential_whenIssuedAndVPCompleteProfileVerified_thenRejected(final String assertMessage,
                                                                             final Map<String,
             Object> subjectClaims, final List<DcqlClaimDto> verificationClaims) {

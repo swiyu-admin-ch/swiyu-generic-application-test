@@ -177,7 +177,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void completeRenewalFlow_whenDeferredOffer_thenAccepted() {
@@ -236,7 +236,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void renewalFlow_withInvalidRefreshToken_thenRejected() {
@@ -506,7 +506,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshWithInvalidToken_thenRejected() {
@@ -608,7 +608,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshNonceReplay_thenRejected() {
@@ -655,7 +655,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
     )
     void refreshToken_refreshWhenCredentialManagementRevoked_thenRejected() {

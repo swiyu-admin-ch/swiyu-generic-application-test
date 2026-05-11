@@ -71,7 +71,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "The fix of DPoP token is not available yet."
     )
     void dpopInitialIssuance_happyPath() {
@@ -152,7 +152,7 @@ class DPoPFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE},
             reason = "The fix of DPoP token is not available yet."
     )
     void dpopRefreshFlow_happyPath() {
