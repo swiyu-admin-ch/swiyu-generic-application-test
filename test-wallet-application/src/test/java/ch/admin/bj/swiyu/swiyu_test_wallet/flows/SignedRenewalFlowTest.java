@@ -57,7 +57,7 @@ public class SignedRenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"
     )
     void givenIssuerWithSignedMetadataAndTenantId_thenCredentialsAreRenewed_whenWalletPerformsRenewalFlow() {

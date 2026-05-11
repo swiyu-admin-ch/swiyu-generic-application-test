@@ -117,8 +117,8 @@ class SignedMetadataTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Fix not available yet"
     )
     void signedMetadata_whenAcceptHeaderVaries_thenIssuerChoosesCorrectRepresentation(
             String acceptHeader,

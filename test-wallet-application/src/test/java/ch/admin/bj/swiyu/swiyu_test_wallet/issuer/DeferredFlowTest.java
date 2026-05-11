@@ -109,7 +109,7 @@ class DeferredFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The images don't accept null claims on creation yet."
     )
     void givenClaimSets_whenCreatingDeferredCredentialOffer_thenValidClaimsSucceedAndInvalidAreRejected(final Map<String, Object> claims, final boolean accepted, final String supportedMetadataId) {
@@ -226,7 +226,7 @@ class DeferredFlowTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     @Deprecated(forRemoval = true)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet."
     )
     void deferredOfferCancelled_shouldRejectWalletCredentialRequest_andRejectReadyTransition() {

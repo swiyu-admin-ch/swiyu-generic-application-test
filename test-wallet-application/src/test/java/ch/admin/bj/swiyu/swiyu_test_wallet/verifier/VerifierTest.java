@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager.VerificationRequestBuilder;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -67,12 +69,9 @@ class VerifierTest extends BaseTest {
                 verificationRequest.createManagementResponse()
         );
 
-        assertThat(errorCode(ex)).isEqualTo(400);
-
-        assertThat(errorJson(ex))
-                .containsExactlyInAnyOrderEntriesOf(Map.of(
-                        "error_description", "dcqlQuery: must not be null"
-                ));
+        ApiErrorAssert.assertThat(ex)
+            .hasStatus(400)
+            .hasErrorDescription(List.of("dcqlQuery: must not be null", "PresentationDefinition must be provided"));
     }
 
 
