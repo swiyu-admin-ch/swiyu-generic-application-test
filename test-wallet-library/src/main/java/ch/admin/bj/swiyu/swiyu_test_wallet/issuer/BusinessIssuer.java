@@ -67,6 +67,17 @@ public class BusinessIssuer {
         return statusList;
     }
 
+    public StatusList createStatusList(int size, int bits, ConfigurationOverride configurationOverride) {
+        ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
+        statusListCreate.setMaxLength(size);
+        statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
+        statusListCreate.setConfigurationOverride(configurationOverride);
+
+        statusList = statusListApi.createStatusList(statusListCreate);
+
+        return statusList;
+    }
+
     public StatusList createStatusList(int size, int bits, String jwt) {
         applyJwt(jwt);
 
@@ -119,6 +130,10 @@ public class BusinessIssuer {
 
     public StatusResponse getStatusById(UUID id) {
         return credentialApi.getCredentialStatus(id);
+    }
+
+    public StatusList updateStatusListRegistryEntry(UUID statusListId, StatusListUpdate statusListUpdate) {
+        return statusListApi.updateStatusListRegistryEntry(statusListId, statusListUpdate);
     }
 
     public void verifyStatus(final UUID id, final CredentialStatusType credentialStatusType) {
