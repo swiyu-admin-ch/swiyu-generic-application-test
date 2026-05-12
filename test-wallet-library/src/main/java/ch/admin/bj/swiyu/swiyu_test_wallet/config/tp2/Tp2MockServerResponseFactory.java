@@ -9,8 +9,10 @@ import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.HttpStatusCode;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.mockserver.model.HttpResponse.response;
 
@@ -59,13 +61,19 @@ final class Tp2MockServerResponseFactory {
         return jsonErrorResponse(HttpStatusCode.NOT_FOUND_404, message);
     }
 
-    HttpResponse tmsRegistrationSuccessResponse(String vqPs) {
+    HttpResponse vqpsSubmissionSuccessResponse(String vqPs) {
+        String now = Instant.now().toString();
         return jsonResponse(Map.of(
-                "status", "success",
-                "data", Map.of(
+                "id", UUID.randomUUID().toString(),
+                "partnerId", UUID.randomUUID().toString(),
+                "version", 1,
+                "status", "PUBLICATION_SUCCEEDED",
+                "publicationResult", Map.of(
                         "vqPS", vqPs,
                         "expires_in", 3600
-                )
+                ),
+                "createdAt", now,
+                "updatedAt", now
         ));
     }
 

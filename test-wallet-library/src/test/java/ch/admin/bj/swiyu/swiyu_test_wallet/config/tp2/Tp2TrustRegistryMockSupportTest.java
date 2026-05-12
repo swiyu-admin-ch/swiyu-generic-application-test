@@ -115,9 +115,7 @@ class Tp2TrustRegistryMockSupportTest {
     void verificationQueryPublicStatementRegistration_whenDcqlHasNoVctValues_thenRejectsPayload() {
         Map<String, Object> request = tmsRegistrationRequest();
         @SuppressWarnings("unchecked")
-        Map<String, Object> verificationRequest = (Map<String, Object>) request.get("request");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> query = (Map<String, Object>) verificationRequest.get("query");
+        Map<String, Object> query = (Map<String, Object>) request.get("query");
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> credentials = (List<Map<String, Object>>) query.get("credentials");
         credentials.getFirst().put("meta", Map.of("vct_values", List.of()));
@@ -219,19 +217,16 @@ class Tp2TrustRegistryMockSupportTest {
                 "sub", Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT,
                 "purpose_name#en", "Age verification",
                 "purpose_description#en", "Verification of age for purchasing restricted goods",
-                "request", new java.util.LinkedHashMap<>(Map.of(
-                        "type", "DCQL",
-                        "scope", "com.example.age_verification_presentation",
-                        "query", new java.util.LinkedHashMap<>(Map.of(
-                                "credentials", List.of(new java.util.LinkedHashMap<>(Map.of(
-                                        "id", "age-verification",
-                                        "format", "dc+sd-jwt",
-                                        "meta", new java.util.LinkedHashMap<>(Map.of(
-                                                "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
-                                        )),
-                                        "claims", List.of(Map.of("path", List.of("birth_date")))
-                                )))
-                        ))
+                "scope", "com.example.age_verification_presentation",
+                "query", new java.util.LinkedHashMap<>(Map.of(
+                        "credentials", List.of(new java.util.LinkedHashMap<>(Map.of(
+                                "id", "age-verification",
+                                "format", "dc+sd-jwt",
+                                "meta", new java.util.LinkedHashMap<>(Map.of(
+                                        "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                                )),
+                                "claims", List.of(Map.of("path", List.of("birth_date")))
+                        )))
                 ))
         ));
     }

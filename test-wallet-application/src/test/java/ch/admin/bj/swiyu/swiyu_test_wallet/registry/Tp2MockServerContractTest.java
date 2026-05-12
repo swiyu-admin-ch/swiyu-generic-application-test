@@ -73,7 +73,7 @@ class Tp2MockServerContractTest extends BaseTest {
                 .body(String.class);
 
         String tmsRegistrationBody = client.post()
-                .uri("/api/v2/verification-query-public-statement/")
+                .uri("/api/v1/trust/vqps-submissions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer access_token")
                 .body(tmsRegistrationRequest())
@@ -180,7 +180,7 @@ class Tp2MockServerContractTest extends BaseTest {
         // When / Then
         assertThatExceptionOfType(RestClientResponseException.class)
                 .isThrownBy(() -> client.post()
-                        .uri("/api/v2/verification-query-public-statement/")
+                        .uri("/api/v1/trust/vqps-submissions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(tmsRegistrationRequest())
                         .retrieve()
@@ -192,7 +192,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
         assertThatExceptionOfType(RestClientResponseException.class)
                 .isThrownBy(() -> client.post()
-                        .uri("/api/v2/verification-query-public-statement/")
+                        .uri("/api/v1/trust/vqps-submissions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer access_token")
                         .body(invalidRegistration)
@@ -693,12 +693,20 @@ class Tp2MockServerContractTest extends BaseTest {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
-        Map<String, Object> data = (Map<String, Object>) response.get("data");
+        Map<String, Object> publicationResult = (Map<String, Object>) response.get("publicationResult");
 
-        assertThat(response).containsEntry("status", "success");
-        assertThat(data).containsEntry("expires_in", 3600);
+        assertThat(response.get("id")).isInstanceOf(String.class);
+        assertThat(response.get("partnerId")).isInstanceOf(String.class);
+        assertThat(response).containsEntry("version", 1)
+                .containsEntry("status", "PUBLICATION_SUCCEEDED");
+        assertThat(response.get("createdAt")).isInstanceOf(String.class);
+        assertThat(response.get("updatedAt")).isInstanceOf(String.class);
+        assertThat(publicationResult).containsEntry("expires_in", 3600);
 
-        SignedJWT statement = SignedJWT.parse((String) data.get("vqPS"));
+        assertUuidV4((String) response.get("id"));
+        assertUuidV4((String) response.get("partnerId"));
+
+        SignedJWT statement = SignedJWT.parse((String) publicationResult.get("vqPS"));
         assertTrustStatementHeader(statement, "swiyu-verification-query-public-statement+jwt");
         assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(TP2_VERIFIER_SUBJECT);
         assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
@@ -890,19 +898,16 @@ class Tp2MockServerContractTest extends BaseTest {
                 "purpose_name#en", "Age verification",
                 "purpose_description", "Verification of age for purchasing restricted goods",
                 "purpose_description#en", "Verification of age for purchasing restricted goods",
-                "request", Map.of(
-                        "type", "DCQL",
-                        "scope", "com.example.age_verification_presentation",
-                        "query", Map.of(
-                                "credentials", List.of(Map.of(
-                                        "id", "age-verification",
-                                        "format", "dc+sd-jwt",
-                                        "meta", Map.of(
-                                                "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
-                                        ),
-                                        "claims", List.of(Map.of("path", List.of("birth_date")))
-                                ))
-                        )
+                "scope", "com.example.age_verification_presentation",
+                "query", Map.of(
+                        "credentials", List.of(Map.of(
+                                "id", "age-verification",
+                                "format", "dc+sd-jwt",
+                                "meta", Map.of(
+                                        "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                                ),
+                                "claims", List.of(Map.of("path", List.of("birth_date")))
+                        ))
                 )
         );
     }
@@ -914,17 +919,14 @@ class Tp2MockServerContractTest extends BaseTest {
                 "purpose_name#en", "Age verification",
                 "purpose_description", "Verification of age for purchasing restricted goods",
                 "purpose_description#en", "Verification of age for purchasing restricted goods",
-                "request", Map.of(
-                        "type", "DCQL",
-                        "scope", "com.example.age_verification_presentation",
-                        "query", Map.of(
-                                "credentials", List.of(Map.of(
-                                        "id", "age-verification",
-                                        "format", "dc+sd-jwt",
-                                        "meta", Map.of("vct_values", List.of()),
-                                        "claims", List.of(Map.of("path", List.of("birth_date")))
-                                ))
-                        )
+                "scope", "com.example.age_verification_presentation",
+                "query", Map.of(
+                        "credentials", List.of(Map.of(
+                                "id", "age-verification",
+                                "format", "dc+sd-jwt",
+                                "meta", Map.of("vct_values", List.of()),
+                                "claims", List.of(Map.of("path", List.of("birth_date")))
+                        ))
                 )
         );
     }
