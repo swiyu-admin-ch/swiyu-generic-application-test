@@ -29,12 +29,12 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
-            summary = "Verifier fails status-list resolution after Spring Boot 4 migration",
+            key = "EIDOMNI-966",
+            summary = "Verifier fails status-list resolution cache",
             description = """
                     This test validates that the Verifier OID4VP flow currently rejects a credential carrying a
                     token status list because the status-list resolver cache condition cannot resolve the
-                    cacheProperties bean after the Spring Boot 4 migration.
+                    cacheProperties bean.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
