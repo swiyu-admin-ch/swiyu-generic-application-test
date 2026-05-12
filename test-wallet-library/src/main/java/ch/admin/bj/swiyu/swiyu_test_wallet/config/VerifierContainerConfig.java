@@ -19,6 +19,9 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 @UtilityClass
 public class VerifierContainerConfig {
 
+    private static final String DISABLED_STATUS_LIST_CACHE_TTL = "0";
+    private static final String RC_STATUS_LIST_CACHE_TTL = "250";
+
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
             Network network,
@@ -46,7 +49,7 @@ public class VerifierContainerConfig {
                     .withEnv("POSTGRES_DB_SCHEMA", verifierImageConfig.getDbSchema())
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
-                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")
+                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", getStatusListCacheTtl(verifierImageConfig))
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
@@ -58,5 +61,12 @@ public class VerifierContainerConfig {
 
             return container;
         }
+    }
+
+    private static String getStatusListCacheTtl(final VerifierImageConfig verifierImageConfig) {
+        if (ImageTags.RC.equals(verifierImageConfig.getImageTag())) {
+            return RC_STATUS_LIST_CACHE_TTL;
+        }
+        return DISABLED_STATUS_LIST_CACHE_TTL;
     }
 }

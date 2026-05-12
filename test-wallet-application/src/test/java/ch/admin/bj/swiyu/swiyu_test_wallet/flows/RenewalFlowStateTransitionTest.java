@@ -114,7 +114,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenRevoked_thenAllCredentialsAreRejected() {
@@ -339,7 +339,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenRevokedBeforeRenewal_thenRenewalIsRejected() {
@@ -400,7 +400,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenSuspendedBeforeRenewal_thenNoValidRenewedCredentialsAreIssued() {

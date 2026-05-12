@@ -37,7 +37,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void boundNonDeferredCredential_whenKeyAttestationIsValid_thenSuccess() {
@@ -83,7 +83,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     """)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void boundNonDeferredCredential_whenKeyAttestationSignatureIsMismatched_thenIssuanceRejected() {

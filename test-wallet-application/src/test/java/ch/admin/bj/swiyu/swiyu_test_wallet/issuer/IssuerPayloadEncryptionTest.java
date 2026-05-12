@@ -160,7 +160,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "Fix for deferred encryption is not available yet"
     )
     void deferredCredentialEncryption_whenTransactionNotIssued_thenRejected() {
@@ -205,7 +205,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
     )
     void deferredCredentialRequest_whenUnencryptedPayload_thenRejected() {

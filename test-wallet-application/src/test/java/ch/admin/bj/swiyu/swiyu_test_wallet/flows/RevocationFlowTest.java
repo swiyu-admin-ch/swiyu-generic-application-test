@@ -124,8 +124,8 @@ public class RevocationFlowTest extends BaseTest {
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "Feature not available yet on stable"
+            verifier = {ImageTags.STABLE, ImageTags.RC},
+            reason = "The fix is not available yet"
     )
     void suspendedCredential_whenSuspended_thenVerificationRejected_whenRevalidated_thenVerificationAccepted() {
         // Given
@@ -292,7 +292,7 @@ public class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC},
+            verifier = {ImageTags.STABLE},
             reason = "This fix is not available on other image tags"
     )
     void errorEventCallback_whenRevokeStatusListFailed_thenVCRemainsValidAndErrorCallbackSent() {

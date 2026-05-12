@@ -5,10 +5,12 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
@@ -48,6 +50,10 @@ class TrustAnchorVerificationTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC},
+            reason = "The fix is not available yet."
+    )
     void verificationWithValidTrustAnchor_thenSuccess() {
         // Given
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
@@ -84,6 +90,10 @@ class TrustAnchorVerificationTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC},
+            reason = "The fix is not available yet."
+    )
     void verificationWithUntrustedIssuer_thenFails() {
         // Given
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);

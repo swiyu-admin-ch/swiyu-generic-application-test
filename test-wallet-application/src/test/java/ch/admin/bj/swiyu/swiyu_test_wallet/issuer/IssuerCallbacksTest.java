@@ -58,7 +58,7 @@ public class IssuerCallbacksTest extends BaseTest {
                 """
     )
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "The new callbacks are not available yet."
     )
     public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
@@ -176,7 +176,7 @@ public class IssuerCallbacksTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE},
             reason = "The fix is not available yet"
     )
     void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {
