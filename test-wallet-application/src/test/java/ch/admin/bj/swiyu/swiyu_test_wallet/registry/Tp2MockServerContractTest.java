@@ -187,7 +187,7 @@ class Tp2MockServerContractTest extends BaseTest {
                         .body(String.class))
                 .satisfies(exception -> {
                     assertThat(exception.getStatusCode().value()).isEqualTo(401);
-                    assertThat(exception.getResponseBodyAsString()).contains("Bearer token is required");
+                    assertThat(exception.getResponseBodyAsString()).contains("OAuth access token is required");
                 });
 
         assertThatExceptionOfType(RestClientResponseException.class)
