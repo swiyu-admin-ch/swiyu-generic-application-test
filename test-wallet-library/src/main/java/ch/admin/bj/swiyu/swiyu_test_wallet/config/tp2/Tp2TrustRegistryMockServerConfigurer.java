@@ -19,6 +19,7 @@ public final class Tp2TrustRegistryMockServerConfigurer {
     private static final String IDENTITY_TRUST_STATEMENT_PATH = "/api/v2/identity-trust-statement";
     private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_PATH =
             "/api/v2/verification-query-public-statement";
+    private static final String VQPS_SUBMISSION_PATH = "/api/v1/trust/vqps-submissions";
     private static final String PROTECTED_VERIFICATION_AUTHORIZATION_PATH =
             "/api/v2/protected-verification-authorization-trust-statement";
     private static final String PROTECTED_ISSUANCE_AUTHORIZATION_PATH =
@@ -83,7 +84,7 @@ public final class Tp2TrustRegistryMockServerConfigurer {
     private static void registerVerificationQueryPublicStatementRoutes(MockServerClient mockServerClient,
                                                                        Tp2TrustRegistryStatementFactory statementFactory,
                                                                        Tp2MockServerResponseFactory responseFactory) {
-        mockServerClient.when(request().withMethod("POST").withPath(VERIFICATION_QUERY_PUBLIC_STATEMENT_PATH + "/?"))
+        mockServerClient.when(request().withMethod("POST").withPath(VQPS_SUBMISSION_PATH + "/?"))
                 .respond(httpRequest -> {
                     final String authorization = httpRequest.getFirstHeader("Authorization");
                     if (!("Bearer " + MOCK_OAUTH_ACCESS_TOKEN).equals(authorization)) {
@@ -94,11 +95,11 @@ public final class Tp2TrustRegistryMockServerConfigurer {
                         final String vqPs = statementFactory.buildVerificationQueryPublicStatementFromRegistration(
                                 responseFactory.requestBodyAsMap(httpRequest)
                         );
-                        return responseFactory.tmsRegistrationSuccessResponse(vqPs);
+                        return responseFactory.vqpsSubmissionSuccessResponse(vqPs);
                     } catch (IllegalArgumentException e) {
                         return responseFactory.tmsValidationErrorResponse(
                                 "Invalid DCQL syntax.",
-                                "request",
+                                "query",
                                 e.getMessage()
                         );
                     }

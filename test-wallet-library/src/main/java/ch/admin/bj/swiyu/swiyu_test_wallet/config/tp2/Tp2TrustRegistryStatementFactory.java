@@ -120,7 +120,7 @@ final class Tp2TrustRegistryStatementFactory {
 
     String buildVerificationQueryPublicStatementFromRegistration(Map<String, Object> registrationRequest) {
         final String subject = requiredString(registrationRequest, "sub");
-        final Map<String, Object> request = requiredMap(registrationRequest, "request");
+        final Map<String, Object> request = verificationRequest(registrationRequest);
         validateVerificationRequest(request);
 
         if (localizedClaimsMissing(registrationRequest, "purpose_name")) {
@@ -394,6 +394,18 @@ final class Tp2TrustRegistryStatementFactory {
                 throw new IllegalArgumentException("query.credentials.meta.vct_values must be a non-empty array");
             }
         }
+    }
+
+    private Map<String, Object> verificationRequest(Map<String, Object> registrationRequest) {
+        if (registrationRequest.containsKey("request")) {
+            return requiredMap(registrationRequest, "request");
+        }
+
+        return Map.of(
+                "type", "DCQL",
+                "scope", requiredString(registrationRequest, "scope"),
+                "query", requiredMap(registrationRequest, "query")
+        );
     }
 
     private boolean localizedClaimsMissing(Map<String, Object> source, String baseClaim) {
