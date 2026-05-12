@@ -9,7 +9,6 @@ import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PiTlsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PiaTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.Tp2BuilderAccess;
 import ch.admin.bj.swiyu.tsbuilder.VqPsBuilder;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
@@ -71,8 +70,8 @@ final class Tp2TrustRegistryStatementFactory {
 
     String buildIdentityTrustStatement(String subject) {
         String entityName = resolveEntityName(subject);
-        SignedJWT statement = Tp2BuilderAccess.identity(
-                        new IdTsBuilder(),
+        SignedJWT statement = new AccessibleIdTsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
                         now(),
@@ -91,8 +90,8 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildVerificationQueryPublicStatement(String subject, String jti) {
-        SignedJWT statement = Tp2BuilderAccess.verificationQueryPublic(
-                        new VqPsBuilder(),
+        SignedJWT statement = new AccessibleVqPsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
                         now(),
@@ -131,8 +130,8 @@ final class Tp2TrustRegistryStatementFactory {
             throw new IllegalArgumentException("purpose_description is required");
         }
 
-        final VqPsBuilder builder = Tp2BuilderAccess.verificationQueryPublic(
-                        new VqPsBuilder(),
+        final VqPsBuilder builder = new AccessibleVqPsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
                         now(),
@@ -148,8 +147,8 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildProtectedVerificationAuthorizationStatement(String subject, String jti) {
-        SignedJWT statement = Tp2BuilderAccess.protectedVerificationAuthorization(
-                        new PvaTsBuilder(),
+        SignedJWT statement = new AccessiblePvaTsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
                         now(),
@@ -175,8 +174,8 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildProtectedIssuanceAuthorizationStatement(String subject, String jti) {
-        SignedJWT statement = Tp2BuilderAccess.protectedIssuanceAuthorization(
-                        new PiaTsBuilder(),
+        SignedJWT statement = new AccessiblePiaTsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
                         now(),
@@ -207,8 +206,8 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildProtectedIssuanceTrustListStatement(String jti) {
-        SignedJWT statement = Tp2BuilderAccess.protectedIssuanceTrustList(
-                        new PiTlsBuilder(),
+        SignedJWT statement = new AccessiblePiTlsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         now(),
                         expiresAt()
@@ -230,8 +229,8 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildNonComplianceTrustList() {
-        SignedJWT statement = Tp2BuilderAccess.nonComplianceTrustList(
-                        new NcTlsBuilder(),
+        SignedJWT statement = new AccessibleNcTlsBuilder()
+                .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         now(),
                         expiresAt()
@@ -475,5 +474,57 @@ final class Tp2TrustRegistryStatementFactory {
 
     private List<String> knownIdentitySubjects() {
         return List.of(issuerSubject(), defaultVerifierSubject());
+    }
+
+    private static final class AccessibleIdTsBuilder extends IdTsBuilder {
+        IdTsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withSubject(subject);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
+    }
+
+    private static final class AccessibleVqPsBuilder extends VqPsBuilder {
+        VqPsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withSubject(subject);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
+    }
+
+    private static final class AccessiblePvaTsBuilder extends PvaTsBuilder {
+        PvaTsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withSubject(subject);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
+    }
+
+    private static final class AccessiblePiaTsBuilder extends PiaTsBuilder {
+        PiaTsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withSubject(subject);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
+    }
+
+    private static final class AccessiblePiTlsBuilder extends PiTlsBuilder {
+        PiTlsBuilder withTrustRegistryMetadata(String kid, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
+    }
+
+    private static final class AccessibleNcTlsBuilder extends NcTlsBuilder {
+        NcTlsBuilder withTrustRegistryMetadata(String kid, Instant issuedAt, Instant expiresAt) {
+            withKid(kid);
+            withValidity(issuedAt, expiresAt);
+            return this;
+        }
     }
 }

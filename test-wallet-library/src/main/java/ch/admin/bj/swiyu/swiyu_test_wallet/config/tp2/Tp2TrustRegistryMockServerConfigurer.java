@@ -28,6 +28,7 @@ public final class Tp2TrustRegistryMockServerConfigurer {
     private static final String PROTECTED_ISSUANCE_TRUST_LIST_PATH = "/api/v2/protected-issuance-trust-list";
     private static final String NON_COMPLIANCE_TRUST_LIST_PATH = "/api/v2/non-compliance-trust-list";
     private static final String TP2_STATUS_LIST_PATH = "/api/v1/statuslist/tp2-trust-statements.jwt";
+    private static final String MOCK_OAUTH_ACCESS_TOKEN = "access_token";
 
     private Tp2TrustRegistryMockServerConfigurer() {
     }
@@ -85,8 +86,8 @@ public final class Tp2TrustRegistryMockServerConfigurer {
         mockServerClient.when(request().withMethod("POST").withPath(VERIFICATION_QUERY_PUBLIC_STATEMENT_PATH + "/?"))
                 .respond(httpRequest -> {
                     final String authorization = httpRequest.getFirstHeader("Authorization");
-                    if (authorization == null || !authorization.startsWith("Bearer ")) {
-                        return responseFactory.unauthorizedResponse("Bearer token is required");
+                    if (!("Bearer " + MOCK_OAUTH_ACCESS_TOKEN).equals(authorization)) {
+                        return responseFactory.unauthorizedResponse("OAuth access token is required");
                     }
 
                     try {
