@@ -86,6 +86,11 @@ public class VerifierManager {
             return this;
         }
 
+        public VerificationRequestBuilder configurationOverride(ConfigurationOverrideDto configurationOverride) {
+            request.configurationOverride(configurationOverride);
+            return this;
+        }
+
         private VerificationRequestBuilder jwtSecuredAuthorizationRequest(boolean jwtSecuredAuthorizationRequest) {
             request.jwtSecuredAuthorizationRequest(jwtSecuredAuthorizationRequest);
             return this;

@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -26,6 +27,7 @@ public class VerifierContainerConfig {
             IssuerConfig config,
             String imageName,
             VerifierImageConfig verifierImageConfig,
+            String tokenDirPath,
             ContainerLogConfig containerLogConfig) {
         try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
             container
@@ -58,6 +60,29 @@ public class VerifierContainerConfig {
 
             if (containerLogConfig.isVerifier()) {
                 container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")));
+            }
+
+            if (verifierImageConfig.isEnableHsm()) {
+                container
+                        .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)
+                        .withEnv("HSM_USER", verifierImageConfig.getHsmUser())
+                        .withEnv("HSM_PASSWORD", verifierImageConfig.getHsmPassword())
+                        .withEnv("HSM_USER_PIN", verifierImageConfig.getHsmUserPin())
+                        .withEnv("HSM_KEY_ID", verifierImageConfig.getHsmKeyId())
+                        .withEnv("HSM_KEY_PIN", verifierImageConfig.getHsmKeyPin())
+                        .withEnv("HSM_CONFIG_PATH", HSMConfig.PKCS11_CFG)
+                        .withEnv("SOFTHSM2_CONF", HSMConfig.SOFTHSM_CONF)
+                        .withEnv("HSM_TOKEN_DIR", HSMConfig.TOKEN_DIR)
+                        .withEnv("HSM_LIBRARY", HSMConfig.LIB_PATH);
+
+                HSMConfig.FILES.forEach(file ->
+                        container.withCopyFileToContainer(
+                                MountableFile.forClasspathResource((String) file[0], (int) file[2]),
+                                (String) file[1]
+                        )
+                );
+
+                container.withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE);
             }
 
             return container;
