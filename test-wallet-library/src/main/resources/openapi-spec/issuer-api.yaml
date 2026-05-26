@@ -1623,6 +1623,8 @@ components:
             $ref: "#/components/schemas/MetadataIssuerDisplayInfo"
         profile_version:
           type: string
+        credential_issuer_identity_trust_statement:
+          type: string
       required:
       - credential_configurations_supported
       - credential_endpoint

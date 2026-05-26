@@ -17,7 +17,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +36,13 @@ class Tp2MockServerContractTest extends BaseTest {
     private static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
     private static final String TP2_VERIFIER_SUBJECT =
             "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
+    private static final String TRUST_REGISTRY_CUSTOMER_KEY = "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY";
+    private static final String TRUST_REGISTRY_CUSTOMER_SECRET = "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET";
+    private static final String TRUST_REGISTRY_AUTHORIZATION =
+            "Basic " + Base64.getEncoder().encodeToString(
+                    (TRUST_REGISTRY_CUSTOMER_KEY + ":" + TRUST_REGISTRY_CUSTOMER_SECRET)
+                            .getBytes(StandardCharsets.UTF_8)
+            );
 
     @Test
     void tp2MockRoutes_whenRequested_thenExposeExpectedListAndStatementStructures() throws Exception {
@@ -594,6 +603,7 @@ class Tp2MockServerContractTest extends BaseTest {
                         mockServerContainer.getHost(),
                         mockServerContainer.getMappedPort(1080)
                 ))
+                .defaultHeader("Authorization", TRUST_REGISTRY_AUTHORIZATION)
                 .build();
     }
 
