@@ -22,10 +22,14 @@ import com.nimbusds.jwt.SignedJWT;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 final class Tp2TrustRegistryStatementFactory {
@@ -49,6 +53,10 @@ final class Tp2TrustRegistryStatementFactory {
 
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
+    private final Map<String, PublishedVerificationQueryPublicStatement> publishedVerificationQueryPublicStatements =
+            new HashMap<>();
+
+    record PublishedVerificationQueryPublicStatement(String subject, String jti, String jwt) { }
 
     Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig, TrustConfig trustConfig) {
         this.issuerConfig = issuerConfig;
@@ -111,14 +119,27 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     List<String> buildVerificationQueryPublicStatements(String requestedSubject) {
-        if (requestedSubject != null && !requestedSubject.equals(defaultVerifierSubject())) {
-            return List.of();
+        List<String> statements = new ArrayList<>();
+
+        if (requestedSubject == null || requestedSubject.equals(defaultVerifierSubject())) {
+            statements.add(buildVerificationQueryPublicStatement(defaultVerifierSubject(), verificationQueryPublicJti()));
         }
 
-        return List.of(buildVerificationQueryPublicStatement(defaultVerifierSubject(), verificationQueryPublicJti()));
+        publishedVerificationQueryPublicStatements.values().stream()
+                .filter(statement -> requestedSubject == null || requestedSubject.equals(statement.subject()))
+                .sorted(Comparator.comparing(PublishedVerificationQueryPublicStatement::jti))
+                .map(PublishedVerificationQueryPublicStatement::jwt)
+                .forEach(statements::add);
+
+        return statements;
     }
 
     String buildVerificationQueryPublicStatementFromRegistration(Map<String, Object> registrationRequest) {
+        return publishVerificationQueryPublicStatementFromRegistration(registrationRequest).jwt();
+    }
+
+    PublishedVerificationQueryPublicStatement publishVerificationQueryPublicStatementFromRegistration(
+            Map<String, Object> registrationRequest) {
         final String subject = requiredString(registrationRequest, "sub");
         final Map<String, Object> request = verificationRequest(registrationRequest);
         validateVerificationRequest(request);
@@ -130,6 +151,7 @@ final class Tp2TrustRegistryStatementFactory {
             throw new IllegalArgumentException("purpose_description is required");
         }
 
+        final String jti = UUID.randomUUID().toString();
         final VqPsBuilder builder = new AccessibleVqPsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
@@ -137,13 +159,19 @@ final class Tp2TrustRegistryStatementFactory {
                         now(),
                         expiresAt()
                 )
-                .withJti(UUID.randomUUID().toString());
+                .withJti(jti);
 
         addPurposeNames(builder, registrationRequest);
         addPurposeDescriptions(builder, registrationRequest);
         builder.withRequest(requiredString(request, "scope"), requiredMap(request, "query"));
 
-        return sign(builder.build());
+        PublishedVerificationQueryPublicStatement statement = new PublishedVerificationQueryPublicStatement(
+                subject,
+                jti,
+                sign(builder.build())
+        );
+        publishedVerificationQueryPublicStatements.put(statement.jti(), statement);
+        return statement;
     }
 
     String buildProtectedVerificationAuthorizationStatement(String subject, String jti) {
@@ -311,7 +339,15 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     boolean isKnownVerificationQueryPublicStatementJti(String jti) {
-        return verificationQueryPublicJti().equals(jti);
+        return verificationQueryPublicJti().equals(jti) || publishedVerificationQueryPublicStatements.containsKey(jti);
+    }
+
+    Optional<String> findVerificationQueryPublicStatement(String jti) {
+        if (verificationQueryPublicJti().equals(jti)) {
+            return Optional.of(buildVerificationQueryPublicStatement(defaultVerifierSubject(), jti));
+        }
+        return Optional.ofNullable(publishedVerificationQueryPublicStatements.get(jti))
+                .map(PublishedVerificationQueryPublicStatement::jwt);
     }
 
     boolean isKnownProtectedVerificationAuthorizationStatementJti(String jti) {
