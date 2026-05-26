@@ -124,9 +124,9 @@ public final class Tp2TrustRegistryMockServerConfigurer {
                     }
 
                     try {
-                        final String vqPs = statementFactory.buildVerificationQueryPublicStatementFromRegistration(
+                        final String vqPs = statementFactory.publishVerificationQueryPublicStatementFromRegistration(
                                 responseFactory.requestBodyAsMap(httpRequest)
-                        );
+                        ).jwt();
                         return responseFactory.vqpsSubmissionSuccessResponse(vqPs);
                     } catch (IllegalArgumentException e) {
                         return responseFactory.tmsValidationErrorResponse(
@@ -158,13 +158,11 @@ public final class Tp2TrustRegistryMockServerConfigurer {
                     if (!isUuidV4(jti)) {
                         return responseFactory.badRequestResponse("jti must be a UUIDv4");
                     }
-                    if (!statementFactory.isKnownVerificationQueryPublicStatementJti(jti)) {
-                        return responseFactory.notFoundResponse("No verification query public statement found for jti");
-                    }
-                    return responseFactory.jwtResponse(statementFactory.buildVerificationQueryPublicStatement(
-                            statementFactory.defaultVerifierSubject(),
-                            jti
-                    ));
+                    return statementFactory.findVerificationQueryPublicStatement(jti)
+                            .map(responseFactory::jwtResponse)
+                            .orElseGet(() -> responseFactory.notFoundResponse(
+                                    "No verification query public statement found for jti"
+                            ));
                 });
     }
 
