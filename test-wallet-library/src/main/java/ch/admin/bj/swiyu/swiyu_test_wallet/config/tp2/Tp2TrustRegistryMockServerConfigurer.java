@@ -10,6 +10,7 @@ import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
 
 import static org.mockserver.model.HttpRequest.request;
@@ -30,6 +31,13 @@ public final class Tp2TrustRegistryMockServerConfigurer {
     private static final String NON_COMPLIANCE_TRUST_LIST_PATH = "/api/v2/non-compliance-trust-list";
     private static final String TP2_STATUS_LIST_PATH = "/api/v1/statuslist/tp2-trust-statements.jwt";
     private static final String MOCK_OAUTH_ACCESS_TOKEN = "access_token";
+    private static final String TRUST_REGISTRY_CUSTOMER_KEY = "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY";
+    private static final String TRUST_REGISTRY_CUSTOMER_SECRET = "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET";
+    private static final String EXPECTED_TRUST_REGISTRY_BASIC_AUTHORIZATION =
+            "Basic " + Base64.getEncoder().encodeToString(
+                    (TRUST_REGISTRY_CUSTOMER_KEY + ":" + TRUST_REGISTRY_CUSTOMER_SECRET)
+                            .getBytes(StandardCharsets.UTF_8)
+            );
 
     private Tp2TrustRegistryMockServerConfigurer() {
     }
@@ -53,11 +61,30 @@ public final class Tp2TrustRegistryMockServerConfigurer {
         registerTrustStatementStatusListRoute(mockServerClient, statementFactory, responseFactory);
     }
 
+    public static void registerIssuerTrustStatementRoutes(MockServerClient mockServerClient,
+                                                          IssuerConfig issuerConfig,
+                                                          TrustConfig trustConfig,
+                                                          ObjectMapper objectMapper) {
+        Tp2TrustRegistryStatementFactory statementFactory = new Tp2TrustRegistryStatementFactory(
+                issuerConfig,
+                trustConfig
+        );
+        Tp2MockServerResponseFactory responseFactory = new Tp2MockServerResponseFactory(objectMapper);
+
+        registerIdentityTrustStatementRoutes(mockServerClient, statementFactory, responseFactory);
+        registerProtectedIssuanceAuthorizationRoutes(mockServerClient, statementFactory, responseFactory);
+    }
+
     private static void registerIdentityTrustStatementRoutes(MockServerClient mockServerClient,
                                                              Tp2TrustRegistryStatementFactory statementFactory,
                                                              Tp2MockServerResponseFactory responseFactory) {
         mockServerClient.when(request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?"))
                 .respond(httpRequest -> {
+                    HttpResponse authorizationError = validateTrustRegistryBasicAuth(httpRequest, responseFactory);
+                    if (authorizationError != null) {
+                        return authorizationError;
+                    }
+
                     HttpResponse validationError = validateListRouteRequest(httpRequest, responseFactory, true);
                     if (validationError != null) {
                         return validationError;
@@ -73,6 +100,11 @@ public final class Tp2TrustRegistryMockServerConfigurer {
 
         mockServerClient.when(request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/.+"))
                 .respond(httpRequest -> {
+                    HttpResponse authorizationError = validateTrustRegistryBasicAuth(httpRequest, responseFactory);
+                    if (authorizationError != null) {
+                        return authorizationError;
+                    }
+
                     final String identifier = extractLastPathSegment(httpRequest);
                     if (!statementFactory.isKnownIdentitySubject(identifier)) {
                         return responseFactory.notFoundResponse("No identity trust statement found for identifier");
@@ -179,6 +211,11 @@ public final class Tp2TrustRegistryMockServerConfigurer {
                                                                      Tp2MockServerResponseFactory responseFactory) {
         mockServerClient.when(request().withMethod("GET").withPath(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/?"))
                 .respond(httpRequest -> {
+                    HttpResponse authorizationError = validateTrustRegistryBasicAuth(httpRequest, responseFactory);
+                    if (authorizationError != null) {
+                        return authorizationError;
+                    }
+
                     HttpResponse validationError = validateListRouteRequest(httpRequest, responseFactory, true);
                     if (validationError != null) {
                         return validationError;
@@ -196,6 +233,11 @@ public final class Tp2TrustRegistryMockServerConfigurer {
 
         mockServerClient.when(request().withMethod("GET").withPath(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/.+"))
                 .respond(httpRequest -> {
+                    HttpResponse authorizationError = validateTrustRegistryBasicAuth(httpRequest, responseFactory);
+                    if (authorizationError != null) {
+                        return authorizationError;
+                    }
+
                     final String jti = extractLastPathSegment(httpRequest);
                     if (!isUuidV4(jti)) {
                         return responseFactory.badRequestResponse("jti must be a UUIDv4");
@@ -265,6 +307,15 @@ public final class Tp2TrustRegistryMockServerConfigurer {
                         10
                 )
                 .respond(httpRequest -> responseFactory.statusListJwtResponse(statementFactory.buildTrustStatusListJwt()));
+    }
+
+    private static HttpResponse validateTrustRegistryBasicAuth(HttpRequest httpRequest,
+                                                              Tp2MockServerResponseFactory responseFactory) {
+        final String authorization = httpRequest.getFirstHeader("Authorization");
+        if (!EXPECTED_TRUST_REGISTRY_BASIC_AUTHORIZATION.equals(authorization)) {
+            return responseFactory.unauthorizedResponse("Trust Registry Basic Auth credentials are required");
+        }
+        return null;
     }
 
     private static HttpResponse validateListRouteRequest(HttpRequest httpRequest,

@@ -151,13 +151,16 @@ public class DidLogUtil {
 
     private JsonObject buildVerificationMethodWithPublicKeyJwk(String didTDW, String keyType, JWK privateJwk) {
 
+        final String verificationMethodId = didTDW + "#" + keyType;
         String publicKeyJwk = privateJwk.toPublicJWK().toJSONString();
+        JsonObject publicKeyJwkObject = JsonParser.parseString(publicKeyJwk).getAsJsonObject();
+        publicKeyJwkObject.addProperty("kid", verificationMethodId);
 
         JsonObject verificationMethodObj = new JsonObject();
-        verificationMethodObj.addProperty("id", didTDW + "#" + keyType);
+        verificationMethodObj.addProperty("id", verificationMethodId);
         verificationMethodObj.addProperty("type", "JsonWebKey2020");
         verificationMethodObj.addProperty("controller", didTDW);
-        verificationMethodObj.add("publicKeyJwk", JsonParser.parseString(publicKeyJwk).getAsJsonObject());
+        verificationMethodObj.add("publicKeyJwk", publicKeyJwkObject);
 
         return verificationMethodObj;
     }
