@@ -10,14 +10,16 @@ import org.testcontainers.utility.DockerImageName;
 @UtilityClass
 public class MockServerContainerConfig {
 
-    public static MockServerContainer createMockServerContainer(Network network) {
+    public static MockServerContainer createMockServerContainer(Network network, ContainerLogConfig containerLogConfig) {
         try (MockServerContainer container = new MockServerContainer(
                 DockerImageName
                         .parse("mockserver/mockserver")
                         .withTag("5.15.0"))) {
             container.withExposedPorts(1080);
             container.withNetwork(network);
-            container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")));
+            if (containerLogConfig.isMockServer()) {
+                container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")));
+            }
             container.withNetworkAliases("mockserver");
             return container;
         }

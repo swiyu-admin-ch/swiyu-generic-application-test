@@ -25,10 +25,10 @@ public class VerifierContainerConfig {
             PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
             IssuerConfig config,
             String imageName,
-            VerifierImageConfig verifierImageConfig) {
+            VerifierImageConfig verifierImageConfig,
+            ContainerLogConfig containerLogConfig) {
         try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
             container
-                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")))
                     .withExposedPorts(8080)
                     .withEnv("VERIFIER_DID", config.getIssuerDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
@@ -55,6 +55,10 @@ public class VerifierContainerConfig {
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .dependsOn(dbContainer);
+
+            if (containerLogConfig.isVerifier()) {
+                container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")));
+            }
 
             return container;
         }

@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -266,10 +267,7 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
-    @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV, ImageTags.LOCAL},
-            reason = "This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)"
-    )
+    @Disabled("This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)")
     void unboundNonDeferredCredential_whenWrongState_thenRejected() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
