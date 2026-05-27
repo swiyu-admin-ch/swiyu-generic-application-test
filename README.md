@@ -106,6 +106,13 @@ The following environment variables can be used to configure the test execution:
 | `VERIFIER_IMAGE_NAME` | Docker image name for the Verifier service | `ghcr.io/swiyu-admin-ch/swiyu-verifier` | `ghcr.io/swiyu-admin-ch/swiyu-verifier` |
 | `VERIFIER_IMAGE_TAG` | Docker image tag for the Verifier service | `dev` | `dev`, `stable`, `rc`, `staging` |
 | `TRACE_TEST_REQUESTS` | Enable stack trace logging for each test | `false` | `true`, `false` |
+| `ISSUER_CONTAINER_LOGS` | Enable Issuer container logs | `true` | `true`, `false` |
+| `VERIFIER_CONTAINER_LOGS` | Enable Verifier container logs | `true` | `true`, `false` |
+| `DB_CONTAINER_LOGS` | Enable PostgreSQL container logs | `false` | `true`, `false` |
+| `MOCKSERVER_CONTAINER_LOGS` | Enable MockServer container logs | `false` | `true`, `false` |
+| `SOFTHSM_CONTAINER_LOGS` | Enable SoftHSM container logs | `false` | `true`, `false` |
+
+Container logs are controlled per service. Issuer and Verifier logs are enabled by default; infrastructure container logs are disabled by default.
 
 ### Trace Output
 
