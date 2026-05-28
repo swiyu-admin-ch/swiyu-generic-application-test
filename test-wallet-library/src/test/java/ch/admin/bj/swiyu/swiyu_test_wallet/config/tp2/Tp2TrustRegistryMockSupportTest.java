@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +26,7 @@ class Tp2TrustRegistryMockSupportTest {
             "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
     private static final String ISSUER_DID =
             "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
+    private static final String PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
 
     private Tp2TrustRegistryStatementFactory statementFactory;
     private Tp2MockServerResponseFactory responseFactory;
@@ -73,8 +74,9 @@ class Tp2TrustRegistryMockSupportTest {
         Map<String, Object> canIssue = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("can_issue");
 
         assertThat(canIssue)
-                .containsEntry("vct", CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                .containsEntry("vct", PROTECTED_VCT)
                 .containsEntry("vct_name", "Bound Example SD-JWT VC");
+        assertProtectedVctUrl((String) canIssue.get("vct"));
     }
 
     @Test
@@ -107,8 +109,15 @@ class Tp2TrustRegistryMockSupportTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> request = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("request");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> query = (Map<String, Object>) request.get("query");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) query.get("credentials");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.getFirst().get("meta");
         assertThat(request).containsEntry("type", "DCQL")
                 .containsEntry("scope", "com.example.age_verification_presentation");
+        assertProtectedVctValues(meta.get("vct_values"));
     }
 
     @Test
@@ -170,6 +179,7 @@ class Tp2TrustRegistryMockSupportTest {
                 .isEqualTo("swiyu-protected-issuance-trust-list-statement+jwt");
         assertThat(protectedIssuanceTrustList.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
         assertThat(protectedIssuanceTrustList.getJWTClaimsSet().getSubject()).isNull();
+        assertProtectedVctValues(protectedIssuanceTrustList.getJWTClaimsSet().getClaim("vct_values"));
 
         assertThat(nonComplianceTrustList.getHeader().getType().toString())
                 .isEqualTo("swiyu-non-compliance-trust-list-statement+jwt");
@@ -223,7 +233,7 @@ class Tp2TrustRegistryMockSupportTest {
                                 "id", "age-verification",
                                 "format", "dc+sd-jwt",
                                 "meta", new java.util.LinkedHashMap<>(Map.of(
-                                        "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                                        "vct_values", List.of(PROTECTED_VCT)
                                 )),
                                 "claims", List.of(Map.of("path", List.of("birth_date")))
                         )))
@@ -273,5 +283,16 @@ class Tp2TrustRegistryMockSupportTest {
                 .encodeToString(keyPair.getPublic().getEncoded());
         return "-----BEGIN PRIVATE KEY-----\n" + privateKeyBase64 + "\n-----END PRIVATE KEY-----\n"
                 + "-----BEGIN PUBLIC KEY-----\n" + publicKeyBase64 + "\n-----END PUBLIC KEY-----\n";
+    }
+
+    private void assertProtectedVctUrl(String vct) {
+        assertThat(vct)
+                .isEqualTo(PROTECTED_VCT)
+                .startsWith(TestConstants.ISSUER_URL + "/oid4vci/vct/");
+    }
+
+    private void assertProtectedVctValues(Object vctValues) {
+        assertThat(vctValues).isEqualTo(List.of(PROTECTED_VCT));
+        assertProtectedVctUrl((String) ((List<?>) vctValues).getFirst());
     }
 }

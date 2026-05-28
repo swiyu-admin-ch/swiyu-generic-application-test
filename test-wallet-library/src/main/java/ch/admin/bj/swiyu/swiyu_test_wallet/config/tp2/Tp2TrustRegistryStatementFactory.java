@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;
@@ -37,7 +37,7 @@ final class Tp2TrustRegistryStatementFactory {
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
     static final String TP2_DEFAULT_VERIFIER_SUBJECT =
             "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
-    static final String TP2_PROTECTED_VCT = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+    static final String TP2_PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
     static final String TP2_AUTHORIZED_FIELD = "personal_administrative_number";
 
     private static final String TP2_BAD_ACTOR_SUBJECT =

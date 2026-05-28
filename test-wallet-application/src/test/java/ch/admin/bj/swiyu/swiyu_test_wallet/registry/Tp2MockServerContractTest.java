@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,6 +43,7 @@ class Tp2MockServerContractTest extends BaseTest {
                     (TRUST_REGISTRY_CUSTOMER_KEY + ":" + TRUST_REGISTRY_CUSTOMER_SECRET)
                             .getBytes(StandardCharsets.UTF_8)
             );
+    private static final String PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
 
     @Test
     void tp2MockRoutes_whenRequested_thenExposeExpectedListAndStatementStructures() throws Exception {
@@ -660,13 +661,26 @@ class Tp2MockServerContractTest extends BaseTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> page = (Map<String, Object>) response.get("page");
 
-        assertThat(content).hasSize(1);
+        assertThat(content).isNotEmpty();
         assertThat(page)
-                .containsEntry("size", 1)
+                .containsEntry("size", content.size())
                 .containsEntry("number", 0)
                 .containsEntry("totalPages", 1)
-                .containsEntry("totalElements", 1);
-        assertVerificationQueryPublicStatement(content.getFirst(), "07f289d5-8b1f-4604-bf72-53bdcb71ee05");
+                .containsEntry("totalElements", content.size());
+
+        String defaultStatement = null;
+        for (String jwt : content) {
+            SignedJWT statement = SignedJWT.parse(jwt);
+            if ("07f289d5-8b1f-4604-bf72-53bdcb71ee05".equals(statement.getJWTClaimsSet().getJWTID())) {
+                defaultStatement = jwt;
+                break;
+            }
+        }
+
+        assertThat(defaultStatement)
+                .as("Default verification query public statement must remain in the TMS list response")
+                .isNotNull();
+        assertVerificationQueryPublicStatement(defaultStatement, "07f289d5-8b1f-4604-bf72-53bdcb71ee05");
     }
 
     private void assertVerificationQueryPublicStatement(String jwt, String expectedJti) throws ParseException {
@@ -696,7 +710,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
         assertThat(request).containsEntry("type", "DCQL");
         assertThat(request).containsEntry("scope", "ch.swiyu.tp2.employment.presentation");
-        assertThat(meta.get("vct_values")).isEqualTo(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT));
+        assertProtectedVctValues(meta.get("vct_values"));
     }
 
     private void assertTmsRegistrationResponse(String responseBody) throws Exception {
@@ -729,8 +743,15 @@ class Tp2MockServerContractTest extends BaseTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> request = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("request");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> query = (Map<String, Object>) request.get("query");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> credentials = (List<Map<String, Object>>) query.get("credentials");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> meta = (Map<String, Object>) credentials.getFirst().get("meta");
         assertThat(request).containsEntry("type", "DCQL")
                 .containsEntry("scope", "com.example.age_verification_presentation");
+        assertProtectedVctValues(meta.get("vct_values"));
     }
 
     private void assertProtectedIssuanceAuthorizationList(String responseBody) throws Exception {
@@ -757,9 +778,10 @@ class Tp2MockServerContractTest extends BaseTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> canIssue = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("can_issue");
         assertThat(canIssue)
-                .containsEntry("vct", CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                .containsEntry("vct", PROTECTED_VCT)
                 .containsEntry("vct_name", "Bound Example SD-JWT VC")
                 .containsEntry("reason", "Protected example issuance.");
+        assertProtectedVctUrl((String) canIssue.get("vct"));
     }
 
     private void assertProtectedVerificationAuthorizationList(String responseBody) throws Exception {
@@ -800,7 +822,10 @@ class Tp2MockServerContractTest extends BaseTest {
         assertThat(statement.getJWTClaimsSet().getJWTID()).isEqualTo(expectedJti);
         @SuppressWarnings("unchecked")
         Map<String, Object> canIssue = (Map<String, Object>) statement.getJWTClaimsSet().getClaim("can_issue");
-        assertThat(canIssue).containsEntry("reason", "Protected example issuance.");
+        assertThat(canIssue)
+                .containsEntry("vct", PROTECTED_VCT)
+                .containsEntry("reason", "Protected example issuance.");
+        assertProtectedVctUrl((String) canIssue.get("vct"));
     }
 
     private void assertProtectedIssuanceTrustListStatementList(String responseBody) throws Exception {
@@ -825,8 +850,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
         assertTrustStatementHeader(statement, "swiyu-protected-issuance-trust-list-statement+jwt");
         assertThat(statement.getJWTClaimsSet().getJWTID()).isEqualTo(expectedJti);
-        assertThat(statement.getJWTClaimsSet().getClaim("vct_values"))
-                .isEqualTo(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT));
+        assertProtectedVctValues(statement.getJWTClaimsSet().getClaim("vct_values"));
     }
 
     private void assertProtectedIssuanceTrustList(String jwt) throws ParseException {
@@ -835,8 +859,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertTrustStatementHeader(statement, "swiyu-protected-issuance-trust-list-statement+jwt");
         assertThat(statement.getJWTClaimsSet().getSubject()).isNull();
         assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
-        assertThat(statement.getJWTClaimsSet().getClaim("vct_values"))
-                .isEqualTo(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT));
+        assertProtectedVctValues(statement.getJWTClaimsSet().getClaim("vct_values"));
     }
 
     private void assertNonComplianceTrustList(String jwt) throws ParseException {
@@ -885,6 +908,17 @@ class Tp2MockServerContractTest extends BaseTest {
         assertThat(statement.getHeader().getCustomParam("profile_version")).isEqualTo(TP2_PROFILE_VERSION);
     }
 
+    private void assertProtectedVctUrl(String vct) {
+        assertThat(vct)
+                .isEqualTo(PROTECTED_VCT)
+                .startsWith(TestConstants.ISSUER_URL + "/oid4vci/vct/");
+    }
+
+    private void assertProtectedVctValues(Object vctValues) {
+        assertThat(vctValues).isEqualTo(List.of(PROTECTED_VCT));
+        assertProtectedVctUrl((String) ((List<?>) vctValues).getFirst());
+    }
+
     private void assertEmptyPagedContent(String responseBody, int expectedPageNumber) throws Exception {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
@@ -914,7 +948,7 @@ class Tp2MockServerContractTest extends BaseTest {
                                 "id", "age-verification",
                                 "format", "dc+sd-jwt",
                                 "meta", Map.of(
-                                        "vct_values", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT)
+                                        "vct_values", List.of(PROTECTED_VCT)
                                 ),
                                 "claims", List.of(Map.of("path", List.of("birth_date")))
                         ))
