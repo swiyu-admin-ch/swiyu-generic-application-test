@@ -22,7 +22,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.creat
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
-@EnableConfigurationProperties({ IssuerImageConfig.class, VerifierImageConfig.class })
+@EnableConfigurationProperties({ ContainerLogConfig.class, IssuerImageConfig.class, VerifierImageConfig.class })
 public class CompleteEnvironmentTestConfiguration {
 
     @Bean
@@ -64,9 +64,9 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public PostgreSQLContainer<?> dbTestContainer(Network network) {
+    public PostgreSQLContainer<?> dbTestContainer(Network network, ContainerLogConfig containerLogConfig) {
 
-        var container = createPostgreSQLContainer(network);
+        var container = createPostgreSQLContainer(network, containerLogConfig);
 
         container.start();
 
@@ -74,9 +74,13 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public GenericContainer<?> softHsmContainer(Network network, String tokenDirPath, HSMConfig hsmConfig) {
+    public GenericContainer<?> softHsmContainer(
+            Network network,
+            String tokenDirPath,
+            HSMConfig hsmConfig,
+            ContainerLogConfig containerLogConfig) {
 
-        var container = HSMContainerConfig.createSoftHsmContainer(network, hsmConfig, tokenDirPath);
+        var container = HSMContainerConfig.createSoftHsmContainer(network, hsmConfig, tokenDirPath, containerLogConfig);
 
         container.start();
 
@@ -111,13 +115,23 @@ public class CompleteEnvironmentTestConfiguration {
                                                IssuerConfig config,
                                                MockServerContainer mockServer,
                                                IssuerImageConfig issuerImageConfig,
+                                               ContainerLogConfig containerLogConfig,
                                                GenericContainer<?> softHsmContainer,
                                                String tokenDirPath,
                                                MockAttestationAuthority mockAttestationAuthority) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
-        var container = IssuerContainerConfig.createIssuerContainer(network, dbContainer, config, mockServer, imageName, issuerImageConfig, tokenDirPath, mockAttestationAuthority);
+        var container = IssuerContainerConfig.createIssuerContainer(
+                network,
+                dbContainer,
+                config,
+                mockServer,
+                imageName,
+                issuerImageConfig,
+                containerLogConfig,
+                tokenDirPath,
+                mockAttestationAuthority);
 
         container.dependsOn(softHsmContainer);
         container.start();
@@ -131,9 +145,15 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public MockServerContainer mockServer(Network network, IssuerConfig issuerConfig, TrustConfig trustConfig, MockServerClientConfig mockServerClientConfig, MockAttestationAuthority mockAttestationAuthority) {
+    public MockServerContainer mockServer(
+            Network network,
+            IssuerConfig issuerConfig,
+            TrustConfig trustConfig,
+            MockServerClientConfig mockServerClientConfig,
+            MockAttestationAuthority mockAttestationAuthority,
+            ContainerLogConfig containerLogConfig) {
 
-        var container = MockServerContainerConfig.createMockServerContainer(network);
+        var container = MockServerContainerConfig.createMockServerContainer(network, containerLogConfig);
 
         container.start();
 
@@ -147,11 +167,18 @@ public class CompleteEnvironmentTestConfiguration {
     public GenericContainer<?> verifierContainer(Network network,
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
                                                  IssuerConfig config,
-                                                 VerifierImageConfig verifierImageConfig) {
+                                                 VerifierImageConfig verifierImageConfig,
+                                                 ContainerLogConfig containerLogConfig) {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 
-        var container = VerifierContainerConfig.createVerifierContainer(network, dbContainer, config, imageName, verifierImageConfig);
+        var container = VerifierContainerConfig.createVerifierContainer(
+                network,
+                dbContainer,
+                config,
+                imageName,
+                verifierImageConfig,
+                containerLogConfig);
 
         container.start();
 

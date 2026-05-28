@@ -23,7 +23,8 @@ public class HSMContainerConfig {
     public static GenericContainer<?> createSoftHsmContainer(
             final Network network,
             final HSMConfig hsmConfig,
-            final String tokenDirPath) {
+            final String tokenDirPath,
+            final ContainerLogConfig containerLogConfig) {
 
         GenericContainer<?> container = new GenericContainer<>(IMAGE_NAME)
                 .withNetwork(network)
@@ -58,8 +59,11 @@ public class HSMContainerConfig {
         container.withCopyFileToContainer(MountableFile.forClasspathResource("softhsm/keys", 0755)
                 ,  "/opt/keys");
 
+        if (containerLogConfig.isSoftHsm()) {
+            container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")));
+        }
+
         container
-                .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")))
                 .withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE)
                 .withCommand("/bin/sh", "-c", "bash " + HSMConfig.INIT_SCRIPT + " && tail -f /dev/null")
                 .waitingFor(

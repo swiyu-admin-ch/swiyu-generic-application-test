@@ -25,6 +25,7 @@ public class IssuerContainerConfig {
             final MockServerContainer mockServer,
             final String imageName,
             final IssuerImageConfig issuerImageConfig,
+            final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority) {
         try (GenericContainer<?> containerBuilder = new GenericContainer<>(imageName)) {
@@ -66,7 +67,6 @@ public class IssuerContainerConfig {
                     .withEnv("ENABLE_SIGNED_METADATA", String.valueOf(issuerImageConfig.isSignedMetadata()))
                     .withEnv("RECURSIVE_DISCLOSURE_ENABLED", String.valueOf(true))
                     .withEnv("APPLICATION_ENCRYPTION_ENFORCE", String.valueOf(issuerImageConfig.isEncryptionEnforce()))
-                    .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")))
                     .withNetwork(network)
                     .withNetworkAliases(issuerImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
@@ -79,6 +79,10 @@ public class IssuerContainerConfig {
                     )
                     .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
                     .dependsOn(dbContainer, mockServer);
+
+            if (containerLogConfig.isIssuer()) {
+                containerBuilder.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")));
+            }
 
             if (issuerImageConfig.isEnableJwtAuth()) {
                 var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
