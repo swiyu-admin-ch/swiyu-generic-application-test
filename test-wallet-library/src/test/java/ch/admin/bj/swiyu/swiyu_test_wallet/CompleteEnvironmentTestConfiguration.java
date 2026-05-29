@@ -168,6 +168,8 @@ public class CompleteEnvironmentTestConfiguration {
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
                                                  IssuerConfig config,
                                                  VerifierImageConfig verifierImageConfig,
+                                                 GenericContainer<?> softHsmContainer,
+                                                 String tokenDirPath,
                                                  ContainerLogConfig containerLogConfig) {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
@@ -178,8 +180,11 @@ public class CompleteEnvironmentTestConfiguration {
                 config,
                 imageName,
                 verifierImageConfig,
-                containerLogConfig);
+                tokenDirPath,
+                containerLogConfig
+        );
 
+        container.dependsOn(softHsmContainer);
         container.start();
 
         return container;

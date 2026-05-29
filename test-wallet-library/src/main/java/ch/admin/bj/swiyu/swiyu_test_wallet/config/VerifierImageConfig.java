@@ -18,6 +18,13 @@ public class VerifierImageConfig {
 
 
     private String surname = "default";
+    private boolean enableHsm = false;
+
+    private String hsmUser = "admin";
+    private String hsmPassword = "password";
+    private String hsmUserPin = "1234";
+    private String hsmKeyId = "01";
+    private String hsmKeyPin = "1234";
 
     public String getDbSchema() {
         return String.format("%s_%s", DBContainerConfig.VERIFIER_DB_SCHEMA, getSurname());
