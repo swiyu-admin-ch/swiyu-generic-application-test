@@ -452,7 +452,11 @@ final class Tp2TrustRegistryStatementFactory {
     private void addPurposeNames(VqPsBuilder builder, Map<String, Object> source) {
         source.forEach((key, value) -> {
             if (key.equals("purpose_name")) {
-                builder.addPurposeName(asString(value, key));
+                if (value instanceof Map<?, ?> localizedValues) {
+                    addLocalizedPurposeNames(builder, localizedValues);
+                } else {
+                    builder.addPurposeName(asString(value, key));
+                }
             } else if (key.startsWith("purpose_name#")) {
                 builder.addPurposeName(asString(value, key), key.substring("purpose_name#".length()));
             }
@@ -462,11 +466,27 @@ final class Tp2TrustRegistryStatementFactory {
     private void addPurposeDescriptions(VqPsBuilder builder, Map<String, Object> source) {
         source.forEach((key, value) -> {
             if (key.equals("purpose_description")) {
-                builder.addPurposeDesc(asString(value, key));
+                if (value instanceof Map<?, ?> localizedValues) {
+                    addLocalizedPurposeDescriptions(builder, localizedValues);
+                } else {
+                    builder.addPurposeDesc(asString(value, key));
+                }
             } else if (key.startsWith("purpose_description#")) {
                 builder.addPurposeDesc(asString(value, key), key.substring("purpose_description#".length()));
             }
         });
+    }
+
+    private void addLocalizedPurposeNames(VqPsBuilder builder, Map<?, ?> localizedValues) {
+        localizedValues.forEach((locale, value) ->
+                builder.addPurposeName(asString(value, "purpose_name#" + locale), String.valueOf(locale))
+        );
+    }
+
+    private void addLocalizedPurposeDescriptions(VqPsBuilder builder, Map<?, ?> localizedValues) {
+        localizedValues.forEach((locale, value) ->
+                builder.addPurposeDesc(asString(value, "purpose_description#" + locale), String.valueOf(locale))
+        );
     }
 
     private String asString(Object value, String claimName) {
