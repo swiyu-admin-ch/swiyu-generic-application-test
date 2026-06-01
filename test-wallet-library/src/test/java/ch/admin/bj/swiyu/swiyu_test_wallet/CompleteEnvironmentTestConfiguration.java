@@ -84,6 +84,11 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
+    public VerifierConfig verifierConfig() {
+        UUID id = UUID.randomUUID();
+        return EnvironmentConfig.createVerifierConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+    }
+    @Bean
     public MockAttestationAuthority mockAttestationAuthority() {
         UUID id = UUID.randomUUID();
         return new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
@@ -128,6 +133,7 @@ public class CompleteEnvironmentTestConfiguration {
     public MockServerContainer mockServer(
             Network network,
             IssuerConfig issuerConfig,
+            VerifierConfig verifierConfig,
             TrustConfig trustConfig,
             MockServerClientConfig mockServerClientConfig,
             MockAttestationAuthority mockAttestationAuthority,
@@ -137,7 +143,7 @@ public class CompleteEnvironmentTestConfiguration {
 
         container.start();
 
-        mockServerClientConfig.createMockServerClient(container, issuerConfig, trustConfig, mockAttestationAuthority);
+        mockServerClientConfig.createMockServerClient(container, issuerConfig, verifierConfig, trustConfig, mockAttestationAuthority);
 
         return container;
     }
@@ -146,7 +152,7 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public GenericContainer<?> verifierContainer(Network network,
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
-                                                 IssuerConfig config,
+                                                 VerifierConfig config,
                                                  VerifierImageConfig verifierImageConfig,
                                                  GenericContainer<?> softHsmContainer,
                                                  String tokenDirPath,

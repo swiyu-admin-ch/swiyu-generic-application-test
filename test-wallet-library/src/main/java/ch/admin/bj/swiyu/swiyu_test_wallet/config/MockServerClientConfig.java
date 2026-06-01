@@ -78,6 +78,7 @@ public class MockServerClientConfig {
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig,
+            VerifierConfig verifierConfig,
             TrustConfig trustConfig,
             MockAttestationAuthority attestationAuthority) {
 
@@ -97,13 +98,14 @@ public class MockServerClientConfig {
                 mockServer.getServerPort());
 
         registerStatusListRoutes(mockServerClient, issuerConfig);
-        registerDidResolutionRoutes(mockServerClient, issuerConfig, trustConfig, attestationAuthority);
+        registerDidResolutionRoutes(mockServerClient, issuerConfig, verifierConfig, trustConfig, attestationAuthority);
         registerOauthAndCallbacks(mockServerClient);
         registerRenewalRoute(mockServerClient, validFrom, validUntil);
         registerLegacyTrustRoutes(mockServerClient, issuerConfig, trustConfig);
         Tp2TrustRegistryMockServerConfigurer.registerRoutes(
                 mockServerClient,
                 issuerConfig,
+                verifierConfig,
                 trustConfig,
                 OBJECT_MAPPER
         );
@@ -171,6 +173,7 @@ public class MockServerClientConfig {
 
     private void registerDidResolutionRoutes(MockServerClient mockServerClient,
                                              IssuerConfig issuerConfig,
+                                             VerifierConfig verifierConfig,
                                              TrustConfig trustConfig,
                                              MockAttestationAuthority attestationAuthority) {
         mockServerClient
@@ -179,23 +182,30 @@ public class MockServerClientConfig {
                         .withPath("/api/v1/did/.*/did.jsonl"))
                 .respond(httpRequest -> {
 
-                    String path = httpRequest.getPath().getValue();
+                    String requestedDidId = extractDidIdFromPath(httpRequest.getPath().getValue());
 
-                    if (path.contains(extractDidId(issuerConfig.getIssuerDid()))) {
+                    if (requestedDidId.equals(extractDidId(issuerConfig.getIssuerDid()))) {
                         return response()
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
                                 .withBody(issuerConfig.getIssuerDidLog());
                     }
 
-                    if (path.contains(extractDidId(trustConfig.getTrustDid()))) {
+                    if (requestedDidId.equals(extractDidId(verifierConfig.getVerifierDid()))) {
+                        return response()
+                                .withStatusCode(200)
+                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
+                                .withBody(verifierConfig.getVerifierDidLog());
+                    }
+
+                    if (requestedDidId.equals(extractDidId(trustConfig.getTrustDid()))) {
                         return response()
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
                                 .withBody(trustConfig.getTrustDidLog());
                     }
 
-                    if (attestationAuthority != null && path.contains(extractDidId(attestationAuthority.getDid()))) {
+                    if (attestationAuthority != null && requestedDidId.equals(extractDidId(attestationAuthority.getDid()))) {
                         return response()
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
@@ -278,6 +288,11 @@ public class MockServerClientConfig {
                         return response().withStatusCode(500);
                     }
                 });
+    }
+
+    private String extractDidIdFromPath(String path) {
+        String normalized = path.endsWith("/did.jsonl") ? path.substring(0, path.length() - "/did.jsonl".length()) : path;
+        return normalized.substring(normalized.lastIndexOf("/") + 1);
     }
 
     private String extractDidId(String did) {

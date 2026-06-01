@@ -283,7 +283,6 @@ public class WalletEntry {
         }
 
         var responseEncryption = new CredentialResponseEncryption();
-        responseEncryption.setAlg(encryptionMetadata.getAlgValuesSupported().getFirst());
         responseEncryption.setEnc(encryptionMetadata.getEncValuesSupported().getFirst());
         responseEncryption.setJwk(ephemeralEncryptionKey.toPublicJWK().toJSONObject());
 

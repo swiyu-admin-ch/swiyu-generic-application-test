@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
@@ -53,13 +54,19 @@ final class Tp2TrustRegistryStatementFactory {
 
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
+    private final VerifierConfig verifierConfig;
     private final Map<String, PublishedVerificationQueryPublicStatement> publishedVerificationQueryPublicStatements =
             new HashMap<>();
 
     record PublishedVerificationQueryPublicStatement(String subject, String jti, String jwt) { }
 
     Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig, TrustConfig trustConfig) {
+        this(issuerConfig, null, trustConfig);
+    }
+
+    Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig, VerifierConfig verifierConfig, TrustConfig trustConfig) {
         this.issuerConfig = issuerConfig;
+        this.verifierConfig = verifierConfig;
         this.trustConfig = trustConfig;
     }
 
@@ -311,7 +318,7 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String defaultVerifierSubject() {
-        return TP2_DEFAULT_VERIFIER_SUBJECT;
+        return verifierConfig == null ? TP2_DEFAULT_VERIFIER_SUBJECT : verifierConfig.getVerifierDid();
     }
 
     String issuerSubject() {

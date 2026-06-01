@@ -51,27 +51,27 @@ class VerifierTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-557",
-            summary = "Verification request creation is rejected when presentation definition is missing",
+            summary = "Verification request creation is rejected when DCQL query is missing",
             description = """
                     This test validates that the Business Verifier management API correctly rejects
-                    verification request creation when the required presentation definition is not provided.
-                    The validation ensures that complete and valid presentation definitions are mandatory
+                    verification request creation when the required DCQL query is not provided.
+                    The validation ensures that complete and valid digital credential query constraints are mandatory
                     for all verification requests.
                     """
     )
     @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
-    void managementCreateVerification_missingPresentationDefinition_thenRejected() {
+    void managementCreateVerification_missingDcqlQuery_thenRejected() {
         final VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
                 .acceptedIssuerDid(UUID.randomUUID().toString())
-                .presentationDefinition(null);
+                .dcqlQuery(null);
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
                 verificationRequest.createManagementResponse()
         );
 
         ApiErrorAssert.assertThat(ex)
             .hasStatus(400)
-            .hasErrorDescription(List.of("dcqlQuery: must not be null", "PresentationDefinition must be provided"));
+            .hasErrorDescription(List.of("dcqlQuery: must not be null"));
     }
 
 

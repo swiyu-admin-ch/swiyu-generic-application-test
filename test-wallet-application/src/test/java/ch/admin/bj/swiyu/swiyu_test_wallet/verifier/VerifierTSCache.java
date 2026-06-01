@@ -591,7 +591,7 @@ class VerifierTSCache extends BaseTest {
     }
 
     private String configuredVerifierDid() {
-        return issuerConfig.getIssuerDid();
+        return verifierConfig.getVerifierDid();
     }
 
     private String uniqueScope(String scenario) {
@@ -1048,6 +1048,7 @@ class VerifierTSCache extends BaseTest {
         Tp2TrustRegistryMockServerConfigurer.registerRoutes(
                 mockServerClient,
                 issuerConfig,
+                verifierConfig,
                 trustConfig,
                 OBJECT_MAPPER
         );

@@ -80,6 +80,8 @@ public class BaseTest {
     @Autowired
     protected IssuerConfig issuerConfig;
     @Autowired
+    protected VerifierConfig verifierConfig;
+    @Autowired
     protected TrustConfig trustConfig;
     @Autowired
     protected GenericContainer<?> issuerContainer;

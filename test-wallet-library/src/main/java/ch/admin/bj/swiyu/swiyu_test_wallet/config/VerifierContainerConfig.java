@@ -1,6 +1,5 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ public class VerifierContainerConfig {
     public static GenericContainer<?> createVerifierContainer(
             Network network,
             PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
-            IssuerConfig config,
+            VerifierConfig config,
             String imageName,
             VerifierImageConfig verifierImageConfig,
             String tokenDirPath,
@@ -31,12 +30,11 @@ public class VerifierContainerConfig {
         try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
             container
                     .withExposedPorts(8080)
-                    .withEnv("VERIFIER_DID", config.getIssuerDid())
+                    .withEnv("VERIFIER_DID", config.getVerifierDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
                     .withEnv("EXTERNAL_URL", TestConstants.VERIFIER_URL)
-                    .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
-                    .withEnv("SIGNING_KEY", config.getIssuerAuthKeyPemString())
-                    .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
+                    .withEnv("DID_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
+                    .withEnv("SIGNING_KEY", config.getVerifierAuthKeyPemString())
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_KEY", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")

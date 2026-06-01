@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mockserver.client.MockServerClient;
@@ -44,10 +45,12 @@ public final class Tp2TrustRegistryMockServerConfigurer {
 
     public static void registerRoutes(MockServerClient mockServerClient,
                                       IssuerConfig issuerConfig,
+                                      VerifierConfig verifierConfig,
                                       TrustConfig trustConfig,
                                       ObjectMapper objectMapper) {
         Tp2TrustRegistryStatementFactory statementFactory = new Tp2TrustRegistryStatementFactory(
                 issuerConfig,
+                verifierConfig,
                 trustConfig
         );
         Tp2MockServerResponseFactory responseFactory = new Tp2MockServerResponseFactory(objectMapper);

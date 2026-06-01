@@ -35,8 +35,6 @@ class Tp2MockServerContractTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
     private static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
-    private static final String TP2_VERIFIER_SUBJECT =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
     private static final String TRUST_REGISTRY_CUSTOMER_KEY = "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY";
     private static final String TRUST_REGISTRY_CUSTOMER_SECRET = "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET";
     private static final String TRUST_REGISTRY_AUTHORIZATION =
@@ -69,7 +67,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String verificationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/verification-query-public-statement")
-                        .queryParam("sub", TP2_VERIFIER_SUBJECT)
+                        .queryParam("sub", verifierConfig.getVerifierDid())
                         .queryParam("filterActive", true)
                         .queryParam("page", 0)
                         .queryParam("size", 5)
@@ -94,7 +92,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String protectedVerificationAuthorizationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/protected-verification-authorization-trust-statement")
-                        .queryParam("sub", TP2_VERIFIER_SUBJECT)
+                        .queryParam("sub", verifierConfig.getVerifierDid())
                         .queryParam("filterActive", true)
                         .queryParam("page", 0)
                         .queryParam("size", 1)
@@ -249,7 +247,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String defaultProtectedVerificationAuthorizationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/protected-verification-authorization-trust-statement")
-                        .queryParam("sub", TP2_VERIFIER_SUBJECT)
+                        .queryParam("sub", verifierConfig.getVerifierDid())
                         .build())
                 .retrieve()
                 .body(String.class);
@@ -268,7 +266,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String defaultVerificationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/verification-query-public-statement")
-                        .queryParam("sub", TP2_VERIFIER_SUBJECT)
+                        .queryParam("sub", verifierConfig.getVerifierDid())
                         .build())
                 .retrieve()
                 .body(String.class);
@@ -689,7 +687,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
         assertTrustStatementHeader(statement, "swiyu-verification-query-public-statement+jwt");
         assertThat(statement.getJWTClaimsSet().getJWTID()).isEqualTo(expectedJti);
-        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(TP2_VERIFIER_SUBJECT);
+        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(verifierConfig.getVerifierDid());
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name")).isEqualTo("Employment check");
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name#en")).isEqualTo("Employment check");
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name#de-CH")).isEqualTo("Beschaeftigungspruefung");
@@ -738,7 +736,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertThat(publicationResult.get("jti")).isEqualTo(statement.getJWTClaimsSet().getJWTID());
         assertThat(Instant.parse((String) publicationResult.get("expiresAt")))
                 .isEqualTo(statement.getJWTClaimsSet().getExpirationTime().toInstant());
-        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(TP2_VERIFIER_SUBJECT);
+        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(verifierConfig.getVerifierDid());
         assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name")).isEqualTo("Age verification");
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name#en")).isEqualTo("Age verification");
@@ -814,7 +812,7 @@ class Tp2MockServerContractTest extends BaseTest {
         SignedJWT statement = SignedJWT.parse(jwt);
 
         assertTrustStatementHeader(statement, "swiyu-protected-verification-authorization-trust-statement+jwt");
-        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(TP2_VERIFIER_SUBJECT);
+        assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(verifierConfig.getVerifierDid());
         assertThat(statement.getJWTClaimsSet().getJWTID()).isEqualTo(expectedJti);
         assertThat(statement.getJWTClaimsSet().getClaim("authorized_fields"))
                 .isEqualTo(List.of("personal_administrative_number"));
@@ -887,7 +885,7 @@ class Tp2MockServerContractTest extends BaseTest {
                 .containsEntry("reason#it-CH", "Mock bad actor entry used by application tests. (IT)")
                 .containsEntry("reason#rm-CH", "Mock bad actor entry used by application tests. (RM)");
         assertThat(actors.get(1))
-                .containsEntry("actor", TP2_VERIFIER_SUBJECT)
+                .containsEntry("actor", verifierConfig.getVerifierDid())
                 .containsEntry("flagged_at", "2025-01-13T07:13:00Z")
                 .containsEntry("reason", "Mock verifier non-compliance entry used by application tests.")
                 .containsEntry("reason#en", "Mock verifier non-compliance entry used by application tests. (EN)");
@@ -941,9 +939,9 @@ class Tp2MockServerContractTest extends BaseTest {
                 .containsEntry("totalElements", 0);
     }
 
-    private static Map<String, Object> tmsRegistrationRequest() {
+    private Map<String, Object> tmsRegistrationRequest() {
         return Map.of(
-                "sub", TP2_VERIFIER_SUBJECT,
+                "sub", verifierConfig.getVerifierDid(),
                 "purpose_name", "Age verification",
                 "purpose_name#en", "Age verification",
                 "purpose_description", "Verification of age for purchasing restricted goods",
@@ -962,9 +960,9 @@ class Tp2MockServerContractTest extends BaseTest {
         );
     }
 
-    private static Map<String, Object> tmsRegistrationRequestWithoutVctValues() {
+    private Map<String, Object> tmsRegistrationRequestWithoutVctValues() {
         return Map.of(
-                "sub", TP2_VERIFIER_SUBJECT,
+                "sub", verifierConfig.getVerifierDid(),
                 "purpose_name", "Age verification",
                 "purpose_name#en", "Age verification",
                 "purpose_description", "Verification of age for purchasing restricted goods",

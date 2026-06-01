@@ -154,7 +154,7 @@ public class DidLogUtil {
         final String verificationMethodId = didTDW + "#" + keyType;
         String publicKeyJwk = privateJwk.toPublicJWK().toJSONString();
         JsonObject publicKeyJwkObject = JsonParser.parseString(publicKeyJwk).getAsJsonObject();
-        publicKeyJwkObject.addProperty("kid", verificationMethodId);
+        publicKeyJwkObject.addProperty("kid", keyType);
 
         JsonObject verificationMethodObj = new JsonObject();
         verificationMethodObj.addProperty("id", verificationMethodId);
