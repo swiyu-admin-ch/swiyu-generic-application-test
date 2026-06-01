@@ -19,6 +19,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -725,13 +726,18 @@ class Tp2MockServerContractTest extends BaseTest {
                 .containsEntry("status", "PUBLICATION_SUCCEEDED");
         assertThat(response.get("createdAt")).isInstanceOf(String.class);
         assertThat(response.get("updatedAt")).isInstanceOf(String.class);
-        assertThat(publicationResult).containsEntry("expires_in", 3600);
 
         assertUuidV4((String) response.get("id"));
         assertUuidV4((String) response.get("partnerId"));
+        assertUuidV4((String) publicationResult.get("jti"));
+        assertThat(publicationResult.get("jwt")).isInstanceOf(String.class);
+        assertThat(publicationResult.get("expiresAt")).isInstanceOf(String.class);
 
-        SignedJWT statement = SignedJWT.parse((String) publicationResult.get("vqPS"));
+        SignedJWT statement = SignedJWT.parse((String) publicationResult.get("jwt"));
         assertTrustStatementHeader(statement, "swiyu-verification-query-public-statement+jwt");
+        assertThat(publicationResult.get("jti")).isEqualTo(statement.getJWTClaimsSet().getJWTID());
+        assertThat(Instant.parse((String) publicationResult.get("expiresAt")))
+                .isEqualTo(statement.getJWTClaimsSet().getExpirationTime().toInstant());
         assertThat(statement.getJWTClaimsSet().getSubject()).isEqualTo(TP2_VERIFIER_SUBJECT);
         assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
         assertThat(statement.getJWTClaimsSet().getStringClaim("purpose_name")).isEqualTo("Age verification");

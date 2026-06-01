@@ -4,11 +4,13 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.http.protocol.HTTP;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.HttpStatusCode;
 
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -62,19 +64,25 @@ final class Tp2MockServerResponseFactory {
     }
 
     HttpResponse vqpsSubmissionSuccessResponse(String vqPs) {
-        String now = Instant.now().toString();
-        return jsonResponse(Map.of(
-                "id", UUID.randomUUID().toString(),
-                "partnerId", UUID.randomUUID().toString(),
-                "version", 1,
-                "status", "PUBLICATION_SUCCEEDED",
-                "publicationResult", Map.of(
-                        "vqPS", vqPs,
-                        "expires_in", 3600
-                ),
-                "createdAt", now,
-                "updatedAt", now
-        ));
+        try {
+            SignedJWT statement = SignedJWT.parse(vqPs);
+            String now = Instant.now().toString();
+            return jsonResponse(Map.of(
+                    "id", UUID.randomUUID().toString(),
+                    "partnerId", UUID.randomUUID().toString(),
+                    "version", 1,
+                    "status", "PUBLICATION_SUCCEEDED",
+                    "publicationResult", Map.of(
+                            "jti", statement.getJWTClaimsSet().getJWTID(),
+                            "jwt", vqPs,
+                            "expiresAt", statement.getJWTClaimsSet().getExpirationTime().toInstant().toString()
+                    ),
+                    "createdAt", now,
+                    "updatedAt", now
+            ));
+        } catch (ParseException e) {
+            throw new TestSupportException("Cannot parse published vqPS JWT: " + e.getMessage());
+        }
     }
 
     HttpResponse tmsValidationErrorResponse(String message, String field, String error) {
