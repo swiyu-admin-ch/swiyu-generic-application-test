@@ -98,6 +98,14 @@ public class BusinessIssuer {
         return createCredentialOffer(supportedMetadataId, subjectClaims, false);
     }
 
+    public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId,
+                                                                Map<String, Object> subjectClaims,
+                                                                CredentialOfferMetadataDto credentialMetadata) {
+        var offer = createCredentialOfferRequest(supportedMetadataId, credentialMetadata, subjectClaims);
+
+        return createCredential(offer);
+    }
+
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId, Map<String, Object> subjectClaims, final boolean deferred) {
         CredentialOfferMetadataDto credentialOfferMetadataDto = new CredentialOfferMetadataDto();
         credentialOfferMetadataDto.setDeferred(deferred);

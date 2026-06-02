@@ -1,18 +1,15 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
-import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
@@ -23,8 +20,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
-
-import java.util.Map;
 
 import java.util.Map;
 
@@ -39,6 +34,12 @@ import static org.mockito.Mockito.spy;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class IssuerTest extends BaseTest {
+
+    private static final String SUPPORTED_METADATA_ID = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+    private static final String OVERRIDE_VCT_METADATA_URI =
+            "https://example.com/credentials/vct/eidomni-1001-metadata.json";
+    private static final String OVERRIDE_VCT_METADATA_URI_INTEGRITY =
+            "sha256-TmHzu3DojO4MFaBXcJ6akg8JY/JWOcDU8PfUViEMYKk=";
 
     @Test
     @XrayTest(
@@ -145,11 +146,11 @@ class IssuerTest extends BaseTest {
             key = "EIDOMNI-910",
             summary = "Successful issuance exposes expected VCT application level claims",
             description = """
-                This test validates a happy path issuance flow and verifies that
-                application level claims such as vct_version and vct_subtype are
-                available as regular disclosed claims when supported by the credential
-                profile.
-                """)
+                    This test validates a happy path issuance flow and verifies that
+                    application level claims such as vct_version and vct_subtype are
+                    available as regular disclosed claims when supported by the credential
+                    profile.
+                    """)
     @Tag(ReportingTags.UCI_C1A)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
@@ -187,16 +188,16 @@ class IssuerTest extends BaseTest {
                         .hasNotDisclosure("iat")
         );
     }
-      
+
     @Test
     @XrayTest(
             key = "EIDOMNI-930",
             summary = "Repeated token request after issued credential returns generic rejection",
             description = """
-                This test validates that the token endpoint rejects a repeated
-                pre-authorized_code exchange after the related credential was already issued
-                and no detailed internal error message is exposed.
-                """)
+                    This test validates that the token endpoint rejects a repeated
+                    pre-authorized_code exchange after the related credential was already issued
+                    and no detailed internal error message is exposed.
+                    """)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
     void unboundNonDeferredCredential_whenTokenRequestedAgainAfterIssuance_thenRequestIsRejected() {
@@ -237,5 +238,81 @@ class IssuerTest extends BaseTest {
 
         assertThat(reusedCodeException.getResponseBodyAsString())
                 .isEqualTo(unknownCodeException.getResponseBodyAsString());
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1001",
+            summary = "Credential metadata override remains scoped to one offer",
+            description = """
+                    This test validates that the Business Issuer create-offer API applies a credential_metadata
+                    override only to the wallet-facing issuer metadata for that credential offer.
+                    A later default offer must again expose the default issuer metadata values, while unrelated
+                    credential configuration fields remain unchanged.
+                    """
+    )
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.EDGE_CASE)
+    void createCredentialOffer_whenVctMetadataUriIsOverridden_thenDefaultOfferMetadataIsRestored() {
+        // Given
+        final CredentialWithDeeplinkResponse firstDefaultOffer =
+                issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
+        final CredentialConfiguration firstDefaultConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(firstDefaultOffer);
+
+        final CredentialOfferMetadataDto overrideMetadata = new CredentialOfferMetadataDto()
+                .vctMetadataUri(OVERRIDE_VCT_METADATA_URI)
+                .vctMetadataUriHashIntegrity(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
+
+        // When
+        final CredentialWithDeeplinkResponse overriddenOffer = issuerManager.createCredentialOffer(
+                SUPPORTED_METADATA_ID,
+                CredentialOffer.defaultSubjectData(),
+                overrideMetadata);
+        final CredentialConfiguration overriddenConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(overriddenOffer);
+
+        final CredentialWithDeeplinkResponse secondDefaultOffer =
+                issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
+        final CredentialConfiguration secondDefaultConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(secondDefaultOffer);
+
+        // Then
+        assertThat(overriddenConfiguration.getVctMetadataUri())
+                .isEqualTo(OVERRIDE_VCT_METADATA_URI)
+                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUri());
+        assertThat(overriddenConfiguration.getVctMetadataUriHashIntegrity())
+                .isEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY)
+                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUriHashIntegrity());
+
+        assertThat(overriddenConfiguration)
+                .usingRecursiveComparison()
+                .ignoringFields("vctMetadataUri", "vctMetadataUriHashIntegrity")
+                .isEqualTo(firstDefaultConfiguration);
+
+        assertThat(secondDefaultConfiguration)
+                .usingRecursiveComparison()
+                .isEqualTo(firstDefaultConfiguration);
+        assertThat(secondDefaultConfiguration.getVctMetadataUri())
+                .isNotEqualTo(OVERRIDE_VCT_METADATA_URI);
+        assertThat(secondDefaultConfiguration.getVctMetadataUriHashIntegrity())
+                .isNotEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
+    }
+
+    private CredentialConfiguration getCredentialConfigurationFromIssuerMetadata(final CredentialWithDeeplinkResponse offer) {
+        final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
+        walletEntry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
+
+        final IssuerMetadata issuerMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+        final CredentialConfiguration credentialConfiguration = issuerMetadata
+                .getCredentialConfigurationsSupported()
+                .get(SUPPORTED_METADATA_ID);
+
+        assertThat(credentialConfiguration)
+                .as("credential configuration %s", SUPPORTED_METADATA_ID)
+                .isNotNull();
+
+        return credentialConfiguration;
     }
 }
