@@ -38,6 +38,8 @@ class IssuerTest extends BaseTest {
     private static final String SUPPORTED_METADATA_ID = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
     private static final String OVERRIDE_VCT_METADATA_URI =
             "https://example.com/credentials/vct/eidomni-1001-metadata.json";
+    private static final String OVERRIDE_VCT_METADATA_URI_INTEGRITY =
+            "sha256-TmHzu3DojO4MFaBXcJ6akg8JY/JWOcDU8PfUViEMYKk=";
 
     @Test
     @XrayTest(
@@ -244,8 +246,9 @@ class IssuerTest extends BaseTest {
             summary = "Credential metadata override remains scoped to one offer",
             description = """
                     This test validates that the Business Issuer create-offer API applies a credential_metadata
-                    vct_metadata_uri override only to the wallet-facing issuer metadata for that credential offer.
-                    A later default offer must again expose the default issuer metadata values.
+                    override only to the wallet-facing issuer metadata for that credential offer.
+                    A later default offer must again expose the default issuer metadata values, while unrelated
+                    credential configuration fields remain unchanged.
                     """
     )
     @Tag(ReportingTags.UCI_C1)
@@ -255,32 +258,49 @@ class IssuerTest extends BaseTest {
         // Given
         final CredentialWithDeeplinkResponse firstDefaultOffer =
                 issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
-        final String firstDefaultVctMetadataUri = getVctMetadataUriFromIssuerMetadata(firstDefaultOffer);
+        final CredentialConfiguration firstDefaultConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(firstDefaultOffer);
 
         final CredentialOfferMetadataDto overrideMetadata = new CredentialOfferMetadataDto()
-                .vctMetadataUri(OVERRIDE_VCT_METADATA_URI);
+                .vctMetadataUri(OVERRIDE_VCT_METADATA_URI)
+                .vctMetadataUriHashIntegrity(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
 
         // When
         final CredentialWithDeeplinkResponse overriddenOffer = issuerManager.createCredentialOffer(
                 SUPPORTED_METADATA_ID,
                 CredentialOffer.defaultSubjectData(),
                 overrideMetadata);
-        final String overriddenVctMetadataUri = getVctMetadataUriFromIssuerMetadata(overriddenOffer);
+        final CredentialConfiguration overriddenConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(overriddenOffer);
 
         final CredentialWithDeeplinkResponse secondDefaultOffer =
                 issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
-        final String secondDefaultVctMetadataUri = getVctMetadataUriFromIssuerMetadata(secondDefaultOffer);
+        final CredentialConfiguration secondDefaultConfiguration =
+                getCredentialConfigurationFromIssuerMetadata(secondDefaultOffer);
 
         // Then
-        assertThat(overriddenVctMetadataUri)
+        assertThat(overriddenConfiguration.getVctMetadataUri())
                 .isEqualTo(OVERRIDE_VCT_METADATA_URI)
-                .isNotEqualTo(firstDefaultVctMetadataUri);
-        assertThat(secondDefaultVctMetadataUri)
-                .isEqualTo(firstDefaultVctMetadataUri)
+                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUri());
+        assertThat(overriddenConfiguration.getVctMetadataUriHashIntegrity())
+                .isEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY)
+                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUriHashIntegrity());
+
+        assertThat(overriddenConfiguration)
+                .usingRecursiveComparison()
+                .ignoringFields("vctMetadataUri", "vctMetadataUriHashIntegrity")
+                .isEqualTo(firstDefaultConfiguration);
+
+        assertThat(secondDefaultConfiguration)
+                .usingRecursiveComparison()
+                .isEqualTo(firstDefaultConfiguration);
+        assertThat(secondDefaultConfiguration.getVctMetadataUri())
                 .isNotEqualTo(OVERRIDE_VCT_METADATA_URI);
+        assertThat(secondDefaultConfiguration.getVctMetadataUriHashIntegrity())
+                .isNotEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
     }
 
-    private String getVctMetadataUriFromIssuerMetadata(final CredentialWithDeeplinkResponse offer) {
+    private CredentialConfiguration getCredentialConfigurationFromIssuerMetadata(final CredentialWithDeeplinkResponse offer) {
         final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
         walletEntry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
 
@@ -293,6 +313,6 @@ class IssuerTest extends BaseTest {
                 .as("credential configuration %s", SUPPORTED_METADATA_ID)
                 .isNotNull();
 
-        return credentialConfiguration.getVctMetadataUri();
+        return credentialConfiguration;
     }
 }
