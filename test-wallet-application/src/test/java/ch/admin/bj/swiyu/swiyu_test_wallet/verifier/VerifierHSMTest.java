@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @ActiveProfiles({"issuer-hsm", "verifier-hsm"})
+@Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
 class VerifierHSMTest extends BaseTest {
 
     private static final String DEFAULT_HSM_KEY_ID = "01";
@@ -44,7 +45,6 @@ class VerifierHSMTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void signedRequestObject_withOnlyOverrideHsmKeyId_thenUsesOverrideKey() throws Exception {
         // Given
         final ConfigurationOverrideDto configurationOverride = new ConfigurationOverrideDto()

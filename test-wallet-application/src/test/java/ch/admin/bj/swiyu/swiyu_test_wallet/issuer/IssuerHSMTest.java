@@ -44,6 +44,7 @@ import static org.mockserver.model.HttpRequest.request;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @ActiveProfiles({"issuer-hsm"})
 @Slf4j
+@Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
 public class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
@@ -53,7 +54,6 @@ public class IssuerHSMTest extends BaseTest {
     private static final String HSM_KEY_PIN = "1234";
 
     @Test
-    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void hsmSetupTest() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -96,7 +96,6 @@ public class IssuerHSMTest extends BaseTest {
     )
     @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
-    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void statusListUpdate_withHsmConfigurationOverride_thenPublishesWithOverrideKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2,
