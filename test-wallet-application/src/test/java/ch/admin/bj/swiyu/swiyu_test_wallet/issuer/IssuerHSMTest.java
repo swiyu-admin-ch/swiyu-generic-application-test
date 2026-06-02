@@ -19,6 +19,7 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -52,6 +53,7 @@ public class IssuerHSMTest extends BaseTest {
     private static final String HSM_KEY_PIN = "1234";
 
     @Test
+    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void hsmSetupTest() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -94,6 +96,7 @@ public class IssuerHSMTest extends BaseTest {
     )
     @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void statusListUpdate_withHsmConfigurationOverride_thenPublishesWithOverrideKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2,

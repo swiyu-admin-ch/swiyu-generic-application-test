@@ -9,6 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -43,6 +44,7 @@ class VerifierHSMTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
     void signedRequestObject_withOnlyOverrideHsmKeyId_thenUsesOverrideKey() throws Exception {
         // Given
         final ConfigurationOverrideDto configurationOverride = new ConfigurationOverrideDto()
