@@ -351,7 +351,6 @@ class VerifierTSCache extends BaseTest {
     )
     void tenantVerifierRequestObject_whenTrustStatementExpReached_thenRefetchesFromTms() {
         replaceVerifierTrustStatementRoutesWithSuccessfulResponses(SHORT_TRUST_STATEMENT_LIFETIME);
-        final String verifierDid = configuredVerifierDid();
         final String scope = uniqueScope("ttl");
         try {
             final ManagementResponse managementResponse = createVerificationWithPurpose(scope);
