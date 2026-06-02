@@ -19,6 +19,7 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -43,6 +44,7 @@ import static org.mockserver.model.HttpRequest.request;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @ActiveProfiles({"issuer-hsm"})
 @Slf4j
+@Disabled("Cannot perform HSM test on hardened image. This test should run locally on a non-hardened image with SoftHSM available.")
 public class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
