@@ -83,7 +83,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL()
                     .create();
 
-            final RequestObject details = wallet.getVerificationDetailsUnsigned(deepLink);
+            final RequestObject details = wallet.getVerificationRequestObject(deepLink);
             final String presentation = entry.createPresentationForSdJwtIndex(i, details);
 
             wallet.respondToVerification(details, presentation);
@@ -159,7 +159,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(verificationDetails, presentation);
@@ -177,7 +177,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(verificationDetails, presentation);
@@ -255,7 +255,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(verificationDetails, presentation);
@@ -273,7 +273,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
                 wallet.respondToVerification(verificationDetails, presentation);
@@ -298,7 +298,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
@@ -310,7 +310,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
 
-            final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);
             verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);

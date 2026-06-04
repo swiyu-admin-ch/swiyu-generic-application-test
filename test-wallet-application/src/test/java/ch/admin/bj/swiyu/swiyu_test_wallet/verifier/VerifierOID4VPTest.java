@@ -145,7 +145,7 @@ class VerifierOID4VPTest extends BaseTest {
 
         // WHEN – wallet fetches request object (OID4VP)
         final RequestObject requestObject =
-                wallet.getVerificationDetailsUnsigned(managementResponse.getVerificationDeeplink());
+                wallet.getVerificationRequestObject(managementResponse.getVerificationDeeplink());
 
         // THEN – signed request object (UCV_O1a)
         assertThat(requestObject)
@@ -221,7 +221,7 @@ class VerifierOID4VPTest extends BaseTest {
                 .withUniversityDCQL(false)
                 .createManagementResponse();
         RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
@@ -240,7 +240,7 @@ class VerifierOID4VPTest extends BaseTest {
                 .encrypted()
                 .createManagementResponse();
         verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
@@ -290,7 +290,7 @@ class VerifierOID4VPTest extends BaseTest {
                 .withUniversityDCQL(false)
                 .createManagementResponse();
         RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
         final RequestObject verificationDetailsUnencryptedFaked = Mockito.spy(verificationDetails);
@@ -318,7 +318,7 @@ class VerifierOID4VPTest extends BaseTest {
                 .encrypted()
                 .createManagementResponse();
         verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
         final RequestObject verificationDetailsEncryptedFaked = Mockito.spy(verificationDetails);

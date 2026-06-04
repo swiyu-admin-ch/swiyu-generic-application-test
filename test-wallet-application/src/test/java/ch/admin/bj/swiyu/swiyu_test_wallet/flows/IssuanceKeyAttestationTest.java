@@ -63,7 +63,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
                     .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);

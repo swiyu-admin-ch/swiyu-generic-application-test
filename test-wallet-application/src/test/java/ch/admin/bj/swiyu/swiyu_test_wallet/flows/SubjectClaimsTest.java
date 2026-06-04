@@ -478,7 +478,7 @@ public class SubjectClaimsTest extends BaseTest {
                 .withDCQL(verificationClaims)
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
@@ -533,7 +533,7 @@ public class SubjectClaimsTest extends BaseTest {
                 .withDCQL(verificationClaims)
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
@@ -552,7 +552,7 @@ public class SubjectClaimsTest extends BaseTest {
         // Then
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasErrorDescription("Not all requested claim values are satisfied");
+                .hasErrorDescription(List.of("Not all requested claim values are satisfied", "Requested DCQL path could not be found"));
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
@@ -596,7 +596,7 @@ public class SubjectClaimsTest extends BaseTest {
                 .withDCQL(verificationClaims)
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
