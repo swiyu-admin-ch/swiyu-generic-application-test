@@ -76,7 +76,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(verificationDetails, verifiableCredential);
             // Then
@@ -137,7 +137,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             wallet.respondToVerification(verificationDetails,
                     verifiableCredential);
@@ -185,7 +185,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);
@@ -242,7 +242,7 @@ class WalletTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);
@@ -277,7 +277,7 @@ class WalletTest extends BaseTest {
                 .withUniversityDCQL()
                 .create();
 
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(deepLink);
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(deepLink);
         var res = batchEntry.getVerifiableCredential(0);
 
         assert verificationDetails.getDcqlQuery() != null;

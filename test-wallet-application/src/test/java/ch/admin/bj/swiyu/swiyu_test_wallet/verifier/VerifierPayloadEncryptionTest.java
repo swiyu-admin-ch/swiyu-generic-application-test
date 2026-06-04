@@ -83,7 +83,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .withUniversityDCQL(holderBindingRequired)
                 .encrypted()
                 .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
 
         // Then
         RequestObjectAssert.assertThat(verificationDetails)
@@ -143,7 +143,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .withUniversityDCQL(holderBindingRequired)
                 .encrypted()
                 .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
@@ -202,7 +202,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .withUniversityDCQL(holderBindingRequired)
                 .encrypted()
                 .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
 
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);

@@ -97,7 +97,7 @@ public class SignedRenewalFlowTest extends BaseTest {
                     .encrypted()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String presentation = batchEntry.createPresentationForSdJwtIndex(index, verificationDetails);
             wallet.respondToVerification(verificationDetails, presentation);
