@@ -37,7 +37,7 @@ public class VerifierContainerConfig {
                     .withEnv("EXTERNAL_URL", TestConstants.VERIFIER_URL)
                     .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getIssuerAuthKeyId())
                     .withEnv("SIGNING_KEY", config.getIssuerAuthKeyPemString())
-                    .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
+                    .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
                     .withEnv("client_id_scheme", "did")
                     .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
                     .withEnv("MANAGEMENT_HEALTH_KUBERNETES_ENABLED", "false")

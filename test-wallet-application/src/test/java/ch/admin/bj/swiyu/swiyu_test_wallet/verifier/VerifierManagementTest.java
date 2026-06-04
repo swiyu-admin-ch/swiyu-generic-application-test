@@ -82,7 +82,7 @@ class VerifierManagementTest extends BaseTest {
         final ManagementResponse persistedEntry =
                 verifierManager.getVerificationById(managementResponse.getId());
         final RequestObject verificationDetails =
-                wallet.getVerificationDetailsUnsigned(managementResponse.getVerificationDeeplink());
+                wallet.getVerificationRequestObject(managementResponse.getVerificationDeeplink());
         final DcqlQueryDto persistedDcqlQuery = verificationDetails.getDcqlQuery();
         final List<DcqlClaimDto> persistedClaims =
                 persistedDcqlQuery.getCredentials().getFirst().getClaims();
@@ -188,7 +188,7 @@ class VerifierManagementTest extends BaseTest {
 
         // WHEN – wallet performs verification
         final RequestObject verificationDetails =
-                wallet.getVerificationDetailsUnsigned(managementResponse.getVerificationDeeplink());
+                wallet.getVerificationRequestObject(managementResponse.getVerificationDeeplink());
 
         final String presentation =
                 batchEntry.createPresentationForSdJwtIndex(

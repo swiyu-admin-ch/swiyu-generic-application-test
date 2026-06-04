@@ -66,6 +66,9 @@ public class Wallet {
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
 
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext) {
         this.restClient = restClient;
         this.issuerContext = issuerContext;
@@ -463,9 +466,25 @@ public class Wallet {
         }
     }
 
-    public RequestObject getVerificationDetailsUnsigned(String verificationDeeplink) {
+    private RequestObject readSignedRequestObject(String jwt) {
+        try {
+            String[] parts = jwt.split("\\.");
+
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("Invalid JWT format");
+            }
+
+            byte[] payload = Base64.getUrlDecoder().decode(parts[1]);
+
+            return objectMapper.readValue(payload, RequestObject.class);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Unable to read signed request object", e);
+        }
+    }
+
+    public RequestObject getVerificationRequestObject(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
-        return ((VerificationRequestObject.Unsigned) request).requestObject();
+        return readSignedRequestObject(((VerificationRequestObject.Signed) request).jwt());
     }
 
     public String getVerificationDetailSigned(String verificationDeeplink) {
