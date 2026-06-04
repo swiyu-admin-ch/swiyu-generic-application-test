@@ -32,7 +32,7 @@ public class CredentialClaimsConstants {
     public static final String DEFAULT_UNIVERSITY = "University of Betelgeuse";
     public static final List<String> DEFAULT_NATIONALITIES =
             Arrays.asList("British", "Betelgeusian");
-    public static final Integer DEFAULT_BIRTH_YEAR = 1978;
+    public static final Double DEFAULT_BIRTH_YEAR = 1978.0;
     public static final List<Integer> DEFAULT_FAVORITE_NUMBERS =
             Arrays.asList(3, 7, 42);
     public static final String DEFAULT_PORTRAIT =

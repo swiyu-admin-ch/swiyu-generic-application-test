@@ -89,7 +89,7 @@ public class RevocationFlowTest extends BaseTest {
                     .withUniversityDCQL(true)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
@@ -155,7 +155,7 @@ public class RevocationFlowTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final int index = i;
@@ -181,7 +181,7 @@ public class RevocationFlowTest extends BaseTest {
                     .withUniversityDCQL(false)
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
-                    .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                    .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             wallet.respondToVerification(verificationDetails,
@@ -267,7 +267,7 @@ public class RevocationFlowTest extends BaseTest {
                 .withUniversityDCQL(false)
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
@@ -361,7 +361,7 @@ public class RevocationFlowTest extends BaseTest {
                 .withUniversityDCQL(false)
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
-                .getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+                .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
