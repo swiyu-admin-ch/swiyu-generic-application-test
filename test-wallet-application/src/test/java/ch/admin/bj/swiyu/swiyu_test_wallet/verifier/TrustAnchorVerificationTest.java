@@ -63,7 +63,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                 .withDCQL()
                 .createManagementResponse();
 
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
         wallet.respondToVerification(verificationDetails, presentation);
 
@@ -99,7 +99,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                 .withDCQL()
                 .createManagementResponse();
 
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,

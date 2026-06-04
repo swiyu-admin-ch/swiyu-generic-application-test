@@ -53,7 +53,7 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL(false)
                 .createManagementResponse();
-        final RequestObject verificationDetails = wallet.getVerificationDetailsUnsigned(verification.getVerificationDeeplink());
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
 
         // When
         final HttpClientErrorException.BadRequest ex = assertThrows(
