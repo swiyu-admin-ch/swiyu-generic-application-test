@@ -81,7 +81,8 @@ public class SubjectClaimsTest extends BaseTest {
                         "Number scalar: disclose 'birth_year' with exact matching value",
                         CredentialClaimsFixtures.createBaseProfile(),
                         VerificationClaimsBuilder.claims()
-                                .claim("birth_year", List.of(CredentialClaimsConstants.DEFAULT_BIRTH_YEAR))
+                                .claim("birth_year",
+                                        List.of(CredentialClaimsConstants.DEFAULT_BIRTH_YEAR))
                                 .build()
                 ),
 
@@ -487,6 +488,7 @@ public class SubjectClaimsTest extends BaseTest {
 
         final String presentation = entry.createSelectiveDisclosurePresentationForSdJwtIndex(0, verificationDetails);
         log.info("Test: {}", assertMessage);
+        log.info("Request Object: {}", verificationDetails);
         log.info("DCQL: {}", verificationDetails.getDcqlQuery().getCredentials().getFirst().getClaims());
         log.info("VC: {}", entry.getIssuedCredentials().get(0));
         log.info("VP: {}", presentation);

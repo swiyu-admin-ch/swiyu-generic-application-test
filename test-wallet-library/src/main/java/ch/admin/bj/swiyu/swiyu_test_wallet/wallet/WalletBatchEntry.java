@@ -256,7 +256,7 @@ public class WalletBatchEntry extends WalletEntry {
             changed = false;
             for (String disclosure : disclosures) {
                 final List<Object> decodedParts = decodeDisclosure(disclosure);
-                if (decodedParts.size() != 3) {
+                if (decodedParts.size() != 2 && decodedParts.size() != 3) {
                     continue;
                 }
 
@@ -266,15 +266,20 @@ public class WalletBatchEntry extends WalletEntry {
                     continue;
                 }
 
-                final Object key = decodedParts.get(1);
-                if (!(key instanceof String)) {
+                final List<Object> valuePath = new ArrayList<>(parentPath);
+                final Object value;
+                if (decodedParts.size() == 3) {
+                    final Object key = decodedParts.get(1);
+                    if (!(key instanceof String)) {
+                        continue;
+                    }
+                    valuePath.add(key);
+                    value = decodedParts.get(2);
+                } else if (decodedParts.size() == 2) {
+                    value = decodedParts.get(1);
+                } else {
                     continue;
                 }
-
-                final List<Object> valuePath = new ArrayList<>(parentPath);
-                valuePath.add(key);
-
-                final Object value = decodedParts.get(2);
 
                 // Case 1: value is an object with _sd — nested disclosed object fields (e.g. address)
                 if (value instanceof Map) {
@@ -390,18 +395,26 @@ public class WalletBatchEntry extends WalletEntry {
                 && requestedPath.get(0) instanceof String
                 && requestedPath.get(1) == null
                 && requestedPath.get(2) instanceof String) {
-            return actualPath.size() == 2
+            return (actualPath.size() == 2
                     && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && actualPath.get(1) instanceof Integer;
+                    && actualPath.get(1) instanceof Integer)
+                    || (actualPath.size() == 3
+                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
+                    && actualPath.get(1) instanceof Integer
+                    && Objects.equals(actualPath.get(2), requestedPath.get(2)));
         }
 
         if (requestedPath.size() == 3
                 && requestedPath.get(0) instanceof String
                 && requestedPath.get(1) instanceof Integer
                 && requestedPath.get(2) instanceof String) {
-            return actualPath.size() == 2
+            return (actualPath.size() == 2
                     && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && Objects.equals(actualPath.get(1), requestedPath.get(1));
+                    && Objects.equals(actualPath.get(1), requestedPath.get(1)))
+                    || (actualPath.size() == 3
+                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
+                    && Objects.equals(actualPath.get(1), requestedPath.get(1))
+                    && Objects.equals(actualPath.get(2), requestedPath.get(2)));
         }
 
         return false;
