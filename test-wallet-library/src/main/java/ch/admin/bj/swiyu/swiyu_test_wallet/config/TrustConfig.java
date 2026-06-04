@@ -32,17 +32,16 @@ public class TrustConfig {
         var assertJwk = createJWKFromKeyPair(assertKeys);
         var authJwk = createJWKFromKeyPair(authKeys);
 
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl, true);
         var trustDid = getDidFromDidLog(didLog);
 
         return TrustConfig.builder()
                 .trustDid(trustDid)
                 .trustDidLog(didLog)
                 .trustAssertKeyId(trustDid + "#assert-key-01")
-                .trustAuthKeyId(trustDid + "#assert-key-01")
+                .trustAuthKeyId(trustDid + "#auth-key-01")
                 .trustAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .trustAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
                 .build();
     }
 }
-

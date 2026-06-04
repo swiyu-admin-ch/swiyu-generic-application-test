@@ -21,6 +21,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -51,6 +52,7 @@ final class Tp2TrustRegistryStatementFactory {
             "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ";
     private static final List<String> PROTECTED_FIELD_NAMES = List.of(TP2_AUTHORIZED_FIELD);
     private static final List<String> PROTECTED_VCT_VALUES = List.of(TP2_PROTECTED_VCT);
+    private static final Duration ISSUED_AT_CLOCK_SKEW_CUSHION = Duration.ofMinutes(30);
 
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
@@ -84,13 +86,17 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildIdentityTrustStatement(String subject) {
+        return buildIdentityTrustStatement(subject, Duration.ofHours(1));
+    }
+
+    String buildIdentityTrustStatement(String subject, Duration lifetime) {
         String entityName = resolveEntityName(subject);
         SignedJWT statement = new AccessibleIdTsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
-                        now(),
-                        expiresAt()
+                        issuedAt(),
+                        expiresAt(lifetime)
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
                 .addEntityName(entityName)
@@ -105,12 +111,16 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildVerificationQueryPublicStatement(String subject, String jti) {
+        return buildVerificationQueryPublicStatement(subject, jti, Duration.ofHours(1));
+    }
+
+    String buildVerificationQueryPublicStatement(String subject, String jti, Duration lifetime) {
         SignedJWT statement = new AccessibleVqPsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
-                        now(),
-                        expiresAt()
+                        issuedAt(),
+                        expiresAt(lifetime)
                 )
                 .withJti(jti)
                 .addPurposeName("Employment check")
@@ -163,7 +173,7 @@ final class Tp2TrustRegistryStatementFactory {
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
-                        now(),
+                        issuedAt(),
                         expiresAt()
                 )
                 .withJti(jti);
@@ -182,12 +192,16 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildProtectedVerificationAuthorizationStatement(String subject, String jti) {
+        return buildProtectedVerificationAuthorizationStatement(subject, jti, Duration.ofHours(1));
+    }
+
+    String buildProtectedVerificationAuthorizationStatement(String subject, String jti, Duration lifetime) {
         SignedJWT statement = new AccessiblePvaTsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
-                        now(),
-                        expiresAt()
+                        issuedAt(),
+                        expiresAt(lifetime)
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
                 .withJti(jti)
@@ -209,17 +223,21 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildProtectedIssuanceAuthorizationStatement(String subject, String jti) {
+        return buildProtectedIssuanceAuthorizationStatement(subject, jti, Duration.ofHours(1), TP2_PROTECTED_VCT);
+    }
+
+    String buildProtectedIssuanceAuthorizationStatement(String subject, String jti, Duration lifetime, String vct) {
         SignedJWT statement = new AccessiblePiaTsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
                         subject,
-                        now(),
-                        expiresAt()
+                        issuedAt(),
+                        expiresAt(lifetime)
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
                 .withJti(jti)
                 .withCanIssue(
-                        TP2_PROTECTED_VCT,
+                        vct,
                         null,
                         "Bound Example SD-JWT VC",
                         "Protected example issuance."
@@ -244,7 +262,7 @@ final class Tp2TrustRegistryStatementFactory {
         SignedJWT statement = new AccessiblePiTlsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
-                        now(),
+                        issuedAt(),
                         expiresAt()
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
@@ -267,7 +285,7 @@ final class Tp2TrustRegistryStatementFactory {
         SignedJWT statement = new AccessibleNcTlsBuilder()
                 .withTrustRegistryMetadata(
                         trustConfig.getTrustAssertKeyId(),
-                        now(),
+                        issuedAt(),
                         expiresAt()
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
@@ -306,8 +324,8 @@ final class Tp2TrustRegistryStatementFactory {
                 new JWTClaimsSet.Builder()
                         .issuer(trustConfig.getTrustDid())
                         .subject(TP2_STATUS_LIST_URI)
-                        .issueTime(new Date())
-                        .expirationTime(new Date(System.currentTimeMillis() + 3_600_000))
+                        .issueTime(Date.from(issuedAt()))
+                        .expirationTime(Date.from(expiresAt()))
                         .claim("status_list", Map.of(
                                 "bits", "2",
                                 "lst", TP2_STATUS_LIST_BITS
@@ -369,12 +387,16 @@ final class Tp2TrustRegistryStatementFactory {
         return protectedIssuanceTrustListJti().equals(jti);
     }
 
-    private Instant now() {
-        return Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    private Instant issuedAt() {
+        return Instant.now().minus(ISSUED_AT_CLOCK_SKEW_CUSHION).truncatedTo(ChronoUnit.SECONDS);
     }
 
     private Instant expiresAt() {
-        return now().plus(1, ChronoUnit.HOURS);
+        return expiresAt(Duration.ofHours(1));
+    }
+
+    private Instant expiresAt(Duration lifetime) {
+        return Instant.now().plus(lifetime).truncatedTo(ChronoUnit.SECONDS);
     }
 
     private Map<String, Object> buildVerificationQuery() {

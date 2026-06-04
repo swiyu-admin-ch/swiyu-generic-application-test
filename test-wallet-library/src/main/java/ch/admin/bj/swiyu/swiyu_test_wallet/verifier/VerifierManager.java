@@ -86,6 +86,11 @@ public class VerifierManager {
             return this;
         }
 
+        public VerificationRequestBuilder verificationPurpose(VerificationPurpose verificationPurpose) {
+            request.verificationPurpose(verificationPurpose);
+            return this;
+        }
+
         public VerificationRequestBuilder configurationOverride(ConfigurationOverrideDto configurationOverride) {
             request.configurationOverride(configurationOverride);
             return this;
