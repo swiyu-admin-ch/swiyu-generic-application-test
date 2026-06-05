@@ -34,6 +34,7 @@ public class VerifierContainerConfig {
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
                     .withEnv("EXTERNAL_URL", TestConstants.VERIFIER_URL)
                     .withEnv("DID_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
+                    .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
                     .withEnv("SIGNING_KEY", config.getVerifierAuthKeyPemString())
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
