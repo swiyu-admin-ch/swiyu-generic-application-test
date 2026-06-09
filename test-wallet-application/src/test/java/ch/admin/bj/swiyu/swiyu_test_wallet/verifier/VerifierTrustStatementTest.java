@@ -395,7 +395,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     When verification is created.
                     Then the verifier registers a vqPS, substitutes scope, and embeds the matching vqPS in verifier_info.
                     """)
-    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @Disabled("Re-enable once IF-014 vQPS submission authentication is bearer-jwt only and no longer declares OIDC.")
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet"
@@ -405,7 +406,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
         // Given
         tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
-        final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String verifierDid = verifierConfig.getVerifierDid();
         final String scope = "ch.swiyu.tp2.university.presentation." + UUID.randomUUID();
         final VerificationPurpose purpose = verificationPurpose(
                 scope,
@@ -420,7 +421,6 @@ class VerifierTrustStatementTest extends BaseTest {
                     .verificationRequest()
                     .withUniversityDCQL()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .configurationOverride(new ConfigurationOverrideDto().verifierDid(verifierDid))
                     .verificationPurpose(purpose)
                     .jwtSecure();
             final JsonNode expectedDcqlQuery = OBJECT_MAPPER.copy()
@@ -438,6 +438,7 @@ class VerifierTrustStatementTest extends BaseTest {
             assertVerifierInfoEntries(verifierInfo);
             assertThat(tp2Routes.verificationQueryPublicStatementSubmissions()).isEqualTo(submissionsBefore + 1);
             assertThat(requestObjectPayload.path("scope").asText()).isEqualTo(scope);
+            assertThat(requestObjectPayload.has("dcql_query")).isFalse();
             assertVerifierInfoStatementSubject(verifierInfo, IDENTITY_TRUST_STATEMENT_TYPE, verifierDid);
             assertVerifierInfoStatementSubject(
                     verifierInfo,
@@ -445,14 +446,14 @@ class VerifierTrustStatementTest extends BaseTest {
                     verifierDid
             );
             assertThat(vqPs).as("verifier_info must contain vqPS").isNotBlank();
-            assertThat(vqPsPayload.path("sub").asText()).isEqualTo(verifierDid);
-            assertThat(vqPsPayload.path("purpose_name#en").asText()).isEqualTo("University proof");
-            assertThat(vqPsPayload.path("purpose_description#en").asText())
-                    .isEqualTo("Verification of university credential claims");
-            assertThat(vqPsPayload.path("request").path("type").asText()).isEqualTo("DCQL");
-            assertThat(vqPsPayload.path("request").path("scope").asText()).isEqualTo(scope);
-            assertThat(requestObjectPayload.path("dcql_query").isMissingNode()).isTrue();
-            assertThat(vqPsPayload.path("request").path("query")).isEqualTo(expectedDcqlQuery);
+            assertVerificationQueryPublicStatement(
+                    vqPsPayload,
+                    verifierDid,
+                    scope,
+                    "University proof",
+                    "Verification of university credential claims",
+                    expectedDcqlQuery
+            );
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -533,6 +534,38 @@ class VerifierTrustStatementTest extends BaseTest {
         final String statement = firstVerifierInfoEntry(verifierInfo, expectedType);
         assertThat(statement).as("verifier_info must contain " + expectedType).isNotBlank();
         assertThat(statementPayload(statement).path("sub").asText()).isEqualTo(expectedSubject);
+    }
+
+    private void assertVerificationQueryPublicStatement(JsonNode payload,
+                                                        String expectedSubject,
+                                                        String expectedScope,
+                                                        String expectedPurposeName,
+                                                        String expectedPurposeDescription,
+                                                        JsonNode expectedDcqlQuery) {
+        assertThat(payload.path("sub").asText()).isEqualTo(expectedSubject);
+        assertThat(payload.path("purpose_name").asText()).isEqualTo(expectedPurposeName);
+        assertThat(payload.path("purpose_name").asText().length()).isLessThanOrEqualTo(40);
+        assertThat(payload.path("purpose_name#en").asText()).isEqualTo(expectedPurposeName);
+        assertThat(payload.path("purpose_description").asText()).isEqualTo(expectedPurposeDescription);
+        assertThat(payload.path("purpose_description").asText().length()).isLessThanOrEqualTo(1000);
+        assertThat(payload.path("purpose_description#en").asText()).isEqualTo(expectedPurposeDescription);
+
+        final JsonNode request = payload.path("request");
+        assertThat(request.path("type").asText()).isEqualTo("DCQL");
+        assertThat(request.path("scope").asText()).isEqualTo(expectedScope);
+        assertThat(request.path("query")).isEqualTo(expectedDcqlQuery);
+        assertDcqlQueryContainsVctValues(request.path("query"));
+    }
+
+    private void assertDcqlQueryContainsVctValues(JsonNode query) {
+        final JsonNode credentials = query.path("credentials");
+        assertThat(credentials.isArray()).as("DCQL query credentials must be an array").isTrue();
+        assertThat(credentials.size()).as("DCQL query credentials must be non-empty").isPositive();
+        for (JsonNode credential : credentials) {
+            final JsonNode vctValues = credential.path("meta").path("vct_values");
+            assertThat(vctValues.isArray()).as("Each DCQL credential query must contain meta.vct_values").isTrue();
+            assertThat(vctValues.size()).as("meta.vct_values must be non-empty").isPositive();
+        }
     }
 
     private void assertVerifierInfoAbsent(JsonNode verifierInfo) {

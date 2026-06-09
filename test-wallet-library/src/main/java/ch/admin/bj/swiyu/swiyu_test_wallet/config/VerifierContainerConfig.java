@@ -18,6 +18,11 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 @UtilityClass
 public class VerifierContainerConfig {
 
+    private static final String MOCKSERVER_HTTPS_URL = "https://" + MockServerClientConfig.MOCKSERVER_HOST;
+    private static final String MOCKSERVER_HTTP_URL = "http://" + MockServerClientConfig.MOCKSERVER_HOST;
+    private static final String MOCKSERVER_URL_REWRITE_MAPPING =
+            "{\"%s\":\"%s\"}".formatted(MOCKSERVER_HTTPS_URL, MOCKSERVER_HTTP_URL);
+
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
             Network network,
@@ -36,7 +41,9 @@ public class VerifierContainerConfig {
                     .withEnv("DID_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
                     .withEnv("DID_STATUS_LIST_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
                     .withEnv("SIGNING_KEY", config.getVerifierAuthKeyPemString())
+                    .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
+                    .withEnv("URL_REWRITE_MAPPING", MOCKSERVER_URL_REWRITE_MAPPING)
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_KEY", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET", "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET")

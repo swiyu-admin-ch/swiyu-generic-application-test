@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PiTlsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PiaTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.VqPsBuilder;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +48,9 @@ final class Tp2TrustRegistryStatementFactory {
     private static final String TP2_DEFAULT_VERIFICATION_SCOPE = "ch.swiyu.tp2.employment.presentation";
     private static final String TP2_STATUS_LIST_URI = "https://mockserver:1080/api/v1/statuslist/tp2-trust-statements.jwt";
     private static final String STATUS_LIST_TYPE = "statuslist+jwt";
+    private static final String VQPS_TYPE = "swiyu-verification-query-public-statement+jwt";
+    private static final int VQPS_MAX_PURPOSE_NAME_LENGTH = 40;
+    private static final int VQPS_MAX_PURPOSE_DESCRIPTION_LENGTH = 1000;
     private static final String TP2_STATUS_LIST_BITS =
             "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ";
     private static final List<String> PROTECTED_FIELD_NAMES = List.of(TP2_AUTHORIZED_FIELD);
@@ -115,24 +118,16 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildVerificationQueryPublicStatement(String subject, String jti, Duration lifetime) {
-        SignedJWT statement = new AccessibleVqPsBuilder()
-                .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
-                        subject,
-                        issuedAt(),
-                        expiresAt(lifetime)
-                )
-                .withJti(jti)
-                .addPurposeName("Employment check")
-                .addPurposeName("Employment check", "en")
-                .addPurposeName("Beschaeftigungspruefung", "de-CH")
-                .addPurposeDesc("Mock TP2 verification request used by application tests.")
-                .addPurposeDesc("Mock TP2 verification request used by application tests.", "en")
-                .addPurposeDesc("Mock-TP2-Verifizierungsanfrage fuer Anwendungstests.", "de-CH")
-                .withRequest(TP2_DEFAULT_VERIFICATION_SCOPE, buildVerificationQuery())
-                .build();
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("purpose_name", "Employment check");
+        claims.put("purpose_name#en", "Employment check");
+        claims.put("purpose_name#de-CH", "Beschaeftigungspruefung");
+        claims.put("purpose_description", "Mock TP2 verification request used by application tests.");
+        claims.put("purpose_description#en", "Mock TP2 verification request used by application tests.");
+        claims.put("purpose_description#de-CH", "Mock-TP2-Verifizierungsanfrage fuer Anwendungstests.");
+        claims.put("request", verificationRequest(TP2_DEFAULT_VERIFICATION_SCOPE, buildVerificationQuery()));
 
-        return sign(statement);
+        return createVerificationQueryPublicStatement(subject, jti, lifetime, claims);
     }
 
     List<String> buildVerificationQueryPublicStatements(String requestedSubject) {
@@ -169,23 +164,25 @@ final class Tp2TrustRegistryStatementFactory {
         }
 
         final String jti = UUID.randomUUID().toString();
-        final VqPsBuilder builder = new AccessibleVqPsBuilder()
-                .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
-                        subject,
-                        issuedAt(),
-                        expiresAt()
-                )
-                .withJti(jti);
-
-        addPurposeNames(builder, registrationRequest);
-        addPurposeDescriptions(builder, registrationRequest);
-        builder.withRequest(requiredString(request, "scope"), requiredMap(request, "query"));
+        final Map<String, Object> claims = new LinkedHashMap<>();
+        addLocalizedClaims(
+                claims,
+                registrationRequest,
+                "purpose_name",
+                VQPS_MAX_PURPOSE_NAME_LENGTH
+        );
+        addLocalizedClaims(
+                claims,
+                registrationRequest,
+                "purpose_description",
+                VQPS_MAX_PURPOSE_DESCRIPTION_LENGTH
+        );
+        claims.put("request", verificationRequest(requiredString(request, "scope"), requiredMap(request, "query")));
 
         PublishedVerificationQueryPublicStatement statement = new PublishedVerificationQueryPublicStatement(
                 subject,
                 jti,
-                sign(builder.build())
+                createVerificationQueryPublicStatement(subject, jti, Duration.ofHours(1), claims)
         );
         publishedVerificationQueryPublicStatements.put(statement.jti(), statement);
         return statement;
@@ -413,6 +410,29 @@ final class Tp2TrustRegistryStatementFactory {
         );
     }
 
+    private String createVerificationQueryPublicStatement(String subject,
+                                                          String jti,
+                                                          Duration lifetime,
+                                                          Map<String, Object> claims) {
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                .subject(subject)
+                .issueTime(Date.from(issuedAt()))
+                .expirationTime(Date.from(expiresAt(lifetime)));
+        if (jti != null) {
+            claimsBuilder.jwtID(jti);
+        }
+        claims.forEach(claimsBuilder::claim);
+        return createSignedJwt(VQPS_TYPE, claimsBuilder.build(), true);
+    }
+
+    private Map<String, Object> verificationRequest(String scope, Map<String, Object> query) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("type", "DCQL");
+        request.put("scope", scope);
+        request.put("query", query);
+        return request;
+    }
+
     private String requiredString(Map<String, Object> source, String claimName) {
         final Object value = source.get(claimName);
         if (!(value instanceof String stringValue) || stringValue.isBlank()) {
@@ -478,44 +498,66 @@ final class Tp2TrustRegistryStatementFactory {
                 .noneMatch(key -> key.equals(baseClaim) || key.startsWith(baseClaim + "#"));
     }
 
-    private void addPurposeNames(VqPsBuilder builder, Map<String, Object> source) {
+    private void addLocalizedClaims(Map<String, Object> claims,
+                                    Map<String, Object> source,
+                                    String baseClaim,
+                                    int maxLength) {
+        Optional<String> firstValue = source.entrySet().stream()
+                .filter(entry -> entry.getKey().equals(baseClaim) || entry.getKey().startsWith(baseClaim + "#"))
+                .flatMap(entry -> localizedClaimValues(entry.getKey(), entry.getValue()).stream())
+                .peek(value -> validateMaxLength(value.value(), maxLength, value.key()))
+                .findFirst()
+                .map(LocalizedClaim::value);
+
         source.forEach((key, value) -> {
-            if (key.equals("purpose_name")) {
+            if (key.equals(baseClaim)) {
                 if (value instanceof Map<?, ?> localizedValues) {
-                    addLocalizedPurposeNames(builder, localizedValues);
+                    addLocalizedClaims(claims, baseClaim, localizedValues, maxLength);
                 } else {
-                    builder.addPurposeName(asString(value, key));
+                    String stringValue = asString(value, key);
+                    validateMaxLength(stringValue, maxLength, key);
+                    claims.put(baseClaim, stringValue);
                 }
-            } else if (key.startsWith("purpose_name#")) {
-                builder.addPurposeName(asString(value, key), key.substring("purpose_name#".length()));
+            } else if (key.startsWith(baseClaim + "#")) {
+                String stringValue = asString(value, key);
+                validateMaxLength(stringValue, maxLength, key);
+                claims.put(key, stringValue);
             }
+        });
+
+        if (!claims.containsKey(baseClaim)) {
+            claims.put(baseClaim, firstValue.orElseThrow(() -> new IllegalArgumentException(baseClaim + " is required")));
+        }
+    }
+
+    private void addLocalizedClaims(Map<String, Object> claims,
+                                    String baseClaim,
+                                    Map<?, ?> localizedValues,
+                                    int maxLength) {
+        localizedValues.forEach((locale, value) -> {
+            String key = baseClaim + "#" + locale;
+            String stringValue = asString(value, key);
+            validateMaxLength(stringValue, maxLength, key);
+            claims.put(key, stringValue);
         });
     }
 
-    private void addPurposeDescriptions(VqPsBuilder builder, Map<String, Object> source) {
-        source.forEach((key, value) -> {
-            if (key.equals("purpose_description")) {
-                if (value instanceof Map<?, ?> localizedValues) {
-                    addLocalizedPurposeDescriptions(builder, localizedValues);
-                } else {
-                    builder.addPurposeDesc(asString(value, key));
-                }
-            } else if (key.startsWith("purpose_description#")) {
-                builder.addPurposeDesc(asString(value, key), key.substring("purpose_description#".length()));
-            }
-        });
+    private List<LocalizedClaim> localizedClaimValues(String key, Object value) {
+        if (value instanceof Map<?, ?> localizedValues) {
+            return localizedValues.entrySet().stream()
+                    .map(entry -> {
+                        String localizedKey = key + "#" + entry.getKey();
+                        return new LocalizedClaim(localizedKey, asString(entry.getValue(), localizedKey));
+                    })
+                    .toList();
+        }
+        return List.of(new LocalizedClaim(key, asString(value, key)));
     }
 
-    private void addLocalizedPurposeNames(VqPsBuilder builder, Map<?, ?> localizedValues) {
-        localizedValues.forEach((locale, value) ->
-                builder.addPurposeName(asString(value, "purpose_name#" + locale), String.valueOf(locale))
-        );
-    }
-
-    private void addLocalizedPurposeDescriptions(VqPsBuilder builder, Map<?, ?> localizedValues) {
-        localizedValues.forEach((locale, value) ->
-                builder.addPurposeDesc(asString(value, "purpose_description#" + locale), String.valueOf(locale))
-        );
+    private void validateMaxLength(String value, int maxLength, String claimName) {
+        if (value.length() > maxLength) {
+            throw new IllegalArgumentException(claimName + " must not contain more than " + maxLength + " characters");
+        }
     }
 
     private String asString(Object value, String claimName) {
@@ -524,6 +566,8 @@ final class Tp2TrustRegistryStatementFactory {
         }
         return stringValue;
     }
+
+    private record LocalizedClaim(String key, String value) { }
 
     private String sign(SignedJWT statement) {
         try {
@@ -575,15 +619,6 @@ final class Tp2TrustRegistryStatementFactory {
 
     private static final class AccessibleIdTsBuilder extends IdTsBuilder {
         IdTsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
-            withKid(kid);
-            withSubject(subject);
-            withValidity(issuedAt, expiresAt);
-            return this;
-        }
-    }
-
-    private static final class AccessibleVqPsBuilder extends VqPsBuilder {
-        VqPsBuilder withTrustRegistryMetadata(String kid, String subject, Instant issuedAt, Instant expiresAt) {
             withKid(kid);
             withSubject(subject);
             withValidity(issuedAt, expiresAt);
