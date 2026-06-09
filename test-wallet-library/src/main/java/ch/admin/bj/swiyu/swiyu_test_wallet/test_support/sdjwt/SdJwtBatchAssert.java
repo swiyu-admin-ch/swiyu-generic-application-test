@@ -1,18 +1,42 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import org.assertj.core.api.Assertions;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class SdJwtBatchAssert {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final Set<String> NON_DISCLOSABLE_CLAIMS = Set.of(
+            "iss",
+            "nbf",
+            "exp",
+            "cnf",
+            "vct",
+            "vct#integrity",
+            "status",
+            "_sd",
+            "_sd_alg",
+            "sd_hash",
+            "..."
+    );
 
     private final List<String> sdJwts;
 
@@ -32,6 +56,88 @@ public final class SdJwtBatchAssert {
         } catch (Exception e) {
             throw new AssertionError("Invalid SD-JWT", e);
         }
+    }
+
+    private List<Object> decodeDisclosure(String rawDisclosure) {
+        try {
+            final byte[] decoded = Base64.getUrlDecoder().decode(rawDisclosure);
+            return OBJECT_MAPPER.readValue(decoded, new TypeReference<List<Object>>() {});
+        } catch (Exception e) {
+            throw new AssertionError("Invalid SD-JWT disclosure", e);
+        }
+    }
+
+    private String extractDisclosureSalt(String rawDisclosure) {
+        final List<Object> disclosure = decodeDisclosure(rawDisclosure);
+        if (disclosure.isEmpty() || !(disclosure.getFirst() instanceof String salt) || salt.isBlank()) {
+            throw new AssertionError("Disclosure salt is missing or invalid: " + disclosure);
+        }
+        return salt;
+    }
+
+    private String extractDisclosureClaimName(String rawDisclosure) {
+        final List<Object> disclosure = decodeDisclosure(rawDisclosure);
+        if (disclosure.size() == 3 && disclosure.get(1) instanceof String claimName) {
+            return claimName;
+        }
+        return null;
+    }
+
+    private String disclosureDigest(String rawDisclosure) {
+        try {
+            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final byte[] hash = digest.digest(rawDisclosure.getBytes(StandardCharsets.US_ASCII));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 is not available", e);
+        }
+    }
+
+    private List<String> disclosureDigests(String sdJwt) {
+        return SdJwtParser.rawDisclosures(sdJwt).stream()
+                .map(this::disclosureDigest)
+                .toList();
+    }
+
+    private List<String> referencedDisclosureDigests(String sdJwt) {
+        final List<String> digests = new ArrayList<>();
+        try {
+            digests.addAll(extractDisclosureDigests(parse(sdJwt).getJWTClaimsSet().toJSONObject()));
+        } catch (ParseException e) {
+            throw new AssertionError("Invalid SD-JWT claims", e);
+        }
+
+        SdJwtParser.rawDisclosures(sdJwt).stream()
+                .map(this::decodeDisclosure)
+                .forEach(disclosure -> digests.addAll(extractDisclosureDigests(disclosure)));
+
+        return digests;
+    }
+
+    private List<String> extractDisclosureDigests(Object value) {
+        final List<String> digests = new ArrayList<>();
+
+        if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                final Object key = entry.getKey();
+                final Object child = entry.getValue();
+
+                if ("_sd".equals(key) && child instanceof List<?> sdDigests) {
+                    sdDigests.stream()
+                            .filter(String.class::isInstance)
+                            .map(String.class::cast)
+                            .forEach(digests::add);
+                } else if ("...".equals(key) && child instanceof String digest) {
+                    digests.add(digest);
+                } else {
+                    digests.addAll(extractDisclosureDigests(child));
+                }
+            }
+        } else if (value instanceof List<?> list) {
+            list.forEach(element -> digests.addAll(extractDisclosureDigests(element)));
+        }
+
+        return digests;
     }
 
     private Long extractStatusIndex(String sdJwt) {
@@ -84,6 +190,58 @@ public final class SdJwtBatchAssert {
         Assertions.assertThat(sdJwts)
                 .as("SD-JWT batch credentials must be unique")
                 .doesNotHaveDuplicates();
+
+        return this;
+    }
+
+    public SdJwtBatchAssert haveUniqueDisclosureSalts() {
+        final List<String> salts = sdJwts.stream()
+                .flatMap(sdJwt -> SdJwtParser.rawDisclosures(sdJwt).stream())
+                .map(this::extractDisclosureSalt)
+                .toList();
+
+        Assertions.assertThat(salts)
+                .as("SD-JWT disclosure salts must not be reused")
+                .doesNotHaveDuplicates();
+
+        return this;
+    }
+
+    public SdJwtBatchAssert haveUniqueDisclosureDigests() {
+        final List<String> digests = sdJwts.stream()
+                .flatMap(sdJwt -> disclosureDigests(sdJwt).stream())
+                .toList();
+
+        Assertions.assertThat(digests)
+                .as("SD-JWT disclosure digests must not be reused")
+                .doesNotHaveDuplicates();
+
+        return this;
+    }
+
+    public SdJwtBatchAssert haveDisclosuresBoundToPayloadDigests() {
+        for (int i = 0; i < sdJwts.size(); i++) {
+            final String sdJwt = sdJwts.get(i);
+
+            Assertions.assertThat(disclosureDigests(sdJwt))
+                    .as("SD-JWT[%d] disclosures must match _sd digest references", i)
+                    .containsExactlyInAnyOrderElementsOf(referencedDisclosureDigests(sdJwt));
+        }
+
+        return this;
+    }
+
+    public SdJwtBatchAssert haveNoNonDisclosableClaimsInDisclosures() {
+        final List<String> nonDisclosableClaims = sdJwts.stream()
+                .flatMap(sdJwt -> SdJwtParser.rawDisclosures(sdJwt).stream())
+                .map(this::extractDisclosureClaimName)
+                .filter(Objects::nonNull)
+                .filter(NON_DISCLOSABLE_CLAIMS::contains)
+                .toList();
+
+        Assertions.assertThat(nonDisclosableClaims)
+                .as("SD-JWT disclosures must not contain non-selectively disclosable claims")
+                .isEmpty();
 
         return this;
     }

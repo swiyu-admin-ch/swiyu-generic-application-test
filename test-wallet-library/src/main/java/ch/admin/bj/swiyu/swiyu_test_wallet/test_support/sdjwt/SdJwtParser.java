@@ -20,10 +20,16 @@ public class SdJwtParser {
     }
 
     public static List<String> disclosures(final String sdJwt) {
+        return rawDisclosures(sdJwt).stream()
+                .map(SdJwtParser::decodeBase64Url)
+                .toList();
+    }
+
+    public static List<String> rawDisclosures(final String sdJwt) {
         return Arrays.stream(sdJwt.split("~"))
                 .skip(1)
                 .filter(p -> !p.contains("."))
-                .map(SdJwtParser::decodeBase64Url)
+                .filter(p -> !p.isBlank())
                 .toList();
     }
 

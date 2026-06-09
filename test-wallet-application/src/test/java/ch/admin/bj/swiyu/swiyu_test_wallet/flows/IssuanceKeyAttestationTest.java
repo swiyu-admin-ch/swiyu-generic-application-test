@@ -44,7 +44,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
         // Given
         wallet.setMockAttestationAuthority(mockAttestationAuthority);
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_ANY_KEY_ATTESTATION_REQUIRED_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_HIGH_KEY_ATTESTATION_REQUIRED_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
@@ -90,7 +90,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
         // Given
         wallet.setMockAttestationAuthority(mockAttestationAuthority.withMismatchedSigningKey());
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_ANY_KEY_ATTESTATION_REQUIRED_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_HIGH_KEY_ATTESTATION_REQUIRED_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);

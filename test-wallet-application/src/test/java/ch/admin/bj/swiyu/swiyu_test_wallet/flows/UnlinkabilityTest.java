@@ -56,9 +56,11 @@ public class UnlinkabilityTest extends BaseTest {
                     - Status list indexes are unique and non-sequential,
                     - No constant or reusable cryptographic identifiers (such as a static cnf.kid)
                     introduce correlation signals,
+                    - Disclosure salts and _sd digests are unique and correctly bound to the payload,
+                    - Non-selectively disclosable SD-JWT VC claims are not present in disclosures,
                     - The issued-at (iat) claim is rounded down to the beginning of the day (00:00:00 UTC),
                     ensuring that no fine-grained temporal information introduces unintended correlation.
-                    - The expiration (exp) claim is rounded down to the beginning of the day (00:00:00 UTC),
+                    - The expiration (exp) claim is rounded up to the end of the day (23:59:59 UTC),
                     ensuring that no fine-grained temporal information introduces unintended correlation.
                     
                     This simulation ensures that issuer behavior prevents
@@ -102,6 +104,10 @@ public class UnlinkabilityTest extends BaseTest {
         SdJwtBatchAssert.assertThat(vcs)
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE * (renewalCount + 1))
                 .areUnique()
+                .haveDisclosuresBoundToPayloadDigests()
+                .haveUniqueDisclosureSalts()
+                .haveUniqueDisclosureDigests()
+                .haveNoNonDisclosableClaimsInDisclosures()
                 .haveUniqueIssuerSignatures()
                 .haveUniqueHolderBindingKeys()
                 .haveUniqueStatusListIndexes()
