@@ -53,7 +53,6 @@ public class Wallet {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String VP_TOKEN = "vp_token";
     public static final String DPOP = "DPoP";
-    public static final String ALG = "alg";
 
     private final RestClient restClient;
     private final ServiceLocationContext issuerContext;
@@ -583,21 +582,12 @@ public class Wallet {
         var requestDto = new CreateCredentialRequest()
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
-
-        try {
-            final String format = walletEntry.getIssuerMetadata().getCredentialConfigurationsSupported().get(walletEntry.getCredentialOffer().getCredentialConfiguraionId()).getFormat();
-            requestDto.format(format);
-        } catch (Exception e) {
-            requestDto.format(null);
-        }
-
         if (this.useEncryption) {
             walletEntry.generateEphemeralEncryptionKey();
 
             final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
             var responseEncryption = new CredentialResponseEncryption()
-                    .alg(jwk.get(ALG).toString())
                     .enc(encryptionMetadata.getEncValuesSupported().getFirst())
                     .jwk(jwk);
 

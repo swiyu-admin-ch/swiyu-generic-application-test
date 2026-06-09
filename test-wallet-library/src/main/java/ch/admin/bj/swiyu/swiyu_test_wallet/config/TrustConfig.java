@@ -39,10 +39,9 @@ public class TrustConfig {
                 .trustDid(trustDid)
                 .trustDidLog(didLog)
                 .trustAssertKeyId(trustDid + "#assert-key-01")
-                .trustAuthKeyId(trustDid + "#assert-key-01")
+                .trustAuthKeyId(trustDid + "#auth-key-01")
                 .trustAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .trustAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
                 .build();
     }
 }
-

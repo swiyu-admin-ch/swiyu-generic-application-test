@@ -81,8 +81,13 @@ public class VerifierManager {
             return this;
         }
 
-        public VerificationRequestBuilder presentationDefinition(PresentationDefinition presentationDefinition) {
-            request.presentationDefinition(presentationDefinition);
+        public VerificationRequestBuilder dcqlQuery(final DcqlQueryDto dcqlQuery) {
+            request.dcqlQuery(dcqlQuery);
+            return this;
+        }
+
+        public VerificationRequestBuilder verificationPurpose(VerificationPurpose verificationPurpose) {
+            request.verificationPurpose(verificationPurpose);
             return this;
         }
 
@@ -104,52 +109,21 @@ public class VerifierManager {
             return jwtSecuredAuthorizationRequest(false);
         }
 
-        public VerificationRequestBuilder presentation(final PresentationDefinition presentation) {
-            request.presentationDefinition(presentation);
-            return this;
-        }
-
         public VerificationRequestBuilder withUniversity() {
-            request.presentationDefinition(TestPresentationDefinitions.universityPresentation());
-            return this;
+            return withUniversityDCQL();
         }
 
         public VerificationRequestBuilder withDCQL() {
-            final List<DcqlClaimDto> claims = List.of(
-                new DcqlClaimDto()
-                    .path(List.of("name"))
-                    .id(null)
-                    .values(null)
-                );
-            return this.withDCQL(claims);
+            return this.withDCQL(List.of(dcqlClaim("name")));
         }
 
         public VerificationRequestBuilder withDCQL(final List<DcqlClaimDto> claims) {
-            DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
-                    .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
-                    .typeValues(null);
-            DcqlCredentialDto credential = new DcqlCredentialDto()
-                    .id("VerifiableCredential")
-                    .format("vc+sd-jwt")
-                    .meta(meta)
-                    .claims(claims)
-                    .claimSets(null)
-                    .requireCryptographicHolderBinding(true);
-
-            DcqlQueryDto dcqlQuery = new DcqlQueryDto().credentials(List.of(credential));
-            request.setDcqlQuery(dcqlQuery);
+            request.setDcqlQuery(defaultDcqlQuery(claims, true));
             return this;
         }
 
         public VerificationRequestBuilder withUniversityDCQL(final boolean holderBinding) {
             request.setDcqlQuery(TestPresentationDefinitions.universityPresentationDCQL(holderBinding));
-
-            final PresentationDefinition presentation = new PresentationDefinition()
-                    .id(UUID.randomUUID().toString())
-                    .name("DCQL Example")
-                    .purpose("Test purpose")
-                    .format(null);
-            request.presentationDefinition(presentation);
             return this;
         }
 

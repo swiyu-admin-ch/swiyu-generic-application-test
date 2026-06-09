@@ -29,6 +29,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### Files ###
+.DS_Store
+docs/
+
 ### VS Code ###
 .vscode/
 

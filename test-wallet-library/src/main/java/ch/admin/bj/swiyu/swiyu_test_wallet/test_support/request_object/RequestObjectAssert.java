@@ -76,13 +76,6 @@ public final class RequestObjectAssert {
         return this;
     }
 
-    public RequestObjectAssert hasPresentationDefinition() {
-        Assertions.assertThat(requestObject.getPresentationDefinition())
-                .as("request object presentation_definition")
-                .isNotNull();
-        return this;
-    }
-
     public RequestObjectAssert hasClientMetadata() {
         Assertions.assertThat(requestObject.getClientMetadata())
                 .as("request object client_metadata")

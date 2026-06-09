@@ -39,6 +39,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
@@ -79,6 +80,8 @@ public class BaseTest {
     protected VerifierImageConfig verifierImageConfig;
     @Autowired
     protected IssuerConfig issuerConfig;
+    @Autowired
+    protected VerifierConfig verifierConfig;
     @Autowired
     protected TrustConfig trustConfig;
     @Autowired
@@ -179,6 +182,11 @@ public class BaseTest {
 
     protected void awaitNoneIssuerCallback(final int before) {
         awaitNIssuerCallback(before, 0);
+    }
+
+    protected String swiyuDidVariant(final String did) {
+        final int lastColon = did.lastIndexOf(":");
+        return did.substring(0, lastColon + 1) + UUID.randomUUID();
     }
 
     protected int awaitStableCount(final IntSupplier counter) {

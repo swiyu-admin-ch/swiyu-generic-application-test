@@ -15,4 +15,8 @@ public class EnvironmentConfig {
     public static TrustConfig createTrustConfig(URI identifierRegistryUrl) {
         return TrustConfig.createTrustDid(identifierRegistryUrl);
     }
+
+    public static VerifierConfig createVerifierConfig(final URI identifierRegistryUrl) {
+        return VerifierConfig.createVerifierConfig(identifierRegistryUrl);
+    }
 }

@@ -51,8 +51,6 @@ class VerifierManagementTest extends BaseTest {
                 .acceptedIssuerDid(acceptedIssuerDid)
                 .withUniversityDCQL();
 
-        final PresentationDefinition expectedPresentationDefinition =
-                verifierManagerRequest.getRequest().getPresentationDefinition();
         final DcqlQueryDto expectedDcqlQuery =
                 verifierManagerRequest.getRequest().getDcqlQuery();
         final List<DcqlClaimDto> expectedClaims =
@@ -129,23 +127,23 @@ class VerifierManagementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-551",
-            summary = "Verifier cannot initiate a verification without a presentation definition",
+            summary = "Verifier cannot initiate a verification without a DCQL query",
             description = """
                     This test validates that the Business Verifier management API correctly rejects verification
-                    request creation when no presentation definition is provided, ensuring that all verification
-                    requests contain valid presentation requirements.
+                    request creation when no DCQL query is provided, ensuring that all verification
+                    requests contain valid digital credential query requirements.
                     """
     )
     @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
-    void verifierInitiatesVerification_withoutPresentation_thenRejected() {
+    void verifierInitiatesVerification_withoutDcqlQuery_thenRejected() {
 
         // GIVEN
         final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
         final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid(acceptedIssuerDid)
-                .presentationDefinition(null);
+                .dcqlQuery(null);
 
         // WHEN
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
@@ -155,7 +153,7 @@ class VerifierManagementTest extends BaseTest {
         // THEN
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
-                .hasErrorDescription(List.of("dcqlQuery: must not be null", "PresentationDefinition must be provided"));
+                .hasErrorDescription(List.of("dcqlQuery: must not be null"));
     }
 
     @XrayTest(

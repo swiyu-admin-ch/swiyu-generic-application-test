@@ -27,12 +27,21 @@ public class DidLogUtil {
     private static final String SCID_PLACEHOLDER = "{SCID}";
 
     public static String createDidLog(JWK authenticationKey, JWK assertionMethodKeys, URI identifierRegistryUrl) {
+        return createDidLog(authenticationKey, assertionMethodKeys, identifierRegistryUrl, false);
+    }
+
+    public static String createDidLog(JWK authenticationKey, JWK assertionMethodKeys, URI identifierRegistryUrl,
+                                      boolean useAbsolutePublicKeyJwkKid) {
 
         var keyPair = KeyUtil.getEd25519VerificationMethodKeyPair();
 
         ZonedDateTime zdt = ZonedDateTime.now();
 
-        JsonObject didDoc = createDidDoc(identifierRegistryUrl, List.of(authenticationKey), List.of(assertionMethodKeys));
+        JsonObject didDoc = createDidDoc(
+                identifierRegistryUrl,
+                List.of(authenticationKey),
+                List.of(assertionMethodKeys),
+                useAbsolutePublicKeyJwkKid);
 
 
         var didLogEntryWithoutProofAndSignature = new JsonArray();
@@ -87,7 +96,8 @@ public class DidLogUtil {
 
     private JsonObject createDidDoc(URI identifierRegistryUrl,
                                     List<JWK> authenticationKeys,
-                                    List<JWK> assertionMethodKeys) {
+                                    List<JWK> assertionMethodKeys,
+                                    boolean useAbsolutePublicKeyJwkKid) {
 
         if (isNull(authenticationKeys) || isNull(assertionMethodKeys)) {
             throw new IllegalArgumentException("At least one authentication key and one assertion method key must be provided");
@@ -111,7 +121,11 @@ public class DidLogUtil {
             for (var i = 0; i < authenticationKeys.size(); i++) {
                 var keyType = "auth-key-%02d".formatted(i + 1);
                 authentication.add(didTDW + "#" + keyType);
-                verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(didTDW, keyType, authenticationKeys.get(i)));
+                verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(
+                        didTDW,
+                        keyType,
+                        authenticationKeys.get(i),
+                        useAbsolutePublicKeyJwkKid));
             }
 
             didDoc.add("authentication", authentication);
@@ -124,7 +138,11 @@ public class DidLogUtil {
             for (var i = 0; i < assertionMethodKeys.size(); i++) {
                 var keyType = "assert-key-%02d".formatted(i + 1);
                 assertionMethod.add(didTDW + "#" + keyType);
-                verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(didTDW, keyType, assertionMethodKeys.get(i)));
+                verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(
+                        didTDW,
+                        keyType,
+                        assertionMethodKeys.get(i),
+                        useAbsolutePublicKeyJwkKid));
             }
             didDoc.add("assertionMethod", assertionMethod);
         }
@@ -149,15 +167,19 @@ public class DidLogUtil {
         return didTDW;
     }
 
-    private JsonObject buildVerificationMethodWithPublicKeyJwk(String didTDW, String keyType, JWK privateJwk) {
+    private JsonObject buildVerificationMethodWithPublicKeyJwk(String didTDW, String keyType, JWK privateJwk,
+                                                               boolean useAbsolutePublicKeyJwkKid) {
 
+        final String verificationMethodId = didTDW + "#" + keyType;
         String publicKeyJwk = privateJwk.toPublicJWK().toJSONString();
+        JsonObject publicKeyJwkObject = JsonParser.parseString(publicKeyJwk).getAsJsonObject();
+        publicKeyJwkObject.addProperty("kid", useAbsolutePublicKeyJwkKid ? verificationMethodId : keyType);
 
         JsonObject verificationMethodObj = new JsonObject();
-        verificationMethodObj.addProperty("id", didTDW + "#" + keyType);
+        verificationMethodObj.addProperty("id", verificationMethodId);
         verificationMethodObj.addProperty("type", "JsonWebKey2020");
         verificationMethodObj.addProperty("controller", didTDW);
-        verificationMethodObj.add("publicKeyJwk", JsonParser.parseString(publicKeyJwk).getAsJsonObject());
+        verificationMethodObj.add("publicKeyJwk", publicKeyJwkObject);
 
         return verificationMethodObj;
     }

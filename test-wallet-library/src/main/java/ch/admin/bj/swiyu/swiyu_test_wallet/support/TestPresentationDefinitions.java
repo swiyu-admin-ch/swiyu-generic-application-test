@@ -1,12 +1,15 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.support;
 
-import ch.admin.bj.swiyu.gen.verifier.model.*;
+import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
+import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 
 import java.util.List;
-import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.*;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.es256Format;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.IMAGE_MANDATORY_CLAIM_KEY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.NUMBER_MANDATORY_CLAIM_KEY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.TEXT_MANDATORY_CLAIM_KEY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.dcqlClaim;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.defaultDcqlQuery;
 
 public final class TestPresentationDefinitions {
 
@@ -14,52 +17,14 @@ public final class TestPresentationDefinitions {
 
     }
 
-    public static PresentationDefinition universityPresentation() {
-        final Constraint universityConstraint = new Constraint()
-                .addFieldsItem(new Field().addPathItem(String.format("$.%s", TEXT_MANDATORY_CLAIM_KEY)))
-                .addFieldsItem(new Field().addPathItem(String.format("$.%s", NUMBER_MANDATORY_CLAIM_KEY)))
-                .addFieldsItem(new Field().addPathItem(String.format("$.%s", IMAGE_MANDATORY_CLAIM_KEY)));
-
-        final InputDescriptor universityInputDescriptor = new InputDescriptor()
-                .id(UUID.randomUUID().toString())
-                .name("University Credential")
-                .putFormatItem("vc+sd-jwt", es256Format())
-                .constraints(universityConstraint);
-
-        return new PresentationDefinition()
-                .id(UUID.randomUUID().toString())
-                .name("University Presentation")
-                .purpose("Present university degree information")
-                .format(null)
-                .addInputDescriptorsItem(universityInputDescriptor);
-    }
-
     public static DcqlQueryDto universityPresentationDCQL(final boolean holderBinding) {
-        final DcqlCredentialMetaDto meta = new DcqlCredentialMetaDto()
-                .vctValues(List.of("http://default-issuer-url.admin.ch/oid4vci/vct/my-vct-v01"))
-                .typeValues(null);
+        final List<DcqlClaimDto> claims = List.of(
+                dcqlClaim(TEXT_MANDATORY_CLAIM_KEY),
+                dcqlClaim(NUMBER_MANDATORY_CLAIM_KEY),
+                dcqlClaim(IMAGE_MANDATORY_CLAIM_KEY)
+        );
 
-        final DcqlCredentialDto credential = new DcqlCredentialDto()
-                .id("VerifiableCredential")
-                .format("vc+sd-jwt")
-                .meta(meta)
-                .claims(List.of(
-                        new DcqlClaimDto()
-                                .id(null)
-                                .path(List.of(TEXT_MANDATORY_CLAIM_KEY))
-                                .values(null),
-                        new DcqlClaimDto()
-                                .id(null)
-                                .path(List.of(NUMBER_MANDATORY_CLAIM_KEY))
-                                .values(null),
-                        new DcqlClaimDto()
-                                .id(null)
-                                .path(List.of(IMAGE_MANDATORY_CLAIM_KEY))
-                                .values(null)
-                ))
-                .claimSets(null)
-                .requireCryptographicHolderBinding(holderBinding);
-        return new DcqlQueryDto().credentials(List.of(credential));
+        return defaultDcqlQuery(claims, holderBinding);
     }
 
     public static DcqlQueryDto universityPresentationDCQL() {
