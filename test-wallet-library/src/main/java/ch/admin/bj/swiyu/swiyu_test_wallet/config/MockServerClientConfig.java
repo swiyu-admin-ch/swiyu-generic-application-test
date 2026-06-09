@@ -270,7 +270,7 @@ public class MockServerClientConfig {
                 .respond(httpRequest -> {
                     try {
                         String path = httpRequest.getPath().getValue();
-                        String vct = httpRequest.getFirstQueryStringParameter("vcSchemaId");
+                        String vct = firstPresentQueryParameter(httpRequest, "vcSchemaId", "schemaId", "vct");
 
                         if (path.startsWith("/trusted/")) {
                             String trustStatement = generateTrustStatement(vct, issuerConfig, trustConfig);
@@ -288,6 +288,16 @@ public class MockServerClientConfig {
                         return response().withStatusCode(500);
                     }
                 });
+    }
+
+    private String firstPresentQueryParameter(HttpRequest httpRequest, String... names) {
+        for (String name : names) {
+            String value = httpRequest.getFirstQueryStringParameter(name);
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private String extractDidIdFromPath(String path) {
@@ -316,6 +326,7 @@ public class MockServerClientConfig {
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .issuer(trustConfig.getTrustDid())
                 .subject(issuerDid)
+                .claim("vct", "TrustStatementIssuanceV1")
                 .claim("canIssue", vct)
                 .issueTime(new Date())
                 .expirationTime(new Date(System.currentTimeMillis() + 3600_000))

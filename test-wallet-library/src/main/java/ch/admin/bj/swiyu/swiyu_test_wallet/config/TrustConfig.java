@@ -32,7 +32,7 @@ public class TrustConfig {
         var assertJwk = createJWKFromKeyPair(assertKeys);
         var authJwk = createJWKFromKeyPair(authKeys);
 
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl, true);
+        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
         var trustDid = getDidFromDidLog(didLog);
 
         return TrustConfig.builder()
