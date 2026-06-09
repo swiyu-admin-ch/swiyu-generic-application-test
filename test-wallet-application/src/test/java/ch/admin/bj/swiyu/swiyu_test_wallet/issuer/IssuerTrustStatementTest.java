@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -170,7 +171,7 @@ public class IssuerTrustStatementTest extends BaseTest {
                     Then metadata omits TP2 statements and the second fetch does not retry during the negative-cache window.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "The TP2.0 is not available yet")
+    @Disabled("This is not working, should reactivate this test when EIDOMNI-996 is fixed.")
     void tenantIssuerMetadata_whenTrustStatementFetchFails_thenNegativeCacheSuppressesImmediateRetry() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 

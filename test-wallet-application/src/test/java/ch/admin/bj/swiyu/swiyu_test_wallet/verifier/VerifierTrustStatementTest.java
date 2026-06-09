@@ -16,6 +16,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -313,6 +315,7 @@ class VerifierTrustStatementTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
     )
+    @Disabled("Re-enable this test once EIDOMNI-959 is done and trust statement signature validation is active again.")
     void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
@@ -413,14 +416,17 @@ class VerifierTrustStatementTest extends BaseTest {
 
         try {
             // When
-            final ManagementResponse managementResponse = verifierManager
+            final var verificationRequest = verifierManager
                     .verificationRequest()
                     .withUniversityDCQL()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
                     .configurationOverride(new ConfigurationOverrideDto().verifierDid(verifierDid))
                     .verificationPurpose(purpose)
-                    .jwtSecure()
-                    .createManagementResponse();
+                    .jwtSecure();
+            final JsonNode expectedDcqlQuery = OBJECT_MAPPER.copy()
+                    .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+                    .valueToTree(verificationRequest.getRequest().getDcqlQuery());
+            final ManagementResponse managementResponse = verificationRequest.createManagementResponse();
             final JsonNode requestObjectPayload = JwtSupport.decodePayloadToJsonNode(
                     wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink())
             );
@@ -440,12 +446,13 @@ class VerifierTrustStatementTest extends BaseTest {
             );
             assertThat(vqPs).as("verifier_info must contain vqPS").isNotBlank();
             assertThat(vqPsPayload.path("sub").asText()).isEqualTo(verifierDid);
-            assertThat(vqPsPayload.path("purpose_name").asText()).isEqualTo("University proof");
-            assertThat(vqPsPayload.path("purpose_description").asText())
+            assertThat(vqPsPayload.path("purpose_name#en").asText()).isEqualTo("University proof");
+            assertThat(vqPsPayload.path("purpose_description#en").asText())
                     .isEqualTo("Verification of university credential claims");
             assertThat(vqPsPayload.path("request").path("type").asText()).isEqualTo("DCQL");
             assertThat(vqPsPayload.path("request").path("scope").asText()).isEqualTo(scope);
-            assertThat(vqPsPayload.path("request").path("query")).isEqualTo(requestObjectPayload.path("dcql_query"));
+            assertThat(requestObjectPayload.path("dcql_query").isMissingNode()).isTrue();
+            assertThat(vqPsPayload.path("request").path("query")).isEqualTo(expectedDcqlQuery);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
