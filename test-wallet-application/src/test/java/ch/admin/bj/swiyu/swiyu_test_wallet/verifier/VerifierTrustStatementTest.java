@@ -491,11 +491,6 @@ class VerifierTrustStatementTest extends BaseTest {
                 .purposeDescription(Map.of("en", purposeDescription));
     }
 
-    private String swiyuDidVariant(String did) {
-        final int lastColon = did.lastIndexOf(':');
-        return did.substring(0, lastColon + 1) + UUID.randomUUID();
-    }
-
     private JsonNode verifierInfo(String requestObjectJwt) {
         return JwtSupport.decodePayloadToJsonNode(requestObjectJwt).path("verifier_info");
     }

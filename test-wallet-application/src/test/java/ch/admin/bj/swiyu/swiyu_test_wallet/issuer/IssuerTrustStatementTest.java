@@ -33,7 +33,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
@@ -302,11 +301,6 @@ public class IssuerTrustStatementTest extends BaseTest {
         return new ConfigurationOverride()
                 .issuerDid(issuerDid)
                 .verificationMethod(issuerDid + "#assert-key-01");
-    }
-
-    private String swiyuDidVariant(String did) {
-        final int lastColon = did.lastIndexOf(':');
-        return did.substring(0, lastColon + 1) + UUID.randomUUID();
     }
 
     private CredentialWithDeeplinkResponse createCredentialOffer(ConfigurationOverride configurationOverride) {

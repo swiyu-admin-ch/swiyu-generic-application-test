@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -42,9 +43,15 @@ class Tp2MockServerContractTest extends BaseTest {
                     (TRUST_REGISTRY_CUSTOMER_KEY + ":" + TRUST_REGISTRY_CUSTOMER_SECRET)
                             .getBytes(StandardCharsets.UTF_8)
             );
-    private static final String PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
-
     @Test
+    @XrayTest(
+            key = "EIDOMNI-1014",
+            summary = "TP2 mock routes expose expected trust statement structures",
+            description = """
+                    This test validates that the TP2 mock registry endpoints expose the expected
+                    list and statement structures used by issuer and verifier E2E flows.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
     void tp2MockRoutes_whenRequested_thenExposeExpectedListAndStatementStructures() throws Exception {
         RestClient client = mockServerRestClient();
 
