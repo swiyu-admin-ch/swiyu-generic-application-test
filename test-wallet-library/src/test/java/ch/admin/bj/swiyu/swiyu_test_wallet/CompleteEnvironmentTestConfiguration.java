@@ -57,7 +57,6 @@ public class CompleteEnvironmentTestConfiguration {
     public GenericContainer<?> softHsmContainer(
             Network network,
             String tokenDirPath,
-            HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
             HSMConfig hsmConfig,
             ContainerLogConfig containerLogConfig) {
 
@@ -150,7 +149,6 @@ public class CompleteEnvironmentTestConfiguration {
                                                  IssuerConfig config,
                                                  VerifierImageConfig verifierImageConfig,
                                                  GenericContainer<?> softHsmContainer,
-                                                 HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
                                                  String tokenDirPath,
                                                  ContainerLogConfig containerLogConfig) {
 
