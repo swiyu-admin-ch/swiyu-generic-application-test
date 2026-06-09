@@ -98,7 +98,6 @@ public class CompleteEnvironmentTestConfiguration {
                                                IssuerImageConfig issuerImageConfig,
                                                ContainerLogConfig containerLogConfig,
                                                GenericContainer<?> softHsmContainer,
-                                               HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
                                                String tokenDirPath,
                                                MockAttestationAuthority mockAttestationAuthority) {
 
