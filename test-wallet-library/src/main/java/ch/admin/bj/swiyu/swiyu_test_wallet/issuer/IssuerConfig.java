@@ -40,8 +40,8 @@ public class IssuerConfig {
         KeyPair authKeys;
 
         if (enableHsm && hsmTokenDir != null) {
-            assertKeys = HsmExportedKeyLoader.loadHsmExportedKeyPair(hsmTokenDir, "01");
-            authKeys = HsmExportedKeyLoader.loadHsmExportedKeyPair(hsmTokenDir, "02");
+            assertKeys = HsmExportedKeyLoader.loadHsmResourceKeyPair("01");
+            authKeys = HsmExportedKeyLoader.loadHsmResourceKeyPair("02");
         } else {
             assertKeys = generateEC256KeyPair();
             authKeys = generateEC256KeyPair();

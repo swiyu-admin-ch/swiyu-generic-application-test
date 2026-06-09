@@ -33,6 +33,31 @@ public class HsmExportedKeyLoader {
     }
 
     /**
+     * Load public key from X.509 certificate classpath resource.
+     */
+    public static PublicKey loadPublicKeyFromResourceCertificate(final String keyId) {
+        try {
+            final ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
+            final String relativeResourcePath = String.format("softhsm/keys/%s-cert.pem", keyId);
+
+            try (final InputStream inputStream = classLoader.getResourceAsStream(relativeResourcePath)) {
+                if (inputStream == null) {
+                    log.error("Certificate file not found in resources: {}", relativeResourcePath);
+                    return null;
+                }
+
+                final String pemCert = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+                final JWK jwk = JWK.parseFromPEMEncodedX509Cert(pemCert);
+
+                return jwk.toECKey().toPublicKey();
+            }
+        } catch (Exception e) {
+            log.error("Failed to load public key from certificate resources", e);
+            return null;
+        }
+    }
+
+    /**
      * Load private key from classpath resource (resources/softhsm/keys/key.pk8)
      */
     public static PrivateKey loadPrivateKeyFromResources(final String keyId) {
@@ -98,5 +123,20 @@ public class HsmExportedKeyLoader {
             return null;
         }
     }
-}
 
+    public static KeyPair loadHsmResourceKeyPair(final String keyId) {
+        final PublicKey pubKey = loadPublicKeyFromResourceCertificate(keyId);
+        if (pubKey == null) {
+            log.error("Could not load public key from resources for: {}", keyId);
+            return null;
+        }
+
+        final PrivateKey privKey = loadPrivateKeyFromResources(keyId);
+        if (privKey == null) {
+            log.warn("Could not load private key from resources, returning public key only");
+            return new KeyPair(pubKey, null);
+        }
+
+        return new KeyPair(pubKey, privKey);
+    }
+}
