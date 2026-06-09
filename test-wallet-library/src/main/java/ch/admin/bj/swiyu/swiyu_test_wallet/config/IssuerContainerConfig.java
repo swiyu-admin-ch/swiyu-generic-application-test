@@ -90,7 +90,6 @@ public class IssuerContainerConfig {
             }
 
             if (issuerImageConfig.isEnableHsm()) {
-                
                 containerBuilder
                         .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)
                         .withEnv("HSM_USER", issuerImageConfig.getHsmUser())
@@ -115,7 +114,7 @@ public class IssuerContainerConfig {
                         )
                 );
 
-                containerBuilder.withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE);
+                HSMContainerConfig.withTokenVolume(containerBuilder, tokenDirPath);
             } else {
                 containerBuilder
                     .withEnv("STATUS_LIST_KEY", config.getIssuerAuthKeyPemString())

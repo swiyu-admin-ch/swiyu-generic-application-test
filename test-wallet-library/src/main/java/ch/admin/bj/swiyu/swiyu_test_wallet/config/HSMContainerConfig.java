@@ -1,17 +1,17 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import com.github.dockerjava.api.model.AccessMode;
+import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.Volume;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Arrays;
 import java.time.Duration;
 
 
@@ -23,7 +23,7 @@ public class HSMContainerConfig {
     public static GenericContainer<?> createSoftHsmContainer(
             final Network network,
             final HSMConfig hsmConfig,
-            final String tokenDirPath,
+            final String tokenVolumeName,
             final ContainerLogConfig containerLogConfig) {
 
         GenericContainer<?> container = new GenericContainer<>(IMAGE_NAME)
@@ -63,8 +63,9 @@ public class HSMContainerConfig {
             container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("SoftHsmContainer")));
         }
 
+        withTokenVolume(container, tokenVolumeName);
+
         container
-                .withFileSystemBind(tokenDirPath, HSMConfig.TOKEN_DIR, BindMode.READ_WRITE)
                 .withCommand("/bin/sh", "-c", "bash " + HSMConfig.INIT_SCRIPT + " && tail -f /dev/null")
                 .waitingFor(
                         Wait.forLogMessage(".*HSM container initialised successfully.*", 1)
@@ -72,5 +73,21 @@ public class HSMContainerConfig {
                 );
 
         return container;
+    }
+
+    public static void withTokenVolume(final GenericContainer<?> container, final String tokenVolumeName) {
+        container.withCreateContainerCmdModifier(cmd -> {
+            final Bind tokenBind = new Bind(tokenVolumeName, new Volume(HSMConfig.TOKEN_DIR), AccessMode.rw);
+            final Bind[] existingBinds = cmd.getHostConfig().getBinds();
+
+            if (existingBinds == null || existingBinds.length == 0) {
+                cmd.getHostConfig().withBinds(tokenBind);
+                return;
+            }
+
+            final Bind[] binds = Arrays.copyOf(existingBinds, existingBinds.length + 1);
+            binds[existingBinds.length] = tokenBind;
+            cmd.getHostConfig().withBinds(binds);
+        });
     }
 }

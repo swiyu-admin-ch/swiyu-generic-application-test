@@ -2,20 +2,17 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.FileSupport;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.createPostgreSQLContainer;
@@ -23,34 +20,17 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
 @EnableConfigurationProperties({ ContainerLogConfig.class, IssuerImageConfig.class, VerifierImageConfig.class })
+@Slf4j
 public class CompleteEnvironmentTestConfiguration {
 
     @Bean
     public String tokenDirPath() {
-        try {
-            String path = System.getProperty("user.dir") + "/target/softhsm-tokens";
+        return "swiyu-softhsm-" + UUID.randomUUID();
+    }
 
-            Path tokenPath = Paths.get(path);
-
-            FileSupport.deleteDirectory(tokenPath);
-            Files.createDirectories(tokenPath);
-
-            try {
-                Files.setPosixFilePermissions(
-                        tokenPath,
-                        PosixFilePermissions.fromString("rwxrwxrwx")
-                );
-            } catch (UnsupportedOperationException e) {
-                java.io.File file = tokenPath.toFile();
-                file.setReadable(true, false);
-                file.setWritable(true, false);
-                file.setExecutable(true, false);
-            }
-
-            return path;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create token directory", e);
-        }
+    @Bean
+    public HsmTokenVolumeCleanup hsmTokenVolumeCleanup(String tokenDirPath) {
+        return new HsmTokenVolumeCleanup(tokenDirPath);
     }
 
     @Bean
@@ -77,6 +57,7 @@ public class CompleteEnvironmentTestConfiguration {
     public GenericContainer<?> softHsmContainer(
             Network network,
             String tokenDirPath,
+            HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
             HSMConfig hsmConfig,
             ContainerLogConfig containerLogConfig) {
 
@@ -117,6 +98,7 @@ public class CompleteEnvironmentTestConfiguration {
                                                IssuerImageConfig issuerImageConfig,
                                                ContainerLogConfig containerLogConfig,
                                                GenericContainer<?> softHsmContainer,
+                                               HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
                                                String tokenDirPath,
                                                MockAttestationAuthority mockAttestationAuthority) {
 
@@ -169,6 +151,7 @@ public class CompleteEnvironmentTestConfiguration {
                                                  IssuerConfig config,
                                                  VerifierImageConfig verifierImageConfig,
                                                  GenericContainer<?> softHsmContainer,
+                                                 HsmTokenVolumeCleanup hsmTokenVolumeCleanup,
                                                  String tokenDirPath,
                                                  ContainerLogConfig containerLogConfig) {
 
@@ -188,5 +171,23 @@ public class CompleteEnvironmentTestConfiguration {
         container.start();
 
         return container;
+    }
+
+    public static final class HsmTokenVolumeCleanup implements DisposableBean {
+
+        private final String tokenVolumeName;
+
+        private HsmTokenVolumeCleanup(String tokenVolumeName) {
+            this.tokenVolumeName = tokenVolumeName;
+        }
+
+        @Override
+        public void destroy() {
+            try {
+                DockerClientFactory.instance().client().removeVolumeCmd(tokenVolumeName).exec();
+            } catch (Exception e) {
+                log.warn("Could not remove SoftHSM token volume {}", tokenVolumeName, e);
+            }
+        }
     }
 }
