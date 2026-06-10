@@ -8,6 +8,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
@@ -143,6 +144,47 @@ class SignedMetadataTest extends BaseTest {
 
     @Test
     @XrayTest(
+            key = "EIDOMNI-1022",
+            summary = "Issuer returns signed global metadata without tenant id",
+            description = """
+                    This test validates that a wallet can request signed issuer metadata from the global
+                    OID4VCI issuer metadata endpoint without a tenant id by sending Accept: application/jwt.
+                    The issuer returns a signed JWT whose subject and credential_issuer identify the global
+                    issuer URL instead of a tenant-scoped issuer URL.
+                    """
+    )
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.UCI_M1A)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
+            reason = "Global signed issuer metadata is introduced by EIDOMNI-1011 and is not available on these image tags yet."
+    )
+    void signedMetadata_whenGlobalIssuerMetadataRequestedWithJwtAcceptHeader_thenReturnsSignedMetadataWithoutTenantId()
+            throws Exception {
+        final URI metadataUri = createGlobalWellKnownUri("/.well-known/openid-credential-issuer");
+        final ResponseEntity<String> response = performMetadataRequest(metadataUri, "application/jwt");
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getHeaders().getContentType()).satisfies(contentType ->
+                assertThat(contentType).isNotNull().matches(MediaType.parseMediaType("application/jwt")::includes));
+
+        final SignedJWT signedMetadata = SignedJWT.parse(response.getBody());
+        final JsonNode metadataPayload = OBJECT_MAPPER.readTree(signedMetadata.getPayload().toString());
+
+        assertThat(signedMetadata.getHeader().getType().getType()).isEqualTo("openidvci-issuer-metadata+jwt");
+        assertThat(signedMetadata.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
+        assertThat(metadataPayload.path("iss").asText()).isEqualTo(issuerConfig.getIssuerDid());
+        assertThat(metadataPayload.path("sub").asText()).isEqualTo(TestConstants.ISSUER_URL);
+        assertThat(metadataPayload.path("credential_issuer").asText()).isEqualTo(TestConstants.ISSUER_URL);
+        assertThat(metadataPayload.path("sub").asText()).doesNotMatch(".*/[0-9a-f]{8}-[0-9a-f]{4}-"
+                + "[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+        assertThat(metadataPayload.path("iat").asLong()).isPositive();
+        assertThat(metadataPayload.path("credential_endpoint").asText()).isNotBlank();
+    }
+
+    @Test
+    @XrayTest(
             key = "EIDOMNI-740",
             summary = "Validate retrieval of unsigned issuer metadata with tenantId (happy path)",
             description = """
@@ -263,6 +305,14 @@ class SignedMetadataTest extends BaseTest {
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
         final SwiyuDeeplink deeplink = new SwiyuDeeplink(response.getOfferDeeplink());
         final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(URI.create(deeplink.getCredentialIssuer()));
+        return UriComponentsBuilder.fromUri(issuerUri)
+                .path(suffix)
+                .build()
+                .toUri();
+    }
+
+    private URI createGlobalWellKnownUri(String suffix) {
+        final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(URI.create(TestConstants.ISSUER_URL));
         return UriComponentsBuilder.fromUri(issuerUri)
                 .path(suffix)
                 .build()
