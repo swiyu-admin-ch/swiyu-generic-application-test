@@ -21,15 +21,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
 import java.security.PrivateKey;
 import java.security.interfaces.ECPrivateKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonString;
+import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Service
 @Getter
@@ -150,6 +151,10 @@ public class BusinessIssuer {
     }
 
     public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, Map<String, Object> body) {
+        return updateCredentialForDeferredFlowRequestCreation(id, toJsonString(body));
+    }
+
+    public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, String body) {
         return credentialApi.updateCredentialForDeferredFlow(id, body);
     }
 
