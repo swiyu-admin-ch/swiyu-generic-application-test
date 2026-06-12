@@ -57,7 +57,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         // When
         final TrustAnchor anchor = new TrustAnchor()
                 .did(trustConfig.getTrustDid())
-                .trustRegistryUri(String.format("http://%s/trusted", MockServerClientConfig.MOCKSERVER_HOST));
+                .trustRegistryUri(String.format("https://%s/trusted", MockServerClientConfig.MOCKSERVER_HOST));
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .trustAnchor(anchor)
                 .withDCQL()
@@ -93,7 +93,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         // When
         final TrustAnchor anchor = new TrustAnchor()
                 .did(trustConfig.getTrustDid())
-                .trustRegistryUri(String.format("http://%s/untrusted", MockServerClientConfig.MOCKSERVER_HOST));
+                .trustRegistryUri(String.format("https://%s/untrusted", MockServerClientConfig.MOCKSERVER_HOST));
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .trustAnchor(anchor)
                 .withDCQL()

@@ -3,10 +3,13 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
@@ -29,8 +32,13 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public HsmTokenVolumeCleanup hsmTokenVolumeCleanup(String tokenDirPath) {
-        return new HsmTokenVolumeCleanup(tokenDirPath);
+    public HsmTokenVolumeCleanup hsmTokenVolumeCleanup(String tokenDirPath,
+                                                       IssuerImageConfig issuerImageConfig,
+                                                       VerifierImageConfig verifierImageConfig) {
+        return new HsmTokenVolumeCleanup(
+                tokenDirPath,
+                issuerImageConfig.isEnableHsm() || verifierImageConfig.isEnableHsm()
+        );
     }
 
     @Bean
@@ -54,6 +62,7 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
+    @Lazy
     public GenericContainer<?> softHsmContainer(
             Network network,
             String tokenDirPath,
@@ -68,7 +77,7 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath, GenericContainer<?> softHsmContainer) {
+    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath) {
         UUID id = UUID.randomUUID();
         return EnvironmentConfig.createIssuerConfig(
                 toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
@@ -78,7 +87,7 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
-    public TrustConfig trustConfig(GenericContainer<?> softHsmContainer) {
+    public TrustConfig trustConfig() {
         UUID id = UUID.randomUUID();
         return EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
     }
@@ -101,7 +110,7 @@ public class CompleteEnvironmentTestConfiguration {
                                                MockServerContainer mockServer,
                                                IssuerImageConfig issuerImageConfig,
                                                ContainerLogConfig containerLogConfig,
-                                               GenericContainer<?> softHsmContainer,
+                                               @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
                                                String tokenDirPath,
                                                MockAttestationAuthority mockAttestationAuthority) {
 
@@ -118,7 +127,10 @@ public class CompleteEnvironmentTestConfiguration {
                 tokenDirPath,
                 mockAttestationAuthority);
 
-        container.dependsOn(softHsmContainer);
+        if (issuerImageConfig.isEnableHsm()) {
+            container.dependsOn(softHsmContainer.getObject());
+        }
+
         container.start();
 
         return container;
@@ -154,7 +166,7 @@ public class CompleteEnvironmentTestConfiguration {
                                                  PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
                                                  VerifierConfig config,
                                                  VerifierImageConfig verifierImageConfig,
-                                                 GenericContainer<?> softHsmContainer,
+                                                 @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
                                                  String tokenDirPath,
                                                  ContainerLogConfig containerLogConfig) {
 
@@ -170,7 +182,10 @@ public class CompleteEnvironmentTestConfiguration {
                 containerLogConfig
         );
 
-        container.dependsOn(softHsmContainer);
+        if (verifierImageConfig.isEnableHsm()) {
+            container.dependsOn(softHsmContainer.getObject());
+        }
+
         container.start();
 
         return container;
@@ -179,13 +194,19 @@ public class CompleteEnvironmentTestConfiguration {
     public static final class HsmTokenVolumeCleanup implements DisposableBean {
 
         private final String tokenVolumeName;
+        private final boolean enabled;
 
-        private HsmTokenVolumeCleanup(String tokenVolumeName) {
+        private HsmTokenVolumeCleanup(String tokenVolumeName, boolean enabled) {
             this.tokenVolumeName = tokenVolumeName;
+            this.enabled = enabled;
         }
 
         @Override
         public void destroy() {
+            if (!enabled) {
+                return;
+            }
+
             try {
                 DockerClientFactory.instance().client().removeVolumeCmd(tokenVolumeName).exec();
             } catch (Exception e) {
