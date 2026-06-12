@@ -25,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -284,7 +285,20 @@ public class SubjectClaimsTest extends BaseTest {
                                 .claim("portrait")
                                 .arrayAll("favorite_numbers")
                                 .build()
+                ),
+
+                Arguments.of(
+                        "Selection of number in an array",
+                        CredentialClaimsFixtures.createBaseProfile(),
+                        VerificationClaimsBuilder.claims()
+                                .dcqlClaimDto(new DcqlClaimDto()
+                                        .path(Arrays.asList("favorite_numbers", 2))
+                                        .id(null)
+                                        .values(List.of(42)))
+                                .build()
                 )
+
+
         );
     }
 

@@ -86,6 +86,11 @@ public class VerificationClaimsBuilder {
         return this;
     }
 
+    public VerificationClaimsBuilder dcqlClaimDto(final DcqlClaimDto dcqlClaimDto) {
+        claims.add(dcqlClaimDto);
+        return this;
+    }
+
     public List<DcqlClaimDto> build() {
         return claims;
     }
