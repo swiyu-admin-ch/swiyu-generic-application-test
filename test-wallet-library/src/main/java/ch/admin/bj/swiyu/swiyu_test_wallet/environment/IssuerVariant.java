@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 public enum IssuerVariant {
     DEFAULT("default", false, null, null, null, null),
     STRICT("strict", false, true, false, true, false),
+    SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, null, null, null),

@@ -4,6 +4,8 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialClaimsFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.spy;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@UseIssuers({IssuerVariant.DEFAULT, IssuerVariant.SIGNED_METADATA})
 class IssuerTest extends BaseTest {
 
     private static final String SUPPORTED_METADATA_ID = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
@@ -255,49 +258,55 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.UCI_M1)
     @Tag(ReportingTags.EDGE_CASE)
     void createCredentialOffer_whenVctMetadataUriIsOverridden_thenDefaultOfferMetadataIsRestored() {
-        // Given
-        final CredentialWithDeeplinkResponse firstDefaultOffer =
-                issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
-        final CredentialConfiguration firstDefaultConfiguration =
-                getCredentialConfigurationFromIssuerMetadata(firstDefaultOffer);
+        try {
+            useIssuer(issuer(IssuerVariant.SIGNED_METADATA));
 
-        final CredentialOfferMetadataDto overrideMetadata = new CredentialOfferMetadataDto()
-                .vctMetadataUri(OVERRIDE_VCT_METADATA_URI)
-                .vctMetadataUriHashIntegrity(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
+            // Given
+            final CredentialWithDeeplinkResponse firstDefaultOffer =
+                    issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
+            final CredentialConfiguration firstDefaultConfiguration =
+                    getCredentialConfigurationFromIssuerMetadata(firstDefaultOffer);
 
-        // When
-        final CredentialWithDeeplinkResponse overriddenOffer = issuerManager.createCredentialOffer(
-                SUPPORTED_METADATA_ID,
-                CredentialOffer.defaultSubjectData(),
-                overrideMetadata);
-        final CredentialConfiguration overriddenConfiguration =
-                getCredentialConfigurationFromIssuerMetadata(overriddenOffer);
+            final CredentialOfferMetadataDto overrideMetadata = new CredentialOfferMetadataDto()
+                    .vctMetadataUri(OVERRIDE_VCT_METADATA_URI)
+                    .vctMetadataUriHashIntegrity(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
 
-        final CredentialWithDeeplinkResponse secondDefaultOffer =
-                issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
-        final CredentialConfiguration secondDefaultConfiguration =
-                getCredentialConfigurationFromIssuerMetadata(secondDefaultOffer);
+            // When
+            final CredentialWithDeeplinkResponse overriddenOffer = issuerManager.createCredentialOffer(
+                    SUPPORTED_METADATA_ID,
+                    CredentialOffer.defaultSubjectData(),
+                    overrideMetadata);
+            final CredentialConfiguration overriddenConfiguration =
+                    getCredentialConfigurationFromIssuerMetadata(overriddenOffer);
 
-        // Then
-        assertThat(overriddenConfiguration.getVctMetadataUri())
-                .isEqualTo(OVERRIDE_VCT_METADATA_URI)
-                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUri());
-        assertThat(overriddenConfiguration.getVctMetadataUriHashIntegrity())
-                .isEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY)
-                .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUriHashIntegrity());
+            final CredentialWithDeeplinkResponse secondDefaultOffer =
+                    issuerManager.createCredentialOffer(SUPPORTED_METADATA_ID);
+            final CredentialConfiguration secondDefaultConfiguration =
+                    getCredentialConfigurationFromIssuerMetadata(secondDefaultOffer);
 
-        assertThat(overriddenConfiguration)
-                .usingRecursiveComparison()
-                .ignoringFields("vctMetadataUri", "vctMetadataUriHashIntegrity")
-                .isEqualTo(firstDefaultConfiguration);
+            // Then
+            assertThat(overriddenConfiguration.getVctMetadataUri())
+                    .isEqualTo(OVERRIDE_VCT_METADATA_URI)
+                    .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUri());
+            assertThat(overriddenConfiguration.getVctMetadataUriHashIntegrity())
+                    .isEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY)
+                    .isNotEqualTo(firstDefaultConfiguration.getVctMetadataUriHashIntegrity());
 
-        assertThat(secondDefaultConfiguration)
-                .usingRecursiveComparison()
-                .isEqualTo(firstDefaultConfiguration);
-        assertThat(secondDefaultConfiguration.getVctMetadataUri())
-                .isNotEqualTo(OVERRIDE_VCT_METADATA_URI);
-        assertThat(secondDefaultConfiguration.getVctMetadataUriHashIntegrity())
-                .isNotEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
+            assertThat(overriddenConfiguration)
+                    .usingRecursiveComparison()
+                    .ignoringFields("vctMetadataUri", "vctMetadataUriHashIntegrity")
+                    .isEqualTo(firstDefaultConfiguration);
+
+            assertThat(secondDefaultConfiguration)
+                    .usingRecursiveComparison()
+                    .isEqualTo(firstDefaultConfiguration);
+            assertThat(secondDefaultConfiguration.getVctMetadataUri())
+                    .isNotEqualTo(OVERRIDE_VCT_METADATA_URI);
+            assertThat(secondDefaultConfiguration.getVctMetadataUriHashIntegrity())
+                    .isNotEqualTo(OVERRIDE_VCT_METADATA_URI_INTEGRITY);
+        } finally {
+            useIssuer(issuer(IssuerVariant.DEFAULT));
+        }
     }
 
     private CredentialConfiguration getCredentialConfigurationFromIssuerMetadata(final CredentialWithDeeplinkResponse offer) {
