@@ -8,6 +8,10 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -19,7 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Map;
@@ -32,7 +35,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@ActiveProfiles("management-keycloak")
+@UseIssuers(IssuerVariant.MANAGEMENT_KEYCLOAK)
+@UseVerifiers(VerifierVariant.MANAGEMENT_KEYCLOAK)
 class KeycloakManagementAuthTest extends BaseTest {
 
     private static final String INVALID_BEARER_TOKEN =

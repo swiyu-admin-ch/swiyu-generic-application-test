@@ -32,8 +32,8 @@ public class IssuerContainerConfig {
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority) {
-        try (GenericContainer<?> containerBuilder = new GenericContainer<>(imageName)) {
-            containerBuilder.withExposedPorts(8080)
+        GenericContainer<?> containerBuilder = new GenericContainer<>(imageName);
+        containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
                     .withEnv("TOKEN_TTL", "600")
                     .withEnv("OPENID_CONFIG_FILE", "classpath:example_openid.json")
@@ -57,7 +57,8 @@ public class IssuerContainerConfig {
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
                     .withEnv("RENEWAL_FLOW_ENABLED", "true")
-                    .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT", config.getMockServerUri() + "/renewal")
+                    .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT",
+                            config.getMockServerUri() + "/renewal?issuerDid=" + config.getIssuerDid())
                     .withEnv("APPLICATION_OVERLAYSCAPTUREARCHITECTUREMETADATAFILES_EXAMPLEOCA", "classpath:example_oca.json")
                     .withEnv("APPLICATION_JSONSCHEMAMETADATAFILES_JSONSCHEMA", "classpath:example_json_schema.json")
                     .withEnv("POSTGRES_JDBC", DBContainerConfig.getJdbcUrl(dbContainer, issuerImageConfig.getDbSchema()))
@@ -143,7 +144,6 @@ public class IssuerContainerConfig {
                     .withEnv("SDJWT_KEY", config.getIssuerAssertKeyPemString());
             }
 
-            return containerBuilder;
-        }
+        return containerBuilder;
     }
 }

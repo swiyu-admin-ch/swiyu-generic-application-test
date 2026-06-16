@@ -1,4 +1,0 @@
-application:
-  verifier:
-    surname: "hsm"
-    enable-hsm: "${hsm:false}"

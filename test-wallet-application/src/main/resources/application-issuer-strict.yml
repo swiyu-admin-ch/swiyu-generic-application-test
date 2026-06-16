@@ -1,6 +1,0 @@
-application:
-  issuer:
-    surname: "strict"
-    enforce-dpop: true
-    enable-jwt-auth: true
-    signed-metadata: false

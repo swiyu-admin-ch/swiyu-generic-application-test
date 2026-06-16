@@ -6,6 +6,8 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
@@ -56,8 +58,8 @@ public class Wallet {
     public static final String DPOP = "DPoP";
 
     private final RestClient restClient;
-    private final ServiceLocationContext issuerContext;
-    private final ServiceLocationContext verifierContext;
+    private ServiceLocationContext issuerContext;
+    private ServiceLocationContext verifierContext;
 
     private boolean useEncryption = false;
     private boolean useDPoP = false;
@@ -80,6 +82,28 @@ public class Wallet {
         this(restClient, issuerContext, verifierContext);
         this.useEncryption = useEncryption;
         this.generateDPoPKey();
+    }
+
+    public Wallet useIssuer(final IssuerHandle issuer) {
+        return useIssuer(issuer.serviceLocation());
+    }
+
+    public Wallet useIssuer(final ServiceLocationContext issuerContext) {
+        this.issuerContext = issuerContext;
+        return this;
+    }
+
+    public Wallet useVerifier(final VerifierHandle verifier) {
+        return useVerifier(verifier.serviceLocation());
+    }
+
+    public Wallet useVerifier(final ServiceLocationContext verifierContext) {
+        this.verifierContext = verifierContext;
+        return this;
+    }
+
+    public Wallet useComponents(final IssuerHandle issuer, final VerifierHandle verifier) {
+        return useIssuer(issuer).useVerifier(verifier);
     }
 
     public WalletBatchEntry createWalletBatchEntry() {

@@ -1,18 +1,14 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
 import org.testcontainers.DockerClientFactory;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -32,19 +28,33 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @Slf4j
 public class CompleteEnvironmentTestConfiguration {
 
+    private static final Object ENVIRONMENT_LOCK = new Object();
+
+    private static String sharedTokenDirPath;
+    private static Network sharedNetwork;
+    private static PostgreSQLContainer<?> sharedDbTestContainer;
+    private static TrustConfig sharedTrustConfig;
+    private static MockAttestationAuthority sharedMockAttestationAuthority;
+    private static MockServerClientConfig sharedMockServerClientConfig;
+    private static MockServerContainer sharedMockServer;
+    private static MockServerClient sharedMockServerClient;
+    private static SwiyuEnvironmentRegistry sharedEnvironmentRegistry;
+    private static boolean cleanupHookRegistered;
+
     @Bean
     public String tokenDirPath() {
-        return "swiyu-softhsm-" + UUID.randomUUID();
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedTokenDirPath == null) {
+                sharedTokenDirPath = "swiyu-softhsm-" + UUID.randomUUID();
+                registerCleanupHook(sharedTokenDirPath);
+            }
+            return sharedTokenDirPath;
+        }
     }
 
     @Bean
-    public HsmTokenVolumeCleanup hsmTokenVolumeCleanup(String tokenDirPath,
-                                                       IssuerImageConfig issuerImageConfig,
-                                                       VerifierImageConfig verifierImageConfig) {
-        return new HsmTokenVolumeCleanup(
-                tokenDirPath,
-                issuerImageConfig.isEnableHsm() || verifierImageConfig.isEnableHsm()
-        );
+    public HsmTokenVolumeCleanup hsmTokenVolumeCleanup(String tokenDirPath) {
+        return new HsmTokenVolumeCleanup(tokenDirPath, false);
     }
 
     @Bean
@@ -52,173 +62,144 @@ public class CompleteEnvironmentTestConfiguration {
         return new HSMConfig();
     }
 
-    @Bean
+    @Bean(destroyMethod = "")
     public Network network() {
-        return Network.newNetwork();
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedNetwork == null) {
+                sharedNetwork = Network.newNetwork();
+            }
+            return sharedNetwork;
+        }
     }
 
-    @Bean
-    @Lazy
-    @ConditionalOnProperty(prefix = "application.management-auth", name = "enabled", havingValue = "true")
-    public GenericContainer<?> keycloakContainer(Network network,
-                                                 ManagementAuthConfig managementAuthConfig) {
-        var container = KeycloakContainerConfig.createKeycloakContainer(network, managementAuthConfig);
-
-        container.start();
-
-        return container;
-    }
-
-    @Bean
+    @Bean(destroyMethod = "")
     public PostgreSQLContainer<?> dbTestContainer(Network network, ContainerLogConfig containerLogConfig) {
-
-        var container = createPostgreSQLContainer(network, containerLogConfig);
-
-        container.start();
-
-        return container;
-    }
-
-    @Bean
-    @Lazy
-    public GenericContainer<?> softHsmContainer(
-            Network network,
-            String tokenDirPath,
-            HSMConfig hsmConfig,
-            ContainerLogConfig containerLogConfig) {
-
-        var container = HSMContainerConfig.createSoftHsmContainer(network, hsmConfig, tokenDirPath, containerLogConfig);
-
-        container.start();
-
-        return container;
-    }
-
-    @Bean
-    public IssuerConfig issuerConfig(IssuerImageConfig issuerImageConfig, String tokenDirPath) {
-        UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createIssuerConfig(
-                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)),
-                issuerImageConfig.isEnableHsm(),
-                issuerImageConfig.isEnableHsm() ? tokenDirPath : null
-        );
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedDbTestContainer == null || !sharedDbTestContainer.isRunning()) {
+                sharedDbTestContainer = createPostgreSQLContainer(network, containerLogConfig);
+                sharedDbTestContainer.start();
+                sharedEnvironmentRegistry = null;
+            }
+            return sharedDbTestContainer;
+        }
     }
 
     @Bean
     public TrustConfig trustConfig() {
-        UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedTrustConfig == null) {
+                UUID id = UUID.randomUUID();
+                sharedTrustConfig = EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+            }
+            return sharedTrustConfig;
+        }
     }
 
-    @Bean
-    public VerifierConfig verifierConfig() {
-        UUID id = UUID.randomUUID();
-        return EnvironmentConfig.createVerifierConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
-    }
     @Bean
     public MockAttestationAuthority mockAttestationAuthority() {
-        UUID id = UUID.randomUUID();
-        return new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
-    }
-
-    @Bean
-    public GenericContainer<?> issuerContainer(Network network,
-                                               PostgreSQLContainer<?> dbContainer,
-                                               IssuerConfig config,
-                                               MockServerContainer mockServer,
-                                               IssuerImageConfig issuerImageConfig,
-                                               ContainerLogConfig containerLogConfig,
-                                               @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
-                                               @Qualifier("keycloakContainer") ObjectProvider<GenericContainer<?>> keycloakContainer,
-                                               String tokenDirPath,
-                                               MockAttestationAuthority mockAttestationAuthority,
-                                               ManagementAuthConfig managementAuthConfig) {
-
-        var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
-
-        var container = IssuerContainerConfig.createIssuerContainer(
-                network,
-                dbContainer,
-                config,
-                mockServer,
-                imageName,
-                issuerImageConfig,
-                managementAuthConfig,
-                containerLogConfig,
-                tokenDirPath,
-                mockAttestationAuthority);
-
-        if (issuerImageConfig.isEnableHsm()) {
-            container.dependsOn(softHsmContainer.getObject());
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedMockAttestationAuthority == null) {
+                UUID id = UUID.randomUUID();
+                sharedMockAttestationAuthority = new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+            }
+            return sharedMockAttestationAuthority;
         }
-        if (managementAuthConfig.isEnabled()) {
-            container.dependsOn(keycloakContainer.getObject());
-        }
-
-        container.start();
-
-        return container;
     }
 
     @Bean
     public MockServerClientConfig mockServerClientConfig() {
-        return new MockServerClientConfig();
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedMockServerClientConfig == null) {
+                sharedMockServerClientConfig = new MockServerClientConfig();
+            }
+            return sharedMockServerClientConfig;
+        }
     }
 
-    @Bean
+    @Bean(destroyMethod = "")
     public MockServerContainer mockServer(
             Network network,
-            IssuerConfig issuerConfig,
-            VerifierConfig verifierConfig,
-            TrustConfig trustConfig,
-            MockServerClientConfig mockServerClientConfig,
-            MockAttestationAuthority mockAttestationAuthority,
             ContainerLogConfig containerLogConfig) {
-
-        var container = MockServerContainerConfig.createMockServerContainer(network, containerLogConfig);
-
-        container.start();
-
-        mockServerClientConfig.createMockServerClient(container, issuerConfig, verifierConfig, trustConfig, mockAttestationAuthority);
-
-        return container;
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedMockServer == null || !sharedMockServer.isRunning()) {
+                sharedMockServer = MockServerContainerConfig.createMockServerContainer(network, containerLogConfig);
+                sharedMockServer.start();
+                sharedMockServerClient = null;
+                sharedEnvironmentRegistry = null;
+            }
+            return sharedMockServer;
+        }
     }
 
+    @Bean(destroyMethod = "")
+    public MockServerClient mockServerClient(
+            MockServerContainer mockServer,
+            TrustConfig trustConfig,
+            MockServerClientConfig mockServerClientConfig,
+            MockAttestationAuthority mockAttestationAuthority) {
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedMockServerClient == null || !mockServer.isRunning()) {
+                sharedMockServerClient = mockServerClientConfig.createMockServerClient(mockServer, trustConfig, mockAttestationAuthority);
+            }
+            return sharedMockServerClient;
+        }
+    }
 
     @Bean
-    public GenericContainer<?> verifierContainer(Network network,
-                                                 PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
-                                                 VerifierConfig config,
-                                                 VerifierImageConfig verifierImageConfig,
-                                                 @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
-                                                 @Qualifier("keycloakContainer") ObjectProvider<GenericContainer<?>> keycloakContainer,
-                                                 String tokenDirPath,
-                                                 ContainerLogConfig containerLogConfig,
-                                                 ManagementAuthConfig managementAuthConfig) {
-
-        var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
-
-        var container = VerifierContainerConfig.createVerifierContainer(
-                network,
-                dbContainer,
-                config,
-                imageName,
-                verifierImageConfig,
-                managementAuthConfig,
-                tokenDirPath,
-                containerLogConfig
-        );
-
-        if (verifierImageConfig.isEnableHsm()) {
-            container.dependsOn(softHsmContainer.getObject());
+    public SwiyuEnvironmentRegistry swiyuEnvironmentRegistry(
+            Network network,
+            PostgreSQLContainer<?> dbTestContainer,
+            MockServerContainer mockServer,
+            MockServerClient mockServerClient,
+            MockServerClientConfig mockServerClientConfig,
+            TrustConfig trustConfig,
+            MockAttestationAuthority mockAttestationAuthority,
+            ContainerLogConfig containerLogConfig,
+            IssuerImageConfig issuerImageConfig,
+            VerifierImageConfig verifierImageConfig,
+            ManagementAuthConfig managementAuthConfig,
+            HSMConfig hsmConfig,
+            String tokenDirPath) {
+        synchronized (ENVIRONMENT_LOCK) {
+            if (sharedEnvironmentRegistry == null) {
+                sharedEnvironmentRegistry = new SwiyuEnvironmentRegistry(
+                        network,
+                        dbTestContainer,
+                        mockServer,
+                        mockServerClient,
+                        mockServerClientConfig,
+                        trustConfig,
+                        mockAttestationAuthority,
+                        containerLogConfig,
+                        issuerImageConfig,
+                        verifierImageConfig,
+                        managementAuthConfig,
+                        hsmConfig,
+                        tokenDirPath
+                );
+            }
+            return sharedEnvironmentRegistry;
         }
-        if (managementAuthConfig.isEnabled()) {
-            container.dependsOn(keycloakContainer.getObject());
+    }
+
+    private static void registerCleanupHook(String tokenDirPath) {
+        if (cleanupHookRegistered) {
+            return;
         }
+        cleanupHookRegistered = true;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> removeHsmTokenVolume(tokenDirPath)));
+    }
 
-        container.start();
-
-        return container;
+    private static void removeHsmTokenVolume(String tokenVolumeName) {
+        try {
+            DockerClientFactory.instance().client().removeVolumeCmd(tokenVolumeName).exec();
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("No such volume")) {
+                log.debug("SoftHSM token volume {} was not created", tokenVolumeName);
+                return;
+            }
+            log.warn("Could not remove SoftHSM token volume {}", tokenVolumeName, e);
+        }
     }
 
     public static final class HsmTokenVolumeCleanup implements DisposableBean {
@@ -236,12 +217,7 @@ public class CompleteEnvironmentTestConfiguration {
             if (!enabled) {
                 return;
             }
-
-            try {
-                DockerClientFactory.instance().client().removeVolumeCmd(tokenVolumeName).exec();
-            } catch (Exception e) {
-                log.warn("Could not remove SoftHSM token volume {}", tokenVolumeName, e);
-            }
+            removeHsmTokenVolume(tokenVolumeName);
         }
     }
 }

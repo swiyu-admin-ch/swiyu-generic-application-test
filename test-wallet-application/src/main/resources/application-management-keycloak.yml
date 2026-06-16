@@ -1,8 +1,0 @@
-application:
-  management-auth:
-    enabled: true
-  issuer:
-    surname: "management_keycloak"
-    signed-metadata: false
-  verifier:
-    surname: "management_keycloak"

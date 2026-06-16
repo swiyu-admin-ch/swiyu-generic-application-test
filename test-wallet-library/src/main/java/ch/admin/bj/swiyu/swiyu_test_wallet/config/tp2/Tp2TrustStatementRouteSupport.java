@@ -109,6 +109,10 @@ public final class Tp2TrustStatementRouteSupport {
 
     public void clearIssuerRoutes() {
         mockServerClient.clear(
+                request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?"),
+                ClearType.EXPECTATIONS
+        );
+        mockServerClient.clear(
                 request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/.+"),
                 ClearType.EXPECTATIONS
         );
@@ -119,6 +123,10 @@ public final class Tp2TrustStatementRouteSupport {
     }
 
     public void clearVerifierRoutes() {
+        mockServerClient.clear(
+                request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?"),
+                ClearType.EXPECTATIONS
+        );
         mockServerClient.clear(
                 request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/.+"),
                 ClearType.EXPECTATIONS
@@ -138,7 +146,8 @@ public final class Tp2TrustStatementRouteSupport {
     }
 
     public int identityTrustStatementRequests() {
-        return recordedGetRequests(IDENTITY_TRUST_STATEMENT_PATH + "/.+");
+        return recordedGetRequests(IDENTITY_TRUST_STATEMENT_PATH + "/?")
+                + recordedGetRequests(IDENTITY_TRUST_STATEMENT_PATH + "/.+");
     }
 
     public int protectedIssuanceAuthorizationRequests() {
@@ -156,6 +165,31 @@ public final class Tp2TrustStatementRouteSupport {
     }
 
     private void registerIdentityRoute(Duration lifetime, boolean tamperSignature, AtomicInteger transientFailures) {
+        mockServerClient.when(
+                        request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?"),
+                        Times.unlimited(),
+                        TimeToLive.unlimited(),
+                        100
+                )
+                .respond(httpRequest -> {
+                    if (shouldFailOnce(transientFailures)) {
+                        return response()
+                                .withStatusCode(503)
+                                .withHeader("Content-Type", "application/json")
+                                .withBody("{\"error\":\"temporary idTS fetch failure\"}");
+                    }
+
+                    String subject = httpRequest.getFirstQueryStringParameter("sub");
+                    if (subject == null || subject.isBlank()) {
+                        subject = statementFactory.issuerSubject();
+                    }
+                    String jwt = statementFactory.buildIdentityTrustStatement(subject, lifetime);
+                    return responseFactory.jsonResponse(responseFactory.pagedContent(
+                            List.of(tamperSignature ? tamperJwtSignature(jwt) : jwt),
+                            httpRequest
+                    ));
+                });
+
         mockServerClient.when(
                         request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/.+"),
                         Times.unlimited(),
