@@ -13,8 +13,8 @@ This project starts the Issuer and Verifier services inside containers and inter
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Project Structure](#project-structure)
+- [Test Environment Model](#test-environment-model)
 - [Configuration](#configuration)
-- [Custom Profiles](#custom-profiles)
 - [Hardware Security Module (HSM) Integration](#hardware-security-module-hsm-integration)
 - [Local Development and Testing](#local-development-and-testing)
 - [Contributions and feedback](#contributions-and-feedback)
@@ -91,7 +91,126 @@ Note that container ports are dynamically mapped by Testcontainers, minimizing t
 This is a **multi-module Maven project** organized as follows:
 
 - **test-wallet-library**: Contains reusable components including utilities, fixtures, test data builders, assertion helpers, and container configuration
-- **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using the Spring Boot Test framework with custom profiles for different scenarios
+- **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using the Spring Boot Test framework with environment annotations for component variants
+
+## Test Environment Model
+
+E2E tests extend `BaseTest`, which acts as the environment provider for the test class. A test class declares the generic components it needs, and `BaseTest` ensures that the matching infrastructure and containers are running before the tests execute.
+
+The environment is shared inside the same Maven/JVM test run:
+
+- one PostgreSQL container;
+- one schema per generic component configuration, such as `swiyu_issuer_default` or `swiyu_verifier_default`;
+- one MockServer container acting as base registry, status list service, TP2 trust service, attestation key service, and callback endpoint;
+- one Keycloak container when requested by a selected component or by `@UseSharedServices`;
+- one SoftHSM container when requested by a selected component or by `@UseSharedServices`;
+- one issuer/verifier container per selected variant.
+
+MockServer routes are component-aware. DID documents, status lists, trust statements, renewal data, and callbacks are resolved by DID, status-list id, business id, or active component context rather than by a single global issuer.
+
+### Declaring Components
+
+Use class-level annotations to declare the issuer and verifier variants needed by a test class:
+
+```java
+@UseIssuers({IssuerVariant.DEFAULT, IssuerVariant.STRICT})
+@UseVerifiers(VerifierVariant.DEFAULT)
+class MultiIssuerFlowTest extends BaseTest {
+    // tests
+}
+```
+
+If no issuer or verifier annotation is present, `BaseTest` uses the default environment:
+
+```java
+class DefaultFlowTest extends BaseTest {
+    // equivalent to @UseIssuers(DEFAULT) and @UseVerifiers(DEFAULT)
+}
+```
+
+`@UseSharedServices` is optional. Use it only when a test needs a shared service even though none of its selected component variants implies it:
+
+```java
+@UseSharedServices(keycloak = true, hsm = true)
+class SharedServiceContractTest extends BaseTest {
+    // tests
+}
+```
+
+Variants that require Keycloak or HSM start those shared services automatically.
+
+### Using Components In Tests
+
+`BaseTest` exposes named component handles:
+
+```java
+IssuerHandle defaultIssuer = issuer(IssuerVariant.DEFAULT);
+IssuerHandle strictIssuer = issuer(IssuerVariant.STRICT);
+VerifierHandle defaultVerifier = verifier(VerifierVariant.DEFAULT);
+```
+
+Each handle contains the container URL, business manager, service location, component config, image config, management auth data, and the issuer status list where relevant.
+
+The wallet can switch explicitly between components:
+
+```java
+wallet.useIssuer(strictIssuer);
+wallet.useVerifier(defaultVerifier);
+wallet.useComponents(strictIssuer, defaultVerifier);
+```
+
+For test classes with a single issuer and verifier, the compatibility fields still point to the primary component:
+
+- `issuerManager`;
+- `issuanceService`;
+- `verifierManager`;
+- `issuerConfig`;
+- `verifierConfig`;
+- `currentStatusList`.
+
+The primary component is the first declared variant. Without annotations, it is `DEFAULT`.
+
+### Adding An Issuer Variant
+
+Add issuer configurations through `IssuerVariant`.
+
+1. Add the new enum value in `IssuerVariant`.
+2. Give it a unique `surname`; this becomes part of the container/schema identity.
+3. Set the variant flags, such as DPoP enforcement, signed metadata, JWT management auth, encryption enforcement, or HSM.
+4. Extend `IssuerImageConfig` and `IssuerContainerConfig` only if the new variant requires a new environment variable.
+5. Update `MockServerClientConfig` or `SwiyuEnvironmentRegistry` only if the variant needs new mocked external behavior.
+6. Use the variant from tests with `@UseIssuers(...)`.
+7. Run a targeted test first, then broaden to the full application suite if the change affects shared environment behavior.
+
+Example:
+
+```java
+@UseIssuers(IssuerVariant.STRICT)
+class IssuerStrictManagementTest extends BaseTest {
+    // issuerManager points to STRICT
+}
+```
+
+### Adding A Verifier Variant
+
+Add verifier configurations through `VerifierVariant`.
+
+1. Add the new enum value in `VerifierVariant`.
+2. Give it a unique `surname`.
+3. Set whether it requires HSM or Keycloak.
+4. Extend `VerifierImageConfig` and `VerifierContainerConfig` only if the new variant requires a new environment variable.
+5. Update MockServer or registry behavior only when the verifier needs new trust, status, callback, or TP2 mock behavior.
+6. Use the variant from tests with `@UseVerifiers(...)`.
+7. Run a targeted verifier test first, then broaden as needed.
+
+Example:
+
+```java
+@UseVerifiers(VerifierVariant.MANAGEMENT_KEYCLOAK)
+class KeycloakManagementAuthTest extends BaseTest {
+    // verifierManager uses a bearer token issued by the shared Keycloak container
+}
+```
 
 ## Configuration
 
@@ -119,31 +238,6 @@ Container logs are controlled per service. Issuer and Verifier logs are enabled 
 When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated during test execution. These traces are saved as Markdown files in the `target/traces/` directory, organized by test name. This feature is particularly useful for understanding the flow of happy path tests and debugging.
 
 **Note**: Enabling tracing may cause some edge case tests to fail. It is recommended to use tracing primarily for analyzing happy path test flows.
-
-## Custom Profiles
-
-Custom Spring profiles can be created to configure issuer and verifier services with different environment variables. This allows testing various deployment scenarios without modifying the core test code.
-
-### Creating a Custom Profile
-
-1. Create a new configuration file in `test-wallet-application/src/main/resources/`:
-   - `application-issuer{profile-name}.yml` or `application-verifier-{profile-name}.yml`- Contains Spring configuration
-
-2. Update the corresponding image configuration class:
-   - `IssuerImageConfig.java` or `VerifierImageConfig.java` - Add new properties
-
-3. Update the container configuration class:
-   - `IssuerContainerConfig.java` or `VerifierContainerConfig.java` - Add the new environment variables to the container builder
-
-4. Activate the profile in your test class using the `@ActiveProfiles` annotation:
-
-```java
-@SpringBootTest
-@ActiveProfiles("issuer-encryption")
-class MyTest extends BaseTest {
-    // Your test methods
-}
-```
 
 ## Hardware Security Module (HSM) Integration
 

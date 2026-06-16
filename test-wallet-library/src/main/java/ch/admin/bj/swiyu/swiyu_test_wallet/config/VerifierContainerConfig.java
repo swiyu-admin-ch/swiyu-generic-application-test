@@ -28,15 +28,15 @@ public class VerifierContainerConfig {
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
             Network network,
-            PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
+            PostgreSQLContainer<?> dbContainer,
             VerifierConfig config,
             String imageName,
             VerifierImageConfig verifierImageConfig,
             ManagementAuthConfig managementAuthConfig,
             String tokenDirPath,
             ContainerLogConfig containerLogConfig) {
-        try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
-            container
+        GenericContainer<?> container = new GenericContainer<>(imageName);
+        container
                     .withExposedPorts(8080)
                     .withEnv("VERIFIER_DID", config.getVerifierDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
@@ -119,7 +119,6 @@ public class VerifierContainerConfig {
                 HSMContainerConfig.withTokenVolume(container, tokenDirPath);
             }
 
-            return container;
-        }
+        return container;
     }
 }

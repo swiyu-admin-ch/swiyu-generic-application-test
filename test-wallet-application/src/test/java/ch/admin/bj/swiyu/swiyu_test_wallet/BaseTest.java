@@ -3,6 +3,12 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentSelection;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -15,16 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
@@ -34,9 +34,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
-import java.security.spec.ECGenParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -51,7 +49,6 @@ import java.util.function.IntSupplier;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
@@ -62,7 +59,6 @@ import static org.mockserver.model.HttpRequest.request;
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Slf4j
 @SuppressWarnings({
         // This class is a shared test infrastructure base:
@@ -88,31 +84,24 @@ public class BaseTest {
     @Autowired
     protected ManagementAuthConfig managementAuthConfig;
     @Autowired
-    @Qualifier("keycloakContainer")
-    protected ObjectProvider<GenericContainer<?>> keycloakContainer;
-    @Autowired
-    protected IssuerConfig issuerConfig;
-    @Autowired
-    protected VerifierConfig verifierConfig;
-    @Autowired
+    protected SwiyuEnvironmentRegistry environmentRegistry;
     protected TrustConfig trustConfig;
-    @Autowired
     protected GenericContainer<?> issuerContainer;
-    @Autowired
     protected GenericContainer<?> verifierContainer;
-    @Autowired
     protected PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
     protected MockServerContainer mockServerContainer;
     @Autowired
     protected MockServerClientConfig mockServerClientConfig;
-    @Autowired
     protected MockAttestationAuthority mockAttestationAuthority;
+    protected IssuerConfig issuerConfig;
+    protected VerifierConfig verifierConfig;
     protected MockServerClient mockServerClient;
 
     protected Connection connection;
     protected Wallet wallet;
     @Getter private StatusList currentStatusList;
+    @Getter protected IssuerHandle currentIssuer;
+    @Getter protected VerifierHandle currentVerifier;
     protected BusinessIssuer issuerManager;
     protected IssuanceService issuanceService;
     protected VerifierManager verifierManager;
@@ -145,7 +134,10 @@ public class BaseTest {
             throw new IllegalArgumentException("currentStatusList cannot be null");
         }
         this.currentStatusList = currentStatusList;
-        mockServerClientConfig.setCurrentStatusList(String.valueOf(currentStatusList.getStatusRegistryUrl()));
+        mockServerClientConfig.setCurrentStatusList(
+                issuerConfig.getIssuerDid(),
+                String.valueOf(currentStatusList.getStatusRegistryUrl())
+        );
     }
 
     protected int countVerifierCallbacks() {
@@ -220,105 +212,81 @@ public class BaseTest {
 
     @BeforeAll
     void setup() throws Exception {
-        ensureContainerRunning("database", dbTestContainer);
-        ensureContainerRunning("mockserver", mockServerContainer);
-        if (managementAuthConfig.isEnabled()) {
-            ensureContainerRunning("keycloak", keycloakContainer.getObject());
-        }
-        ensureContainerRunning("issuer", issuerContainer);
-        ensureContainerRunning("verifier", verifierContainer);
+        final SwiyuEnvironmentSelection selection = SwiyuEnvironmentSelection.from(getClass());
+        environmentRegistry.ensureStarted(selection);
+        selection.issuers().forEach(environmentRegistry::refreshStatusList);
 
-        issuerConfig.setIssuerServiceUrl(
-                toUri("http://%s:%s".formatted(
-                        issuerContainer.getHost(), issuerContainer.getMappedPort(8080)
-                )).toString()
-        );
+        dbTestContainer = environmentRegistry.dbContainer();
+        mockServerContainer = environmentRegistry.mockServerContainer();
+        mockServerClient = environmentRegistry.mockServerClient();
+        trustConfig = environmentRegistry.trustConfig();
+        mockAttestationAuthority = environmentRegistry.mockAttestationAuthority();
 
-        issuerManager = new BusinessIssuer(issuerConfig);
-        issuanceService = new IssuanceService(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        verifierManager = new VerifierManager(
-                toUri("http://%s:%s".formatted(
-                        verifierContainer.getHost(), verifierContainer.getMappedPort(8080)
-                )).toString()
-        );
+        restClient = RestClient.builder().build();
 
-        if (managementAuthConfig.isEnabled()) {
-            if (issuerImageConfig.isEnableJwtAuth()) {
-                throw new IllegalStateException("Signed body JWT auth and OAuth management auth cannot be enabled together");
-            }
-            issuerManagementAccessToken = getClientCredentialsToken(
-                    managementAuthConfig.getIssuerClientId(),
-                    managementAuthConfig.getIssuerClientSecret()
-            );
-            verifierManagementAccessToken = getClientCredentialsToken(
-                    managementAuthConfig.getVerifierClientId(),
-                    managementAuthConfig.getVerifierClientSecret()
-            );
-            issuerManager.useBearerToken(issuerManagementAccessToken);
-            verifierManager.useBearerToken(verifierManagementAccessToken);
-        }
+        final IssuerHandle primaryIssuer = issuer(selection.primaryIssuer());
+        final VerifierHandle primaryVerifier = verifier(selection.primaryVerifier());
+        wallet = new Wallet(restClient, primaryIssuer.serviceLocation(), primaryVerifier.serviceLocation());
+        useComponents(primaryIssuer, primaryVerifier);
 
-        if (issuerImageConfig.isEnableJwtAuth() && issuerImageConfig.getJwtKeyGenerator() != null) {
-            jwtKey = issuerImageConfig.getJwtKeyGenerator().getPrivateKey();
-
-            final KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("EC");
-            final ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
-            keyPairGen.initialize(ecSpec);
-            unauthenticatedJwtKey = keyPairGen.generateKeyPair().getPrivate();
-        }
-
-        final ServiceLocationContext issuerContext = new ServiceLocationContext(
-                issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
-        );
-
-        final ServiceLocationContext verifierContext = new ServiceLocationContext(
-                verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
-        );
-
-        if (issuerImageConfig.isEnableJwtAuth()) {
-            setCurrentStatusList(issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 100000, 2));
-        } else {
-            setCurrentStatusList(issuerManager.createStatusList(100000, 2));
-        }
         connection = DriverManager.getConnection(
                 dbTestContainer.getJdbcUrl(),
                 dbTestContainer.getUsername(),
                 dbTestContainer.getPassword()
         );
         stmt = connection.createStatement();
-
-        restClient = RestClient.builder().build();
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
     }
 
-    private void ensureContainerRunning(String name, GenericContainer<?> container) {
-        if (container.isRunning()) {
-            return;
-        }
-
-        log.warn("{} Testcontainer was not running before test setup; starting it again.", name);
-        container.start();
+    protected IssuerHandle issuer(final IssuerVariant variant) {
+        return environmentRegistry.issuer(variant);
     }
 
-    private String getClientCredentialsToken(String clientId, String clientSecret) {
-        final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("grant_type", "client_credentials");
-        formData.add("client_id", clientId);
-        formData.add("client_secret", clientSecret);
+    protected VerifierHandle verifier(final VerifierVariant variant) {
+        return environmentRegistry.verifier(variant);
+    }
 
-        final Map<String, Object> response = RestClient.builder().build().post()
-                .uri(managementAuthConfig.getHostTokenUri(keycloakContainer.getObject()))
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .body(formData)
-                .retrieve()
-                .body(Map.class);
-
-        if (response == null || response.get("access_token") == null) {
-            throw new IllegalStateException("Keycloak token endpoint did not return an access_token");
+    protected void useIssuer(final IssuerHandle issuer) {
+        currentIssuer = issuer;
+        issuerConfig = issuer.config();
+        issuerImageConfig = issuer.imageConfig();
+        issuerContainer = issuer.container();
+        issuerManager = issuer.manager();
+        issuanceService = issuer.issuanceService();
+        currentStatusList = issuer.statusList();
+        jwtKey = issuer.jwtKey();
+        unauthenticatedJwtKey = issuer.unauthenticatedJwtKey();
+        keyId = issuer.keyId();
+        issuerManagementAccessToken = issuer.managementAccessToken();
+        managementAuthConfig = issuer.managementAuthConfig();
+        mockServerClientConfig.setCurrentStatusList(
+                issuerConfig.getIssuerDid(),
+                String.valueOf(currentStatusList.getStatusRegistryUrl())
+        );
+        if (wallet != null) {
+            wallet.useIssuer(issuer);
         }
+    }
 
-        return response.get("access_token").toString();
+    protected void useVerifier(final VerifierHandle verifier) {
+        currentVerifier = verifier;
+        verifierConfig = verifier.config();
+        verifierImageConfig = verifier.imageConfig();
+        verifierContainer = verifier.container();
+        verifierManager = verifier.manager();
+        verifierManagementAccessToken = verifier.managementAccessToken();
+        if (verifier.managementAuthConfig().isEnabled()
+                || currentIssuer == null
+                || !currentIssuer.managementAuthConfig().isEnabled()) {
+            managementAuthConfig = verifier.managementAuthConfig();
+        }
+        if (wallet != null) {
+            wallet.useVerifier(verifier);
+        }
+    }
+
+    protected void useComponents(final IssuerHandle issuer, final VerifierHandle verifier) {
+        useIssuer(issuer);
+        useVerifier(verifier);
     }
 
     @BeforeEach
@@ -373,16 +341,18 @@ public class BaseTest {
 
         restClient = builder.build();
 
-        final ServiceLocationContext issuerContext = new ServiceLocationContext(
-                issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
-        );
-
-        final ServiceLocationContext verifierContext = new ServiceLocationContext(
-                verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
-        );
+        final ServiceLocationContext issuerContext = wallet.getIssuerContext();
+        final ServiceLocationContext verifierContext = wallet.getVerifierContext();
+        final boolean useEncryption = wallet.isUseEncryption();
+        final boolean useDPoP = wallet.isUseDPoP();
+        final boolean signedMetadataPreferred = wallet.isSignedMetadataPreferred();
+        final MockAttestationAuthority activeMockAttestationAuthority = wallet.getMockAttestationAuthority();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
-
+        wallet.setUseEncryption(useEncryption);
+        wallet.setUseDPoP(useDPoP);
+        wallet.setSignedMetadataPreferred(signedMetadataPreferred);
+        wallet.setMockAttestationAuthority(activeMockAttestationAuthority);
 
         issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
         verifierManager.intercept(new HttpTraceInterceptor(traceFile, "Verifier Management"));
