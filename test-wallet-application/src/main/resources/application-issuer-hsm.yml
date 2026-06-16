@@ -1,4 +1,0 @@
-application:
-  issuer:
-    surname: "hsm"
-    enable-hsm: "${hsm:false}"
