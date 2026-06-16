@@ -42,19 +42,27 @@ public class BusinessIssuer {
 
     private StatusList statusList;
     private IssuerConfig issuerConfig;
+    private String bearerToken;
+    private HttpTraceInterceptor traceInterceptor;
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
-        RestClient restClient = RestClient.builder().build();
-        var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
-        credentialApi = new CredentialApiApi(apiClient);
-        statusListApi = new StatusListApiApi(apiClient);
-        actuatorApi = new ActuatorApi(apiClient);
+        configureApis();
     }
 
     private void applyJwt(String jwt) {
-        ApiClient apiClient = statusListApi.getApiClient();
-        apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+        useBearerToken(jwt);
+    }
+
+    public void useBearerToken(String token) {
+        bearerToken = token;
+        configureApis();
+    }
+
+    private void applyStoredBearerToken(ApiClient apiClient) {
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
     }
 
     public StatusList createStatusList(int size, int bits) {
@@ -308,12 +316,21 @@ public class BusinessIssuer {
     }
 
     public void intercept(HttpTraceInterceptor interceptor) {
+        traceInterceptor = interceptor;
+        configureApis();
+    }
 
+    private void configureApis() {
         var builder = RestClient.builder();
-        builder = builder
-                .requestInterceptor(interceptor);
+        if (traceInterceptor != null) {
+            builder = builder.requestInterceptor(traceInterceptor);
+        }
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
         RestClient restClient = builder.build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
+        applyStoredBearerToken(apiClient);
         credentialApi = new CredentialApiApi(apiClient);
         statusListApi = new StatusListApiApi(apiClient);
         actuatorApi = new ActuatorApi(apiClient);

@@ -12,7 +12,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.security.KeyPair;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
+import java.util.Optional;
 
 @AllArgsConstructor
 @Builder
@@ -44,7 +47,7 @@ public class JwtProof {
 
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .audience(credentialIssuerURI)
-                .issueTime(new Date())
+                .issueTime(proofIssueTime())
                 .claim("nonce", cNonce)
                 .build();
 
@@ -53,6 +56,28 @@ public class JwtProof {
 
         return signedJWT.serialize();
     }
-}
 
+    private Date proofIssueTime() {
+        return nonceInstant()
+                .map(Date::from)
+                .orElseGet(Date::new);
+    }
+
+    private Optional<Instant> nonceInstant() {
+        if (cNonce == null) {
+            return Optional.empty();
+        }
+
+        final String[] parts = cNonce.split("::", -1);
+        if (parts.length < 2) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(Instant.parse(parts[1]));
+        } catch (DateTimeParseException ex) {
+            return Optional.empty();
+        }
+    }
+}
 

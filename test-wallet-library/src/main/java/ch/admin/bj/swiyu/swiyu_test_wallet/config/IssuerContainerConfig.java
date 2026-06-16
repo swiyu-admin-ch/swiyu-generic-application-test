@@ -10,12 +10,15 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
 import java.net.URI;
+import java.time.Duration;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass
 public class IssuerContainerConfig {
+
+    private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
 
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
@@ -25,6 +28,7 @@ public class IssuerContainerConfig {
             final MockServerContainer mockServer,
             final String imageName,
             final IssuerImageConfig issuerImageConfig,
+            final ManagementAuthConfig managementAuthConfig,
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority) {
@@ -79,7 +83,7 @@ public class IssuerContainerConfig {
                             "APPLICATION_TRUSTED_ATTESTATION_PROVIDERS",
                             mockAttestationAuthority.getDid()
                     )
-                    .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
+                    .waitingFor(Wait.forLogMessage(".*Started Application.*", 1).withStartupTimeout(STARTUP_TIMEOUT))
                     .dependsOn(dbContainer, mockServer);
 
             if (containerLogConfig.isIssuer()) {
@@ -89,6 +93,22 @@ public class IssuerContainerConfig {
             if (issuerImageConfig.isEnableJwtAuth()) {
                 var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
                 containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
+            }
+
+            if (managementAuthConfig.isEnabled()) {
+                containerBuilder
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
+                                managementAuthConfig.getContainerIssuerUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI",
+                                managementAuthConfig.getContainerIssuerUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI",
+                                managementAuthConfig.getContainerJwkSetUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI",
+                                managementAuthConfig.getContainerJwkSetUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWSALGORITHMS",
+                                managementAuthConfig.getJwsAlgorithms())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWS_ALGORITHMS",
+                                managementAuthConfig.getJwsAlgorithms());
             }
 
             if (issuerImageConfig.isEnableHsm()) {
