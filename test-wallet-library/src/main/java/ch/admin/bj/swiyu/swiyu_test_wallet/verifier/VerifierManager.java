@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestPresentationDefinitions;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -23,13 +24,23 @@ public class VerifierManager {
     private ManagementResponse managementResponse;
     private ActuatorApi actuatorApi;
     private String issuerServiceUrl;
+    private String bearerToken;
+    private HttpTraceInterceptor traceInterceptor;
 
     public VerifierManager(String issuerServiceUrl) {
         this.issuerServiceUrl = issuerServiceUrl;
-        RestClient restClient = RestClient.builder().build();
-        var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
-        managementApi = new VerifierManagementApiApi(apiClient);
-        actuatorApi = new ActuatorApi(apiClient);
+        configureApis();
+    }
+
+    public void useBearerToken(String token) {
+        bearerToken = token;
+        configureApis();
+    }
+
+    private void applyStoredBearerToken(ApiClient apiClient) {
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
     }
 
     public VerificationRequestBuilder verificationRequest(final boolean withKeyBinding) {
@@ -187,12 +198,23 @@ public class VerifierManager {
     }
 
     public void intercept(HttpTraceInterceptor interceptor) {
+        traceInterceptor = interceptor;
+        configureApis();
+    }
+
+    private void configureApis() {
         var builder = RestClient.builder();
-        builder = builder.requestFactory(
-                        new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
-                .requestInterceptor(interceptor);
+        if (traceInterceptor != null) {
+            builder = builder.requestFactory(
+                            new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
+                    .requestInterceptor(traceInterceptor);
+        }
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
         RestClient restClient = builder.build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
+        applyStoredBearerToken(apiClient);
         managementApi = new VerifierManagementApiApi(apiClient);
         actuatorApi = new ActuatorApi(apiClient);
     }

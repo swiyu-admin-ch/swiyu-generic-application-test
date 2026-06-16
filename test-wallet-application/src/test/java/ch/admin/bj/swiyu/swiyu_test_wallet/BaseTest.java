@@ -15,10 +15,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
 import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
@@ -56,6 +62,7 @@ import static org.mockserver.model.HttpRequest.request;
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Slf4j
 @SuppressWarnings({
         // This class is a shared test infrastructure base:
@@ -78,6 +85,11 @@ public class BaseTest {
     protected IssuerImageConfig issuerImageConfig;
     @Autowired
     protected VerifierImageConfig verifierImageConfig;
+    @Autowired
+    protected ManagementAuthConfig managementAuthConfig;
+    @Autowired
+    @Qualifier("keycloakContainer")
+    protected ObjectProvider<GenericContainer<?>> keycloakContainer;
     @Autowired
     protected IssuerConfig issuerConfig;
     @Autowired
@@ -109,6 +121,8 @@ public class BaseTest {
     protected PrivateKey jwtKey;
     protected String keyId = "test-key-1";
     protected PrivateKey unauthenticatedJwtKey;
+    protected String issuerManagementAccessToken;
+    protected String verifierManagementAccessToken;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
 
@@ -206,6 +220,14 @@ public class BaseTest {
 
     @BeforeAll
     void setup() throws Exception {
+        ensureContainerRunning("database", dbTestContainer);
+        ensureContainerRunning("mockserver", mockServerContainer);
+        if (managementAuthConfig.isEnabled()) {
+            ensureContainerRunning("keycloak", keycloakContainer.getObject());
+        }
+        ensureContainerRunning("issuer", issuerContainer);
+        ensureContainerRunning("verifier", verifierContainer);
+
         issuerConfig.setIssuerServiceUrl(
                 toUri("http://%s:%s".formatted(
                         issuerContainer.getHost(), issuerContainer.getMappedPort(8080)
@@ -219,6 +241,22 @@ public class BaseTest {
                         verifierContainer.getHost(), verifierContainer.getMappedPort(8080)
                 )).toString()
         );
+
+        if (managementAuthConfig.isEnabled()) {
+            if (issuerImageConfig.isEnableJwtAuth()) {
+                throw new IllegalStateException("Signed body JWT auth and OAuth management auth cannot be enabled together");
+            }
+            issuerManagementAccessToken = getClientCredentialsToken(
+                    managementAuthConfig.getIssuerClientId(),
+                    managementAuthConfig.getIssuerClientSecret()
+            );
+            verifierManagementAccessToken = getClientCredentialsToken(
+                    managementAuthConfig.getVerifierClientId(),
+                    managementAuthConfig.getVerifierClientSecret()
+            );
+            issuerManager.useBearerToken(issuerManagementAccessToken);
+            verifierManager.useBearerToken(verifierManagementAccessToken);
+        }
 
         if (issuerImageConfig.isEnableJwtAuth() && issuerImageConfig.getJwtKeyGenerator() != null) {
             jwtKey = issuerImageConfig.getJwtKeyGenerator().getPrivateKey();
@@ -252,6 +290,35 @@ public class BaseTest {
         restClient = RestClient.builder().build();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
+    }
+
+    private void ensureContainerRunning(String name, GenericContainer<?> container) {
+        if (container.isRunning()) {
+            return;
+        }
+
+        log.warn("{} Testcontainer was not running before test setup; starting it again.", name);
+        container.start();
+    }
+
+    private String getClientCredentialsToken(String clientId, String clientSecret) {
+        final MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "client_credentials");
+        formData.add("client_id", clientId);
+        formData.add("client_secret", clientSecret);
+
+        final Map<String, Object> response = RestClient.builder().build().post()
+                .uri(managementAuthConfig.getHostTokenUri(keycloakContainer.getObject()))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(formData)
+                .retrieve()
+                .body(Map.class);
+
+        if (response == null || response.get("access_token") == null) {
+            throw new IllegalStateException("Keycloak token endpoint did not return an access_token");
+        }
+
+        return response.get("access_token").toString();
     }
 
     @BeforeEach

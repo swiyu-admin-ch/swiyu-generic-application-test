@@ -7,6 +7,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
@@ -22,7 +23,12 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.DBContainerConfig.creat
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
 @TestConfiguration(proxyBeanMethods = false)
-@EnableConfigurationProperties({ ContainerLogConfig.class, IssuerImageConfig.class, VerifierImageConfig.class })
+@EnableConfigurationProperties({
+        ContainerLogConfig.class,
+        IssuerImageConfig.class,
+        VerifierImageConfig.class,
+        ManagementAuthConfig.class
+})
 @Slf4j
 public class CompleteEnvironmentTestConfiguration {
 
@@ -49,6 +55,18 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public Network network() {
         return Network.newNetwork();
+    }
+
+    @Bean
+    @Lazy
+    @ConditionalOnProperty(prefix = "application.management-auth", name = "enabled", havingValue = "true")
+    public GenericContainer<?> keycloakContainer(Network network,
+                                                 ManagementAuthConfig managementAuthConfig) {
+        var container = KeycloakContainerConfig.createKeycloakContainer(network, managementAuthConfig);
+
+        container.start();
+
+        return container;
     }
 
     @Bean
@@ -111,8 +129,10 @@ public class CompleteEnvironmentTestConfiguration {
                                                IssuerImageConfig issuerImageConfig,
                                                ContainerLogConfig containerLogConfig,
                                                @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
+                                               @Qualifier("keycloakContainer") ObjectProvider<GenericContainer<?>> keycloakContainer,
                                                String tokenDirPath,
-                                               MockAttestationAuthority mockAttestationAuthority) {
+                                               MockAttestationAuthority mockAttestationAuthority,
+                                               ManagementAuthConfig managementAuthConfig) {
 
         var imageName = issuerImageConfig.getBaseImage() + ":" + issuerImageConfig.getImageTag();
 
@@ -123,12 +143,16 @@ public class CompleteEnvironmentTestConfiguration {
                 mockServer,
                 imageName,
                 issuerImageConfig,
+                managementAuthConfig,
                 containerLogConfig,
                 tokenDirPath,
                 mockAttestationAuthority);
 
         if (issuerImageConfig.isEnableHsm()) {
             container.dependsOn(softHsmContainer.getObject());
+        }
+        if (managementAuthConfig.isEnabled()) {
+            container.dependsOn(keycloakContainer.getObject());
         }
 
         container.start();
@@ -167,8 +191,10 @@ public class CompleteEnvironmentTestConfiguration {
                                                  VerifierConfig config,
                                                  VerifierImageConfig verifierImageConfig,
                                                  @Qualifier("softHsmContainer") ObjectProvider<GenericContainer<?>> softHsmContainer,
+                                                 @Qualifier("keycloakContainer") ObjectProvider<GenericContainer<?>> keycloakContainer,
                                                  String tokenDirPath,
-                                                 ContainerLogConfig containerLogConfig) {
+                                                 ContainerLogConfig containerLogConfig,
+                                                 ManagementAuthConfig managementAuthConfig) {
 
         var imageName = verifierImageConfig.getBaseImage() + ":" + verifierImageConfig.getImageTag();
 
@@ -178,12 +204,16 @@ public class CompleteEnvironmentTestConfiguration {
                 config,
                 imageName,
                 verifierImageConfig,
+                managementAuthConfig,
                 tokenDirPath,
                 containerLogConfig
         );
 
         if (verifierImageConfig.isEnableHsm()) {
             container.dependsOn(softHsmContainer.getObject());
+        }
+        if (managementAuthConfig.isEnabled()) {
+            container.dependsOn(keycloakContainer.getObject());
         }
 
         container.start();

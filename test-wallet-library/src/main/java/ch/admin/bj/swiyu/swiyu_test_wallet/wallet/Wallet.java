@@ -29,6 +29,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -135,14 +136,11 @@ public class Wallet {
         } else {
             walletBatchEntry.setToken(collectToken(walletBatchEntry));
         }
-        walletBatchEntry.setCNonce(collectCNonce(walletBatchEntry));
-
         walletBatchEntry.setCredentialConfigurationSupported();
 
         walletBatchEntry.generateHolderKeys();
-        walletBatchEntry.createProofs();
 
-        CredentialResponse deferredCredentialTransactionIdResponse = postCredentialRequest(walletBatchEntry);
+        CredentialResponse deferredCredentialTransactionIdResponse = postCredentialRequestWithFreshProofs(walletBatchEntry);
 
         assertThat(deferredCredentialTransactionIdResponse)
                 .isNotNull();
@@ -280,7 +278,18 @@ public class Wallet {
 
     public List<String> getVerifiableCredentialFromIssuer(final WalletBatchEntry batchEntry) {
         CredentialResponse credentialResponse = postCredentialRequest(batchEntry);
+        return extractIssuedCredentials(batchEntry, credentialResponse);
+    }
 
+    private List<String> getVerifiableCredentialFromIssuerWithFreshProofs(final WalletBatchEntry batchEntry) {
+        CredentialResponse credentialResponse = postCredentialRequestWithFreshProofs(batchEntry);
+        return extractIssuedCredentials(batchEntry, credentialResponse);
+    }
+
+    private List<String> extractIssuedCredentials(
+            final WalletBatchEntry batchEntry,
+            final CredentialResponse credentialResponse
+    ) {
         assertThat(credentialResponse.getBody()).isNotNull();
         var credentialsElement = credentialResponse.getBody().get(CREDENTIALS);
         assertThat(credentialsElement).isNotNull();
@@ -296,6 +305,29 @@ public class Wallet {
         }
 
         return issued;
+    }
+
+    private CredentialResponse postCredentialRequestWithFreshProofs(final WalletBatchEntry batchEntry) {
+        batchEntry.setCNonce(collectCNonce(batchEntry));
+        batchEntry.createProofs();
+
+        try {
+            return postCredentialRequest(batchEntry);
+        } catch (HttpClientErrorException.BadRequest ex) {
+            if (!isHolderBindingProofTimeWindowError(ex)) {
+                throw ex;
+            }
+
+            batchEntry.setCNonce(collectCNonce(batchEntry));
+            batchEntry.createProofs();
+            return postCredentialRequest(batchEntry);
+        }
+    }
+
+    private boolean isHolderBindingProofTimeWindowError(final HttpClientErrorException.BadRequest ex) {
+        final String body = ex.getResponseBodyAsString();
+        return body.contains("\"error\":\"invalid_proof\"")
+                && body.contains("Holder Binding proof was not issued at an acceptable time");
     }
 
     private CredentialResponse postDeferredCredentialRequest(final WalletBatchEntry walletEntry) {
@@ -557,15 +589,12 @@ public class Wallet {
             entry.setToken(collectToken(entry));
         }
 
-        entry.setCNonce(collectCNonce(entry));
-
         int effectiveCount = (count != null)
                 ? count
                 : entry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         entry.generateHolderKeys(effectiveCount);
-        entry.createProofs();
 
-        getVerifiableCredentialFromIssuer(entry);
+        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
 
         return entry;
     }
