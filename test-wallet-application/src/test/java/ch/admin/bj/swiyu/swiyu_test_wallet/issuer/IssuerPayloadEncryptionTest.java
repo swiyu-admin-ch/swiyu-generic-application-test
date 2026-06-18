@@ -4,6 +4,8 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
+import ch.admin.bj.swiyu.jweutil.JweUtil;
+import ch.admin.bj.swiyu.jweutil.JweUtilException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
@@ -50,9 +52,182 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @UseIssuers(IssuerVariant.ENCRYPTION)
 class IssuerPayloadEncryptionTest extends BaseTest {
 
+    private static final String ECDH_ES = "ECDH-ES";
+    private static final String A128_GCM = "A128GCM";
+    private static final String A256_GCM = "A256GCM";
+    private static final String UNSUPPORTED_ENC = "A192GCM";
+    private static final String DEF = "DEF";
+
     @BeforeEach
     void beforeEach() {
         wallet.setUseEncryption(true);
+        wallet.setCredentialRequestEncryptionEnc(null);
+        wallet.setCredentialResponseEncryptionEnc(null);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @XrayTest(key = "EIDOMNI-1071", summary = "Successful issuer payload encryption with AES-256-GCM", description = """
+            This test validates that the issuer advertises and honors A256GCM for OID4VCI payload encryption.
+            The wallet encrypts the Credential Request with A256GCM and requests the Credential Response to use A256GCM.
+            The encrypted response is asserted through its JWE header before the issued SD-JWT credentials are validated.
+            """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "A256GCM support is not available on these issuer tags"
+    )
+    void payloadEncryptionCredentialIssuance_whenA256GcmRequested_thenSuccess(final boolean deferred) {
+        // Given
+        wallet.setCredentialRequestEncryptionEnc(A256_GCM);
+        wallet.setCredentialResponseEncryptionEnc(A256_GCM);
+
+        final Map<String, Object> temporarySubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
+        final Map<String, Object> finalSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+
+        // When
+        final CredentialWithDeeplinkResponse offer = deferred
+                ? issuerManager.createDeferredCredentialOffer(supportedMetadataId, temporarySubjectClaims)
+                : issuerManager.createCredentialOffer(supportedMetadataId, finalSubjectClaims);
+
+        final WalletBatchEntry batchEntry;
+        final CredentialResponse credentialResponse;
+        if (deferred) {
+            batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
+
+            // Then
+            assertThat(batchEntry.getTransactionId()).isNotNull();
+            CredentialResponseAssert.assertThat(batchEntry.getCredentialResponse())
+                    .hasCode(202)
+                    .isResponseEncryptedWithEnc(A256_GCM);
+
+            // When
+            issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), finalSubjectClaims);
+            issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
+            credentialResponse = wallet.getCredentialFromTransactionId(batchEntry);
+        } else {
+            batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+            credentialResponse = batchEntry.getCredentialResponse();
+        }
+
+        // Then
+        IssuerMetadataAssert.assertThat(batchEntry.getIssuerMetadata())
+                .supportsCredentialRequestEncryption(List.of(A128_GCM, A256_GCM), List.of(DEF))
+                .supportsCredentialResponseEncryption(List.of(ECDH_ES), List.of(A128_GCM, A256_GCM), List.of(DEF))
+                .requiresCredentialRequestEncryption()
+                .requiresCredentialResponseEncryption();
+
+        CredentialResponseAssert.assertThat(credentialResponse)
+                .hasCode(200)
+                .hasNotTransactionId()
+                .hasNotInterval()
+                .isResponseEncryptedWithEnc(A256_GCM);
+
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(finalSubjectClaims);
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+    }
+
+    @Test
+    @XrayTest(key = "EIDOMNI-1080", summary = "Reject issuer payload encryption when unsupported enc is used", description = """
+            This test validates the issuer-side rejection boundaries for unsupported encryption methods.
+            It first sends a Credential Request JWE with an unsupported enc header, then sends a valid encrypted
+            Credential Request that asks for an unsupported Credential Response enc.
+            """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "A256GCM support is not available on these issuer tags"
+    )
+    void credentialRequest_whenUnsupportedEncUsed_thenRejected() {
+        // Given
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+
+        // When
+        wallet.setCredentialRequestEncryptionEnc(UNSUPPORTED_ENC);
+        wallet.setCredentialResponseEncryptionEnc(A256_GCM);
+        final CredentialWithDeeplinkResponse unsupportedRequestEncOffer =
+                issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+        final HttpClientErrorException unsupportedRequestEnc = assertThrows(HttpClientErrorException.class,
+                () -> wallet.collectOffer(toUri(unsupportedRequestEncOffer.getOfferDeeplink())));
+
+        // Then
+        ApiErrorAssert.assertThat(unsupportedRequestEnc)
+                .hasStatus(400)
+                .hasError("invalid_encryption_parameters");
+        assertThat(errorJson(unsupportedRequestEnc).get("error_description"))
+                .contains("Unsupported encryption method")
+                .contains(UNSUPPORTED_ENC);
+
+        // When
+        wallet.setCredentialRequestEncryptionEnc(A256_GCM);
+        wallet.setCredentialResponseEncryptionEnc(UNSUPPORTED_ENC);
+        final CredentialWithDeeplinkResponse unsupportedResponseEncOffer =
+                issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+        final HttpClientErrorException unsupportedResponseEnc = assertThrows(HttpClientErrorException.class,
+                () -> wallet.collectOffer(toUri(unsupportedResponseEncOffer.getOfferDeeplink())));
+
+        // Then
+        ApiErrorAssert.assertThat(unsupportedResponseEnc)
+                .hasStatus(400)
+                .hasError("invalid_encryption_parameters");
+        assertThat(errorJson(unsupportedResponseEnc).get("error_description"))
+                .contains("Requested encryption is not offered")
+                .contains(UNSUPPORTED_ENC);
+    }
+
+    @Test
+    @XrayTest(key = "EIDOMNI-1081", summary = "Reject encrypted issuer credential response decryption with wrong key", description = """
+            This test validates that a Credential Response encrypted for the wallet cannot be read with a different
+            ephemeral encryption key. The issuer returns an A256GCM JWE and the wallet proves that the encrypted
+            payload is unreadable with the wrong key.
+            """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "A256GCM support is not available on these issuer tags"
+    )
+    void credentialResponse_whenDecryptedWithWrongKey_thenPayloadCannotBeRead() {
+        // Given
+        wallet.setCredentialRequestEncryptionEnc(A256_GCM);
+        wallet.setCredentialResponseEncryptionEnc(A256_GCM);
+
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+
+        // When
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+
+        // Then
+        CredentialResponseAssert.assertThat(batchEntry.getCredentialResponse())
+                .hasCode(200)
+                .isResponseEncryptedWithEnc(A256_GCM);
+
+        final ECKey originalKey = batchEntry.getEphemeralEncryptionKey();
+        batchEntry.generateEphemeralEncryptionKey();
+        final ECKey wrongKey = batchEntry.getEphemeralEncryptionKey();
+        assertThat(wrongKey).as("Wrong decryption key must differ from the key used in the request").isNotEqualTo(originalKey);
+
+        final JweUtilException ex = assertThrows(JweUtilException.class,
+                () -> JweUtil.decrypt(batchEntry.getCredentialResponse().getRawBody(), wrongKey));
+        assertThat(ex)
+                .hasMessageContaining("Error during JWE decryption");
+        assertThat(ex.getCause())
+                .isInstanceOf(com.nimbusds.jose.JOSEException.class);
+
+        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
     }
 
     @ParameterizedTest
