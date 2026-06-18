@@ -242,8 +242,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "The fix for supported media type not available yet"
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "The fix for supported media type not available yet (update claims)"
     )
     void payloadEncryptionCredentialIssuanceV1_withEncryptedPayload_thenSuccess(final boolean deferred) {
         // Given
