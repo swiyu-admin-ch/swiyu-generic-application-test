@@ -64,6 +64,8 @@ public class Wallet {
     private boolean useEncryption = false;
     private boolean useDPoP = false;
     private boolean signedMetadataPreferred = false;
+    private String credentialRequestEncryptionEnc;
+    private String credentialResponseEncryptionEnc;
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
@@ -464,7 +466,10 @@ public class Wallet {
                 walletEntry.generateEphemeralEncryptionKey();
             }
 
-            var header = new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+            var header = new JWEHeader.Builder(
+                    JWEAlgorithm.ECDH_ES,
+                    EncryptionMethod.parse(resolveCredentialRequestEncryptionEnc(
+                            requestEncryptionMetadata.getEncValuesSupported())))
                     .contentType("JWT")
                     .compressionAlgorithm(CompressionAlgorithm.DEF)
                     .keyID(issuerKey.getKeyID())
@@ -641,7 +646,7 @@ public class Wallet {
             final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
             var responseEncryption = new CredentialResponseEncryption()
-                    .enc(encryptionMetadata.getEncValuesSupported().getFirst())
+                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
                     .jwk(jwk);
 
             requestDto.credentialResponseEncryption(responseEncryption);
@@ -712,6 +717,27 @@ public class Wallet {
         walletEntry.setCredentialResponse(completeCredentialResponse);
 
         return completeCredentialResponse;
+    }
+
+    String resolveCredentialResponseEncryptionEnc(final List<String> supportedEncValues) {
+        return resolveEncryptionEnc(supportedEncValues, credentialResponseEncryptionEnc);
+    }
+
+    private String resolveCredentialRequestEncryptionEnc(final List<String> supportedEncValues) {
+        return resolveEncryptionEnc(supportedEncValues, credentialRequestEncryptionEnc);
+    }
+
+    private String resolveEncryptionEnc(final List<String> supportedEncValues, final String requestedEnc) {
+        if (requestedEnc != null) {
+            return requestedEnc;
+        }
+
+        assertThat(supportedEncValues)
+                .as("issuer encryption metadata enc_values_supported")
+                .isNotNull()
+                .isNotEmpty();
+
+        return supportedEncValues.getFirst();
     }
 
     public String collectDPoPNonce(WalletEntry walletEntry) {

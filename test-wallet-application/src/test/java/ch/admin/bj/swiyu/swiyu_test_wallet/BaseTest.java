@@ -346,12 +346,16 @@ public class BaseTest {
         final boolean useEncryption = wallet.isUseEncryption();
         final boolean useDPoP = wallet.isUseDPoP();
         final boolean signedMetadataPreferred = wallet.isSignedMetadataPreferred();
+        final String credentialRequestEncryptionEnc = wallet.getCredentialRequestEncryptionEnc();
+        final String credentialResponseEncryptionEnc = wallet.getCredentialResponseEncryptionEnc();
         final MockAttestationAuthority activeMockAttestationAuthority = wallet.getMockAttestationAuthority();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
         wallet.setUseEncryption(useEncryption);
         wallet.setUseDPoP(useDPoP);
         wallet.setSignedMetadataPreferred(signedMetadataPreferred);
+        wallet.setCredentialRequestEncryptionEnc(credentialRequestEncryptionEnc);
+        wallet.setCredentialResponseEncryptionEnc(credentialResponseEncryptionEnc);
         wallet.setMockAttestationAuthority(activeMockAttestationAuthority);
 
         issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
