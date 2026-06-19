@@ -54,7 +54,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
         classes = SwiyuTestWalletApplication.class
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
