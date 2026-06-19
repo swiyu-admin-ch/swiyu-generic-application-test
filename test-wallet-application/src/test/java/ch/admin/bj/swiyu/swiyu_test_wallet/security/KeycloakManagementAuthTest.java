@@ -45,7 +45,7 @@ class KeycloakManagementAuthTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1056",
             summary = "Issuer management endpoints are protected by Keycloak JWT authentication",
             description = """
                     This test validates that issuer OID4VCI metadata endpoints remain public while issuer management
@@ -99,7 +99,7 @@ class KeycloakManagementAuthTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1094",
             summary = "Verifier management endpoints are protected by Keycloak JWT authentication",
             description = """
                     This test validates that verifier OID4VP wallet-facing metadata remains public while verifier
@@ -139,7 +139,7 @@ class KeycloakManagementAuthTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1095",
             summary = "Management endpoints reject malformed authorization headers",
             description = """
                     This test validates that issuer and verifier management endpoints reject malformed or unsupported
@@ -172,7 +172,7 @@ class KeycloakManagementAuthTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1096",
             summary = "Issuer and verifier workflow succeeds with Keycloak-protected management APIs",
             description = """
                     This test validates that authenticated management calls can create an issuer credential offer and a

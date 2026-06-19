@@ -212,7 +212,7 @@ public class IssuerTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-996",
+            key = "EIDOMNI-1101",
             summary = "Issuer metadata cache is scoped by effective issuer DID",
             description = """
                     Given two protected credential offers using different issuer DID overrides.
