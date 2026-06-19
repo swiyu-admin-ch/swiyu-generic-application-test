@@ -18,7 +18,6 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
@@ -30,8 +29,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
-@Service
 @Getter
 @Slf4j
 public class BusinessIssuer {
@@ -42,19 +41,32 @@ public class BusinessIssuer {
 
     private StatusList statusList;
     private IssuerConfig issuerConfig;
+    private String bearerToken;
+    private HttpTraceInterceptor traceInterceptor;
+    private Consumer<StatusList> statusListCreatedListener = ignored -> { };
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
-        RestClient restClient = RestClient.builder().build();
-        var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
-        credentialApi = new CredentialApiApi(apiClient);
-        statusListApi = new StatusListApiApi(apiClient);
-        actuatorApi = new ActuatorApi(apiClient);
+        configureApis();
     }
 
     private void applyJwt(String jwt) {
-        ApiClient apiClient = statusListApi.getApiClient();
-        apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
+        useBearerToken(jwt);
+    }
+
+    public void useBearerToken(String token) {
+        bearerToken = token;
+        configureApis();
+    }
+
+    public void onStatusListCreated(final Consumer<StatusList> listener) {
+        statusListCreatedListener = listener == null ? ignored -> { } : listener;
+    }
+
+    private void applyStoredBearerToken(ApiClient apiClient) {
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
     }
 
     public StatusList createStatusList(int size, int bits) {
@@ -62,9 +74,7 @@ public class BusinessIssuer {
         statusListCreate.setMaxLength(size);
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
 
-        statusList = statusListApi.createStatusList(statusListCreate);
-
-        return statusList;
+        return rememberStatusList(statusListApi.createStatusList(statusListCreate));
     }
 
     public StatusList createStatusList(int size, int bits, ConfigurationOverride configurationOverride) {
@@ -73,9 +83,7 @@ public class BusinessIssuer {
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
         statusListCreate.setConfigurationOverride(configurationOverride);
 
-        statusList = statusListApi.createStatusList(statusListCreate);
-
-        return statusList;
+        return rememberStatusList(statusListApi.createStatusList(statusListCreate));
     }
 
     public StatusList createStatusList(int size, int bits, String jwt) {
@@ -85,9 +93,7 @@ public class BusinessIssuer {
         statusListCreate.setMaxLength(size);
         statusListCreate.setConfig(new StatusListCreateConfig().bits(bits));
 
-        statusList = statusListApi.createStatusList(statusListCreate);
-
-        return statusList;
+        return rememberStatusList(statusListApi.createStatusList(statusListCreate));
     }
 
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId) {
@@ -188,8 +194,7 @@ public class BusinessIssuer {
                 .body(jwt)
                 .retrieve()
                 .body(StatusList.class);
-        statusList = response;
-        return statusList;
+        return rememberStatusList(response);
     }
 
     public CredentialWithDeeplinkResponse createDeferredCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
@@ -236,6 +241,12 @@ public class BusinessIssuer {
                 .body(jwt)
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    private StatusList rememberStatusList(final StatusList createdStatusList) {
+        statusList = createdStatusList;
+        statusListCreatedListener.accept(createdStatusList);
+        return statusList;
     }
 
     private String createSignedJwtWithEcKey(final PrivateKey privateKey, final String keyId, final String data)
@@ -308,12 +319,21 @@ public class BusinessIssuer {
     }
 
     public void intercept(HttpTraceInterceptor interceptor) {
+        traceInterceptor = interceptor;
+        configureApis();
+    }
 
+    private void configureApis() {
         var builder = RestClient.builder();
-        builder = builder
-                .requestInterceptor(interceptor);
+        if (traceInterceptor != null) {
+            builder = builder.requestInterceptor(traceInterceptor);
+        }
+        if (bearerToken != null && !bearerToken.isBlank()) {
+            builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
+        }
         RestClient restClient = builder.build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
+        applyStoredBearerToken(apiClient);
         credentialApi = new CredentialApiApi(apiClient);
         statusListApi = new StatusListApiApi(apiClient);
         actuatorApi = new ActuatorApi(apiClient);

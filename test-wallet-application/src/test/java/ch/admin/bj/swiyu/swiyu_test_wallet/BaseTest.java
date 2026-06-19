@@ -3,6 +3,12 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentSelection;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -28,9 +34,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
-import java.security.spec.ECGenParameterSpec;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -45,13 +49,12 @@ import java.util.function.IntSupplier;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE,
         classes = SwiyuTestWalletApplication.class
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -79,28 +82,26 @@ public class BaseTest {
     @Autowired
     protected VerifierImageConfig verifierImageConfig;
     @Autowired
-    protected IssuerConfig issuerConfig;
+    protected ManagementAuthConfig managementAuthConfig;
     @Autowired
-    protected VerifierConfig verifierConfig;
-    @Autowired
+    protected SwiyuEnvironmentRegistry environmentRegistry;
     protected TrustConfig trustConfig;
-    @Autowired
     protected GenericContainer<?> issuerContainer;
-    @Autowired
     protected GenericContainer<?> verifierContainer;
-    @Autowired
     protected PostgreSQLContainer<?> dbTestContainer;
-    @Autowired
     protected MockServerContainer mockServerContainer;
     @Autowired
     protected MockServerClientConfig mockServerClientConfig;
-    @Autowired
     protected MockAttestationAuthority mockAttestationAuthority;
+    protected IssuerConfig issuerConfig;
+    protected VerifierConfig verifierConfig;
     protected MockServerClient mockServerClient;
 
     protected Connection connection;
     protected Wallet wallet;
     @Getter private StatusList currentStatusList;
+    @Getter protected IssuerHandle currentIssuer;
+    @Getter protected VerifierHandle currentVerifier;
     protected BusinessIssuer issuerManager;
     protected IssuanceService issuanceService;
     protected VerifierManager verifierManager;
@@ -109,6 +110,8 @@ public class BaseTest {
     protected PrivateKey jwtKey;
     protected String keyId = "test-key-1";
     protected PrivateKey unauthenticatedJwtKey;
+    protected String issuerManagementAccessToken;
+    protected String verifierManagementAccessToken;
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
 
@@ -131,7 +134,10 @@ public class BaseTest {
             throw new IllegalArgumentException("currentStatusList cannot be null");
         }
         this.currentStatusList = currentStatusList;
-        mockServerClientConfig.setCurrentStatusList(String.valueOf(currentStatusList.getStatusRegistryUrl()));
+        mockServerClientConfig.setCurrentStatusList(
+                issuerConfig.getIssuerDid(),
+                String.valueOf(currentStatusList.getStatusRegistryUrl())
+        );
     }
 
     protected int countVerifierCallbacks() {
@@ -206,52 +212,81 @@ public class BaseTest {
 
     @BeforeAll
     void setup() throws Exception {
-        issuerConfig.setIssuerServiceUrl(
-                toUri("http://%s:%s".formatted(
-                        issuerContainer.getHost(), issuerContainer.getMappedPort(8080)
-                )).toString()
-        );
+        final SwiyuEnvironmentSelection selection = SwiyuEnvironmentSelection.from(getClass());
+        environmentRegistry.ensureStarted(selection);
+        selection.issuers().forEach(environmentRegistry::refreshStatusList);
 
-        issuerManager = new BusinessIssuer(issuerConfig);
-        issuanceService = new IssuanceService(toUri("http://%s:%s".formatted(issuerContainer.getHost(), issuerContainer.getMappedPort(8080))).toString());
-        verifierManager = new VerifierManager(
-                toUri("http://%s:%s".formatted(
-                        verifierContainer.getHost(), verifierContainer.getMappedPort(8080)
-                )).toString()
-        );
+        dbTestContainer = environmentRegistry.dbContainer();
+        mockServerContainer = environmentRegistry.mockServerContainer();
+        mockServerClient = environmentRegistry.mockServerClient();
+        trustConfig = environmentRegistry.trustConfig();
+        mockAttestationAuthority = environmentRegistry.mockAttestationAuthority();
 
-        if (issuerImageConfig.isEnableJwtAuth() && issuerImageConfig.getJwtKeyGenerator() != null) {
-            jwtKey = issuerImageConfig.getJwtKeyGenerator().getPrivateKey();
+        restClient = RestClient.builder().build();
 
-            final KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("EC");
-            final ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
-            keyPairGen.initialize(ecSpec);
-            unauthenticatedJwtKey = keyPairGen.generateKeyPair().getPrivate();
-        }
+        final IssuerHandle primaryIssuer = issuer(selection.primaryIssuer());
+        final VerifierHandle primaryVerifier = verifier(selection.primaryVerifier());
+        wallet = new Wallet(restClient, primaryIssuer.serviceLocation(), primaryVerifier.serviceLocation());
+        useComponents(primaryIssuer, primaryVerifier);
 
-        final ServiceLocationContext issuerContext = new ServiceLocationContext(
-                issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
-        );
-
-        final ServiceLocationContext verifierContext = new ServiceLocationContext(
-                verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
-        );
-
-        if (issuerImageConfig.isEnableJwtAuth()) {
-            setCurrentStatusList(issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 100000, 2));
-        } else {
-            setCurrentStatusList(issuerManager.createStatusList(100000, 2));
-        }
         connection = DriverManager.getConnection(
                 dbTestContainer.getJdbcUrl(),
                 dbTestContainer.getUsername(),
                 dbTestContainer.getPassword()
         );
         stmt = connection.createStatement();
+    }
 
-        restClient = RestClient.builder().build();
+    protected IssuerHandle issuer(final IssuerVariant variant) {
+        return environmentRegistry.issuer(variant);
+    }
 
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
+    protected VerifierHandle verifier(final VerifierVariant variant) {
+        return environmentRegistry.verifier(variant);
+    }
+
+    protected void useIssuer(final IssuerHandle issuer) {
+        currentIssuer = issuer;
+        issuerConfig = issuer.config();
+        issuerImageConfig = issuer.imageConfig();
+        issuerContainer = issuer.container();
+        issuerManager = issuer.manager();
+        issuanceService = issuer.issuanceService();
+        currentStatusList = issuer.statusList();
+        jwtKey = issuer.jwtKey();
+        unauthenticatedJwtKey = issuer.unauthenticatedJwtKey();
+        keyId = issuer.keyId();
+        issuerManagementAccessToken = issuer.managementAccessToken();
+        managementAuthConfig = issuer.managementAuthConfig();
+        mockServerClientConfig.setCurrentStatusList(
+                issuerConfig.getIssuerDid(),
+                String.valueOf(currentStatusList.getStatusRegistryUrl())
+        );
+        if (wallet != null) {
+            wallet.useIssuer(issuer);
+        }
+    }
+
+    protected void useVerifier(final VerifierHandle verifier) {
+        currentVerifier = verifier;
+        verifierConfig = verifier.config();
+        verifierImageConfig = verifier.imageConfig();
+        verifierContainer = verifier.container();
+        verifierManager = verifier.manager();
+        verifierManagementAccessToken = verifier.managementAccessToken();
+        if (verifier.managementAuthConfig().isEnabled()
+                || currentIssuer == null
+                || !currentIssuer.managementAuthConfig().isEnabled()) {
+            managementAuthConfig = verifier.managementAuthConfig();
+        }
+        if (wallet != null) {
+            wallet.useVerifier(verifier);
+        }
+    }
+
+    protected void useComponents(final IssuerHandle issuer, final VerifierHandle verifier) {
+        useIssuer(issuer);
+        useVerifier(verifier);
     }
 
     @BeforeEach
@@ -306,16 +341,22 @@ public class BaseTest {
 
         restClient = builder.build();
 
-        final ServiceLocationContext issuerContext = new ServiceLocationContext(
-                issuerContainer.getHost(), issuerContainer.getMappedPort(8080).toString()
-        );
-
-        final ServiceLocationContext verifierContext = new ServiceLocationContext(
-                verifierContainer.getHost(), verifierContainer.getMappedPort(8080).toString()
-        );
+        final ServiceLocationContext issuerContext = wallet.getIssuerContext();
+        final ServiceLocationContext verifierContext = wallet.getVerifierContext();
+        final boolean useEncryption = wallet.isUseEncryption();
+        final boolean useDPoP = wallet.isUseDPoP();
+        final boolean signedMetadataPreferred = wallet.isSignedMetadataPreferred();
+        final String credentialRequestEncryptionEnc = wallet.getCredentialRequestEncryptionEnc();
+        final String credentialResponseEncryptionEnc = wallet.getCredentialResponseEncryptionEnc();
+        final MockAttestationAuthority activeMockAttestationAuthority = wallet.getMockAttestationAuthority();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
-
+        wallet.setUseEncryption(useEncryption);
+        wallet.setUseDPoP(useDPoP);
+        wallet.setSignedMetadataPreferred(signedMetadataPreferred);
+        wallet.setCredentialRequestEncryptionEnc(credentialRequestEncryptionEnc);
+        wallet.setCredentialResponseEncryptionEnc(credentialResponseEncryptionEnc);
+        wallet.setMockAttestationAuthority(activeMockAttestationAuthority);
 
         issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
         verifierManager.intercept(new HttpTraceInterceptor(traceFile, "Verifier Management"));

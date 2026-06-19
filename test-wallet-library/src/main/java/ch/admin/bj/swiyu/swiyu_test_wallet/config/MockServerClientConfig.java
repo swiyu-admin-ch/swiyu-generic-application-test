@@ -23,6 +23,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.protocol.HTTP;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpStatusCode;
 import org.mockserver.model.MediaType;
@@ -32,6 +33,7 @@ import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.mockserver.model.HttpRequest.request;
@@ -48,9 +50,28 @@ public class MockServerClientConfig {
     public static final String VERIFIER_CALLBACK_PATH = "/callbacks/issuer";
     public static final String MOCKSERVER_HOST = "mockserver:1080";
     private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
+    private static final List<String> TP2_ROUTE_PATTERNS = List.of(
+            "/api/v2/identity-trust-statement.*",
+            "/api/v2/verification-query-public-statement.*",
+            "/api/v1/trust/vqps-submissions/?",
+            "/api/v2/protected-verification-authorization-trust-statement.*",
+            "/api/v2/protected-issuance-authorization-trust-statement.*",
+            "/api/v2/protected-issuance-trust-list-statement.*",
+            "/api/v2/protected-issuance-trust-list/?",
+            "/api/v2/non-compliance-trust-list/?",
+            "/api/v1/statuslist/tp2-trust-statements\\.jwt"
+    );
 
     private static final Map<String, String> statusListBitsMap = new HashMap<>();
+    private final Map<String, String> didLogsById = new ConcurrentHashMap<>();
+    private final Map<String, String> statusListsByIssuerDid = new ConcurrentHashMap<>();
+    private final Map<String, String> issuerDidByStatusListId = new ConcurrentHashMap<>();
+    private final Map<String, IssuerConfig> issuerConfigsByDid = new ConcurrentHashMap<>();
+    private final Map<String, VerifierConfig> verifierConfigsByDid = new ConcurrentHashMap<>();
     private String currentStatusList = "";
+    private String activeIssuerDid = "";
+    private TrustConfig trustConfig;
+    private MockAttestationAuthority attestationAuthority;
 
     private final List<WebhookCallback> receivedIssuerCallbacks = new CopyOnWriteArrayList<>();
     private boolean throwStatusListError = false;
@@ -81,6 +102,20 @@ public class MockServerClientConfig {
             VerifierConfig verifierConfig,
             TrustConfig trustConfig,
             MockAttestationAuthority attestationAuthority) {
+        registerIssuer(issuerConfig);
+        registerVerifier(verifierConfig);
+        registerTrust(trustConfig);
+        registerAttestationAuthority(attestationAuthority);
+        final MockServerClient mockServerClient = createMockServerClient(mockServer, trustConfig, attestationAuthority);
+        registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
+        return mockServerClient;
+    }
+
+    public MockServerClient createMockServerClient(MockServerContainer mockServer,
+                                                   TrustConfig trustConfig,
+                                                   MockAttestationAuthority attestationAuthority) {
+        registerTrust(trustConfig);
+        registerAttestationAuthority(attestationAuthority);
 
         final String validFrom = LocalDate.now(ZoneOffset.UTC)
                 .minusDays(7)
@@ -97,11 +132,42 @@ public class MockServerClientConfig {
                 mockServer.getHost(),
                 mockServer.getServerPort());
 
-        registerStatusListRoutes(mockServerClient, issuerConfig);
-        registerDidResolutionRoutes(mockServerClient, issuerConfig, verifierConfig, trustConfig, attestationAuthority);
+        registerStatusListRoutes(mockServerClient);
+        registerDidResolutionRoutes(mockServerClient);
         registerOauthAndCallbacks(mockServerClient);
         registerRenewalRoute(mockServerClient, validFrom, validUntil);
-        registerLegacyTrustRoutes(mockServerClient, issuerConfig, trustConfig);
+        registerLegacyTrustRoutes(mockServerClient);
+
+        return mockServerClient;
+    }
+
+    public void registerIssuer(final IssuerConfig issuerConfig) {
+        issuerConfigsByDid.put(issuerConfig.getIssuerDid(), issuerConfig);
+        registerDidLog(issuerConfig.getIssuerDid(), issuerConfig.getIssuerDidLog());
+    }
+
+    public void registerVerifier(final VerifierConfig verifierConfig) {
+        verifierConfigsByDid.put(verifierConfig.getVerifierDid(), verifierConfig);
+        registerDidLog(verifierConfig.getVerifierDid(), verifierConfig.getVerifierDidLog());
+    }
+
+    public void registerTrust(final TrustConfig trustConfig) {
+        this.trustConfig = trustConfig;
+        registerDidLog(trustConfig.getTrustDid(), trustConfig.getTrustDidLog());
+    }
+
+    public void registerAttestationAuthority(final MockAttestationAuthority attestationAuthority) {
+        this.attestationAuthority = attestationAuthority;
+        if (attestationAuthority != null) {
+            registerDidLog(attestationAuthority.getDid(), attestationAuthority.getDidLog());
+        }
+    }
+
+    public void registerTp2Routes(final MockServerClient mockServerClient,
+                                  final IssuerConfig issuerConfig,
+                                  final VerifierConfig verifierConfig,
+                                  final TrustConfig trustConfig) {
+        clearTp2Routes(mockServerClient);
         Tp2TrustRegistryMockServerConfigurer.registerRoutes(
                 mockServerClient,
                 issuerConfig,
@@ -109,11 +175,29 @@ public class MockServerClientConfig {
                 trustConfig,
                 OBJECT_MAPPER
         );
-
-        return mockServerClient;
     }
 
-    private void registerStatusListRoutes(MockServerClient mockServerClient, IssuerConfig issuerConfig) {
+    private void clearTp2Routes(final MockServerClient mockServerClient) {
+        TP2_ROUTE_PATTERNS.forEach(path ->
+                mockServerClient.clear(request().withPath(path), ClearType.EXPECTATIONS)
+        );
+    }
+
+    public void setCurrentStatusList(final String issuerDid, final String statusList) {
+        currentStatusList = statusList;
+        activeIssuerDid = issuerDid;
+        statusListsByIssuerDid.put(issuerDid, statusList);
+        final String statusListId = extractStatusListIdFromPath(statusList);
+        if (statusListId != null) {
+            issuerDidByStatusListId.put(statusListId, issuerDid);
+        }
+    }
+
+    private void registerDidLog(final String did, final String didLog) {
+        didLogsById.put(extractDidId(did), didLog);
+    }
+
+    private void registerStatusListRoutes(MockServerClient mockServerClient) {
         mockServerClient.when(
                 request()
                     .withMethod("GET")
@@ -123,7 +207,7 @@ public class MockServerClientConfig {
                     return response()
                             .withHeader(HTTP.CONTENT_TYPE, "application/statuslist+jwt")
                             .withStatusCode(HttpStatusCode.OK_200.code())
-                            .withBody(getStatusListJwt(httpRequest, issuerConfig));
+                            .withBody(getStatusListJwt(httpRequest, issuerConfigForStatusList(httpRequest)));
                         });
         mockServerClient.when(
                 request()
@@ -171,11 +255,7 @@ public class MockServerClientConfig {
                 });
     }
 
-    private void registerDidResolutionRoutes(MockServerClient mockServerClient,
-                                             IssuerConfig issuerConfig,
-                                             VerifierConfig verifierConfig,
-                                             TrustConfig trustConfig,
-                                             MockAttestationAuthority attestationAuthority) {
+    private void registerDidResolutionRoutes(MockServerClient mockServerClient) {
         mockServerClient
                 .when(request()
                         .withMethod("GET")
@@ -183,33 +263,13 @@ public class MockServerClientConfig {
                 .respond(httpRequest -> {
 
                     String requestedDidId = extractDidIdFromPath(httpRequest.getPath().getValue());
+                    final String didLog = didLogsById.get(requestedDidId);
 
-                    if (requestedDidId.equals(extractDidId(issuerConfig.getIssuerDid()))) {
+                    if (didLog != null) {
                         return response()
                                 .withStatusCode(200)
                                 .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
-                                .withBody(issuerConfig.getIssuerDidLog());
-                    }
-
-                    if (requestedDidId.equals(extractDidId(verifierConfig.getVerifierDid()))) {
-                        return response()
-                                .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
-                                .withBody(verifierConfig.getVerifierDidLog());
-                    }
-
-                    if (requestedDidId.equals(extractDidId(trustConfig.getTrustDid()))) {
-                        return response()
-                                .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
-                                .withBody(trustConfig.getTrustDidLog());
-                    }
-
-                    if (attestationAuthority != null && requestedDidId.equals(extractDidId(attestationAuthority.getDid()))) {
-                        return response()
-                                .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
-                                .withBody(attestationAuthority.getDidLog());
+                                .withBody(didLog);
                     }
 
                     return response().withStatusCode(404);
@@ -252,16 +312,14 @@ public class MockServerClientConfig {
                                                 "credential_metadata", Map.of("vct#integrity","sha256-0000000000000000000000000000000000000000000="),
                                                 "credential_valid_from", validFrom,
                                                 "credential_valid_until", validUntil,
-                                                "status_lists", List.of(this.currentStatusList))));
+                                                "status_lists", List.of(currentRenewalStatusList(httpRequest)))));
                     } catch (JsonProcessingException e) {
                         throw new TestSupportException("Cannot parse correctly data");
                     }
                 });
     }
 
-    private void registerLegacyTrustRoutes(MockServerClient mockServerClient,
-                                           IssuerConfig issuerConfig,
-                                           TrustConfig trustConfig) {
+    private void registerLegacyTrustRoutes(MockServerClient mockServerClient) {
         mockServerClient.when(
                         request()
                                 .withMethod("GET")
@@ -273,12 +331,15 @@ public class MockServerClientConfig {
                         String vct = firstPresentQueryParameter(httpRequest, "vcSchemaId", "schemaId", "vct");
 
                         if (path.startsWith("/trusted/")) {
-                            String trustStatement = generateTrustStatement(vct, issuerConfig, trustConfig);
+                            final List<String> trustStatements = new ArrayList<>();
+                            for (IssuerConfig issuerConfig : issuerConfigsByDid.values()) {
+                                trustStatements.add(generateTrustStatement(vct, issuerConfig, trustConfig));
+                            }
 
                             return response()
                                     .withStatusCode(200)
                                     .withHeader(HTTP.CONTENT_TYPE, "application/json")
-                                    .withBody(OBJECT_MAPPER.writeValueAsString(List.of(trustStatement)));
+                                    .withBody(OBJECT_MAPPER.writeValueAsString(trustStatements));
                         }
                         return response()
                                 .withStatusCode(200)
@@ -342,6 +403,44 @@ public class MockServerClientConfig {
         signedJWT.sign(signer);
 
         return signedJWT.serialize() + "~";
+    }
+
+    private IssuerConfig firstIssuerConfig() {
+        return issuerConfigsByDid.values().stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No issuer config registered in MockServerClientConfig"));
+    }
+
+    private IssuerConfig issuerConfigForStatusList(final HttpRequest httpRequest) {
+        final String statusListId = extractStatusListIdFromPath(httpRequest.getPath().getValue());
+        if (statusListId == null) {
+            return firstIssuerConfig();
+        }
+
+        final String issuerDid = issuerDidByStatusListId.get(statusListId);
+        if (issuerDid == null) {
+            return firstIssuerConfig();
+        }
+
+        return Optional.ofNullable(issuerConfigsByDid.get(issuerDid))
+                .orElseGet(this::firstIssuerConfig);
+    }
+
+    private String currentRenewalStatusList(final HttpRequest httpRequest) {
+        final String requestedIssuerDid = httpRequest.getFirstQueryStringParameter("issuerDid");
+        if (requestedIssuerDid != null && !requestedIssuerDid.isBlank()) {
+            final String statusList = statusListsByIssuerDid.get(requestedIssuerDid);
+            if (statusList != null) {
+                return statusList;
+            }
+        }
+        if (activeIssuerDid != null && !activeIssuerDid.isBlank()) {
+            final String statusList = statusListsByIssuerDid.get(activeIssuerDid);
+            if (statusList != null) {
+                return statusList;
+            }
+        }
+        return currentStatusList;
     }
 
     private String getStatusListJwt(HttpRequest httpRequest, IssuerConfig issuerConfig)

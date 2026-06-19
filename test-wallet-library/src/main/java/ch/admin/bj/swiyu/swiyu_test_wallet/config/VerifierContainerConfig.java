@@ -11,6 +11,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
 import java.net.URI;
+import java.time.Duration;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
@@ -22,18 +23,20 @@ public class VerifierContainerConfig {
     private static final String MOCKSERVER_HTTP_URL = "http://" + MockServerClientConfig.MOCKSERVER_HOST;
     private static final String MOCKSERVER_URL_REWRITE_MAPPING =
             "{\"%s\":\"%s\"}".formatted(MOCKSERVER_HTTPS_URL, MOCKSERVER_HTTP_URL);
+    private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
 
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
             Network network,
-            PostgreSQLContainer<? extends PostgreSQLContainer<?>> dbContainer,
+            PostgreSQLContainer<?> dbContainer,
             VerifierConfig config,
             String imageName,
             VerifierImageConfig verifierImageConfig,
+            ManagementAuthConfig managementAuthConfig,
             String tokenDirPath,
             ContainerLogConfig containerLogConfig) {
-        try (GenericContainer<?> container = new GenericContainer<>(imageName)) {
-            container
+        GenericContainer<?> container = new GenericContainer<>(imageName);
+        container
                     .withExposedPorts(8080)
                     .withEnv("VERIFIER_DID", config.getVerifierDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
@@ -68,13 +71,29 @@ public class VerifierContainerConfig {
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("verifier/metadata.json")), "/tmp/metadata.json")
-                    .waitingFor(Wait.forLogMessage(".*Started Application.*", 1))
+                    .waitingFor(Wait.forLogMessage(".*Started Application.*", 1).withStartupTimeout(STARTUP_TIMEOUT))
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .dependsOn(dbContainer);
 
             if (containerLogConfig.isVerifier()) {
                 container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")));
+            }
+
+            if (managementAuthConfig.isEnabled()) {
+                container
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
+                                managementAuthConfig.getContainerIssuerUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI",
+                                managementAuthConfig.getContainerIssuerUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI",
+                                managementAuthConfig.getContainerJwkSetUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI",
+                                managementAuthConfig.getContainerJwkSetUri())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWSALGORITHMS",
+                                managementAuthConfig.getJwsAlgorithms())
+                        .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWS_ALGORITHMS",
+                                managementAuthConfig.getJwsAlgorithms());
             }
 
             if (verifierImageConfig.isEnableHsm()) {
@@ -100,7 +119,6 @@ public class VerifierContainerConfig {
                 HSMContainerConfig.withTokenVolume(container, tokenDirPath);
             }
 
-            return container;
-        }
+        return container;
     }
 }

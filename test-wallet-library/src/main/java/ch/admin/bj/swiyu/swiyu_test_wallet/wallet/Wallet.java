@@ -6,6 +6,8 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
@@ -29,6 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -55,12 +58,14 @@ public class Wallet {
     public static final String DPOP = "DPoP";
 
     private final RestClient restClient;
-    private final ServiceLocationContext issuerContext;
-    private final ServiceLocationContext verifierContext;
+    private ServiceLocationContext issuerContext;
+    private ServiceLocationContext verifierContext;
 
     private boolean useEncryption = false;
     private boolean useDPoP = false;
     private boolean signedMetadataPreferred = false;
+    private String credentialRequestEncryptionEnc;
+    private String credentialResponseEncryptionEnc;
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
@@ -79,6 +84,28 @@ public class Wallet {
         this(restClient, issuerContext, verifierContext);
         this.useEncryption = useEncryption;
         this.generateDPoPKey();
+    }
+
+    public Wallet useIssuer(final IssuerHandle issuer) {
+        return useIssuer(issuer.serviceLocation());
+    }
+
+    public Wallet useIssuer(final ServiceLocationContext issuerContext) {
+        this.issuerContext = issuerContext;
+        return this;
+    }
+
+    public Wallet useVerifier(final VerifierHandle verifier) {
+        return useVerifier(verifier.serviceLocation());
+    }
+
+    public Wallet useVerifier(final ServiceLocationContext verifierContext) {
+        this.verifierContext = verifierContext;
+        return this;
+    }
+
+    public Wallet useComponents(final IssuerHandle issuer, final VerifierHandle verifier) {
+        return useIssuer(issuer).useVerifier(verifier);
     }
 
     public WalletBatchEntry createWalletBatchEntry() {
@@ -135,14 +162,11 @@ public class Wallet {
         } else {
             walletBatchEntry.setToken(collectToken(walletBatchEntry));
         }
-        walletBatchEntry.setCNonce(collectCNonce(walletBatchEntry));
-
         walletBatchEntry.setCredentialConfigurationSupported();
 
         walletBatchEntry.generateHolderKeys();
-        walletBatchEntry.createProofs();
 
-        CredentialResponse deferredCredentialTransactionIdResponse = postCredentialRequest(walletBatchEntry);
+        CredentialResponse deferredCredentialTransactionIdResponse = postCredentialRequestWithFreshProofs(walletBatchEntry);
 
         assertThat(deferredCredentialTransactionIdResponse)
                 .isNotNull();
@@ -280,7 +304,18 @@ public class Wallet {
 
     public List<String> getVerifiableCredentialFromIssuer(final WalletBatchEntry batchEntry) {
         CredentialResponse credentialResponse = postCredentialRequest(batchEntry);
+        return extractIssuedCredentials(batchEntry, credentialResponse);
+    }
 
+    private List<String> getVerifiableCredentialFromIssuerWithFreshProofs(final WalletBatchEntry batchEntry) {
+        CredentialResponse credentialResponse = postCredentialRequestWithFreshProofs(batchEntry);
+        return extractIssuedCredentials(batchEntry, credentialResponse);
+    }
+
+    private List<String> extractIssuedCredentials(
+            final WalletBatchEntry batchEntry,
+            final CredentialResponse credentialResponse
+    ) {
         assertThat(credentialResponse.getBody()).isNotNull();
         var credentialsElement = credentialResponse.getBody().get(CREDENTIALS);
         assertThat(credentialsElement).isNotNull();
@@ -296,6 +331,29 @@ public class Wallet {
         }
 
         return issued;
+    }
+
+    private CredentialResponse postCredentialRequestWithFreshProofs(final WalletBatchEntry batchEntry) {
+        batchEntry.setCNonce(collectCNonce(batchEntry));
+        batchEntry.createProofs();
+
+        try {
+            return postCredentialRequest(batchEntry);
+        } catch (HttpClientErrorException.BadRequest ex) {
+            if (!isHolderBindingProofTimeWindowError(ex)) {
+                throw ex;
+            }
+
+            batchEntry.setCNonce(collectCNonce(batchEntry));
+            batchEntry.createProofs();
+            return postCredentialRequest(batchEntry);
+        }
+    }
+
+    private boolean isHolderBindingProofTimeWindowError(final HttpClientErrorException.BadRequest ex) {
+        final String body = ex.getResponseBodyAsString();
+        return body.contains("\"error\":\"invalid_proof\"")
+                && body.contains("Holder Binding proof was not issued at an acceptable time");
     }
 
     private CredentialResponse postDeferredCredentialRequest(final WalletBatchEntry walletEntry) {
@@ -408,7 +466,10 @@ public class Wallet {
                 walletEntry.generateEphemeralEncryptionKey();
             }
 
-            var header = new JWEHeader.Builder(JWEAlgorithm.ECDH_ES, EncryptionMethod.A128GCM)
+            var header = new JWEHeader.Builder(
+                    JWEAlgorithm.ECDH_ES,
+                    EncryptionMethod.parse(resolveCredentialRequestEncryptionEnc(
+                            requestEncryptionMetadata.getEncValuesSupported())))
                     .contentType("JWT")
                     .compressionAlgorithm(CompressionAlgorithm.DEF)
                     .keyID(issuerKey.getKeyID())
@@ -557,15 +618,12 @@ public class Wallet {
             entry.setToken(collectToken(entry));
         }
 
-        entry.setCNonce(collectCNonce(entry));
-
         int effectiveCount = (count != null)
                 ? count
                 : entry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         entry.generateHolderKeys(effectiveCount);
-        entry.createProofs();
 
-        getVerifiableCredentialFromIssuer(entry);
+        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
 
         return entry;
     }
@@ -588,7 +646,7 @@ public class Wallet {
             final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
             var encryptionMetadata = metadata.getCredentialResponseEncryption();
             var responseEncryption = new CredentialResponseEncryption()
-                    .enc(encryptionMetadata.getEncValuesSupported().getFirst())
+                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
                     .jwk(jwk);
 
             requestDto.credentialResponseEncryption(responseEncryption);
@@ -659,6 +717,27 @@ public class Wallet {
         walletEntry.setCredentialResponse(completeCredentialResponse);
 
         return completeCredentialResponse;
+    }
+
+    String resolveCredentialResponseEncryptionEnc(final List<String> supportedEncValues) {
+        return resolveEncryptionEnc(supportedEncValues, credentialResponseEncryptionEnc);
+    }
+
+    private String resolveCredentialRequestEncryptionEnc(final List<String> supportedEncValues) {
+        return resolveEncryptionEnc(supportedEncValues, credentialRequestEncryptionEnc);
+    }
+
+    private String resolveEncryptionEnc(final List<String> supportedEncValues, final String requestedEnc) {
+        if (requestedEnc != null) {
+            return requestedEnc;
+        }
+
+        assertThat(supportedEncValues)
+                .as("issuer encryption metadata enc_values_supported")
+                .isNotNull()
+                .isNotEmpty();
+
+        return supportedEncValues.getFirst();
     }
 
     public String collectDPoPNonce(WalletEntry walletEntry) {

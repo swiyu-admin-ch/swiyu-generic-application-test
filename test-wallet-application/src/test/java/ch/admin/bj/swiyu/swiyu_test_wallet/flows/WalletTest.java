@@ -99,7 +99,7 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
     )
     void unboundDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
@@ -207,6 +207,10 @@ class WalletTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1B)
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet"
+    )
     void boundDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
         // Given
         final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();

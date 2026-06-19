@@ -131,7 +131,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-982",
+            key = "EIDOMNI-1100",
             summary = "Verifier trust-statement cache is scoped by verifier DID",
             description = """
                     Given two verification requests with different verifier DID overrides.
@@ -250,7 +250,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-984",
+            key = "EIDOMNI-1102",
             summary = "TP2-enriched verifier request object remains usable in a full wallet flow",
             description = """
                     Given a wallet holding a matching credential and a TP2-enriched verifier request object.
@@ -303,7 +303,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-985",
+            key = "EIDOMNI-1097",
             summary = "Verifier skips invalid idTS and keeps valid pvaTS",
             description = """
                     Given the registry returns an idTS with an invalid signature and a valid pvaTS.
@@ -346,7 +346,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-986",
+            key = "EIDOMNI-1099",
             summary = "Transient TMS outage omits verifier_info during negative-cache window",
             description = """
                     Given the registry temporarily fails idTS and pvaTS lookup.
@@ -388,7 +388,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-987",
+            key = "EIDOMNI-1098",
             summary = "Verifier registers and embeds vqPS on the fly",
             description = """
                     Given verification_purpose transparency metadata and a DCQL query.

@@ -18,17 +18,16 @@ public class DBContainerConfig {
     public static PostgreSQLContainer<?> createPostgreSQLContainer(
             Network network,
             ContainerLogConfig containerLogConfig) {
-        try (PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
+        PostgreSQLContainer<?> container = new PostgreSQLContainer<>(
                 DockerImageName
-                        .parse("postgres:15.14-alpine3.21"))) {
-            if (containerLogConfig.isDb()) {
-                container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)));
-            }
-            container.withNetwork(network);
-            container.withDatabaseName(DB_NAME);
-            container.withNetworkAliases(DB_NAME);
-            return container;
+                        .parse("postgres:15.14-alpine3.21"));
+        if (containerLogConfig.isDb()) {
+            container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(DB_NAME)));
         }
+        container.withNetwork(network);
+        container.withDatabaseName(DB_NAME);
+        container.withNetworkAliases(DB_NAME);
+        return container;
     }
 
     public static String getJdbcUrl(PostgreSQLContainer<?> dbContainer, String schema) {

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
 import com.google.gson.JsonObject;
+import com.nimbusds.jose.JWEObject;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 
@@ -104,6 +105,27 @@ public final class CredentialResponseAssert {
                 .isNotBlank();
 
         JWESupport.assertIsJWE(response.getRawBody());
+
+        return this;
+    }
+
+    public CredentialResponseAssert isResponseEncryptedWithEnc(final String expectedEnc) {
+        isResponseEncrypted();
+
+        try {
+            final String actualEnc = JWEObject.parse(response.getRawBody())
+                    .getHeader()
+                    .getEncryptionMethod()
+                    .getName();
+
+            Assertions.assertThat(actualEnc)
+                    .as("Credential response JWE enc header")
+                    .isEqualTo(expectedEnc);
+        } catch (Exception ex) {
+            throw new AssertionError(
+                    "Expected payload to be a valid encrypted JWE, but header parsing failed: " + ex.getMessage(),
+                    ex);
+        }
 
         return this;
     }
