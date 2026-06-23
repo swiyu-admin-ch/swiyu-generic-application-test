@@ -190,7 +190,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     }
 
     @Test
-    @XrayTest(key = "EIDOMNI-XXX", summary = "Credential error response is unencrypted when encryption parameters are missing", description = """
+    @XrayTest(key = "EIDOMNI-1109", summary = "Credential error response is unencrypted when encryption parameters are missing", description = """
             This test validates OID4VCI Section 8.3.1.2 for an issuer profile that requires payload encryption.
             When the wallet sends a Credential Request without the required encryption parameters, the issuer must
             reject the request with invalid_encryption_parameters and return the Credential Error Response as
