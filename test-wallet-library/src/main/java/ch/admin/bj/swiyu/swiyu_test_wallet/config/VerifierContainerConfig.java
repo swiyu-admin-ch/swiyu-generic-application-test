@@ -46,6 +46,7 @@ public class VerifierContainerConfig {
                     .withEnv("SIGNING_KEY", config.getVerifierAuthKeyPemString())
                     .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
+                    .withEnv("APPLICATION_CLIENT_ID_PREFIX", "decentralized_identifier")
                     .withEnv("URL_REWRITE_MAPPING", MOCKSERVER_URL_REWRITE_MAPPING)
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_KEY", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")

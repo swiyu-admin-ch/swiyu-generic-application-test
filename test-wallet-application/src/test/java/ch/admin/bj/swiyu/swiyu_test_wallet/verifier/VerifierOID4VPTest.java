@@ -41,6 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 class VerifierOID4VPTest extends BaseTest {
+    private static final String DECENTRALIZED_IDENTIFIER_CLIENT_ID_PREFIX = "decentralized_identifier:";
+
     @Test
     @XrayTest(
             key = "EIDOMNI-554",
@@ -88,9 +90,13 @@ class VerifierOID4VPTest extends BaseTest {
                 .as("Request object must contain client_id")
                 .isNotNull();
 
-        assertThat(payload.get("client_id_scheme").asText())
-                .as("Request object must contain did client_id_scheme")
-                .isEqualTo("did");
+        assertThat(payload.get("client_id").asText())
+                .as("Request object client_id must contain the OID4VP 1.0 Client Identifier Prefix")
+                .isEqualTo(DECENTRALIZED_IDENTIFIER_CLIENT_ID_PREFIX + verifierConfig.getVerifierDid());
+
+        assertThat(payload.get("client_id_scheme"))
+                .as("OID4VP 1.0 removes the deprecated client_id_scheme request parameter")
+                .isNull();
 
         assertThat(payload.get("response_uri").asText())
                 .as("Request object must contain response_uri")
@@ -156,9 +162,13 @@ class VerifierOID4VPTest extends BaseTest {
                 .as("Request object must contain client_id")
                 .isNotNull();
 
+        assertThat(requestObject.getClientId())
+                .as("Request object client_id must contain the OID4VP 1.0 Client Identifier Prefix")
+                .isEqualTo(DECENTRALIZED_IDENTIFIER_CLIENT_ID_PREFIX + verifierConfig.getVerifierDid());
+
         assertThat(requestObject.getClientIdScheme())
-                .as("Request object must contain did client_id_scheme")
-                .isEqualTo("did");
+                .as("OID4VP 1.0 removes the deprecated client_id_scheme request parameter")
+                .isNull();
 
         assertThat(requestObject.getResponseUri())
                 .as("Request object must contain response_uri")
