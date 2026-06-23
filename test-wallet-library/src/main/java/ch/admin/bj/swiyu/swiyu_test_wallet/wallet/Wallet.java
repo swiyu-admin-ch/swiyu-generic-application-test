@@ -581,6 +581,49 @@ public class Wallet {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
+    public void respondToVerificationWithError(
+            final RequestObject requestObject,
+            final String error,
+            final String errorDescription
+    ) {
+        respondToVerificationWithError(
+                PathSupport.toUri(requestObject.getResponseUri()),
+                requestObject.getState(),
+                error,
+                errorDescription
+        );
+    }
+
+    public void respondToVerificationWithError(
+            final URI responseUri,
+            final String state,
+            final String error,
+            final String errorDescription
+    ) {
+        final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+        formData.add("error", error);
+
+        if (errorDescription != null) {
+            formData.add("error_description", errorDescription);
+        }
+
+        if (state != null) {
+            formData.add("state", state);
+        }
+
+        final ResponseEntity<String> response = restClient.post()
+                .uri(verifierContext.getContextualizedUri(responseUri))
+                .headers(headers -> {
+                    headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+                    headers.add(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
+                })
+                .body(formData)
+                .retrieve()
+                .toEntity(String.class);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    }
+
     public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
         final String nonce = collectCNonce(batchEntry);
         batchEntry.generateHolderKeys();

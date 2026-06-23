@@ -21,6 +21,7 @@ import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -29,9 +30,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.net.URI;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.VERIFIER_URL;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
@@ -108,6 +111,38 @@ class VerifierPayloadEncryptionTest extends BaseTest {
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1108",
+            summary = "Accept unencrypted wallet error response for direct_post.jwt",
+            description = """
+                    This test validates OID4VP Section 8.3.1 for Response Mode direct_post.jwt.
+                    When the Wallet is unable to generate an encrypted Authorization Response, it may send an
+                    unencrypted error response using direct_post. The Verifier must accept that error response
+                    and close the verification as failed instead of rejecting it for missing encryption.
+                    """
+    )
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    void rejectVerification_whenWalletSendsUnencryptedErrorForDirectPostJwt_thenAcceptedAsFailure() {
+        // Given
+        final String errorDescription = "Wallet cannot generate encrypted response";
+        final ManagementResponse verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .encrypted()
+                .createManagementResponse();
+        final URI responseUri = URI.create("%s/oid4vp/api/request-object/%s/response-data"
+                .formatted(VERIFIER_URL, verification.getId()));
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+
+        // When
+        wallet.respondToVerificationWithError(responseUri, null, "access_denied", errorDescription);
+
+        // Then
+        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
     }
 
     @ParameterizedTest

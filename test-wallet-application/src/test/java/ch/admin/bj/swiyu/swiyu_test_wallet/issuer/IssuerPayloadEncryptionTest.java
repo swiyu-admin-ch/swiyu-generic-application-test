@@ -24,6 +24,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
+import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,14 +36,17 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
@@ -133,8 +137,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     }
 
     @Test
-    @XrayTest(key = "EIDOMNI-1080", summary = "Reject issuer payload encryption when unsupported enc is used", description = """
-            This test validates the issuer-side rejection boundaries for unsupported encryption methods.
+    @XrayTest(key = "EIDOMNI-1080", summary = "Reject issuer payload encryption with unencrypted JSON error response", description = """
+            This test validates the issuer-side rejection boundaries for unsupported encryption methods and OID4VCI
+            Section 8.3.1.2, which requires Credential Error Responses to remain unencrypted JSON responses.
             It first sends a Credential Request JWE with an unsupported enc header, then sends a valid encrypted
             Credential Request that asks for an unsupported Credential Response enc.
             """)
@@ -144,7 +149,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "A256GCM support is not available on these issuer tags"
     )
-    void credentialRequest_whenUnsupportedEncUsed_thenRejected() {
+    void credentialRequestErrors_whenUnsupportedEncUsed_thenRejectedUnencrypted() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
@@ -161,6 +166,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         ApiErrorAssert.assertThat(unsupportedRequestEnc)
                 .hasStatus(400)
                 .hasError("invalid_encryption_parameters");
+        assertCredentialErrorResponseIsUnencryptedJson(unsupportedRequestEnc);
         assertThat(errorJson(unsupportedRequestEnc).get("error_description"))
                 .contains("Unsupported encryption method")
                 .contains(UNSUPPORTED_ENC);
@@ -177,9 +183,42 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         ApiErrorAssert.assertThat(unsupportedResponseEnc)
                 .hasStatus(400)
                 .hasError("invalid_encryption_parameters");
+        assertCredentialErrorResponseIsUnencryptedJson(unsupportedResponseEnc);
         assertThat(errorJson(unsupportedResponseEnc).get("error_description"))
                 .contains("Requested encryption is not offered")
                 .contains(UNSUPPORTED_ENC);
+    }
+
+    @Test
+    @XrayTest(key = "EIDOMNI-XXX", summary = "Credential error response is unencrypted when encryption parameters are missing", description = """
+            This test validates OID4VCI Section 8.3.1.2 for an issuer profile that requires payload encryption.
+            When the wallet sends a Credential Request without the required encryption parameters, the issuer must
+            reject the request with invalid_encryption_parameters and return the Credential Error Response as
+            unencrypted JSON.
+            """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
+    )
+    void credentialRequest_whenEncryptionParametersMissing_thenCredentialErrorResponseIsUnencrypted() {
+        // Given
+        wallet.setUseEncryption(false);
+
+        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
+
+        // When
+        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
+                () -> wallet.collectOffer(toUri(offer.getOfferDeeplink())));
+
+        // Then
+        ApiErrorAssert.assertThat(ex)
+                .hasStatus(400)
+                .hasError("invalid_encryption_parameters");
+        assertCredentialErrorResponseIsUnencryptedJson(ex);
     }
 
     @Test
@@ -411,5 +450,28 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                 .hasStatus(400)
                 .hasError("invalid_encryption_parameters")
                 .hasErrorDescription("Request encryption is mandatory with content type set to application/jwt");
+    }
+
+    private static void assertCredentialErrorResponseIsUnencryptedJson(final HttpClientErrorException exception) {
+        final String rawBody = exception.getResponseBodyAsString();
+
+        assertThat(exception.getResponseHeaders())
+                .as("Credential Error Response headers")
+                .isNotNull();
+        assertThat(exception.getResponseHeaders().getContentType())
+                .as("Credential Error Response content type")
+                .isNotNull()
+                .satisfies(contentType ->
+                        assertThat(MediaType.APPLICATION_JSON.isCompatibleWith(contentType)).isTrue());
+        assertThat(rawBody)
+                .as("Credential Error Response body")
+                .isNotBlank();
+        assertThat(rawBody.trim())
+                .as("Credential Error Response body must be JSON, not a compact JWE")
+                .startsWith("{")
+                .endsWith("}");
+        assertThatThrownBy(() -> JWEObject.parse(rawBody))
+                .as("Credential Error Response must not be encrypted as JWE")
+                .isInstanceOf(ParseException.class);
     }
 }
