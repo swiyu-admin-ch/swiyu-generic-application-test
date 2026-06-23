@@ -138,8 +138,10 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .formatted(VERIFIER_URL, verification.getId()));
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
+        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+
         // When
-        wallet.respondToVerificationWithError(responseUri, null, "access_denied", errorDescription);
+        wallet.respondToVerificationWithError(responseUri, verificationDetails.getState(), "access_denied", errorDescription);
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
