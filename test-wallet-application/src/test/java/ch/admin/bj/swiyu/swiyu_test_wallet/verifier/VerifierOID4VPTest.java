@@ -277,7 +277,10 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("This feature is not available yet (Enable this test when // EIDOMNI-692: Remove the `|| true`)")
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This feature is not available yet the state is not checked yet"
+    )
     void unboundNonDeferredCredential_whenWrongState_thenRejected() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
