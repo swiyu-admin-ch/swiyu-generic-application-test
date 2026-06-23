@@ -1530,7 +1530,7 @@ components:
           description: List of supported JWE encryption algorithms
           items:
             type: string
-            pattern: ^A128GCM$
+            pattern: ^(A128GCM|A256GCM)$
           minItems: 1
         zip_values_supported:
           type: array
@@ -1565,7 +1565,7 @@ components:
           description: List of supported JWE encryption algorithms
           items:
             type: string
-            pattern: ^A128GCM$
+            pattern: ^(A128GCM|A256GCM)$
           minItems: 1
         zip_values_supported:
           type: array
