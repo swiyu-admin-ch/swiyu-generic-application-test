@@ -71,7 +71,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final String expectedAlgorithm = "ECDH-ES";
         final String expectedKeyType = "EC";
         final String expectedCurve = "P-256";
-        final String expectedEncAlgorithm = "A128GCM";
+        final String expectedEncAlgorithm = "A256GCM";
 
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
