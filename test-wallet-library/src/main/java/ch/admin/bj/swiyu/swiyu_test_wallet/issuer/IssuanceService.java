@@ -3,9 +3,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 public class IssuanceService {
@@ -20,7 +20,9 @@ public class IssuanceService {
     }
 
     public IssuerMetadata getWellKnownCredentialIssuerInfo() {
-        return wellKnownApi.getIssuerMetadata();
+        return JsonConverter.objectMapper().convertValue(
+                wellKnownApi.getIssuerMetadata(MediaType.APPLICATION_JSON_VALUE),
+                IssuerMetadata.class);
     }
 
     public OAuthAuthorizationServerMetadata getWellKnownOpenIdConfiguration() {

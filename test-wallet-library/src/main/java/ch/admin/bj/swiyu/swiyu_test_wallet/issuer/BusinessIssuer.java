@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
 import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -156,7 +157,7 @@ public class BusinessIssuer {
     }
 
     public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, Map<String, Object> body) {
-        return credentialApi.updateCredentialForDeferredFlow(id, body);
+        return credentialApi.updateCredentialForDeferredFlow(id, JsonConverter.toJsonString(body));
     }
 
     public void updateVcStatus(UUID id,
