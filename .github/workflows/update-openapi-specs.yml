@@ -1,0 +1,203 @@
+name: Update OpenAPI Specs
+
+on:
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-openapi-specs
+  cancel-in-progress: false
+
+env:
+  ISSUER_SOURCE_URL: https://raw.githubusercontent.com/swiyu-admin-ch/swiyu-issuer/main/openapi.yaml
+  VERIFIER_SOURCE_URL: https://raw.githubusercontent.com/swiyu-admin-ch/swiyu-verifier/main/openapi.yaml
+  ISSUER_TARGET: test-wallet-library/src/main/resources/openapi-spec/issuer-api.yaml
+  VERIFIER_TARGET: test-wallet-library/src/main/resources/openapi-spec/verifier-api.yaml
+  UPDATE_BRANCH: automation/update-openapi-specs
+  PR_TITLE: 'chore(EIDOMNI-1126): Update issuer and verifier OpenAPI specs'
+  COMMIT_MESSAGE: 'chore(EIDOMNI-1126): Update issuer and verifier OpenAPI specs'
+
+jobs:
+  update-openapi-specs:
+    name: Update OpenAPI specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download upstream OpenAPI specs
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$RUNNER_TEMP/openapi-specs"
+
+          curl -fsSL --retry 3 --retry-delay 5 \
+            "$ISSUER_SOURCE_URL" \
+            -o "$RUNNER_TEMP/openapi-specs/issuer-api.yaml"
+
+          curl -fsSL --retry 3 --retry-delay 5 \
+            "$VERIFIER_SOURCE_URL" \
+            -o "$RUNNER_TEMP/openapi-specs/verifier-api.yaml"
+
+      - name: Normalize info.version and update local specs
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          version = "1.0.0"
+          files = [
+              (
+                  Path("${{ runner.temp }}/openapi-specs/issuer-api.yaml"),
+                  Path("test-wallet-library/src/main/resources/openapi-spec/issuer-api.yaml"),
+              ),
+              (
+                  Path("${{ runner.temp }}/openapi-specs/verifier-api.yaml"),
+                  Path("test-wallet-library/src/main/resources/openapi-spec/verifier-api.yaml"),
+              ),
+          ]
+
+          top_level_key = re.compile(r"^[A-Za-z0-9_.\"'-][^:]*:\s*(?:#.*)?$")
+          info_key = re.compile(r"^info:\s*(?:#.*)?$")
+          version_key = re.compile(r"^(\s*)version\s*:\s*.*$")
+
+          def normalize_info_version(content: str, source: Path) -> str:
+              lines = content.splitlines(keepends=True)
+              if not lines:
+                  raise ValueError(f"{source} is empty")
+
+              info_index = next((i for i, line in enumerate(lines) if info_key.match(line.rstrip("\r\n"))), None)
+              if info_index is None:
+                  raise ValueError(f"{source} does not contain a top-level info block")
+
+              block_end = len(lines)
+              for i in range(info_index + 1, len(lines)):
+                  stripped = lines[i].rstrip("\r\n")
+                  if stripped and not stripped.startswith((" ", "\t")) and top_level_key.match(stripped):
+                      block_end = i
+                      break
+
+              for i in range(info_index + 1, block_end):
+                  stripped = lines[i].rstrip("\r\n")
+                  match = version_key.match(stripped)
+                  if match:
+                      newline = "\n" if lines[i].endswith("\n") else ""
+                      lines[i] = f"{match.group(1)}version: {version}{newline}"
+                      return "".join(lines)
+
+              lines.insert(info_index + 1, f"  version: {version}\n")
+              return "".join(lines)
+
+          normalized = []
+          for source, target in files:
+              normalized.append((target, normalize_info_version(source.read_text(), source)))
+
+          for target, content in normalized:
+              target.write_text(content)
+          PY
+
+      - name: Detect OpenAPI spec changes
+        id: diff
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "$ISSUER_TARGET" "$VERIFIER_TARGET"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No OpenAPI spec changes detected." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "OpenAPI spec changes detected:";
+              git diff --name-only -- "$ISSUER_TARGET" "$VERIFIER_TARGET";
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Set up Java
+        if: steps.diff.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Validate generated OpenAPI clients compile
+        if: steps.diff.outputs.changed == 'true'
+        run: mvn -B -DskipTests compile
+
+      - name: Commit and push OpenAPI spec changes
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -c "$UPDATE_BRANCH"
+          git add "$ISSUER_TARGET" "$VERIFIER_TARGET"
+          git commit -m "$COMMIT_MESSAGE"
+
+          remote_sha="$(git ls-remote --heads origin "$UPDATE_BRANCH" | awk '{print $1}')"
+          if [ -n "$remote_sha" ]; then
+            git push \
+              --force-with-lease="refs/heads/$UPDATE_BRANCH:$remote_sha" \
+              origin "HEAD:refs/heads/$UPDATE_BRANCH"
+          else
+            git push origin "HEAD:refs/heads/$UPDATE_BRANCH"
+          fi
+
+      - name: Open or update pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          pr_body="$RUNNER_TEMP/openapi-spec-update-pr-body.md"
+          cat > "$pr_body" <<EOF
+          Updates the local OpenAPI specs used to generate test-wallet clients.
+
+          Sources:
+          - Issuer: $ISSUER_SOURCE_URL
+          - Verifier: $VERIFIER_SOURCE_URL
+
+          Notes:
+          - \`info.version\` is normalized to \`1.0.0\` in both files.
+          - Generated Java sources are not committed; Maven generation remains build-time only.
+          EOF
+
+          pr_number_file="$RUNNER_TEMP/openapi-spec-update-pr-number.txt"
+          if gh pr view "$UPDATE_BRANCH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json number,state \
+            --jq 'select(.state == "OPEN") | .number' \
+            > "$pr_number_file" 2>/dev/null; then
+            pr_number="$(cat "$pr_number_file")"
+          else
+            pr_number=""
+          fi
+
+          if [ -n "$pr_number" ]; then
+            echo "Pull request #$pr_number already exists for $UPDATE_BRANCH."
+            {
+              echo "Updated existing pull request #$pr_number.";
+              echo "Branch: $UPDATE_BRANCH";
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$UPDATE_BRANCH" \
+              --title "$PR_TITLE" \
+              --body-file "$pr_body"
+            echo "Created pull request for $UPDATE_BRANCH." >> "$GITHUB_STEP_SUMMARY"
+          fi
