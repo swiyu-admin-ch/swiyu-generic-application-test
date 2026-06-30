@@ -55,6 +55,7 @@ public class Wallet {
     public static final String SWIYU_API_VERSION_HEADER = "SWIYU-API-Version";
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String VP_TOKEN = "vp_token";
+    public static final String STATE = "state";
     public static final String DPOP = "DPoP";
 
     private final RestClient restClient;
@@ -564,7 +565,7 @@ public class Wallet {
             formData.add(VP_TOKEN, new Gson().toJson(vpToken));
 
             if (requestObject.getState() != null) {
-                formData.add("state", requestObject.getState());
+                formData.add(STATE, requestObject.getState());
             }
         }
 
@@ -608,7 +609,7 @@ public class Wallet {
         }
 
         if (state != null) {
-            formData.add("state", state);
+            formData.add(STATE, state);
         }
 
         final ResponseEntity<String> response = restClient.post()
@@ -897,7 +898,7 @@ public class Wallet {
             final Map<String, Object> responsePayload = new LinkedHashMap<>();
             responsePayload.put(VP_TOKEN, payload);
             if (requestObject.getState() != null) {
-                responsePayload.put("state", requestObject.getState());
+                responsePayload.put(STATE, requestObject.getState());
             }
             final String vpTokenPayload =
                     new ObjectMapper().writeValueAsString(responsePayload);
