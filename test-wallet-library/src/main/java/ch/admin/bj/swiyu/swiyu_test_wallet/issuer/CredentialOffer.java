@@ -41,7 +41,6 @@ public class CredentialOffer {
     public static CredentialOfferMetadataDto defaultMetadata() {
         CredentialOfferMetadataDto metadata = new CredentialOfferMetadataDto();
         metadata.setDeferred(false);
-        metadata.setVctHashIntegrity("sha256-SVHLfKfcZcBrw+d9EL/1EXxvGCdkQ7tMGvZmd0ysMck=");
 
         return metadata;
     }
