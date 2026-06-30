@@ -64,7 +64,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
     )
     void verifyDCQL_whenEncryptionRequired_thenSuccess(final String supportedMetadataId) {
