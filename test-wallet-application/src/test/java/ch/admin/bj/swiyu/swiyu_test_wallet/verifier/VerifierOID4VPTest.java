@@ -138,6 +138,10 @@ class VerifierOID4VPTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+        issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+        reason = "The client prefix is not available on theses tags"
+    )
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
