@@ -92,6 +92,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasDcqlQuery()
                 .hasResponseMode(ResponseModeType.DIRECT_POST_JWT)
+                .hasState()
                 .hasClientMetadata()
                 .hasEncryptionJwks()
                 .hasEncryptionJwksWithAlgorithm(expectedAlgorithm)
