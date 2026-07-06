@@ -51,7 +51,10 @@ public class VerifierContainerConfig {
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_KEY", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET", "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET")
-                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS", "10000")
+                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE",
+                            String.valueOf(verifierImageConfig.getTrustRegistryMaxCacheSize()))
+                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS",
+                            String.valueOf(verifierImageConfig.getTrustRegistryMaxCacheTtlSeconds()))
                     .withEnv("SWIYU_TMS_AUTHORING_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TMS_OAUTH_TOKEN_URL", config.getMockServerUri() + "/openid-connect/token")
                     .withEnv("SWIYU_TMS_OAUTH_CLIENT_ID", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")

@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@UseIssuers(IssuerVariant.SIGNED_METADATA)
+@UseIssuers(IssuerVariant.CACHED)
 public class IssuerTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();

@@ -10,6 +10,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED})
 class VerifierTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -62,6 +66,11 @@ class VerifierTrustStatementTest extends BaseTest {
             "swiyu-protected-verification-authorization-trust-statement+jwt";
     private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE =
             "swiyu-verification-query-public-statement+jwt";
+
+    @BeforeEach
+    void useDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
 
     @Test
     @XrayTest(
@@ -78,6 +87,7 @@ class VerifierTrustStatementTest extends BaseTest {
             reason = "The TP 2.0 is not available yet."
     )
     void tenantVerifierRequestObject_whenTp2Enabled_thenVerifierInfoContainsIdTsAndPvaTs() {
+        useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -144,6 +154,7 @@ class VerifierTrustStatementTest extends BaseTest {
             reason = "The TP 2.0 is not available yet."
     )
     void tenantVerifierRequestObject_whenVerifierDidChanges_thenTrustStatementCacheIsSubjectScoped() {
+        useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -202,6 +213,7 @@ class VerifierTrustStatementTest extends BaseTest {
             reason = "The TP 2.0 is not available yet."
     )
     void tenantVerifierRequestObject_whenTrustStatementExpReached_thenRefetchesFromTms() {
+        useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -317,6 +329,7 @@ class VerifierTrustStatementTest extends BaseTest {
     )
     @Disabled("Re-enable this test once EIDOMNI-959 is done and trust statement signature validation is active again.")
     void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped() {
+        useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -359,6 +372,7 @@ class VerifierTrustStatementTest extends BaseTest {
             reason = "The TP 2.0 is not available yet."
     )
     void tenantVerifierRequestObject_whenTmsTransientOutage_thenVerifierInfoIsTemporarilyOmitted() {
+        useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -467,6 +481,10 @@ class VerifierTrustStatementTest extends BaseTest {
                 trustConfig,
                 OBJECT_MAPPER
         );
+    }
+
+    private void useCachedVerifier() {
+        useVerifier(verifier(VerifierVariant.CACHED));
     }
 
     private ManagementResponse createVerification() {

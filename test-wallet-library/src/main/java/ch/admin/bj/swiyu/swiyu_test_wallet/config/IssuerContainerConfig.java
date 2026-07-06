@@ -52,7 +52,10 @@ public class IssuerContainerConfig {
                     .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET", "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET")
                     .withEnv("SWIYU_STATUS_REGISTRY_ACCESS_TOKEN", "SWIYU_STATUS_REGISTRY_ACCESS_TOKEN")
                     .withEnv("SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN", "SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN")
-                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS", "10000")
+                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE",
+                            String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheSize()))
+                    .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS",
+                            String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheTtlSeconds()))
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")

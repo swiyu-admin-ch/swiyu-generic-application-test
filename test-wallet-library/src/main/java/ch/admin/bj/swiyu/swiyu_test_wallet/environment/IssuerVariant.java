@@ -6,10 +6,14 @@ public enum IssuerVariant {
     DEFAULT("default", false, null, null, null, null),
     STRICT("strict", false, true, false, true, false),
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
+    CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, null, null, null),
     MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null);
+
+    private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
+    private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
 
     private final String surname;
     private final boolean hsm;
@@ -57,6 +61,10 @@ public enum IssuerVariant {
         if (encryptionEnforce != null) {
             config.setEncryptionEnforce(encryptionEnforce);
         }
+        if (this == CACHED) {
+            config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
+            config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
+        }
         return config;
     }
 
@@ -70,6 +78,8 @@ public enum IssuerVariant {
         target.setEnableJwtAuth(source.isEnableJwtAuth());
         target.setEncryptionEnforce(source.isEncryptionEnforce());
         target.setEnableHsm(source.isEnableHsm());
+        target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
+        target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());

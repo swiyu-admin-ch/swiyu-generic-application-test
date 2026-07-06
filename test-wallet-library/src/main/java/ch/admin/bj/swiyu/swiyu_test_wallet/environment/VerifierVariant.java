@@ -4,8 +4,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 
 public enum VerifierVariant {
     DEFAULT("default", false),
+    CACHED("cached", false),
     HSM("hsm", true),
     MANAGEMENT_KEYCLOAK("management_keycloak", false);
+
+    private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
+    private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
 
     private final String surname;
     private final boolean hsm;
@@ -27,6 +31,10 @@ public enum VerifierVariant {
         final VerifierImageConfig config = copy(template);
         config.setSurname(surname);
         config.setEnableHsm(hsm);
+        if (this == CACHED) {
+            config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
+            config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
+        }
         return config;
     }
 
@@ -37,6 +45,8 @@ public enum VerifierVariant {
         target.setSwiyuPartnerId(source.getSwiyuPartnerId());
         target.setSurname(source.getSurname());
         target.setEnableHsm(source.isEnableHsm());
+        target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
+        target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());

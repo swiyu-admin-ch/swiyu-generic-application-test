@@ -19,6 +19,8 @@ public class VerifierImageConfig {
 
     private String surname = "default";
     private boolean enableHsm = false;
+    private long trustRegistryMaxCacheSize = 0;
+    private long trustRegistryMaxCacheTtlSeconds = 0;
 
     private String hsmUser = "admin";
     private String hsmPassword = "password";
