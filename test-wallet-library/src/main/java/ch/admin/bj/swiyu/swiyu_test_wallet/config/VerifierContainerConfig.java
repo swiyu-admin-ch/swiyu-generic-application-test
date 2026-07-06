@@ -51,16 +51,14 @@ public class VerifierContainerConfig {
                     .withEnv("APPLICATION_CLIENT_ID_PREFIX", "decentralized_identifier")
                     .withEnv("URL_REWRITE_MAPPING", MOCKSERVER_URL_REWRITE_MAPPING)
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
-                    .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_KEY", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")
-                    .withEnv("SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET", "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET")
                     .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE",
                             String.valueOf(verifierImageConfig.getTrustRegistryMaxCacheSize()))
                     .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS",
                             String.valueOf(verifierImageConfig.getTrustRegistryMaxCacheTtlSeconds()))
                     .withEnv("SWIYU_TMS_AUTHORING_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TMS_OAUTH_TOKEN_URL", config.getMockServerUri() + "/openid-connect/token")
-                    .withEnv("SWIYU_TMS_OAUTH_CLIENT_ID", "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY")
-                    .withEnv("SWIYU_TMS_OAUTH_CLIENT_SECRET", "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET")
+                    .withEnv("SWIYU_TMS_OAUTH_CLIENT_ID", "SWIYU_TMS_OAUTH_CLIENT_ID")
+                    .withEnv("SWIYU_TMS_OAUTH_CLIENT_SECRET", "SWIYU_TMS_OAUTH_CLIENT_SECRET")
                     .withEnv("SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN", "SWIYU_TMS_BOOTSTRAP_REFRESH_TOKEN")
                     .withEnv("client_id_scheme", "did")
                     .withEnv("LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB_SERVLET_MVC_SUPPORT", "DEBUG")
