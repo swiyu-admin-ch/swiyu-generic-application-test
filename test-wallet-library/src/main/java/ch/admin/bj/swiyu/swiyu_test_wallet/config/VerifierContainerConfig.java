@@ -102,6 +102,20 @@ public class VerifierContainerConfig {
                                 managementAuthConfig.getJwsAlgorithms());
             }
 
+            if (verifierImageConfig.getJwkCacheTtlMillis() > 0) {
+                container.withEnv(
+                        "JWK_CACHE_TTL_MILLI",
+                        String.valueOf(verifierImageConfig.getJwkCacheTtlMillis())
+                );
+            }
+
+            if (verifierImageConfig.getTrustStatementCacheTtlMillis() > 0) {
+                container.withEnv(
+                        "TRUST_CACHE_TTL_MILLI",
+                        String.valueOf(verifierImageConfig.getTrustStatementCacheTtlMillis())
+                );
+            }
+
             if (verifierImageConfig.isEnableHsm()) {
                 container
                         .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)

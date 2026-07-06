@@ -163,6 +163,10 @@ public class MockServerClientConfig {
         }
     }
 
+    public void replaceDidLog(final String did, final String didLog) {
+        registerDidLog(did, didLog);
+    }
+
     public void registerTp2Routes(final MockServerClient mockServerClient,
                                   final IssuerConfig issuerConfig,
                                   final VerifierConfig verifierConfig,
@@ -175,6 +179,14 @@ public class MockServerClientConfig {
                 trustConfig,
                 OBJECT_MAPPER
         );
+    }
+
+    public String createLegacyIssuanceTrustStatement(final String vct, final IssuerConfig issuerConfig) {
+        try {
+            return generateTrustStatement(vct, issuerConfig, trustConfig);
+        } catch (JOSEException e) {
+            throw new IllegalStateException("Cannot generate legacy issuance trust statement", e);
+        }
     }
 
     private void clearTp2Routes(final MockServerClient mockServerClient) {
