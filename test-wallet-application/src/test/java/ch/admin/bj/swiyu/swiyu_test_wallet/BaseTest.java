@@ -364,6 +364,9 @@ public class BaseTest {
 
     @AfterAll
     void tearDown() throws Exception {
+        if (stmt != null && !stmt.isClosed()) {
+            stmt.close();
+        }
         if (connection != null && !connection.isClosed()) {
             connection.close();
         }

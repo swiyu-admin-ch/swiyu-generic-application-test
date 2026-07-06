@@ -24,6 +24,8 @@ public class VerifierContainerConfig {
     private static final String MOCKSERVER_URL_REWRITE_MAPPING =
             "{\"%s\":\"%s\"}".formatted(MOCKSERVER_HTTPS_URL, MOCKSERVER_HTTP_URL);
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
+    private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
+    private static final String DATASOURCE_MINIMUM_IDLE = "1";
 
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
@@ -68,6 +70,8 @@ public class VerifierContainerConfig {
                     .withEnv("POSTGRES_USER", dbContainer.getUsername())
                     .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                     .withEnv("POSTGRES_DB_SCHEMA", verifierImageConfig.getDbSchema())
+                    .withEnv("SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE", DATASOURCE_MAXIMUM_POOL_SIZE)
+                    .withEnv("SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE", DATASOURCE_MINIMUM_IDLE)
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
                     .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")

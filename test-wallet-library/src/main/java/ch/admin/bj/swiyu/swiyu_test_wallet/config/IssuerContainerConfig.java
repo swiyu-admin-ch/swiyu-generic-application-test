@@ -19,6 +19,8 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 public class IssuerContainerConfig {
 
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
+    private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
+    private static final String DATASOURCE_MINIMUM_IDLE = "1";
 
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
@@ -68,6 +70,8 @@ public class IssuerContainerConfig {
                     .withEnv("POSTGRES_USER", dbContainer.getUsername())
                     .withEnv("POSTGRES_PASSWORD", dbContainer.getPassword())
                     .withEnv("POSTGRES_DB_SCHEMA", issuerImageConfig.getDbSchema())
+                    .withEnv("SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE", DATASOURCE_MAXIMUM_POOL_SIZE)
+                    .withEnv("SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE", DATASOURCE_MINIMUM_IDLE)
                     .withEnv("VERIFICATION_PROOF_TIME_WINDOW_S", "10")
                     .withEnv("URL_REWRITE_MAPPING", "{\"\":\"\"}")
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(
