@@ -17,10 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,13 +34,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
     private static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
-    private static final String TRUST_REGISTRY_CUSTOMER_KEY = "SWIYU_TRUST_REGISTRY_CUSTOMER_KEY";
-    private static final String TRUST_REGISTRY_CUSTOMER_SECRET = "SWIYU_TRUST_REGISTRY_CUSTOMER_SECRET";
-    private static final String TRUST_REGISTRY_AUTHORIZATION =
-            "Basic " + Base64.getEncoder().encodeToString(
-                    (TRUST_REGISTRY_CUSTOMER_KEY + ":" + TRUST_REGISTRY_CUSTOMER_SECRET)
-                            .getBytes(StandardCharsets.UTF_8)
-            );
+
     @Test
     @XrayTest(
             key = "EIDOMNI-1014",
@@ -184,6 +176,49 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedIssuanceTrustList(protectedIssuanceTrustListBody);
         assertNonComplianceTrustList(nonComplianceTrustListBody);
         assertTrustStatusList(trustStatusListBody);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1075",
+            summary = "TP2 read-only trust registry routes do not require Basic Auth",
+            description = """
+                    This test validates that read-only TP2 trust registry routes can be
+                    consumed without the removed Trust Registry customer key/secret Basic Auth.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
+    void tp2ReadOnlyRoutes_whenAuthorizationHeaderMissing_thenExposeTrustStatements() throws Exception {
+        RestClient client = mockServerRestClient();
+
+        // Given / When
+        String identityListBody = client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v2/identity-trust-statement")
+                        .queryParam("sub", issuerConfig.getIssuerDid())
+                        .build())
+                .retrieve()
+                .body(String.class);
+
+        String protectedIssuanceAuthorizationListBody = client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v2/protected-issuance-authorization-trust-statement")
+                        .queryParam("sub", issuerConfig.getIssuerDid())
+                        .build())
+                .retrieve()
+                .body(String.class);
+
+        String protectedVerificationAuthorizationListBody = client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v2/protected-verification-authorization-trust-statement")
+                        .queryParam("sub", verifierConfig.getVerifierDid())
+                        .build())
+                .retrieve()
+                .body(String.class);
+
+        // Then
+        assertIdentityTrustStatementList(identityListBody);
+        assertProtectedIssuanceAuthorizationList(protectedIssuanceAuthorizationListBody);
+        assertProtectedVerificationAuthorizationList(protectedVerificationAuthorizationListBody);
     }
 
     @Test
@@ -610,7 +645,6 @@ class Tp2MockServerContractTest extends BaseTest {
                         mockServerContainer.getHost(),
                         mockServerContainer.getMappedPort(1080)
                 ))
-                .defaultHeader("Authorization", TRUST_REGISTRY_AUTHORIZATION)
                 .build();
     }
 
