@@ -554,8 +554,17 @@ public class Wallet {
     }
 
     public void respondToVerification(RequestObject requestObject, String token) {
+        final ResponseEntity<String> response = respondToVerificationWithVpTokens(requestObject, List.of(token));
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    }
+
+    public ResponseEntity<String> respondToVerificationWithVpTokens(
+            final RequestObject requestObject,
+            final List<String> tokens
+    ) {
         final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
-        final Map<String, Object> vpToken = Map.of(tokenId, List.of(token));
+        final Map<String, Object> vpToken = Map.of(tokenId, tokens);
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 
@@ -569,7 +578,7 @@ public class Wallet {
             }
         }
 
-        final ResponseEntity<String> response = restClient.post()
+        return restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
                     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE);
@@ -578,8 +587,6 @@ public class Wallet {
                 .body(formData)
                 .retrieve()
                 .toEntity(String.class);
-
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
     }
 
     public void respondToVerificationWithError(
