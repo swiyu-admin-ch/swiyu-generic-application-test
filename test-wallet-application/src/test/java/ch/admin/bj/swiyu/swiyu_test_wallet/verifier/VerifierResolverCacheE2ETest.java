@@ -8,16 +8,19 @@ import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -67,6 +70,10 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     When the TTL expires and the same credential is presented again.
                     Then the verifier re-resolves the issuer DID document and rejects the credential signed with the old key.
                     """)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This fix is not available yet"
+    )
     @Tag(ReportingTags.EDGE_CASE)
     void verification_whenJwkCacheTtlExpires_thenRotatedIssuerDidKeyIsResolvedAndCredentialRejected() {
         // Given
@@ -119,6 +126,10 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     When the TTL expires and another verification is performed.
                     Then the verifier re-queries the trust registry and rejects the now-untrusted issuer.
                     """)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "This fix is not available yet"
+    )
     @Tag(ReportingTags.EDGE_CASE)
     void verification_whenTrustStatementCacheTtlExpires_thenTrustRegistryIsQueriedAgain() {
         // Given
