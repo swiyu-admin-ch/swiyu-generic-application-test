@@ -180,7 +180,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1075",
+            key = "EIDOMNI-1166",
             summary = "TP2 read-only trust registry routes do not require Basic Auth",
             description = """
                     This test validates that read-only TP2 trust registry routes can be
@@ -222,6 +222,14 @@ class Tp2MockServerContractTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-1167",
+            summary = "TP2 TMS registration rejects requests without authorization or DCQL VCT metadata",
+            description = """
+                    This test validates that the TP2 TMS registration mock enforces the
+                    expected authorization header and rejects DCQL registration payloads
+                    whose credential metadata does not provide vct_values.
+                    """)
     void tmsRegistration_whenAuthorizationOrDcqlMetadataMissing_thenRejectsRequest() {
         RestClient client = mockServerRestClient();
 
@@ -258,6 +266,14 @@ class Tp2MockServerContractTest extends BaseTest {
     }
 
     @Test
+    @XrayTest(
+            key = "EIDOMNI-1168",
+            summary = "TP2 mock routes reject malformed registry queries and return empty unknown results",
+            description = """
+                    This test validates that TP2 mock registry list routes return empty
+                    paged results for unknown identifiers and reject malformed query
+                    parameters or invalid statement identifiers with the expected errors.
+                    """)
     void tp2MockRoutes_whenMalformedOrUnknownRegistryQueries_thenRejectOrReturnEmptyResults() throws Exception {
         RestClient client = mockServerRestClient();
 
