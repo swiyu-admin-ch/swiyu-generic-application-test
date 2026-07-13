@@ -47,6 +47,7 @@ public class IssuerContainerConfig {
                     .withEnv("SWIYU_STATUS_REGISTRY_TOKEN_URL", config.getMockServerUri() + "/openid-connect/token")
                     .withEnv("SWIYU_STATUS_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
+                    .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
                     .withEnv("SWIYU_PARTNER_ID", config.getSwiyuPartnerId())
                     .withEnv("SWIYU_STATUS_REGISTRY_CUSTOMER_KEY", "SWIYU_STATUS_REGISTRY_CUSTOMER_KEY")
                     .withEnv("SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET", "SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET")
