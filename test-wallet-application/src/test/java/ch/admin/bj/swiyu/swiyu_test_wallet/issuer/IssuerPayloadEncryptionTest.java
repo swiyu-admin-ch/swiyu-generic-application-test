@@ -449,7 +449,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
                 .hasError("invalid_encryption_parameters")
-                .hasErrorDescription("Request encryption is mandatory with content type set to application/jwt");
+                .hasErrorDescription(List.of("Request encryption is mandatory with content type set to application/jwt", "Request encryption is mandatory. Content type must be set to application/jwt"));
     }
 
     private static void assertCredentialErrorResponseIsUnencryptedJson(final HttpClientErrorException exception) {
