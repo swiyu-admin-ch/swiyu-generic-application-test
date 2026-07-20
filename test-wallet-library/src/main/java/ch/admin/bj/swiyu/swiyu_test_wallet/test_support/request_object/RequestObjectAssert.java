@@ -32,13 +32,6 @@ public final class RequestObjectAssert {
         return this;
     }
 
-    public RequestObjectAssert hasClientIdScheme(final String expectedScheme) {
-        Assertions.assertThat(requestObject.getClientIdScheme())
-                .as("request object client_id_scheme")
-                .isEqualTo(expectedScheme);
-        return this;
-    }
-
     public RequestObjectAssert hasResponseType(final String expectedResponseType) {
         Assertions.assertThat(requestObject.getResponseType())
                 .as("request object response_type")
@@ -176,4 +169,3 @@ public final class RequestObjectAssert {
         return this;
     }
 }
-
