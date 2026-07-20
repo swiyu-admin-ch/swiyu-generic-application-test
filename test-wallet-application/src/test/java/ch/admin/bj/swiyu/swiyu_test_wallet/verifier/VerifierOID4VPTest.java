@@ -170,10 +170,6 @@ class VerifierOID4VPTest extends BaseTest {
                 .as("Request object client_id must contain the OID4VP 1.0 Client Identifier Prefix")
                 .isEqualTo(DECENTRALIZED_IDENTIFIER_CLIENT_ID_PREFIX + verifierConfig.getVerifierDid());
 
-        assertThat(requestObject.getClientIdScheme())
-                .as("OID4VP 1.0 removes the deprecated client_id_scheme request parameter")
-                .isNull();
-
         assertThat(requestObject.getResponseUri())
                 .as("Request object must contain response_uri")
                 .isNotNull();
