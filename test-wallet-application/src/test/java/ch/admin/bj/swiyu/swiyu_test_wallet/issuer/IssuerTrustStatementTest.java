@@ -174,7 +174,6 @@ public class IssuerTrustStatementTest extends BaseTest {
                     Then metadata omits TP2 statements and the second fetch does not retry during the negative-cache window.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("This is not working, should reactivate this test when EIDOMNI-996 is fixed.")
     void tenantIssuerMetadata_whenTrustStatementFetchFails_thenNegativeCacheSuppressesImmediateRetry() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
