@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -53,6 +54,7 @@ import static org.awaitility.Awaitility.await;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED})
+@Isolated("Mutates shared TP2 MockServer routes and inspects global request counts")
 class VerifierTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()

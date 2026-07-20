@@ -71,6 +71,12 @@ public final class Tp2TrustStatementRouteSupport {
         registerPiaTsRoute(lifetime, PROTECTED_VCT, new AtomicInteger());
     }
 
+    public void registerIssuerEmptyPiaTsThenSuccess(Duration lifetime) {
+        clearIssuerRoutes();
+        registerIdentityRoute(lifetime, false, null);
+        registerPiaTsRoute(lifetime, PROTECTED_VCT, null, new AtomicInteger());
+    }
+
     public void registerVerifierSuccess(Duration lifetime) {
         clearVerifierRoutes();
         registerIdentityRoute(lifetime, false, null);
@@ -210,6 +216,13 @@ public final class Tp2TrustStatementRouteSupport {
     }
 
     private void registerPiaTsRoute(Duration lifetime, String vct, AtomicInteger transientFailures) {
+        registerPiaTsRoute(lifetime, vct, transientFailures, null);
+    }
+
+    private void registerPiaTsRoute(Duration lifetime,
+                                    String vct,
+                                    AtomicInteger transientFailures,
+                                    AtomicInteger emptyResponses) {
         mockServerClient.when(
                         request().withMethod("GET").withPath(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/?"),
                         Times.unlimited(),
@@ -222,6 +235,9 @@ public final class Tp2TrustStatementRouteSupport {
                                 .withStatusCode(503)
                                 .withHeader("Content-Type", "application/json")
                                 .withBody("{\"error\":\"temporary piaTS fetch failure\"}");
+                    }
+                    if (shouldFailOnce(emptyResponses)) {
+                        return responseFactory.jsonResponse(pagedContent());
                     }
 
                     String subject = httpRequest.getFirstQueryStringParameter("sub");

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -49,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.CACHED)
+@Isolated("Mutates shared TP2 MockServer routes and inspects global request counts")
 public class IssuerTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
@@ -167,14 +169,14 @@ public class IssuerTrustStatementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-973",
-            summary = "Issuer metadata suppresses immediate retry during TP2 negative-cache window",
+            summary = "Issuer metadata immediately retries after a TP2 connection failure",
             description = """
-                    Given the Trust Registry temporarily returns errors for idTS and piaTS.
+                    Given the Trust Registry returns connection errors once for idTS and piaTS, then recovers.
                     When the wallet fetches issuer metadata twice in immediate succession.
-                    Then metadata omits TP2 statements and the second fetch does not retry during the negative-cache window.
+                    Then the first metadata omits TP2 statements and the second fetch immediately retries and includes them.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    void tenantIssuerMetadata_whenTrustStatementFetchFails_thenNegativeCacheSuppressesImmediateRetry() {
+    void tenantIssuerMetadata_whenTrustRegistryConnectionRecovers_thenImmediatelyRetries() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -200,7 +202,63 @@ public class IssuerTrustStatementTest extends BaseTest {
             final String repeatedPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
 
             // Then
-            assertThat(repeatedMetadata.getCredentialIssuerIdentityTrustStatement()).isNull();
+            assertIdentityTrustStatement(
+                    repeatedMetadata.getCredentialIssuerIdentityTrustStatement(),
+                    issuerOverride.getIssuerDid()
+            );
+            assertProtectedIssuanceAuthorizationTrustStatement(
+                    repeatedPiaTs,
+                    issuerOverride.getIssuerDid(),
+                    PROTECTED_VCT
+            );
+            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 2);
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1179",
+            summary = "Issuer applies backoff when TP2 returns no valid piaTS",
+            description = """
+                    Given the Trust Registry is reachable and returns no piaTS, then would return a valid piaTS.
+                    When the wallet fetches issuer metadata twice in immediate succession.
+                    Then metadata omits piaTS and the second fetch reuses the negative result during the backoff window.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    void tenantIssuerMetadata_whenNoPiaTrustStatementReceived_thenAppliesBackoff() {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+
+        // Given
+        tp2Routes.registerIssuerEmptyPiaTsThenSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final ConfigurationOverride issuerOverride = uniqueIssuerOverride();
+        final WalletBatchEntry walletEntry = walletEntryWithProtectedOffer(issuerOverride);
+        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
+        final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests();
+
+        try {
+            // When
+            final IssuerMetadata firstMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String firstPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
+
+            // Then
+            assertIdentityTrustStatement(
+                    firstMetadata.getCredentialIssuerIdentityTrustStatement(),
+                    issuerOverride.getIssuerDid()
+            );
+            assertThat(firstPiaTs).isNull();
+            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+
+            // When
+            final IssuerMetadata repeatedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String repeatedPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
+
+            // Then
+            assertThat(repeatedMetadata.getCredentialIssuerIdentityTrustStatement())
+                    .isEqualTo(firstMetadata.getCredentialIssuerIdentityTrustStatement());
             assertThat(repeatedPiaTs).isNull();
             assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
             assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
