@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -168,15 +167,16 @@ public class IssuerTrustStatementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-973",
-            summary = "Issuer metadata suppresses immediate retry during TP2 negative-cache window",
+            summary = "Issuer retries TP2 trust statements after a transient registry outage",
             description = """
-                    Given the Trust Registry temporarily returns errors for idTS and piaTS.
-                    When the wallet fetches issuer metadata twice in immediate succession.
-                    Then metadata omits TP2 statements and the second fetch does not retry during the negative-cache window.
+                    Given the Trust Registry returns one transient error for idTS and piaTS before recovering.
+                    When the wallet fetches issuer metadata three times in immediate succession.
+                    Then the first response omits TP2 statements, the second retries and recovers, and the third reuses
+                    the validated statements from cache.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("This is not working, should reactivate this test when EIDOMNI-996 is fixed.")
-    void tenantIssuerMetadata_whenTrustStatementFetchFails_thenNegativeCacheSuppressesImmediateRetry() {
+    @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "The TP2.0 is not available yet")
+    void tenantIssuerMetadata_whenTrustStatementFetchFails_thenRetriesAndCachesRecovery() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
@@ -198,14 +198,33 @@ public class IssuerTrustStatementTest extends BaseTest {
             assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
 
             // When
-            final IssuerMetadata repeatedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
-            final String repeatedPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
+            final IssuerMetadata recoveredMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String recoveredIdTs = recoveredMetadata.getCredentialIssuerIdentityTrustStatement();
+            final String recoveredPiaTs = protectedIssuanceAuthorizationTrustStatement(
+                    walletEntry.getIssuerMetadataRaw()
+            );
 
             // Then
-            assertThat(repeatedMetadata.getCredentialIssuerIdentityTrustStatement()).isNull();
-            assertThat(repeatedPiaTs).isNull();
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 2);
+            assertIdentityTrustStatement(recoveredIdTs, issuerOverride.getIssuerDid());
+            assertProtectedIssuanceAuthorizationTrustStatement(
+                    recoveredPiaTs,
+                    issuerOverride.getIssuerDid(),
+                    PROTECTED_VCT
+            );
+
+            // When
+            final IssuerMetadata cachedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String cachedPiaTs = protectedIssuanceAuthorizationTrustStatement(
+                    walletEntry.getIssuerMetadataRaw()
+            );
+
+            // Then
+            assertThat(cachedMetadata.getCredentialIssuerIdentityTrustStatement()).isEqualTo(recoveredIdTs);
+            assertThat(cachedPiaTs).isEqualTo(recoveredPiaTs);
+            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 2);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }

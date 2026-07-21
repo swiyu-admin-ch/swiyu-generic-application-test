@@ -62,12 +62,14 @@ class Tp2TrustRegistryMockSupportTest {
     }
 
     @Test
-    void identityTrustStatement_whenRebuiltForSameSubject_thenKeepsStatementIdentifier() throws ParseException {
+    void identityTrustStatement_whenRebuiltForSameSubject_thenUsesNewStatementIdentifier() throws ParseException {
         SignedJWT first = SignedJWT.parse(statementFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid()));
         SignedJWT second = SignedJWT.parse(statementFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid()));
 
         assertThat(first.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
-        assertThat(second.getJWTClaimsSet().getJWTID()).isEqualTo(first.getJWTClaimsSet().getJWTID());
+        assertThat(second.getJWTClaimsSet().getJWTID())
+                .satisfies(this::assertUuidV4)
+                .isNotEqualTo(first.getJWTClaimsSet().getJWTID());
     }
 
     @Test
