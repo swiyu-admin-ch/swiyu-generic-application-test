@@ -682,7 +682,7 @@ class Tp2MockServerContractTest extends BaseTest {
         SignedJWT statement = SignedJWT.parse(content.getFirst());
         assertTrustStatementHeader(statement, "swiyu-identity-trust-statement+jwt");
         assertThat(statement.getJWTClaimsSet().getIssuer()).isNull();
-        assertThat(statement.getJWTClaimsSet().getJWTID()).isNull();
+        assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
         assertThat(statement.getJWTClaimsSet().getIssueTime()).isNotNull();
         assertThat(statement.getJWTClaimsSet().getNotBeforeTime()).isNotNull();
         assertThat(statement.getJWTClaimsSet().getExpirationTime()).isNotNull();

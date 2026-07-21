@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 final class Tp2TrustRegistryStatementFactory {
 
@@ -60,6 +62,7 @@ final class Tp2TrustRegistryStatementFactory {
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
     private final VerifierConfig verifierConfig;
+    private final ConcurrentMap<String, String> identityTrustStatementJtis = new ConcurrentHashMap<>();
     private final Map<String, PublishedVerificationQueryPublicStatement> publishedVerificationQueryPublicStatements =
             new HashMap<>();
 
@@ -102,6 +105,7 @@ final class Tp2TrustRegistryStatementFactory {
                         expiresAt(lifetime)
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
+                .withJti(identityTrustStatementJtis.computeIfAbsent(subject, ignored -> UUID.randomUUID().toString()))
                 .addEntityName(entityName)
                 .addEntityName(entityName, "en")
                 .addEntityName(entityName + " Schweiz", "de-CH")

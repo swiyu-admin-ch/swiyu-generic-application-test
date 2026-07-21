@@ -542,6 +542,9 @@ class VerifierTrustStatementTest extends BaseTest {
             assertThat(statement.split("\\.").length).isEqualTo(3);
             assertThat(JWSAlgorithm.ES256.equals(JwtSupport.parse(statement).getHeader().getAlgorithm())).isTrue();
             assertThat(statementProfileVersion(statement)).isEqualTo(TP2_PROFILE_VERSION);
+            final String jti = statementPayload(statement).path("jti").asText();
+            assertThat(jti).isNotBlank();
+            assertThat(UUID.fromString(jti).version()).isEqualTo(4);
         }
     }
 

@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
@@ -345,6 +346,8 @@ public class IssuerTrustStatementTest extends BaseTest {
 
             assertTrustStatementHeader(statement, IDENTITY_TRUST_STATEMENT_TYPE);
             assertThat(claimsSet.getSubject()).isEqualTo(expectedSubject);
+            assertThat(claimsSet.getJWTID()).isNotBlank();
+            assertThat(UUID.fromString(claimsSet.getJWTID()).version()).isEqualTo(4);
             assertThat(claimsSet.getIssueTime()).isNotNull();
             assertThat(claimsSet.getExpirationTime()).isNotNull();
             assertThat(claimsSet.getJSONObjectClaim("status")).containsKey("status_list");
