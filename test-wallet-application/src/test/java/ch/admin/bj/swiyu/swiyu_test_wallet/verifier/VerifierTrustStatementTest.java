@@ -94,8 +94,8 @@ class VerifierTrustStatementTest extends BaseTest {
         tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
         final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
         final ManagementResponse managementResponse = createVerification(verifierDid);
-        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests();
+        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(verifierDid);
+        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests(verifierDid);
 
         try {
             // When
@@ -118,8 +118,9 @@ class VerifierTrustStatementTest extends BaseTest {
                     verifierDid
             );
             assertThat(firstVerifierInfoEntry(firstVerifierInfo, VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE)).isBlank();
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 1);
 
             // When
             final JsonNode repeatedVerifierInfo = verifierInfo(wallet.getVerificationDetailSigned(
@@ -132,8 +133,9 @@ class VerifierTrustStatementTest extends BaseTest {
                     repeatedVerifierInfo,
                     PROTECTED_VERIFICATION_AUTHORIZATION_TRUST_STATEMENT_TYPE
             )).isEqualTo(firstPvaTs);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 1);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -220,8 +222,8 @@ class VerifierTrustStatementTest extends BaseTest {
         tp2Routes.registerVerifierSuccess(SHORT_TRUST_STATEMENT_LIFETIME);
         final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
         final ManagementResponse managementResponse = createVerification(verifierDid);
-        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests();
+        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(verifierDid);
+        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests(verifierDid);
 
         try {
             // When
@@ -253,8 +255,9 @@ class VerifierTrustStatementTest extends BaseTest {
                     PROTECTED_VERIFICATION_AUTHORIZATION_TRUST_STATEMENT_TYPE
             )).isNotBlank()
                     .isNotEqualTo(firstPvaTs);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 2);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 2);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -380,8 +383,8 @@ class VerifierTrustStatementTest extends BaseTest {
         tp2Routes.registerVerifierTransientErrorThenSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
         final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
         final ManagementResponse managementResponse = createVerification(verifierDid);
-        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests();
+        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(verifierDid);
+        final int pvaTsCallsBefore = tp2Routes.protectedVerificationAuthorizationRequests(verifierDid);
 
         try {
             // When
@@ -389,8 +392,9 @@ class VerifierTrustStatementTest extends BaseTest {
                     managementResponse.getVerificationDeeplink()
             ));
             assertVerifierInfoAbsent(firstVerifierInfo);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 1);
 
             // When
             final JsonNode recoveredVerifierInfo = verifierInfo(wallet.getVerificationDetailSigned(
@@ -406,8 +410,9 @@ class VerifierTrustStatementTest extends BaseTest {
             );
 
             // Then
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 2);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 2);
             assertVerifierInfoEntries(recoveredVerifierInfo);
             assertVerifierInfoStatementSubject(recoveredVerifierInfo, IDENTITY_TRUST_STATEMENT_TYPE, verifierDid);
             assertVerifierInfoStatementSubject(
@@ -428,8 +433,9 @@ class VerifierTrustStatementTest extends BaseTest {
                     cachedVerifierInfo,
                     PROTECTED_VERIFICATION_AUTHORIZATION_TRUST_STATEMENT_TYPE
             )).isEqualTo(recoveredPvaTs);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
-            assertThat(tp2Routes.protectedVerificationAuthorizationRequests()).isEqualTo(pvaTsCallsBefore + 2);
+            assertThat(tp2Routes.identityTrustStatementRequests(verifierDid)).isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedVerificationAuthorizationRequests(verifierDid))
+                    .isEqualTo(pvaTsCallsBefore + 2);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
