@@ -51,7 +51,7 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statement.getHeader().getAlgorithm().getName()).isEqualTo("ES256");
         assertThat(statement.getHeader().getKeyID()).isEqualTo(trustConfig.getTrustAssertKeyId());
         assertThat(statement.getJWTClaimsSet().getIssuer()).isNull();
-        assertThat(statement.getJWTClaimsSet().getJWTID()).isNull();
+        assertThat(statement.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
         assertThat(statement.getJWTClaimsSet().getIssueTime()).isNotNull();
         assertThat(statement.getJWTClaimsSet().getNotBeforeTime()).isNotNull();
         assertThat(statement.getJWTClaimsSet().getExpirationTime()).isNotNull();
@@ -59,6 +59,17 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statement.getJWTClaimsSet().getStringClaim("entity_name")).isEqualTo("Mock TP2 Issuer");
         assertThat(statement.getJWTClaimsSet().getJSONObjectClaim("status"))
                 .containsKey("status_list");
+    }
+
+    @Test
+    void identityTrustStatement_whenRebuiltForSameSubject_thenUsesNewStatementIdentifier() throws ParseException {
+        SignedJWT first = SignedJWT.parse(statementFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid()));
+        SignedJWT second = SignedJWT.parse(statementFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid()));
+
+        assertThat(first.getJWTClaimsSet().getJWTID()).satisfies(this::assertUuidV4);
+        assertThat(second.getJWTClaimsSet().getJWTID())
+                .satisfies(this::assertUuidV4)
+                .isNotEqualTo(first.getJWTClaimsSet().getJWTID());
     }
 
     @Test

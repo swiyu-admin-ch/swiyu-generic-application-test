@@ -102,6 +102,7 @@ final class Tp2TrustRegistryStatementFactory {
                         expiresAt(lifetime)
                 )
                 .withStatus(0, TP2_STATUS_LIST_URI)
+                .withJti(UUID.randomUUID().toString())
                 .addEntityName(entityName)
                 .addEntityName(entityName, "en")
                 .addEntityName(entityName + " Schweiz", "de-CH")
