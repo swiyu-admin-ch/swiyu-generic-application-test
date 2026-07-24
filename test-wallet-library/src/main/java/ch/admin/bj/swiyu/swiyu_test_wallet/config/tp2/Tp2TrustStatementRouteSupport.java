@@ -12,6 +12,7 @@ import org.mockserver.model.HttpRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -150,12 +151,25 @@ public final class Tp2TrustStatementRouteSupport {
                 + recordedGetRequests(IDENTITY_TRUST_STATEMENT_PATH + "/.+");
     }
 
+    public int identityTrustStatementRequests(String subject) {
+        return recordedGetRequestsWithQuerySubject(IDENTITY_TRUST_STATEMENT_PATH + "/?", subject)
+                + recordedGetRequestsWithPathSubject(IDENTITY_TRUST_STATEMENT_PATH + "/.+", subject);
+    }
+
     public int protectedIssuanceAuthorizationRequests() {
         return recordedGetRequests(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/?");
     }
 
+    public int protectedIssuanceAuthorizationRequests(String subject) {
+        return recordedGetRequestsWithQuerySubject(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/?", subject);
+    }
+
     public int protectedVerificationAuthorizationRequests() {
         return recordedGetRequests(PROTECTED_VERIFICATION_AUTHORIZATION_PATH + "/?");
+    }
+
+    public int protectedVerificationAuthorizationRequests(String subject) {
+        return recordedGetRequestsWithQuerySubject(PROTECTED_VERIFICATION_AUTHORIZATION_PATH + "/?", subject);
     }
 
     public int verificationQueryPublicStatementSubmissions() {
@@ -310,6 +324,24 @@ public final class Tp2TrustStatementRouteSupport {
         return mockServerClient.retrieveRecordedRequests(
                 request().withMethod("GET").withPath(path)
         ).length;
+    }
+
+    private int recordedGetRequestsWithQuerySubject(String path, String subject) {
+        return (int) Arrays.stream(mockServerClient.retrieveRecordedRequests(
+                        request().withMethod("GET").withPath(path)
+                ))
+                .filter(recordedRequest -> subject.equals(
+                        recordedRequest.getFirstQueryStringParameter("sub")
+                ))
+                .count();
+    }
+
+    private int recordedGetRequestsWithPathSubject(String path, String subject) {
+        return (int) Arrays.stream(mockServerClient.retrieveRecordedRequests(
+                        request().withMethod("GET").withPath(path)
+                ))
+                .filter(recordedRequest -> subject.equals(extractLastPathSegment(recordedRequest)))
+                .count();
     }
 
     private String tamperJwtSignature(String jwt) {

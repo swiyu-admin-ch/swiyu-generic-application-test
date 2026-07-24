@@ -467,14 +467,16 @@ public class MockServerClientConfig {
 
         final String statusBits = statusListBitsMap.getOrDefault(statusListId,
                 "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ");
+        final Date issuedAt = new Date();
 
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(httpRequest.getPath().getValue())
+                .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))
                 .issuer(issuerConfig.getIssuerDid())
+                .issueTime(issuedAt)
                 .claim("status_list", Map.of(
                         "bits", "2",
                         "lst", statusBits))
-                .expirationTime(new Date(new Date().getTime() + 60 * 1000))
+                .expirationTime(new Date(issuedAt.getTime() + 60 * 1000))
                 .build();
 
         final SignedJWT signedJWT = new SignedJWT(
