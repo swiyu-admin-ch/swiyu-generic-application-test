@@ -99,7 +99,7 @@ public class RevocationFlowTest extends BaseTest {
 
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Revoked!")
+                    .hasErrorDescription("Credential is not valid")
                     .hasDetail("credential_revoked")
                     .hasErrorCode("credential_revoked");
 
@@ -165,7 +165,7 @@ public class RevocationFlowTest extends BaseTest {
 
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential has been Suspended!")
+                    .hasErrorDescription("Credential is suspended")
                     .hasDetail("credential_suspended")
                     .hasErrorCode("credential_suspended");
 

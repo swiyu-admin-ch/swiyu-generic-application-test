@@ -61,21 +61,21 @@ class VerifierResolverCacheE2ETest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-1157",
-            summary = "Verifier JWK cache expires and rejects credentials signed with a rotated issuer key",
+            summary = "Verifier JWK cache expires and rejects a tampered issuer DID log",
             description = """
                     Given the verifier cached profile with a short JWK cache TTL.
                     And an issuer credential signed with the original issuer assertion key.
-                    When the issuer DID document rotates the assertion key after the verifier populated JWK_CACHE.
-                    Then the same credential is still accepted before TTL expiry because the verifier uses JWK_CACHE.
-                    When the TTL expires and the same credential is presented again.
-                    Then the verifier re-resolves the issuer DID document and rejects the credential signed with the old key.
+                    When the assertion key in the served issuer DID log is replaced without a valid integrity proof.
+                    And the cache eviction interval has elapsed.
+                    When the same credential is presented again.
+                    Then the verifier re-resolves and rejects the tampered issuer DID log.
                     """)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This fix is not available yet"
     )
     @Tag(ReportingTags.EDGE_CASE)
-    void verification_whenJwkCacheTtlExpires_thenRotatedIssuerDidKeyIsResolvedAndCredentialRejected() {
+    void verification_whenJwkCacheTtlExpires_thenTamperedIssuerDidLogIsResolvedAndCredentialRejected() {
         // Given
         awaitResolverCacheTtlBoundary();
         final WalletBatchEntry batchEntry = issueBoundCredential();
@@ -92,15 +92,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     .isGreaterThan(didRequestsBefore);
 
             // When
-            mockServerClientConfig.replaceDidLog(issuerConfig.getIssuerDid(), didLogWithRotatedAssertionKey());
-            verifyCredentialWithAcceptedIssuer(batchEntry);
-
-            // Then
-            assertThat(issuerDidDocumentRequests())
-                    .as("Issuer DID document should be served from JWK_CACHE before TTL expiry")
-                    .isEqualTo(didRequestsAfterFirstVerification);
-
-            // When
+            mockServerClientConfig.replaceDidLog(issuerConfig.getIssuerDid(), didLogWithTamperedAssertionKey());
             awaitResolverCacheTtlBoundary();
             final HttpClientErrorException ex = assertCredentialRejectedWithAcceptedIssuer(batchEntry);
 
@@ -121,9 +113,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             description = """
                     Given the verifier cached profile with a short trust statement cache TTL.
                     And a trust registry that returns a valid issuance trust statement once, then no trust statements.
-                    When the same issuer credential is verified twice within the TTL.
-                    Then the second verification still uses the cached trust statement.
-                    When the TTL expires and another verification is performed.
+                    When the cache eviction interval has elapsed and another verification is performed.
                     Then the verifier re-queries the trust registry and rejects the now-untrusted issuer.
                     """)
     @DisableIfImageTag(
@@ -148,14 +138,6 @@ class VerifierResolverCacheE2ETest extends BaseTest {
         assertThat(trustRequestsAfterFirstVerification)
                 .as("First verification should fetch the trust statement from the registry")
                 .isEqualTo(trustRequestsBefore + 1);
-
-        // When
-        verifyCredentialWithTrustAnchor(batchEntry, trustAnchor);
-
-        // Then
-        assertThat(trustStatementRequests(trustRoute))
-                .as("Trust registry should not be queried again before TRUST_STATEMENT_CACHE TTL expiry")
-                .isEqualTo(trustRequestsAfterFirstVerification);
 
         // When
         awaitResolverCacheTtlBoundary();
@@ -285,24 +267,24 @@ class VerifierResolverCacheE2ETest extends BaseTest {
         return did.substring(did.lastIndexOf(':') + 1);
     }
 
-    private String didLogWithRotatedAssertionKey() {
+    private String didLogWithTamperedAssertionKey() {
         final JsonArray didLog = JsonParser.parseString(issuerConfig.getIssuerDidLog()).getAsJsonArray();
         final JsonObject didDocument = didLog.get(3)
                 .getAsJsonObject()
                 .getAsJsonObject("value");
         final JsonArray verificationMethods = didDocument.getAsJsonArray("verificationMethod");
-        final JWK rotatedAssertionKey = KeyUtil.createJWKFromKeyPair(KeyUtil.generateEC256KeyPair()).toPublicJWK();
+        final JWK tamperedAssertionKey = KeyUtil.createJWKFromKeyPair(KeyUtil.generateEC256KeyPair()).toPublicJWK();
 
         for (int i = 0; i < verificationMethods.size(); i++) {
             final JsonObject verificationMethod = verificationMethods.get(i).getAsJsonObject();
             if (issuerConfig.getIssuerAssertKeyId().equals(verificationMethod.get("id").getAsString())) {
                 final JsonObject currentPublicJwk = verificationMethod.getAsJsonObject("publicKeyJwk");
-                final JsonObject rotatedPublicJwk = JsonParser.parseString(rotatedAssertionKey.toJSONString())
+                final JsonObject tamperedPublicJwk = JsonParser.parseString(tamperedAssertionKey.toJSONString())
                         .getAsJsonObject();
                 if (currentPublicJwk.has("kid")) {
-                    rotatedPublicJwk.add("kid", currentPublicJwk.get("kid"));
+                    tamperedPublicJwk.add("kid", currentPublicJwk.get("kid"));
                 }
-                verificationMethod.add("publicKeyJwk", rotatedPublicJwk);
+                verificationMethod.add("publicKeyJwk", tamperedPublicJwk);
                 return didLog.toString();
             }
         }

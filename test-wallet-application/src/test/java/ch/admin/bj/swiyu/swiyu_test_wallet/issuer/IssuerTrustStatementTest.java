@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
@@ -83,8 +85,8 @@ public class IssuerTrustStatementTest extends BaseTest {
         final WalletBatchEntry walletEntry = walletEntryWithProtectedOffer(issuerOverride);
 
         try {
-            final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-            final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests();
+            final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid());
+            final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid());
 
             // When
             final IssuerMetadata firstMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
@@ -94,8 +96,10 @@ public class IssuerTrustStatementTest extends BaseTest {
             // Then
             assertIdentityTrustStatement(firstIdTs, issuerOverride.getIssuerDid());
             assertProtectedIssuanceAuthorizationTrustStatement(firstPiaTs, issuerOverride.getIssuerDid(), PROTECTED_VCT);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 1);
 
             // When
             final IssuerMetadata repeatedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
@@ -104,8 +108,10 @@ public class IssuerTrustStatementTest extends BaseTest {
             // Then
             assertThat(repeatedMetadata.getCredentialIssuerIdentityTrustStatement()).isEqualTo(firstIdTs);
             assertThat(repeatedPiaTs).isEqualTo(firstPiaTs);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 1);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -131,8 +137,8 @@ public class IssuerTrustStatementTest extends BaseTest {
         final WalletBatchEntry walletEntry = walletEntryWithProtectedOffer(issuerOverride);
 
         try {
-            final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-            final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests();
+            final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid());
+            final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid());
 
             // When
             final IssuerMetadata firstMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
@@ -157,8 +163,10 @@ public class IssuerTrustStatementTest extends BaseTest {
                     .as("Expired piaTS must be refetched")
                     .isNotBlank()
                     .isNotEqualTo(firstPiaTs);
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 2);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 2);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 2);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -167,25 +175,44 @@ public class IssuerTrustStatementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-973",
-            summary = "Issuer metadata suppresses immediate retry during TP2 negative-cache window",
+            summary = "Issuer retries TP2 trust statements after a transient registry outage",
             description = """
-                    Given the Trust Registry temporarily returns errors for idTS and piaTS.
-                    When the wallet fetches issuer metadata twice in immediate succession.
-                    Then metadata omits TP2 statements and the second fetch does not retry during the negative-cache window.
+                    Given issuer A previously received valid statements and the Trust Registry returns one transient
+                    error for issuer B's idTS and piaTS before recovering.
+                    When the wallet fetches issuer B's metadata three times in immediate succession.
+                    Then the first response does not reuse issuer A's statements, the second retries and recovers, and
+                    the third reuses issuer B's validated statements from cache.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("This is not working, should reactivate this test when EIDOMNI-996 is fixed.")
-    void tenantIssuerMetadata_whenTrustStatementFetchFails_thenNegativeCacheSuppressesImmediateRetry() {
+    @Disabled("Wait on fix : EIDOMNI-1185")
+    void tenantIssuerMetadata_whenTrustStatementFetchFails_thenRetriesAndCachesRecovery() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
         // Given
-        tp2Routes.registerIssuerTransientErrorThenSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
-        final ConfigurationOverride issuerOverride = uniqueIssuerOverride();
-        final WalletBatchEntry walletEntry = walletEntryWithProtectedOffer(issuerOverride);
-        final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests();
-        final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests();
-
+        tp2Routes.registerIssuerSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
         try {
+            final ConfigurationOverride previousIssuerOverride = uniqueIssuerOverride();
+            final WalletBatchEntry previousIssuerEntry = walletEntryWithOffer(
+                    previousIssuerOverride,
+                    CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
+            );
+            final IssuerMetadata previousIssuerMetadata = wallet.getIssuerWellKnownMetadata(previousIssuerEntry);
+            assertIdentityTrustStatement(
+                    previousIssuerMetadata.getCredentialIssuerIdentityTrustStatement(),
+                    previousIssuerOverride.getIssuerDid()
+            );
+            assertProtectedIssuanceAuthorizationTrustStatement(
+                    protectedIssuanceAuthorizationTrustStatement(previousIssuerEntry.getIssuerMetadataRaw()),
+                    previousIssuerOverride.getIssuerDid(),
+                    PROTECTED_VCT
+            );
+
+            tp2Routes.registerIssuerTransientErrorThenSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+            final ConfigurationOverride issuerOverride = uniqueIssuerOverride();
+            final WalletBatchEntry walletEntry = walletEntryWithProtectedOffer(issuerOverride);
+            final int idTsCallsBefore = tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid());
+            final int piaTsCallsBefore = tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid());
+
             // When
             final IssuerMetadata firstMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
             final String firstPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
@@ -193,18 +220,43 @@ public class IssuerTrustStatementTest extends BaseTest {
             // Then
             assertThat(firstMetadata.getCredentialIssuerIdentityTrustStatement()).isNull();
             assertThat(firstPiaTs).isNull();
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 1);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 1);
 
             // When
-            final IssuerMetadata repeatedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
-            final String repeatedPiaTs = protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw());
+            final IssuerMetadata recoveredMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String recoveredIdTs = recoveredMetadata.getCredentialIssuerIdentityTrustStatement();
+            final String recoveredPiaTs = protectedIssuanceAuthorizationTrustStatement(
+                    walletEntry.getIssuerMetadataRaw()
+            );
 
             // Then
-            assertThat(repeatedMetadata.getCredentialIssuerIdentityTrustStatement()).isNull();
-            assertThat(repeatedPiaTs).isNull();
-            assertThat(tp2Routes.identityTrustStatementRequests()).isEqualTo(idTsCallsBefore + 1);
-            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests()).isEqualTo(piaTsCallsBefore + 1);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 2);
+            assertIdentityTrustStatement(recoveredIdTs, issuerOverride.getIssuerDid());
+            assertProtectedIssuanceAuthorizationTrustStatement(
+                    recoveredPiaTs,
+                    issuerOverride.getIssuerDid(),
+                    PROTECTED_VCT
+            );
+
+            // When
+            final IssuerMetadata cachedMetadata = wallet.getIssuerWellKnownMetadata(walletEntry);
+            final String cachedPiaTs = protectedIssuanceAuthorizationTrustStatement(
+                    walletEntry.getIssuerMetadataRaw()
+            );
+
+            // Then
+            assertThat(cachedMetadata.getCredentialIssuerIdentityTrustStatement()).isEqualTo(recoveredIdTs);
+            assertThat(cachedPiaTs).isEqualTo(recoveredPiaTs);
+            assertThat(tp2Routes.identityTrustStatementRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(idTsCallsBefore + 2);
+            assertThat(tp2Routes.protectedIssuanceAuthorizationRequests(issuerOverride.getIssuerDid()))
+                    .isEqualTo(piaTsCallsBefore + 2);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -293,7 +345,15 @@ public class IssuerTrustStatementTest extends BaseTest {
     }
 
     private WalletBatchEntry walletEntryWithProtectedOffer(ConfigurationOverride configurationOverride) {
-        final CredentialWithDeeplinkResponse offer = createCredentialOffer(configurationOverride);
+        return walletEntryWithOffer(configurationOverride, PROTECTED_CREDENTIAL_CONFIGURATION_ID);
+    }
+
+    private WalletBatchEntry walletEntryWithOffer(ConfigurationOverride configurationOverride,
+                                                  String credentialConfigurationId) {
+        final CredentialWithDeeplinkResponse offer = createCredentialOffer(
+                configurationOverride,
+                credentialConfigurationId
+        );
         final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
         walletEntry.receiveDeepLinkAndValidateIt(toUri(offer.getOfferDeeplink()));
         return walletEntry;
@@ -307,10 +367,11 @@ public class IssuerTrustStatementTest extends BaseTest {
                 .verificationMethod(issuerDid + "#assert-key-01");
     }
 
-    private CredentialWithDeeplinkResponse createCredentialOffer(ConfigurationOverride configurationOverride) {
+    private CredentialWithDeeplinkResponse createCredentialOffer(ConfigurationOverride configurationOverride,
+                                                                 String credentialConfigurationId) {
         final StatusList statusList = createStatusList(configurationOverride);
         final CreateCredentialOfferRequest offerRequest = new CreateCredentialOfferRequest()
-                .metadataCredentialSupportedId(List.of(PROTECTED_CREDENTIAL_CONFIGURATION_ID))
+                .metadataCredentialSupportedId(List.of(credentialConfigurationId))
                 .credentialSubjectData(CredentialSubjectFixtures.completeEmployeeProfile())
                 .credentialMetadata(new CredentialOfferMetadataDto().deferred(false))
                 .offerValiditySeconds(86400)
@@ -345,6 +406,8 @@ public class IssuerTrustStatementTest extends BaseTest {
 
             assertTrustStatementHeader(statement, IDENTITY_TRUST_STATEMENT_TYPE);
             assertThat(claimsSet.getSubject()).isEqualTo(expectedSubject);
+            assertThat(claimsSet.getJWTID()).isNotBlank();
+            assertThat(UUID.fromString(claimsSet.getJWTID()).version()).isEqualTo(4);
             assertThat(claimsSet.getIssueTime()).isNotNull();
             assertThat(claimsSet.getExpirationTime()).isNotNull();
             assertThat(claimsSet.getJSONObjectClaim("status")).containsKey("status_list");
