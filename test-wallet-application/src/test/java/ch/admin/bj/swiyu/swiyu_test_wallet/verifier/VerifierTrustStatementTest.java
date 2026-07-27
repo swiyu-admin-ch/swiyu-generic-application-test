@@ -330,7 +330,6 @@ class VerifierTrustStatementTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
     )
-    @Disabled("Re-enable this test once EIDOMNI-959 is done and trust statement signature validation is active again.")
     void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped() {
         useCachedVerifier();
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
