@@ -184,7 +184,6 @@ public class IssuerTrustStatementTest extends BaseTest {
                     the third reuses issuer B's validated statements from cache.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Wait on fix : EIDOMNI-1185")
     void tenantIssuerMetadata_whenTrustStatementFetchFails_thenRetriesAndCachesRecovery() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
