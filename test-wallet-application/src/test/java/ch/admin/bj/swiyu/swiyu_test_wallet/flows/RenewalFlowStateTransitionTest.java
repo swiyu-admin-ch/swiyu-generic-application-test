@@ -167,7 +167,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential is not valid");
+                    .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"));
             verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
         }
 
@@ -185,7 +185,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential is not valid");
+                    .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"));
             verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
         }
     }
@@ -263,7 +263,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential is suspended");
+                    .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"));
             verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
         }
 
@@ -281,7 +281,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
             });
             ApiErrorAssert.assertThat(ex)
                     .hasError("invalid_transaction_data")
-                    .hasErrorDescription("Credential is suspended");
+                    .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"));
             verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
         }
 
