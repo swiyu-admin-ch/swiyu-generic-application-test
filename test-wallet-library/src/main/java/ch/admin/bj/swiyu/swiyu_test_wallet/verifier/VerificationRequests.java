@@ -41,7 +41,6 @@ public class VerificationRequests {
                 .format(DEFAULT_FORMAT)
                 .meta(meta)
                 .claims(claims)
-                .claimSets(null)
                 .requireCryptographicHolderBinding(withKeyBinding);
 
         return new DcqlQueryDto().credentials(List.of(credential));
