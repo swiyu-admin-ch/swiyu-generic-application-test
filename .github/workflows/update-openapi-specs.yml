@@ -1,4 +1,4 @@
-name: Update OpenAPI Specs
+name: Run OpenAPI Specs Tests
 
 on:
   schedule:
