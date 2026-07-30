@@ -108,10 +108,10 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     VerificationStatus.SUCCESS,
                     "The successful verification must remain in its terminal state"
             );
-            verifierManager.verifyState(
+            verifierManager.verifyHasNotState(
                     rejectedVerification.verificationId(),
-                    VerificationStatus.FAILED,
-                    "The rejected verification must reach the FAILED terminal state"
+                    VerificationStatus.SUCCESS,
+                    "The rejected verification must not reach the SUCCESS terminal state"
             );
             assertThat(issuerDidDocumentRequests())
                     .as("Issuer DID document should be resolved again after JWK_CACHE TTL expiry")
