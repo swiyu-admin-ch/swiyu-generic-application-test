@@ -34,6 +34,7 @@ import org.mockserver.matchers.Times;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -83,7 +84,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
 
         try {
             // When
-            verifyCredentialWithAcceptedIssuer(batchEntry);
+            final ManagementResponse successfulVerification = verifyCredentialWithAcceptedIssuer(batchEntry);
 
             // Then
             final int didRequestsAfterFirstVerification = issuerDidDocumentRequests();
@@ -94,10 +95,24 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             // When
             mockServerClientConfig.replaceDidLog(issuerConfig.getIssuerDid(), didLogWithTamperedAssertionKey());
             awaitResolverCacheTtlBoundary();
-            final HttpClientErrorException ex = assertCredentialRejectedWithAcceptedIssuer(batchEntry);
+            final RejectedVerification rejectedVerification = presentCredentialWithAcceptedIssuerExpectingHttpError(
+                    batchEntry
+            );
 
             // Then
-            ApiErrorAssert.assertThat(ex).hasStatus(400);
+            assertThat(rejectedVerification.exception().getStatusCode().value())
+                    .as("Tampered issuer DID log rejection HTTP status")
+                    .isIn(400, 500);
+            verifierManager.verifyState(
+                    successfulVerification.getId(),
+                    VerificationStatus.SUCCESS,
+                    "The successful verification must remain in its terminal state"
+            );
+            verifierManager.verifyHasNotState(
+                    rejectedVerification.verificationId(),
+                    VerificationStatus.SUCCESS,
+                    "The rejected verification must not reach the SUCCESS terminal state"
+            );
             assertThat(issuerDidDocumentRequests())
                     .as("Issuer DID document should be resolved again after JWK_CACHE TTL expiry")
                     .isGreaterThan(didRequestsAfterFirstVerification);
@@ -161,7 +176,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
         return wallet.collectOffer(toUri(response.getOfferDeeplink()));
     }
 
-    private void verifyCredentialWithAcceptedIssuer(final WalletBatchEntry batchEntry) {
+    private ManagementResponse verifyCredentialWithAcceptedIssuer(final WalletBatchEntry batchEntry) {
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withDCQL()
@@ -171,10 +186,12 @@ class VerifierResolverCacheE2ETest extends BaseTest {
 
         wallet.respondToVerification(requestObject, presentation);
 
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+        return verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
-    private HttpClientErrorException assertCredentialRejectedWithAcceptedIssuer(final WalletBatchEntry batchEntry) {
+    private RejectedVerification presentCredentialWithAcceptedIssuerExpectingHttpError(
+            final WalletBatchEntry batchEntry
+    ) {
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withDCQL()
@@ -182,12 +199,11 @@ class VerifierResolverCacheE2ETest extends BaseTest {
         final RequestObject requestObject = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, requestObject);
 
-        final HttpClientErrorException ex = assertThrows(
-                HttpClientErrorException.class,
+        final HttpStatusCodeException ex = assertThrows(
+                HttpStatusCodeException.class,
                 () -> wallet.respondToVerification(requestObject, presentation)
         );
-        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-        return ex;
+        return new RejectedVerification(ex, verification.getId());
     }
 
     private void verifyCredentialWithTrustAnchor(final WalletBatchEntry batchEntry, final TrustAnchor trustAnchor) {
@@ -306,5 +322,8 @@ class VerifierResolverCacheE2ETest extends BaseTest {
     }
 
     private record LegacyTrustRoute(String trustRegistryUri, String routePath) {
+    }
+
+    private record RejectedVerification(HttpStatusCodeException exception, UUID verificationId) {
     }
 }

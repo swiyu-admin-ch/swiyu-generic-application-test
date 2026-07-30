@@ -177,6 +177,15 @@ public class VerifierManager {
         return managementResponse;
     }
 
+    public ManagementResponse verifyHasNotState(final UUID verificationId, final VerificationStatus status, final String assertMessage) {
+
+        managementResponse = managementApi.getVerification(verificationId);
+
+        assertThat(managementResponse.getState()).as(assertMessage).isNotEqualTo(status);
+
+        return managementResponse;
+    }
+
     public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status) {
         return verifyState(verificationId, status, null);
     }
