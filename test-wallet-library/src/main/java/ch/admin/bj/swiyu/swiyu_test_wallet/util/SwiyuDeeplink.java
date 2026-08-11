@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -54,7 +54,7 @@ public class SwiyuDeeplink {
         }
 
         final List<String> result = new ArrayList<>();
-        final Iterator<JsonNode> it = ids.elements();
+        final Iterator<JsonNode> it = ids.iterator();
         while (it.hasNext()) {
             result.add(it.next().asText());
         }

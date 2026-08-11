@@ -13,10 +13,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 import com.google.gson.*;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
@@ -71,8 +73,9 @@ public class Wallet {
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper objectMapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext) {
         this.restClient = restClient;
@@ -213,8 +216,9 @@ public class Wallet {
         walletEntry.setIssuerWellKnownConfigurationRaw(rawMetadata);
 
         try {
-            ObjectMapper mapper = new ObjectMapper()
-                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            ObjectMapper mapper = JsonMapper.builder()
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .build();
 
             return mapper.treeToValue(rawMetadata, OAuthAuthorizationServerMetadata.class);
 
@@ -253,10 +257,10 @@ public class Wallet {
         walletEntry.setIssuerMetadataRaw(rawMetadata);
 
         try {
-            final ObjectMapper mapper = new ObjectMapper()
-                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            final ObjectMapper mapper = JsonMapper.builder()
+                    .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .build();
 
             return mapper.treeToValue(rawMetadata, IssuerMetadata.class);
 
@@ -370,7 +374,7 @@ public class Wallet {
         String requestPayload;
         try {
             requestPayload = new ObjectMapper().writeValueAsString(request);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Cannot serialize deferred credential request", e);
         }
 
@@ -518,7 +522,9 @@ public class Wallet {
         }
 
         try {
-            final ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            final ObjectMapper mapper = JsonMapper.builder()
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .build();
             final RequestObject requestObject =
                     mapper.readValue(body, RequestObject.class);
             return new VerificationRequestObject.Unsigned(requestObject);
@@ -706,7 +712,7 @@ public class Wallet {
         final String requestPayload;
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Failed to serialize credential request payload", ex);
         }
 
@@ -869,7 +875,7 @@ public class Wallet {
         final String requestPayload;
         try {
             requestPayload = new ObjectMapper().writeValueAsString(requestDto);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("Failed to serialize credential request payload", ex);
         }
 

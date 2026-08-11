@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import org.apache.http.protocol.HTTP;
 import org.mockserver.model.HttpRequest;
@@ -32,7 +32,7 @@ final class Tp2MockServerResponseFactory {
                     .withStatusCode(HttpStatusCode.OK_200.code())
                     .withHeader(HTTP.CONTENT_TYPE, "application/json")
                     .withBody(objectMapper.writeValueAsString(body));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new TestSupportException("Cannot serialize MockServer response: " + e.getMessage());
         }
     }
@@ -98,7 +98,7 @@ final class Tp2MockServerResponseFactory {
         try {
             return objectMapper.readValue(request.getBodyAsString(), new TypeReference<>() {
             });
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("request body must be a JSON object");
         }
     }
