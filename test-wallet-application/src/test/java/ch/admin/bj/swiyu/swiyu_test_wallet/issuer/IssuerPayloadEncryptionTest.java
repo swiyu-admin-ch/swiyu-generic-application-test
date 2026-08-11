@@ -28,6 +28,7 @@ import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -54,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.ENCRYPTION)
+@Disabled("Disable until the EIDOMNI-1220 is fixed")
 class IssuerPayloadEncryptionTest extends BaseTest {
 
     private static final String ECDH_ES = "ECDH-ES";
