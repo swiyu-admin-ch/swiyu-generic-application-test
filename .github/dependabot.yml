@@ -12,15 +12,8 @@ updates:
       - "/test-wallet-library"
     schedule:
       interval: "weekly"
-    ignore:
-      - dependency-name: "org.springframework.boot:*" # Ignore major update to Spring boot 4 as it requires jackson 3, not compatible with current libraries defined in the pom.xml
-        versions: [ "4.x" ]
-      - dependency-name: "org.mock-server:*" # Ignore MockServer 7 as it introduces Jackson 3 dependencies; this project requires Jackson 2
-        versions: [ "7.x" ]
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-    ignore:
-      - dependency-name: "mockserver/mockserver" # Keep Docker MockServer aligned with Maven while Jackson 2 is required
-        versions: [ "7.x" ]
+      

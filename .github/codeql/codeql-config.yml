@@ -1,5 +1,10 @@
 name: "Advanced CodeQL Configuration"
 
+# Generated OpenAPI clients are build artifacts and must not produce findings.
+# This filter is effective for Java because the workflow uses build-mode: none.
+paths-ignore:
+  - '**/target/generated-sources/**'
+
 queries:
   - name: java-security-extended
     uses: java-security-extended
@@ -21,5 +26,3 @@ query-filters:
 
 # Extended analysis options
 disable-default-queries: false
-
-build-mode: manual
