@@ -13,7 +13,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import tools.jackson.core.JacksonException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -608,7 +608,7 @@ class DPoPFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void dpopMitmAttackPrevention_rejectUriTampering() throws JsonProcessingException {
+    void dpopMitmAttackPrevention_rejectUriTampering() throws JacksonException {
         CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
         assertThat(offer).isNotNull();

@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class Tp2TrustRegistryMockSupportTest {
         trustConfig = buildTrustConfig();
         issuerConfig = buildIssuerConfig();
         statementFactory = new Tp2TrustRegistryStatementFactory(issuerConfig, trustConfig);
-        responseFactory = new Tp2MockServerResponseFactory(new ObjectMapper().findAndRegisterModules());
+        responseFactory = new Tp2MockServerResponseFactory(new ObjectMapper());
     }
 
     @Test

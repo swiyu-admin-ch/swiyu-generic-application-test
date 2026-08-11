@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import org.assertj.core.api.Assertions;

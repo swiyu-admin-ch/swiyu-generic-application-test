@@ -3,9 +3,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -203,7 +203,7 @@ public class WalletBatchEntry extends WalletEntry {
         try {
             byte[] decoded = Base64.getUrlDecoder().decode(disclosure);
             String json = new String(decoded, StandardCharsets.UTF_8);
-            return new ObjectMapper().readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<Object>>() {});
+            return new ObjectMapper().readValue(json, new tools.jackson.core.type.TypeReference<List<Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException("Invalid disclosure: " + disclosure, e);
         }
@@ -213,7 +213,7 @@ public class WalletBatchEntry extends WalletEntry {
         Map<String, List<Object>> result = new HashMap<>();
 
         if (node.isObject()) {
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String key = entry.getKey();

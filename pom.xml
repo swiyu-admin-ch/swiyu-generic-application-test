@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.9</version>
+        <version>4.1.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <properties>
@@ -26,10 +26,10 @@
         <bitcoinj-core.version>0.17.1</bitcoinj-core.version>
         <java-json-canonicalization.version>1.1</java-json-canonicalization.version>
         <bouncycastle.version>1.85</bouncycastle.version>
-        <mockserver.version>5.15.0</mockserver.version>
+        <mockserver.version>7.5.0</mockserver.version>
         <postgresql.version>42.7.13</postgresql.version>
         <xray-junit.version>1.0.1</xray-junit.version>
-        <generic-java-lib.version>1.8.4</generic-java-lib.version>
+        <generic-java-lib.version>2.0.0</generic-java-lib.version>
         <!-- Plugin Versions -->
         <openapi-generator-maven-plugin.version>7.24.0</openapi-generator-maven-plugin.version>
         <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
@@ -123,23 +123,26 @@
                 <artifactId>xray-junit-extensions</artifactId>
                 <version>${xray-junit.version}</version>
             </dependency>
-            <!-- Misc -->
-            <dependency>
-                <groupId>com.github.java-json-tools</groupId>
-                <artifactId>jackson-coreutils</artifactId>
-                <version>2.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.java-json-tools</groupId>
-                <artifactId>jackson-coreutils-equivalence</artifactId>
-                <version>1.0</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <pluginManagement>
             <plugins>
+                <!-- Annotation Processing -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
                 <!-- OpenAPI Generator Plugin -->
                 <plugin>
                     <groupId>org.openapitools</groupId>
