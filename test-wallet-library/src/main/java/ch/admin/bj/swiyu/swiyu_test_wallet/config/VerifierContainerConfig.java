@@ -116,6 +116,13 @@ public class VerifierContainerConfig {
                 );
             }
 
+            if (verifierImageConfig.getRequestObjectTtlSeconds() > 0) {
+                container.withEnv(
+                        "APPLICATION_REQUESTOBJECTTTLSECONDS",
+                        String.valueOf(verifierImageConfig.getRequestObjectTtlSeconds())
+                );
+            }
+
             if (verifierImageConfig.isEnableHsm()) {
                 container
                         .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)
