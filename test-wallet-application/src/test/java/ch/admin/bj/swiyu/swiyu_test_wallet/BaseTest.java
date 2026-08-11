@@ -387,7 +387,7 @@ public class BaseTest {
             stmt.execute("ALTER TABLE " + tableName +
                     " ADD CONSTRAINT test_block_table CHECK (false) NOT VALID");
         } catch (SQLException e) {
-            throw new RuntimeException(String.format("The blocking of the table %s failed.", tableName), e);
+            throw new IllegalStateException(String.format("The blocking of the table %s failed.", tableName), e);
         }
     }
 
@@ -396,7 +396,7 @@ public class BaseTest {
             stmt.execute("ALTER TABLE " + tableName +
                     " DROP CONSTRAINT IF EXISTS test_block_table");
         } catch (SQLException e) {
-            throw new RuntimeException(String.format("The unblocking of the table %s failed.", tableName), e);
+            throw new IllegalStateException(String.format("The unblocking of the table %s failed.", tableName), e);
         }
     }
 }

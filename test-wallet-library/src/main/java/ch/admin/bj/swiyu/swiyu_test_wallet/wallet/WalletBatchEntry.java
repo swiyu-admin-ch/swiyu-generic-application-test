@@ -330,7 +330,7 @@ public class WalletBatchEntry extends WalletEntry {
     ) {
         List<Object> actualPath = resolveDisclosurePath(disclosure, digestToPath);
 
-        if (actualPath == null) {
+        if (actualPath.isEmpty()) {
             return new DisclosureMatch(false, false, Set.of());
         }
 
@@ -370,7 +370,7 @@ public class WalletBatchEntry extends WalletEntry {
             List<Object> actualPath,
             List<Object> requestedPath
     ) {
-        if (actualPath == null || requestedPath == null || requestedPath.isEmpty()) {
+        if (actualPath == null || actualPath.isEmpty() || requestedPath == null || requestedPath.isEmpty()) {
             return false;
         }
 
@@ -449,7 +449,7 @@ public class WalletBatchEntry extends WalletEntry {
         List<Object> parentPath = digestToPath.get(digest);
 
         if (parentPath == null) {
-            return null;
+            return List.of();
         }
 
         List<Object> parts = decodeDisclosure(disclosure);
