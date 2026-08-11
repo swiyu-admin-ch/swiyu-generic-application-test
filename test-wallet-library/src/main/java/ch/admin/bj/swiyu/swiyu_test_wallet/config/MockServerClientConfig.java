@@ -8,10 +8,11 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.JWK;
@@ -75,9 +76,10 @@ public class MockServerClientConfig {
 
     private final List<WebhookCallback> receivedIssuerCallbacks = new CopyOnWriteArrayList<>();
     private boolean throwStatusListError = false;
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules() // JavaTimeModule, etc.
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+            .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     public List<WebhookCallback> getIssuerCallbacks() {
         return receivedIssuerCallbacks;
@@ -325,7 +327,7 @@ public class MockServerClientConfig {
                                                 "credential_valid_from", validFrom,
                                                 "credential_valid_until", validUntil,
                                                 "status_lists", List.of(currentRenewalStatusList(httpRequest)))));
-                    } catch (JsonProcessingException e) {
+                    } catch (JacksonException e) {
                         throw new TestSupportException("Cannot parse correctly data");
                     }
                 });

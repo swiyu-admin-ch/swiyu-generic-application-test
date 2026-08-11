@@ -1,7 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.Getter;
@@ -55,8 +56,9 @@ public class JwtKeyGenerator {
             Map<String, Object> jwks = new LinkedHashMap<>();
             jwks.put("keys", List.of(jwk));
 
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            ObjectMapper mapper = JsonMapper.builder()
+                    .enable(SerializationFeature.INDENT_OUTPUT)
+                    .build();
             this.jwksAsJson = mapper.writeValueAsString(jwks);
 
             this.privateKeyPem = convertPrivateKeyToPem(keyPair.getPrivate());
@@ -100,7 +102,6 @@ public class JwtKeyGenerator {
                 "\n-----END PRIVATE KEY-----";
     }
 }
-
 
 
 
