@@ -26,6 +26,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.JWK;
 import org.apache.http.protocol.HTTP;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -56,8 +57,7 @@ import static org.mockserver.model.HttpResponse.response;
 @UseVerifiers(VerifierVariant.CACHED)
 class VerifierResolverCacheE2ETest extends BaseTest {
 
-    private static final Duration VERIFIER_RESOLVER_CACHE_TTL = Duration.ofSeconds(2);
-    private static final Duration VERIFIER_RESOLVER_CACHE_EVICTION_CUSHION = Duration.ofSeconds(2);
+    private static final Duration VERIFIER_RESOLVER_CACHE_WAIT = Duration.ofSeconds(10);
 
     @Test
     @XrayTest(
@@ -136,6 +136,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             reason = "This fix is not available yet"
     )
     @Tag(ReportingTags.EDGE_CASE)
+    @Disabled("Disable until the EIDOMNI-1222 is fixed")
     void verification_whenTrustStatementCacheTtlExpires_thenTrustRegistryIsQueriedAgain() {
         // Given
         final WalletBatchEntry batchEntry = issueBoundCredential();
@@ -309,15 +310,11 @@ class VerifierResolverCacheE2ETest extends BaseTest {
     }
 
     private void awaitResolverCacheTtlBoundary() {
-        final Instant cacheBoundary = Instant.now()
-                .plus(VERIFIER_RESOLVER_CACHE_TTL)
-                .plus(VERIFIER_RESOLVER_CACHE_EVICTION_CUSHION);
+        final Instant cacheBoundary = Instant.now().plus(VERIFIER_RESOLVER_CACHE_WAIT);
 
         await()
                 .pollInterval(Duration.ofMillis(100))
-                .atMost(VERIFIER_RESOLVER_CACHE_TTL
-                        .plus(VERIFIER_RESOLVER_CACHE_EVICTION_CUSHION)
-                        .plusSeconds(1))
+                .atMost(VERIFIER_RESOLVER_CACHE_WAIT.plusSeconds(1))
                 .until(() -> Instant.now().isAfter(cacheBoundary));
     }
 

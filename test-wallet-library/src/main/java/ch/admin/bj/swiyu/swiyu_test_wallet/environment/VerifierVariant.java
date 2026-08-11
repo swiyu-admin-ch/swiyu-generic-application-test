@@ -10,7 +10,8 @@ public enum VerifierVariant {
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
-    private static final long CACHED_RESOLVER_CACHE_TTL_MILLIS = 2_000;
+    private static final long CACHED_JWK_CACHE_TTL_MILLIS = 2_000;
+    private static final long CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS = 3_000;
 
     private final String surname;
     private final boolean hsm;
@@ -35,8 +36,8 @@ public enum VerifierVariant {
         if (this == CACHED) {
             config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
             config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
-            config.setJwkCacheTtlMillis(CACHED_RESOLVER_CACHE_TTL_MILLIS);
-            config.setTrustStatementCacheTtlMillis(CACHED_RESOLVER_CACHE_TTL_MILLIS);
+            config.setJwkCacheTtlMillis(CACHED_JWK_CACHE_TTL_MILLIS);
+            config.setTrustStatementCacheTtlMillis(CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS);
         }
         return config;
     }
