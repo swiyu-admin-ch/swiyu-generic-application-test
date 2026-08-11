@@ -81,13 +81,12 @@ public class Wallet {
         this.restClient = restClient;
         this.issuerContext = issuerContext;
         this.verifierContext = verifierContext;
-        this.generateDPoPKey();
+        initializeDPoPKey();
     }
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext, boolean useEncryption) {
         this(restClient, issuerContext, verifierContext);
         this.useEncryption = useEncryption;
-        this.generateDPoPKey();
     }
 
     public Wallet useIssuer(final IssuerHandle issuer) {
@@ -117,6 +116,10 @@ public class Wallet {
     }
 
     public void generateDPoPKey() {
+        initializeDPoPKey();
+    }
+
+    private void initializeDPoPKey() {
         dpopKeyPair = ECCryptoSupport.generateECKeyPair();
         dpopPublicKey = new ECKey.Builder(
                 Curve.P_256,
