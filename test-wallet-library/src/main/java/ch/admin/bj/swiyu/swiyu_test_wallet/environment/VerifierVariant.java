@@ -13,6 +13,7 @@ public enum VerifierVariant {
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
     private static final long CACHED_JWK_CACHE_TTL_MILLIS = 2_000;
     private static final long CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS = 3_000;
+    public static final int SHORT_LIVED_REQUEST_OBJECT_TTL_SECONDS = 2;
 
     private final String surname;
     private final boolean hsm;
