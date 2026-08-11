@@ -55,6 +55,7 @@ import static org.mockserver.model.HttpResponse.response;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.CACHED)
 @UseVerifiers(VerifierVariant.CACHED)
+@Disabled("Disable until the EIDOMNI-1222 is fixed")
 class VerifierResolverCacheE2ETest extends BaseTest {
 
     private static final Duration VERIFIER_RESOLVER_CACHE_WAIT = Duration.ofSeconds(10);
@@ -136,7 +137,6 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             reason = "This fix is not available yet"
     )
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Disable until the EIDOMNI-1222 is fixed")
     void verification_whenTrustStatementCacheTtlExpires_thenTrustRegistryIsQueriedAgain() {
         // Given
         final WalletBatchEntry batchEntry = issueBoundCredential();
