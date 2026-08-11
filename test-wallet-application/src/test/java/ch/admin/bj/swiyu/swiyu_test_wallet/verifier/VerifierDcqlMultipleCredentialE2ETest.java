@@ -12,10 +12,11 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -44,8 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class VerifierDcqlMultipleCredentialE2ETest extends BaseTest {
 
     private static final int SUBMITTED_CREDENTIAL_COUNT = 3;
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     @Test
     @XrayTest(
@@ -61,7 +63,7 @@ class VerifierDcqlMultipleCredentialE2ETest extends BaseTest {
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
     void dcqlPresentation_whenMultipleIsOmittedAndWalletSubmitsThreeCredentials_thenVerifierRejects()
-            throws JsonProcessingException {
+            throws JacksonException {
 
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(

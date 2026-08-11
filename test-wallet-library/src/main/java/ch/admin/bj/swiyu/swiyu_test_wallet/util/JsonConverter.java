@@ -1,17 +1,18 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.READ_ENUMS_USING_TO_STRING;
-import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_ENUMS_USING_TO_STRING;
+import static tools.jackson.databind.cfg.EnumFeature.READ_ENUMS_USING_TO_STRING;
+import static tools.jackson.databind.cfg.EnumFeature.WRITE_ENUMS_USING_TO_STRING;
 
 /**
  * Converts json strings to typed objects and vice versa using jackson.
@@ -22,17 +23,16 @@ public class JsonConverter {
     private static final ObjectMapper DEFAULT_OBJECT_MAPPER = createObjectMapper();
 
     private static ObjectMapper createObjectMapper() {
-        var objectMapper = new ObjectMapper();
-        objectMapper.enable(WRITE_ENUMS_USING_TO_STRING);
-        objectMapper.enable(READ_ENUMS_USING_TO_STRING);
-        objectMapper.findAndRegisterModules();
-        return objectMapper;
+        return JsonMapper.builder()
+                .enable(WRITE_ENUMS_USING_TO_STRING)
+                .enable(READ_ENUMS_USING_TO_STRING)
+                .build();
     }
 
     public static <T> T toObject(String json, Class<T> responseType) {
         try {
             return DEFAULT_OBJECT_MAPPER.readValue(json, responseType);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -40,7 +40,7 @@ public class JsonConverter {
     public static JsonNode toJsonNode(final String json) {
         try {
             return DEFAULT_OBJECT_MAPPER.readTree(json);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -62,7 +62,7 @@ public class JsonConverter {
         var writer = DEFAULT_OBJECT_MAPPER.writer().withDefaultPrettyPrinter();
         try {
             return writer.writeValueAsString(pojo);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException(e);
         }
     }
