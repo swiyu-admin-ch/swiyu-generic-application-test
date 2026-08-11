@@ -10,6 +10,9 @@
         Custom PMD ruleset for Java. MethodNamingConventions rule is intentionally omitted.
     </description>
 
+    <!-- Never analyze generated Maven sources, regardless of the configured PMD source path. -->
+    <exclude-pattern>.*/target/generated-sources/.*</exclude-pattern>
+
     <!-- Best practices -->
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
