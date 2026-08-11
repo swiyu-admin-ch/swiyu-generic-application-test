@@ -19,10 +19,11 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
@@ -55,9 +56,9 @@ import static org.awaitility.Awaitility.await;
 @UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED})
 class VerifierTrustStatementTest extends BaseTest {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .findAndRegisterModules()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
     private static final Duration CACHED_TRUST_STATEMENT_LIFETIME = Duration.ofMinutes(4);
     private static final Duration SHORT_TRUST_STATEMENT_LIFETIME = Duration.ofSeconds(3);
     private static final Duration EXPIRY_WAIT_CUSHION = Duration.ofSeconds(6);
@@ -477,8 +478,11 @@ class VerifierTrustStatementTest extends BaseTest {
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
                     .verificationPurpose(purpose)
                     .jwtSecure();
-            final JsonNode expectedDcqlQuery = OBJECT_MAPPER.copy()
-                    .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            final JsonNode expectedDcqlQuery = OBJECT_MAPPER.rebuild()
+                    .changeDefaultPropertyInclusion(
+                            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL)
+                    )
+                    .build()
                     .valueToTree(verificationRequest.getRequest().getDcqlQuery());
             final ManagementResponse managementResponse = verificationRequest.createManagementResponse();
             final JsonNode requestObjectPayload = JwtSupport.decodePayloadToJsonNode(
@@ -567,7 +571,7 @@ class VerifierTrustStatementTest extends BaseTest {
                     JwtSupport.decodePayload(signedRequestObjectJwt),
                     RequestObject.class
             );
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse signed verification request object", e);
         }
     }

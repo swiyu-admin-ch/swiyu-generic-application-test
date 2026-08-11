@@ -6,7 +6,7 @@ import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.springframework.web.client.HttpClientErrorException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 public final class ApiErrorAssert {
 

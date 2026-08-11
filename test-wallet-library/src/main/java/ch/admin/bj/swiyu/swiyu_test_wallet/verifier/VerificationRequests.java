@@ -7,8 +7,8 @@ import ch.admin.bj.swiyu.gen.verifier.model.DcqlCredentialMetaDto;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.ResponseModeType;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class VerificationRequests {
     public String createDefaultRequestString(boolean withKeyBinding) {
         try {
             return new ObjectMapper().writeValueAsString(createDefaultRequest(withKeyBinding));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException(e);
         }
     }

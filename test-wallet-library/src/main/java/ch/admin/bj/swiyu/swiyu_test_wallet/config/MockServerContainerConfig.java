@@ -14,7 +14,7 @@ public class MockServerContainerConfig {
         MockServerContainer container = new MockServerContainer(
                 DockerImageName
                         .parse("mockserver/mockserver")
-                        .withTag("5.15.0"));
+                        .withTag("7.5.0"));
         container.withExposedPorts(1080);
         container.withNetwork(network);
         if (containerLogConfig.isMockServer()) {

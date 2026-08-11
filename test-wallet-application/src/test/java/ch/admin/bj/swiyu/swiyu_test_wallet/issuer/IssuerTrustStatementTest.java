@@ -20,8 +20,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @UseIssuers(IssuerVariant.CACHED)
 public class IssuerTrustStatementTest extends BaseTest {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration CACHED_TRUST_STATEMENT_LIFETIME = Duration.ofMinutes(4);
     private static final Duration SHORT_TRUST_STATEMENT_LIFETIME = Duration.ofSeconds(3);
     private static final Duration EXPIRY_WAIT_CUSHION = Duration.ofSeconds(6);

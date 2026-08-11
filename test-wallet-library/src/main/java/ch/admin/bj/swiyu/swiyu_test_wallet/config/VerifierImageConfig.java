@@ -23,6 +23,7 @@ public class VerifierImageConfig {
     private long trustRegistryMaxCacheTtlSeconds = 0;
     private long jwkCacheTtlMillis = 0;
     private long trustStatementCacheTtlMillis = 0;
+    private int requestObjectTtlSeconds = 0;
 
     private String hsmUser = "admin";
     private String hsmPassword = "password";

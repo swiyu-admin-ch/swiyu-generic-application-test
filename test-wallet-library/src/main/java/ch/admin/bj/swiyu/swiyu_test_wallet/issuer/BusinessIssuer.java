@@ -7,8 +7,8 @@ import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -183,7 +183,7 @@ public class BusinessIssuer {
         String jwt;
         try {
             jwt = createSignedJwtForStatusList(privateKey, keyId, size, bits);
-        } catch (JsonProcessingException | JOSEException e) {
+        } catch (JacksonException | JOSEException e) {
             throw new IllegalStateException(e);
         }
 
@@ -210,7 +210,7 @@ public class BusinessIssuer {
         String jwt;
         try {
             jwt = createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, deferred);
-        } catch (JsonProcessingException | JOSEException e) {
+        } catch (JacksonException | JOSEException e) {
             throw new IllegalStateException(e);
         }
 
@@ -274,7 +274,7 @@ public class BusinessIssuer {
     }
 
     private String createSignedJwtForStatusList(final PrivateKey privateKey, final String keyId, final int size,
-                                                final int bits) throws JsonProcessingException, JOSEException {
+                                                final int bits) throws JacksonException, JOSEException {
         final ObjectMapper mapper = new ObjectMapper();
 
         final StatusListCreate statusListCreate = new StatusListCreate();
@@ -287,13 +287,13 @@ public class BusinessIssuer {
     }
 
     private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
-                                                String supportedMetadataId) throws JsonProcessingException,
+                                                String supportedMetadataId) throws JacksonException,
             JOSEException {
         return createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, false);
     }
 
     private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
-                                                String supportedMetadataId, boolean deferred) throws JsonProcessingException,
+                                                String supportedMetadataId, boolean deferred) throws JacksonException,
             JOSEException {
         final ObjectMapper mapper = new ObjectMapper();
 
@@ -314,7 +314,7 @@ public class BusinessIssuer {
         try {
             final String data = mapper.writeValueAsString(newState);
             return createSignedJwtWithEcKey(privateKey, keyId, data);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Cannot sign JWT for updating state", e);
         }
     }
