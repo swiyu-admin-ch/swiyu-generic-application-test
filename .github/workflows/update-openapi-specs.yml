@@ -114,4 +114,15 @@ jobs:
           set -euo pipefail
 
           mvn -B -DskipTests compile
-          echo "Downloaded OpenAPI specs validated successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "Downloaded OpenAPI specs compile successfully." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify checked-in OpenAPI specs match upstream
+        run: |
+          set -euo pipefail
+
+          if git diff --exit-code -- "$ISSUER_TARGET" "$VERIFIER_TARGET"; then
+            echo "Checked-in OpenAPI specs match upstream." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Checked-in OpenAPI specs differ from upstream. Update and commit both generated-client inputs." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

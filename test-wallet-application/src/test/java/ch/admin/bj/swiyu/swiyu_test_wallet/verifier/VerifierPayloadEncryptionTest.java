@@ -35,6 +35,7 @@ import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.VERIFIER_URL;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Slf4j
@@ -145,7 +146,13 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         wallet.respondToVerificationWithError(responseUri, verificationDetails.getState(), "access_denied", errorDescription);
 
         // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        final ManagementResponse failedVerification =
+                verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        assertThat(failedVerification.getWalletResponse()).isNotNull();
+        assertThat(failedVerification.getWalletResponse().getErrorCode())
+                .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+        assertThat(failedVerification.getWalletResponse().getErrorDescription())
+                .isEqualTo(errorDescription);
     }
 
     @ParameterizedTest
