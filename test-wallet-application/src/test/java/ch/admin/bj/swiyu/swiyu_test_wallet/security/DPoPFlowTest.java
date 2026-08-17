@@ -57,7 +57,7 @@ class DPoPFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1241",
             summary = "DPoP remains restricted to ES256/P-256 after Trust Statement crypto agility",
             description = """
                     Given a valid Ed25519-signed DPoP proof containing the required public JWK and nonce.

@@ -90,7 +90,7 @@ public class IssuerTrustStatementTest extends BaseTest {
             names = {"ES256", "ED25519"}
     )
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1237",
             summary = "Issuer accepts ES256 and Ed25519 Trust Statement signatures",
             description = """
                     Given the trusted TP2 registry publishes a P-256 or Ed25519 assertion key.
@@ -134,7 +134,7 @@ public class IssuerTrustStatementTest extends BaseTest {
     @ParameterizedTest(name = "[{index}] {0} / {1} / {2}")
     @MethodSource("invalidTrustStatementSignatures")
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1238",
             summary = "Issuer strictly rejects invalid ES256 and Ed25519 Trust Statement signatures",
             description = """
                     Given either an idTS or a piaTS whose payload was modified after signing or whose signature was made
@@ -186,7 +186,7 @@ public class IssuerTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1239",
             summary = "Issuer rejects a valid Trust Statement signed with an unapproved algorithm",
             description = """
                     Given the trusted TP2 registry DID publishes an Ed25519 assertion key and returns cryptographically
@@ -223,7 +223,7 @@ public class IssuerTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1240",
             summary = "Issuer rejects unsecured alg none Trust Statements",
             description = """
                     Given the TP2 registry response contains idTS and piaTS values with alg=none and no signature.

@@ -88,7 +88,7 @@ class VerifierTrustStatementTest extends BaseTest {
             names = {"ES256", "ED25519"}
     )
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1245",
             summary = "Verifier accepts ES256 and Ed25519 Trust Statement signatures",
             description = """
                     Given the trusted TP2 registry publishes a P-256 or Ed25519 assertion key.
