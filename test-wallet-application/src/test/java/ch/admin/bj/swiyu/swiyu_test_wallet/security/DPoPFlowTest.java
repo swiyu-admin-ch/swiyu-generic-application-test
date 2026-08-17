@@ -17,9 +17,12 @@ import tools.jackson.core.JacksonException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +53,50 @@ class DPoPFlowTest extends BaseTest {
     @BeforeAll
     void setUp() {
         wallet.setUseDPoP(true);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-XXX",
+            summary = "DPoP remains restricted to ES256/P-256 after Trust Statement crypto agility",
+            description = """
+                    Given a valid Ed25519-signed DPoP proof containing the required public JWK and nonce.
+                    When the wallet submits it to the Generic Issuer token endpoint.
+                    Then the issuer rejects it because holder DPoP keys remain hardware-bound ES256/P-256 keys.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE},
+            reason = "DPoP and EIDOMNI-1050 validation are not available yet"
+    )
+    void dpopTokenRequest_whenSignedWithEd25519_thenRejectsAlgorithm() throws Exception {
+        // Given
+        CredentialWithDeeplinkResponse offer =
+                issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        URI deeplink = wallet.getIssuerContext().getContextualizedUri(toUri(offer.getOfferDeeplink()));
+        WalletBatchEntry batchEntry = new WalletBatchEntry(wallet);
+        batchEntry.receiveDeepLinkAndValidateIt(deeplink);
+        batchEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(batchEntry));
+        batchEntry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(batchEntry));
+        batchEntry.setCredentialConfigurationSupported();
+
+        String nonce = wallet.collectDPoPNonce(batchEntry);
+        URI tokenUri = batchEntry.getIssuerTokenUri();
+        String ed25519DpopProof = createEd25519DpopProof(tokenUri.toString(), nonce);
+        SignedJWT parsedProof = SignedJWT.parse(ed25519DpopProof);
+        assertThat(parsedProof.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.Ed25519);
+        assertThat(parsedProof.getHeader().getJWK().getKeyType().getValue()).isEqualTo("OKP");
+        assertThat(parsedProof.getHeader().getJWK().toOctetKeyPair().getCurve()).isEqualTo(Curve.Ed25519);
+
+        // When
+        final HttpClientErrorException exception = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.collectTokenWithDPoP(batchEntry, ed25519DpopProof)
+        );
+
+        // Then
+        assertThat(errorCode(exception)).isEqualTo(401);
+        assertThat(errorJson(exception)).containsEntry("error", "invalid_dpop_proof");
     }
 
     @Test
@@ -691,6 +738,32 @@ class DPoPFlowTest extends BaseTest {
         return createDpopProofForToken(uri, method, nonce, null);
     }
 
+    private String createEd25519DpopProof(String uri, String nonce) {
+        try {
+            OctetKeyPair key = new OctetKeyPairGenerator(Curve.Ed25519)
+                    .keyUse(KeyUse.SIGNATURE)
+                    .algorithm(JWSAlgorithm.Ed25519)
+                    .generate();
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.Ed25519)
+                    .type(new JOSEObjectType("dpop+jwt"))
+                    .jwk(key.toPublicJWK())
+                    .build();
+            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                    .claim("htm", "POST")
+                    .claim("htu", uri)
+                    .claim("nonce", nonce)
+                    .issueTime(new Date())
+                    .jwtID(UUID.randomUUID().toString())
+                    .build();
+
+            SignedJWT jwt = new SignedJWT(header, claims);
+            jwt.sign(new Ed25519Signer(key));
+            return jwt.serialize();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to create Ed25519 DPoP proof", e);
+        }
+    }
+
     private String createDpopProofForToken(String uri, String method, String nonce, String audience) {
         try {
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
@@ -826,4 +899,3 @@ class DPoPFlowTest extends BaseTest {
             .hasErrorDescription("Presented nonce was reused!");
     }
 }
-

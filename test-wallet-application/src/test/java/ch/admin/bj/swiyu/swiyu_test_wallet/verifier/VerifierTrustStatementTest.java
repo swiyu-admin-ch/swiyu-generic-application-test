@@ -9,6 +9,9 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustConfigFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementAlgorithm;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
@@ -32,12 +35,16 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
+import java.net.URI;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,10 +74,58 @@ class VerifierTrustStatementTest extends BaseTest {
             "swiyu-protected-verification-authorization-trust-statement+jwt";
     private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE =
             "swiyu-verification-query-public-statement+jwt";
+    private final Map<Tp2TrustStatementAlgorithm, TrustConfig> agileTrustConfigs =
+            new EnumMap<>(Tp2TrustStatementAlgorithm.class);
 
     @BeforeEach
     void useDefaultVerifier() {
         useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
+
+    @ParameterizedTest(name = "[{index}] Trust Statements signed with {0}")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ES256", "ED25519"}
+    )
+    @XrayTest(
+            key = "EIDOMNI-XXX",
+            summary = "Verifier accepts ES256 and Ed25519 Trust Statement signatures",
+            description = """
+                    Given the trusted TP2 registry publishes a P-256 or Ed25519 assertion key.
+                    When it returns correctly signed idTS and pvaTS values using either allowed algorithm.
+                    Then the Generic Verifier validates and injects both statements into verifier_info.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "EIDOMNI-1050 is not available yet"
+    )
+    void tenantVerifierRequestObject_whenTrustStatementsUseAllowedAlgorithm_thenAcceptsBothAlgorithms(
+            Tp2TrustStatementAlgorithm algorithm) {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(algorithm);
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final ManagementResponse managementResponse = createVerification(verifierDid);
+
+        try {
+            // When
+            final JsonNode verifierInfo = verifierInfo(wallet.getVerificationDetailSigned(
+                    managementResponse.getVerificationDeeplink()
+            ));
+
+            // Then
+            assertVerifierInfoEntries(verifierInfo, algorithm);
+            assertVerifierInfoStatementSubject(verifierInfo, IDENTITY_TRUST_STATEMENT_TYPE, verifierDid);
+            assertVerifierInfoStatementSubject(
+                    verifierInfo,
+                    PROTECTED_VERIFICATION_AUTHORIZATION_TRUST_STATEMENT_TYPE,
+                    verifierDid
+            );
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
     }
 
     @Test
@@ -518,13 +573,37 @@ class VerifierTrustStatementTest extends BaseTest {
     }
 
     private Tp2TrustStatementRouteSupport tp2Routes() {
+        return tp2Routes(Tp2TrustStatementAlgorithm.ES256);
+    }
+
+    private Tp2TrustStatementRouteSupport tp2Routes(Tp2TrustStatementAlgorithm signatureAlgorithm) {
+        final TrustConfig algorithmTrustConfig = trustConfigFor(signatureAlgorithm);
         return new Tp2TrustStatementRouteSupport(
                 mockServerClient,
                 issuerConfig,
                 verifierConfig,
-                trustConfig,
-                OBJECT_MAPPER
+                algorithmTrustConfig,
+                OBJECT_MAPPER,
+                signatureAlgorithm
         );
+    }
+
+    private TrustConfig trustConfigFor(Tp2TrustStatementAlgorithm algorithm) {
+        if (algorithm == Tp2TrustStatementAlgorithm.ES256) {
+            return trustConfig;
+        }
+        return agileTrustConfigs.computeIfAbsent(algorithm, ignored -> {
+            final URI didRegistryEntry = URI.create(
+                    "https://mockserver:1080/api/v1/did/" + UUID.randomUUID()
+            );
+            final TrustConfig agileTrustConfig =
+                    Tp2TrustConfigFactory.createEd25519TrustConfig(didRegistryEntry);
+            mockServerClientConfig.replaceDidLog(
+                    agileTrustConfig.getTrustDid(),
+                    agileTrustConfig.getTrustDidLog()
+            );
+            return agileTrustConfig;
+        });
     }
 
     private void useCachedVerifier() {
@@ -577,6 +656,10 @@ class VerifierTrustStatementTest extends BaseTest {
     }
 
     private void assertVerifierInfoEntries(JsonNode verifierInfo) {
+        assertVerifierInfoEntries(verifierInfo, Tp2TrustStatementAlgorithm.ES256);
+    }
+
+    private void assertVerifierInfoEntries(JsonNode verifierInfo, Tp2TrustStatementAlgorithm algorithm) {
         assertThat(verifierInfo.isArray()).as("verifier_info must be an array").isTrue();
         for (JsonNode entry : verifierInfo) {
             assertThat(entry.path("format").asText()).isEqualTo("jwt");
@@ -584,12 +667,30 @@ class VerifierTrustStatementTest extends BaseTest {
             final String statement = entry.path("data").asText();
             assertThat(statement).isNotBlank();
             assertThat(statement.split("\\.").length).isEqualTo(3);
-            assertThat(JWSAlgorithm.ES256.equals(JwtSupport.parse(statement).getHeader().getAlgorithm())).isTrue();
+            assertThat(JwtSupport.parse(statement).getHeader().getAlgorithm())
+                    .isEqualTo(expectedJwsAlgorithm(algorithm));
+            assertThat(JwtSupport.parse(statement).getHeader().getKeyID())
+                    .isEqualTo(expectedTrustKeyId(algorithm));
             assertThat(statementProfileVersion(statement)).isEqualTo(TP2_PROFILE_VERSION);
             final String jti = statementPayload(statement).path("jti").asText();
             assertThat(jti).isNotBlank();
             assertThat(UUID.fromString(jti).version()).isEqualTo(4);
         }
+    }
+
+    private JWSAlgorithm expectedJwsAlgorithm(Tp2TrustStatementAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> JWSAlgorithm.ES256;
+            case ED25519 -> JWSAlgorithm.Ed25519;
+            case EDDSA_LEGACY -> JWSAlgorithm.EdDSA;
+        };
+    }
+
+    private String expectedTrustKeyId(Tp2TrustStatementAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> trustConfig.getTrustAssertKeyId();
+            case ED25519, EDDSA_LEGACY -> trustConfigFor(algorithm).getTrustEd25519AssertKeyId();
+        };
     }
 
     private void assertVerifierInfoStatementSubject(
