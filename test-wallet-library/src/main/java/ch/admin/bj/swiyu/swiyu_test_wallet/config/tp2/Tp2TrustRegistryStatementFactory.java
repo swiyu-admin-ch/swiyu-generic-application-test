@@ -42,12 +42,12 @@ final class Tp2TrustRegistryStatementFactory {
 
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
     static final String TP2_DEFAULT_VERIFIER_SUBJECT =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
     static final String TP2_PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
     static final String TP2_AUTHORIZED_FIELD = "personal_administrative_number";
 
     private static final String TP2_BAD_ACTOR_SUBJECT =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did";
     private static final String TP2_DEFAULT_VERIFICATION_QUERY_ID = "employment-verification";
     private static final String TP2_DEFAULT_VERIFICATION_SCOPE = "ch.swiyu.tp2.employment.presentation";
     private static final String TP2_STATUS_LIST_URI = "https://mockserver:1080/api/v1/statuslist/tp2-trust-statements.jwt";

@@ -37,9 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Tp2TrustRegistryMockSupportTest {
 
     private static final String TRUST_DID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
     private static final String ISSUER_DID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
     private static final String PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
 
     private Tp2TrustRegistryStatementFactory statementFactory;
@@ -140,9 +140,17 @@ class Tp2TrustRegistryMockSupportTest {
     void ed25519TrustConfig_whenCreated_thenDidPublishesTheMatchingAssertionKey()
             throws ParseException, JOSEException {
         TrustConfig agileTrustConfig = buildAgileTrustConfig();
-        JsonArray didLogEntry = JsonParser.parseString(agileTrustConfig.getTrustDidLog()).getAsJsonArray();
-        JsonObject didDocument = didLogEntry.get(3).getAsJsonObject().getAsJsonObject("value");
+        JsonObject didLogEntry = JsonParser.parseString(agileTrustConfig.getTrustDidLog()).getAsJsonObject();
+        JsonObject didDocument = didLogEntry.getAsJsonObject("state");
 
+        assertThat(didLogEntry.get("versionId").getAsString()).startsWith("1-");
+        assertThat(didLogEntry.getAsJsonObject("parameters").get("method").getAsString())
+                .isEqualTo("did:webvh:1.0");
+        assertThat(didLogEntry.getAsJsonArray("proof")).hasSize(1);
+        JsonObject proof = didLogEntry.getAsJsonArray("proof").get(0).getAsJsonObject();
+        assertThat(proof.get("proofPurpose").getAsString()).isEqualTo("assertionMethod");
+        assertThat(proof.has("challenge")).isFalse();
+        assertThat(agileTrustConfig.getTrustDid()).startsWith("did:webvh:");
         assertThat(didDocument.get("id").getAsString()).isEqualTo(agileTrustConfig.getTrustDid());
         assertThat(didDocument.getAsJsonArray("assertionMethod").get(0).getAsString())
                 .isEqualTo(agileTrustConfig.getTrustEd25519AssertKeyId());
@@ -223,7 +231,7 @@ class Tp2TrustRegistryMockSupportTest {
 
     @Test
     void identityTrustStatements_whenUnknownSubjectRequested_thenReturnEmptyList() {
-        List<String> statements = statementFactory.buildIdentityTrustStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did");
+        List<String> statements = statementFactory.buildIdentityTrustStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did");
 
         assertThat(statements).isEmpty();
     }
@@ -283,14 +291,14 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statementFactory.buildVerificationQueryPublicStatements(
                 Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
         )).hasSize(1);
-        assertThat(statementFactory.buildVerificationQueryPublicStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+        assertThat(statementFactory.buildVerificationQueryPublicStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did"))
                 .isEmpty();
         assertThat(statementFactory.buildProtectedVerificationAuthorizationStatements(
                 Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
         )).hasSize(1);
         assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements(issuerConfig.getIssuerDid()))
                 .hasSize(1);
-        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did"))
                 .isEmpty();
         assertThat(statementFactory.isKnownVerificationQueryPublicStatementJti(statementFactory.verificationQueryPublicJti()))
                 .isTrue();
