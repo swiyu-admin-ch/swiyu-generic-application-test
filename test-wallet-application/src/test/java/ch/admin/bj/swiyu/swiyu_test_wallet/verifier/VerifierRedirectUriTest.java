@@ -87,15 +87,16 @@ class VerifierRedirectUriTest extends BaseTest {
             key = "EIDOMNI-732",
             summary = "Redirect responses remain bound to their verification session",
             description = """
-                    These security edge cases validate that every response_code is fresh and bound to exactly one
-                    verification, and that redirect_uri is also returned for Authorization Error Responses. Reusing
-                    the response_code from another browser session must be rejected.
+                    These security edge cases validate that every response_code is fresh, required for a
+                    redirect-enabled verification and bound to exactly one verification. Omitting the code or reusing
+                    the response_code from another browser session must be rejected. A relative redirect_uri must also
+                    be rejected during verification creation.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
-    void redirectEnabledVerifications_withCrossSessionAndErrorResponses_thenRemainSessionBound() {
+    void redirectEnabledVerifications_withMissingOrCrossSessionResponseCode_thenRejectResultAccess() {
         // Given – a credential and two independent redirect-enabled browser sessions
         final CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -120,17 +121,55 @@ class VerifierRedirectUriTest extends BaseTest {
         // Then – response codes are fresh per verification
         assertThat(firstResponseCode).isNotEqualTo(secondResponseCode);
 
+        // When – result retrieval omits the code required for a redirect-enabled session
+        final HttpClientErrorException missingCodeException = assertThrows(HttpClientErrorException.class, () ->
+                verifierManager.getVerificationById(firstVerification.getId()));
+
+        // Then – access without the session binding is rejected
+        ApiErrorAssert.assertThat(missingCodeException).hasStatus(400);
+
         // When – an attacker substitutes the response_code from the other browser session
-        final HttpClientErrorException exception = assertThrows(HttpClientErrorException.class, () ->
+        final HttpClientErrorException substitutedCodeException = assertThrows(HttpClientErrorException.class, () ->
                 verifierManager.getVerificationById(firstVerification.getId(), secondResponseCode));
 
         // Then – the mismatched session binding is rejected while the legitimate code still works
-        ApiErrorAssert.assertThat(exception).hasStatus(400);
+        ApiErrorAssert.assertThat(substitutedCodeException).hasStatus(400);
         final ManagementResponse legitimateResult =
                 verifierManager.getVerificationById(firstVerification.getId(), firstResponseCode);
         assertThat(legitimateResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
-        // When – the Holder declines another redirect-enabled verification
+        // When – a Business Verifier provides a relative callback URI
+        final URI relativeRedirectUri = URI.create("/callback?session_nonce=" + UUID.randomUUID());
+        final HttpClientErrorException invalidRedirectException = assertThrows(HttpClientErrorException.class, () ->
+                verifierManager.verificationRequest()
+                        .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                        .withUniversityDCQL()
+                        .redirectUri(relativeRedirectUri)
+                        .createManagementResponse());
+
+        // Then – the invalid redirect target is rejected at the management boundary
+        ApiErrorAssert.assertThat(invalidRedirectException).hasStatus(400);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1248",
+            summary = "Redirect URI remains optional and supports Authorization Error Responses",
+            description = """
+                    Using a common setup, this test compares an Authorization Error Response for a redirect-enabled
+                    verification with a successful legacy verification. Error Responses receive the same session-bound
+                    redirect as successful responses, while clients without redirect_uri remain backward compatible.
+                    """
+    )
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.UCV_M3)
+    @Tag(ReportingTags.EDGE_CASE)
+    void redirectUri_withAuthorizationErrorAndLegacyClient_thenPreserveOptionalBehavior() {
+        // Given – one credential and two verifications sharing the same issuer configuration
+        final CredentialWithDeeplinkResponse offer =
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
+        final WalletBatchEntry walletEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+
         final String errorSessionNonce = UUID.randomUUID().toString();
         final URI requestedErrorRedirect = redirectUri(errorSessionNonce);
         final ManagementResponse failedVerification = verifierManager.verificationRequest()
@@ -138,16 +177,35 @@ class VerifierRedirectUriTest extends BaseTest {
                 .withUniversityDCQL()
                 .redirectUri(requestedErrorRedirect)
                 .createManagementResponse();
+        final ManagementResponse legacyVerification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL()
+                .createManagementResponse();
+
         final RequestObject failedRequest =
                 wallet.getVerificationRequestObject(failedVerification.getVerificationDeeplink());
-        final URI errorRedirect = wallet.respondToVerificationWithError(
-                        failedRequest, "access_denied", "Holder declined the verification")
-                .orElseThrow(() -> new AssertionError("Verifier must return redirect_uri for error response"));
+        final RequestObject legacyRequest =
+                wallet.getVerificationRequestObject(legacyVerification.getVerificationDeeplink());
+        final String legacyPresentation = walletEntry.createPresentationForSdJwtIndex(0, legacyRequest);
 
-        // Then – Authorization Error Responses provide the same session-fixation protection
-        assertRedirectUri(errorRedirect, requestedErrorRedirect, errorSessionNonce);
+        // When – the fake Wallet declines one verification and completes the legacy verification
+        final var errorRedirect = wallet.respondToVerificationWithError(
+                failedRequest, "access_denied", "Holder declined the verification");
+        final var legacyRedirect = wallet.respondToVerification(legacyRequest, legacyPresentation);
+        final ManagementResponse legacyResult = verifierManager.getVerificationById(legacyVerification.getId());
+
+        // Then – legacy behavior is preserved without redirect_uri or response_code
+        assertThat(legacyRedirect).isEmpty();
+        assertThat(legacyResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
+
+        // Then – Authorization Error Responses return the same session-bound redirect protection
+        assertThat(errorRedirect)
+                .as("Verifier must return redirect_uri for error response")
+                .isPresent();
+        final URI holderErrorRedirect = errorRedirect.orElseThrow();
+        assertRedirectUri(holderErrorRedirect, requestedErrorRedirect, errorSessionNonce);
         final ManagementResponse failedResult = verifierManager.getVerificationById(
-                failedVerification.getId(), responseCodeFrom(errorRedirect));
+                failedVerification.getId(), responseCodeFrom(holderErrorRedirect));
         assertThat(failedResult.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
