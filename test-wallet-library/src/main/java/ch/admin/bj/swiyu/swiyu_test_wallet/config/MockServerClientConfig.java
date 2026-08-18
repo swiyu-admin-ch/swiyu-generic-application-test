@@ -76,6 +76,7 @@ public class MockServerClientConfig {
 
     private final List<WebhookCallback> receivedIssuerCallbacks = new CopyOnWriteArrayList<>();
     private boolean throwStatusListError = false;
+    private volatile boolean corruptStatusListSignature = false;
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -97,6 +98,16 @@ public class MockServerClientConfig {
     public void disableStatusListError() {
         this.throwStatusListError = false;
         log.debug("Status list error mode DISABLED");
+    }
+
+    public void enableCorruptStatusListSignature() {
+        this.corruptStatusListSignature = true;
+        log.debug("Status list signature corruption ENABLED");
+    }
+
+    public void disableCorruptStatusListSignature() {
+        this.corruptStatusListSignature = false;
+        log.debug("Status list signature corruption DISABLED");
     }
 
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
@@ -490,9 +501,21 @@ public class MockServerClientConfig {
 
         signedJWT.sign(signer);
 
-        final String s = signedJWT.serialize();
+        final String serializedStatusList = signedJWT.serialize();
+        return corruptStatusListSignature
+                ? corruptJwtSignature(serializedStatusList)
+                : serializedStatusList;
+    }
 
-        return SignedJWT.parse(s).serialize();
+    private String corruptJwtSignature(final String jwt) {
+        final String[] parts = jwt.split("\\.", -1);
+        if (parts.length != 3 || parts[2].isEmpty()) {
+            throw new IllegalArgumentException("JWT must be a compact JWS with a signature");
+        }
+
+        final char replacement = parts[2].charAt(0) == 'A' ? 'B' : 'A';
+        parts[2] = replacement + parts[2].substring(1);
+        return String.join(".", parts);
     }
 
     private String extractStatusListIdFromPath(String path) {
