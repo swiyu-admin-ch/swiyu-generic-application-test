@@ -199,9 +199,6 @@ class VerifierRedirectUriTest extends BaseTest {
         assertThat(legacyResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
         // Then – Authorization Error Responses return the same session-bound redirect protection
-        assertThat(errorRedirect)
-                .as("Verifier must return redirect_uri for error response")
-                .isPresent();
         final URI holderErrorRedirect = errorRedirect.orElseThrow();
         assertRedirectUri(holderErrorRedirect, requestedErrorRedirect, errorSessionNonce);
         final ManagementResponse failedResult = verifierManager.getVerificationById(
