@@ -562,10 +562,11 @@ public class Wallet {
         return ((VerificationRequestObject.Signed) request).jwt();
     }
 
-    public void respondToVerification(RequestObject requestObject, String token) {
+    public Optional<URI> respondToVerification(RequestObject requestObject, String token) {
         final ResponseEntity<String> response = respondToVerificationWithVpTokens(requestObject, List.of(token));
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return readRedirectUri(response);
     }
 
     public ResponseEntity<String> respondToVerificationWithVpTokens(
@@ -598,12 +599,12 @@ public class Wallet {
                 .toEntity(String.class);
     }
 
-    public void respondToVerificationWithError(
+    public Optional<URI> respondToVerificationWithError(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
     ) {
-        respondToVerificationWithError(
+        return respondToVerificationWithError(
                 PathSupport.toUri(requestObject.getResponseUri()),
                 requestObject.getState(),
                 error,
@@ -611,7 +612,7 @@ public class Wallet {
         );
     }
 
-    public void respondToVerificationWithError(
+    public Optional<URI> respondToVerificationWithError(
             final URI responseUri,
             final String state,
             final String error,
@@ -639,6 +640,33 @@ public class Wallet {
                 .toEntity(String.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return readRedirectUri(response);
+    }
+
+    private Optional<URI> readRedirectUri(ResponseEntity<String> response) {
+        if (response.getStatusCode().value() != 200 || response.getBody() == null || response.getBody().isBlank()) {
+            return Optional.empty();
+        }
+
+        assertThat(response.getHeaders().getContentType())
+                .as("OID4VP Response Endpoint Content-Type")
+                .isNotNull()
+                .matches(MediaType.APPLICATION_JSON::isCompatibleWith);
+
+        try {
+            final JsonNode redirectUriNode = objectMapper.readTree(response.getBody()).get("redirect_uri");
+            if (redirectUriNode == null || redirectUriNode.isNull()) {
+                return Optional.empty();
+            }
+
+            final URI redirectUri = URI.create(redirectUriNode.asText());
+            if (!redirectUri.isAbsolute()) {
+                throw new IllegalArgumentException("redirect_uri must be an absolute URI");
+            }
+            return Optional.of(redirectUri);
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException("Unable to process redirect_uri from verifier response", e);
+        }
     }
 
     public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
