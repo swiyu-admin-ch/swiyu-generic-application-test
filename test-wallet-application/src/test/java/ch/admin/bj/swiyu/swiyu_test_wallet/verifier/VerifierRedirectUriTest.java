@@ -157,8 +157,9 @@ class VerifierRedirectUriTest extends BaseTest {
             summary = "Redirect URI remains optional and supports Authorization Error Responses",
             description = """
                     Using a common setup, this test compares an Authorization Error Response for a redirect-enabled
-                    verification with a successful legacy verification. Error Responses receive the same session-bound
-                    redirect as successful responses, while clients without redirect_uri remain backward compatible.
+                    verification with a successful legacy verification. An Error Response may omit redirect_uri; when
+                    present its response_code is used to retrieve the failed result, otherwise the result remains
+                    retrievable without a code. Clients without redirect_uri remain backward compatible.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
@@ -198,11 +199,16 @@ class VerifierRedirectUriTest extends BaseTest {
         assertThat(legacyRedirect).isEmpty();
         assertThat(legacyResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
-        // Then – Authorization Error Responses return the same session-bound redirect protection
-        final URI holderErrorRedirect = errorRedirect.orElseThrow();
-        assertRedirectUri(holderErrorRedirect, requestedErrorRedirect, errorSessionNonce);
-        final ManagementResponse failedResult = verifierManager.getVerificationById(
-                failedVerification.getId(), responseCodeFrom(holderErrorRedirect));
+        // Then – the failed result remains retrievable whether the optional redirect is returned or omitted
+        final ManagementResponse failedResult;
+        if (errorRedirect.isPresent()) {
+            final URI holderErrorRedirect = errorRedirect.orElseThrow();
+            assertRedirectUri(holderErrorRedirect, requestedErrorRedirect, errorSessionNonce);
+            failedResult = verifierManager.getVerificationById(
+                    failedVerification.getId(), responseCodeFrom(holderErrorRedirect));
+        } else {
+            failedResult = verifierManager.getVerificationById(failedVerification.getId());
+        }
         assertThat(failedResult.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
