@@ -119,17 +119,16 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
-    @ParameterizedTest(name = "[{index}] enforce encrypted payload boundary: {0}")
+    @ParameterizedTest(name = "[{index}] reject oversized encrypted payload: {0}")
     @EnumSource(JWESupport.PayloadSizeScenario.class)
     @XrayTest(
             key = "EIDOMNI-1252",
-            summary = "Verifier enforces encrypted direct_post.jwt payload size boundaries",
+            summary = "Verifier rejects oversized encrypted direct_post.jwt payloads",
             description = """
                     The Wallet follows the normal encrypted OID4VP direct_post.jwt flow and retains a valid error
-                    response while adding controlled padding. The scenarios cover the supported boundary immediately
-                    below 21 MiB, ASCII and multibyte zip=DEF decompression bombs above it, and a high-entropy compact
-                    JWE above the 25 MiB HTTP content limit. Oversized responses must not close the verification or
-                    fire a callback.
+                    response while adding controlled padding. The scenarios cover ASCII and multibyte zip=DEF
+                    decompression bombs above 21 MiB, and a high-entropy compact JWE above the 25 MiB HTTP content
+                    limit. Oversized responses must not close the verification or fire a callback.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
@@ -138,7 +137,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
     )
-    void directPostJwtPayloadEncryption_whenPayloadReachesSizeBoundaries_thenEnforcesProfileLimits(
+    void directPostJwtPayloadEncryption_whenPayloadExceedsSizeLimits_thenRejectedWithoutSideEffects(
             final JWESupport.PayloadSizeScenario scenario
     ) {
         // Given
@@ -171,16 +170,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 scenario
         );
 
-        // When / Then - Swiss Profile interoperability boundary
-        if (scenario == JWESupport.PayloadSizeScenario.VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE) {
-            final var response = wallet.postEncryptedVerificationResponse(requestObject, encryptedPayload);
-            assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
-            awaitOneVerifierCallback(callbacksBefore);
-            return;
-        }
-
-        // When - oversized response
+        // When
         final RestClientException exception = assertThrows(
                 RestClientException.class,
                 () -> wallet.postEncryptedVerificationResponse(requestObject, encryptedPayload)
