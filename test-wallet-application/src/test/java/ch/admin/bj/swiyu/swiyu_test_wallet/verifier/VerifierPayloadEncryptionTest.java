@@ -31,6 +31,8 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 
 import java.net.URI;
 import java.util.Map;
@@ -117,16 +119,17 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
-    @ParameterizedTest(name = "[{index}] reject {0} decompression bomb")
-    @EnumSource(JWESupport.DecompressionBombEncoding.class)
+    @ParameterizedTest(name = "[{index}] enforce encrypted payload boundary: {0}")
+    @EnumSource(JWESupport.PayloadSizeScenario.class)
     @XrayTest(
             key = "EIDOMNI-1252",
-            summary = "Verifier rejects oversized decompressed direct_post.jwt payloads",
+            summary = "Verifier enforces encrypted direct_post.jwt payload size boundaries",
             description = """
-                    The Wallet follows the normal encrypted OID4VP direct_post.jwt flow but deliberately supplies a
-                    highly compressible zip=DEF Authorization Response whose decompressed UTF-8 payload exceeds
-                    21 MiB. ASCII and multibyte variants verify that the Verifier enforces a byte-size limit before
-                    JSON and business processing, without changing the verification state or triggering a callback.
+                    The Wallet follows the normal encrypted OID4VP direct_post.jwt flow and retains a valid error
+                    response while adding controlled padding. The scenarios cover the supported boundary immediately
+                    below 21 MiB, ASCII and multibyte zip=DEF decompression bombs above it, and a high-entropy compact
+                    JWE above the 25 MiB HTTP content limit. Oversized responses must not close the verification or
+                    fire a callback.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
@@ -135,8 +138,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
     )
-    void directPostJwtPayloadEncryption_whenDecompressedPayloadIsOversized_thenRejectedWithoutSideEffects(
-            final JWESupport.DecompressionBombEncoding encoding
+    void directPostJwtPayloadEncryption_whenPayloadReachesSizeBoundaries_thenEnforcesProfileLimits(
+            final JWESupport.PayloadSizeScenario scenario
     ) {
         // Given
         final ManagementResponse verification = verifierManager.verificationRequest()
@@ -150,21 +153,54 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         );
         assertThat(requestObject.getResponseMode()).isEqualTo(ResponseModeType.DIRECT_POST_JWT);
         final int callbacksBefore = awaitStableVerifierCallbacks();
-        final String prefix = "{\"error\":\"access_denied\",\"error_description\":\"";
-        final String suffix = "\",\"state\":\"" + requestObject.getState() + "\"}";
-        final String payload = JWESupport.createDecompressionBombPayload(prefix, suffix, encoding);
+        final String validErrorResponse = wallet.createVerificationErrorPayload(
+                requestObject,
+                "access_denied",
+                "Wallet declined the presentation"
+        );
+        final String payload = JWESupport.createOversizedJsonPayload(
+                validErrorResponse,
+                JWESupport.VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES,
+                scenario
+        );
+        final String encryptedPayload = wallet.encryptVerificationResponsePayload(requestObject, payload);
+        JWESupport.assertEncryptedPayloadMatchesScenario(
+                payload,
+                encryptedPayload,
+                JWESupport.VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES,
+                scenario
+        );
 
-        // When
-        final HttpClientErrorException exception = assertThrows(
-                HttpClientErrorException.class,
-                () -> wallet.respondToVerificationWithEncryptedPayload(requestObject, payload)
+        // When / Then - Swiss Profile interoperability boundary
+        if (scenario == JWESupport.PayloadSizeScenario.VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE) {
+            final var response = wallet.postEncryptedVerificationResponse(requestObject, encryptedPayload);
+            assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            awaitOneVerifierCallback(callbacksBefore);
+            return;
+        }
+
+        // When - oversized response
+        final RestClientException exception = assertThrows(
+                RestClientException.class,
+                () -> wallet.postEncryptedVerificationResponse(requestObject, encryptedPayload)
         );
 
         // Then
-        ApiErrorAssert.assertThat(exception)
-                .hasStatus(400)
-                .hasError("invalid_credential")
-                .hasErrorDescription("Response cannot be decrypted.");
+        if (scenario == JWESupport.PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT) {
+            assertThat(exception)
+                    .as("An oversized HTTP/JWE response must be rejected by the transport or JWE layer")
+                    .isInstanceOfAny(HttpClientErrorException.class, ResourceAccessException.class);
+            if (exception instanceof HttpClientErrorException httpException) {
+                assertThat(httpException.getStatusCode().value()).isIn(400, 413);
+            }
+        } else {
+            assertThat(exception).isInstanceOf(HttpClientErrorException.class);
+            ApiErrorAssert.assertThat((HttpClientErrorException) exception)
+                    .hasStatus(400)
+                    .hasError("invalid_credential")
+                    .hasErrorDescription("Response cannot be decrypted.");
+        }
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
         awaitNoneVerifierCallback(callbacksBefore);
     }

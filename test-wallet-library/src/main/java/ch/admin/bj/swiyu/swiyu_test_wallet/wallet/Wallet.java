@@ -610,6 +610,30 @@ public class Wallet {
     }
 
     /**
+     * Creates the JSON representation of a direct_post.jwt error response, including the request state.
+     */
+    public String createVerificationErrorPayload(
+            final RequestObject requestObject,
+            final String error,
+            final String errorDescription
+    ) {
+        final Map<String, Object> responsePayload = new LinkedHashMap<>();
+        responsePayload.put("error", error);
+        if (errorDescription != null) {
+            responsePayload.put("error_description", errorDescription);
+        }
+        if (requestObject.getState() != null) {
+            responsePayload.put(STATE, requestObject.getState());
+        }
+
+        try {
+            return objectMapper.writeValueAsString(responsePayload);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Failed to serialize verification error payload", ex);
+        }
+    }
+
+    /**
      * Posts an already encrypted direct_post.jwt response through the normal Wallet transport path.
      */
     public ResponseEntity<String> postEncryptedVerificationResponse(
@@ -713,11 +737,14 @@ public class Wallet {
 
     /**
      * Prepares the Wallet state for a Credential Request without sending that request. This keeps offer parsing,
-     * metadata discovery, token collection and holder-key generation identical for custom negative request tests.
+     * metadata discovery, token collection, holder-key generation, nonce retrieval and proof creation identical for
+     * custom negative request tests.
      */
     public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
         final WalletBatchEntry entry = createWalletBatchEntry();
         prepareOffer(entry, offerDeepLink, null);
+        entry.setCNonce(collectCNonce(entry));
+        entry.createProofs();
         return entry;
     }
 

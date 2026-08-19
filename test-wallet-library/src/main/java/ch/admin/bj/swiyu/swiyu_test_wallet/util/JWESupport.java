@@ -18,7 +18,7 @@ public class JWESupport {
 
     private static final int MEBIBYTE = 1_024 * 1_024;
     private static final int OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES = 32 * MEBIBYTE + 1;
-    private static final String JSON_PADDING_PREFIX = ",\"padding\":\"";
+    private static final String JSON_PADDING_PROPERTY = "\"padding\":\"";
     private static final String RANDOM_JSON_CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_~!@#$%^&*()[]{}:;,.?/";
 
@@ -61,11 +61,15 @@ public class JWESupport {
             throw new IllegalArgumentException("Expected a JSON object as base payload");
         }
 
-        final String prefix = baseJson.substring(0, closingBrace) + JSON_PADDING_PREFIX;
+        final String jsonWithoutClosingBrace = baseJson.substring(0, closingBrace);
+        final String separator = jsonWithoutClosingBrace.stripTrailing().endsWith("{") ? "" : ",";
+        final String prefix = jsonWithoutClosingBrace + separator + JSON_PADDING_PROPERTY;
         final String suffix = "\"}";
-        final int targetBytes = scenario == PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT
-                ? OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES
-                : decompressedPayloadLimitBytes + 1;
+        final int targetBytes = switch (scenario) {
+            case VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE -> decompressedPayloadLimitBytes - 1;
+            case COMPACT_JWE_OVER_HTTP_LIMIT -> OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES;
+            default -> decompressedPayloadLimitBytes + 1;
+        };
         final int paddingBytes = targetBytes - utf8Length(prefix) - utf8Length(suffix);
         if (paddingBytes <= 0) {
             throw new IllegalArgumentException("JSON framing exceeds the target payload size");
@@ -112,6 +116,16 @@ public class JWESupport {
             assertThat(compressedCipherTextBytes)
                     .as("Compressed JWE ciphertext size")
                     .isGreaterThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+        } else if (scenario == PayloadSizeScenario.VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE) {
+            assertThat(utf8Length(plaintext))
+                    .as("Authorization Response size supported by the Verifier profile")
+                    .isEqualTo(decompressedPayloadLimitBytes - 1);
+            assertThat(utf8Length(compactJwe))
+                    .as("Supported Authorization Response must stay below the HTTP content limit")
+                    .isLessThan(HTTP_CONTENT_LIMIT_BYTES);
+            assertThat(compressedCipherTextBytes)
+                    .as("Supported Authorization Response must stay below the compressed-ciphertext limit")
+                    .isLessThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
         } else {
             assertThat(utf8Length(plaintext))
                     .as("Decompressed JWE payload boundary")
@@ -135,7 +149,7 @@ public class JWESupport {
     }
 
     private static String createIncompressibleAsciiPadding(final int paddingBytes) {
-        final Random random = new Random(1_251_1_252L);
+        final Random random = new Random(0xE1D0_1252L);
         final char[] padding = new char[paddingBytes];
         for (int index = 0; index < padding.length; index++) {
             padding[index] = RANDOM_JSON_CHARACTERS.charAt(random.nextInt(RANDOM_JSON_CHARACTERS.length()));
@@ -150,6 +164,7 @@ public class JWESupport {
     public enum PayloadSizeScenario {
         DECOMPRESSED_ASCII("A", 1),
         DECOMPRESSED_MULTIBYTE_UTF8("€", 3),
+        VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE("A", 1),
         COMPACT_JWE_OVER_HTTP_LIMIT("A", 1);
 
         private final String character;
