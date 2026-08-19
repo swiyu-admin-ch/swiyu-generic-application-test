@@ -11,6 +11,7 @@ import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -102,6 +103,11 @@ public class VerifierManager {
             return this;
         }
 
+        public VerificationRequestBuilder redirectUri(URI redirectUri) {
+            request.redirectUri(redirectUri);
+            return this;
+        }
+
         public VerificationRequestBuilder configurationOverride(ConfigurationOverrideDto configurationOverride) {
             request.configurationOverride(configurationOverride);
             return this;
@@ -170,7 +176,7 @@ public class VerifierManager {
 
     public ManagementResponse verifyState(final UUID verificationId, final VerificationStatus status, final String assertMessage) {
 
-        managementResponse = managementApi.getVerification(verificationId);
+        managementResponse = managementApi.getVerification(verificationId, null);
 
         assertThat(managementResponse.getState()).as(assertMessage).isEqualTo(status);
 
@@ -179,7 +185,7 @@ public class VerifierManager {
 
     public ManagementResponse verifyHasNotState(final UUID verificationId, final VerificationStatus status, final String assertMessage) {
 
-        managementResponse = managementApi.getVerification(verificationId);
+        managementResponse = managementApi.getVerification(verificationId, null);
 
         assertThat(managementResponse.getState()).as(assertMessage).isNotEqualTo(status);
 
@@ -195,7 +201,11 @@ public class VerifierManager {
     }
 
     public ManagementResponse getVerificationById(UUID id) {
-        return managementApi.getVerification(id);
+        return getVerificationById(id, null);
+    }
+
+    public ManagementResponse getVerificationById(UUID id, UUID responseCode) {
+        return managementApi.getVerification(id, responseCode);
     }
 
     public ManagementResponse verifyState(final UUID verificationId) {
