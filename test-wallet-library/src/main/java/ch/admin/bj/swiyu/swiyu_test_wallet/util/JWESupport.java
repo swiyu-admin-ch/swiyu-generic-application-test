@@ -66,7 +66,6 @@ public class JWESupport {
         final String prefix = jsonWithoutClosingBrace + separator + JSON_PADDING_PROPERTY;
         final String suffix = "\"}";
         final int targetBytes = switch (scenario) {
-            case VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE -> decompressedPayloadLimitBytes - 1;
             case COMPACT_JWE_OVER_HTTP_LIMIT -> OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES;
             default -> decompressedPayloadLimitBytes + 1;
         };
@@ -116,16 +115,6 @@ public class JWESupport {
             assertThat(compressedCipherTextBytes)
                     .as("Compressed JWE ciphertext size")
                     .isGreaterThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
-        } else if (scenario == PayloadSizeScenario.VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE) {
-            assertThat(utf8Length(plaintext))
-                    .as("Authorization Response size supported by the Verifier profile")
-                    .isEqualTo(decompressedPayloadLimitBytes - 1);
-            assertThat(utf8Length(compactJwe))
-                    .as("Supported Authorization Response must stay below the HTTP content limit")
-                    .isLessThan(HTTP_CONTENT_LIMIT_BYTES);
-            assertThat(compressedCipherTextBytes)
-                    .as("Supported Authorization Response must stay below the compressed-ciphertext limit")
-                    .isLessThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
         } else {
             assertThat(utf8Length(plaintext))
                     .as("Decompressed JWE payload boundary")
@@ -164,7 +153,6 @@ public class JWESupport {
     public enum PayloadSizeScenario {
         DECOMPRESSED_ASCII("A", 1),
         DECOMPRESSED_MULTIBYTE_UTF8("€", 3),
-        VERIFIER_SUPPORTED_AUTHORIZATION_RESPONSE("A", 1),
         COMPACT_JWE_OVER_HTTP_LIMIT("A", 1);
 
         private final String character;
