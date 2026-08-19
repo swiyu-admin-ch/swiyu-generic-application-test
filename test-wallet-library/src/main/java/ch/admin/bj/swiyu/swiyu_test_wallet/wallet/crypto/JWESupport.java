@@ -8,6 +8,8 @@ import com.nimbusds.jose.util.Base64URL;
 import lombok.experimental.UtilityClass;
 
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JWESupport {
 
     private static final int MEBIBYTE = 1_024 * 1_024;
-    private static final int OVERSIZED_DECOMPRESSED_PAYLOAD_BYTES = 21 * MEBIBYTE + 1;
+    private static final int OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES = 32 * MEBIBYTE + 1;
+    private static final String JSON_PADDING_PREFIX = ",\"padding\":\"";
+    private static final String RANDOM_JSON_CHARACTERS =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_~!@#$%^&*()[]{}:;,.?/";
+
+    public static final int ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES = 20 * MEBIBYTE;
+    public static final int VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES = 21 * MEBIBYTE;
+    public static final int HTTP_CONTENT_LIMIT_BYTES = 25 * MEBIBYTE;
 
     public static ECKey toECKey(final JsonWebKey jsonWebKey) {
         return new ECKey.Builder(
@@ -42,51 +51,111 @@ public class JWESupport {
         }
     }
 
-    /**
-     * Creates a valid JSON payload with highly compressible content whose UTF-8 representation exceeds both
-     * the 20 MiB JWE limit and the 21 MiB Verifier interoperability recommendation by one byte.
-     */
-    public static String createDecompressionBombPayload(
-            final String prefix,
-            final String suffix,
-            final DecompressionBombEncoding encoding
+    public static String createOversizedJsonPayload(
+            final String baseJson,
+            final int decompressedPayloadLimitBytes,
+            final PayloadSizeScenario scenario
     ) {
-        final int framingBytes = utf8Length(prefix) + utf8Length(suffix);
-        final int paddingBytes = OVERSIZED_DECOMPRESSED_PAYLOAD_BYTES - framingBytes;
+        final int closingBrace = baseJson.lastIndexOf('}');
+        if (closingBrace < 0 || !baseJson.substring(closingBrace + 1).isBlank()) {
+            throw new IllegalArgumentException("Expected a JSON object as base payload");
+        }
+
+        final String prefix = baseJson.substring(0, closingBrace) + JSON_PADDING_PREFIX;
+        final String suffix = "\"}";
+        final int targetBytes = scenario == PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT
+                ? OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES
+                : decompressedPayloadLimitBytes + 1;
+        final int paddingBytes = targetBytes - utf8Length(prefix) - utf8Length(suffix);
         if (paddingBytes <= 0) {
             throw new IllegalArgumentException("JSON framing exceeds the target payload size");
         }
 
-        final int encodedCharacterCount = paddingBytes / encoding.utf8BytesPerCharacter;
-        final int remainingAsciiBytes = paddingBytes % encoding.utf8BytesPerCharacter;
-        final String payload = prefix
-                + encoding.character.repeat(encodedCharacterCount)
-                + "A".repeat(remainingAsciiBytes)
-                + suffix;
+        final String padding = scenario == PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT
+                ? createIncompressibleAsciiPadding(paddingBytes)
+                : createCompressiblePadding(paddingBytes, scenario);
+        final String payload = prefix + padding + suffix;
 
         assertThat(utf8Length(payload))
-                .as("Decompressed JWE payload size")
-                .isEqualTo(OVERSIZED_DECOMPRESSED_PAYLOAD_BYTES);
-        if (encoding == DecompressionBombEncoding.MULTIBYTE_UTF8) {
+                .as("Decompressed JWE payload size for %s", scenario)
+                .isEqualTo(targetBytes);
+        if (scenario == PayloadSizeScenario.DECOMPRESSED_MULTIBYTE_UTF8) {
             assertThat(payload.length())
                     .as("UTF-8 scenario must detect Java character-count limits")
-                    .isLessThan(20 * MEBIBYTE);
+                    .isLessThan(decompressedPayloadLimitBytes);
         }
         return payload;
+    }
+
+    public static void assertEncryptedPayloadMatchesScenario(
+            final String plaintext,
+            final String compactJwe,
+            final int decompressedPayloadLimitBytes,
+            final PayloadSizeScenario scenario
+    ) {
+        assertIsJWE(compactJwe);
+        final JWEObject jweObject;
+        try {
+            jweObject = JWEObject.parse(compactJwe);
+        } catch (ParseException ex) {
+            throw new AssertionError("Expected a parseable compact JWE", ex);
+        }
+        assertThat(jweObject.getHeader().getCompressionAlgorithm())
+                .as("JWE compression algorithm")
+                .isEqualTo(CompressionAlgorithm.DEF);
+
+        final int compressedCipherTextBytes = jweObject.getCipherText().decode().length;
+        if (scenario == PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT) {
+            assertThat(utf8Length(compactJwe))
+                    .as("HTTP compact JWE content size")
+                    .isGreaterThan(HTTP_CONTENT_LIMIT_BYTES);
+            assertThat(compressedCipherTextBytes)
+                    .as("Compressed JWE ciphertext size")
+                    .isGreaterThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+        } else {
+            assertThat(utf8Length(plaintext))
+                    .as("Decompressed JWE payload boundary")
+                    .isEqualTo(decompressedPayloadLimitBytes + 1);
+            assertThat(utf8Length(compactJwe))
+                    .as("A decompression bomb must stay below the HTTP content limit")
+                    .isLessThan(HTTP_CONTENT_LIMIT_BYTES);
+            assertThat(compressedCipherTextBytes)
+                    .as("A decompression bomb must stay below the compressed-ciphertext limit")
+                    .isLessThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+        }
+    }
+
+    private static String createCompressiblePadding(
+            final int paddingBytes,
+            final PayloadSizeScenario scenario
+    ) {
+        final int encodedCharacterCount = paddingBytes / scenario.utf8BytesPerCharacter;
+        final int remainingAsciiBytes = paddingBytes % scenario.utf8BytesPerCharacter;
+        return scenario.character.repeat(encodedCharacterCount) + "A".repeat(remainingAsciiBytes);
+    }
+
+    private static String createIncompressibleAsciiPadding(final int paddingBytes) {
+        final Random random = new Random(1_251_1_252L);
+        final char[] padding = new char[paddingBytes];
+        for (int index = 0; index < padding.length; index++) {
+            padding[index] = RANDOM_JSON_CHARACTERS.charAt(random.nextInt(RANDOM_JSON_CHARACTERS.length()));
+        }
+        return new String(padding);
     }
 
     private static int utf8Length(final String value) {
         return value.getBytes(StandardCharsets.UTF_8).length;
     }
 
-    public enum DecompressionBombEncoding {
-        ASCII("A", 1),
-        MULTIBYTE_UTF8("€", 3);
+    public enum PayloadSizeScenario {
+        DECOMPRESSED_ASCII("A", 1),
+        DECOMPRESSED_MULTIBYTE_UTF8("€", 3),
+        COMPACT_JWE_OVER_HTTP_LIMIT("A", 1);
 
         private final String character;
         private final int utf8BytesPerCharacter;
 
-        DecompressionBombEncoding(final String character, final int utf8BytesPerCharacter) {
+        PayloadSizeScenario(final String character, final int utf8BytesPerCharacter) {
             this.character = character;
             this.utf8BytesPerCharacter = utf8BytesPerCharacter;
         }
