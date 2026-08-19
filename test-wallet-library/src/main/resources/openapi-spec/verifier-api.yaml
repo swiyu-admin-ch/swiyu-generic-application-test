@@ -193,6 +193,13 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: response_code
+        in: query
+        description: Optional for legacy verifications and required when redirect_uri was used
+        required: false
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
           description: Bad Request
@@ -445,7 +452,13 @@ components:
           description: |
             The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
             If provided in the request object the state string <em>MUST</em> be returned in the response.
-    VerificationPresentationResponseDto: {}
+    VerificationPresentationResponseDto:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          description: Optional URI to which the Wallet redirects the Holder after processing the Authorization Response
     ApiErrorDto:
       type: object
       properties:
@@ -862,6 +875,11 @@ components:
           description: "Optional transparency metadata for registration at the TMS.\
             \ When present, the verifier registers the DCQL query and injects the\
             \ resulting vqPS into subsequent Authorization Requests."
+        redirect_uri:
+          type: string
+          format: uri
+          description: Optional absolute URI containing session_nonce to redirect the Holder after verification
+          example: https://business-verifier.example/callback?session_nonce=091535f699ea575c7937fa5f0f454aee
       required:
       - dcql_query
     ResponseModeType:
