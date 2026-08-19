@@ -184,6 +184,30 @@ final class VerifierClient {
                 .toEntity(String.class);
     }
 
+    /**
+     * Creates the JSON representation of a direct_post.jwt error response, including the request state.
+     */
+    public String createVerificationErrorPayload(
+            final RequestObject requestObject,
+            final String error,
+            final String errorDescription
+    ) {
+        final Map<String, Object> responsePayload = new LinkedHashMap<>();
+        responsePayload.put("error", error);
+        if (errorDescription != null) {
+            responsePayload.put("error_description", errorDescription);
+        }
+        if (requestObject.getState() != null) {
+            responsePayload.put(STATE, requestObject.getState());
+        }
+
+        try {
+            return objectMapper.writeValueAsString(responsePayload);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Failed to serialize verification error payload", ex);
+        }
+    }
+
     DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
         return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, wallet.getTrustConfig());
     }

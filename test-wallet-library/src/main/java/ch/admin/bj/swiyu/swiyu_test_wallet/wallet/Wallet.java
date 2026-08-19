@@ -334,4 +334,12 @@ public class Wallet {
     public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
         return verifier.encryptVerificationResponsePayload(requestObject, payload);
     }
+
+    public String createVerificationErrorPayload(
+            final RequestObject requestObject,
+            final String error,
+            final String errorDescription
+    ) {
+        return verifier.createVerificationErrorPayload(requestObject, error, errorDescription);
+    }
 }

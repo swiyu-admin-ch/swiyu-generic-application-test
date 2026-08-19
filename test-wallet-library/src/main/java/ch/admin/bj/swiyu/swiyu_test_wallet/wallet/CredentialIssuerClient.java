@@ -415,11 +415,14 @@ final class CredentialIssuerClient {
 
     /**
      * Prepares the Wallet state for a Credential Request without sending that request. This keeps offer parsing,
-     * metadata discovery, token collection and holder-key generation identical for custom negative request tests.
+     * metadata discovery, token collection, holder-key generation, nonce retrieval and proof creation identical for
+     * custom negative request tests.
      */
     public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
         final WalletBatchEntry entry = wallet.createWalletBatchEntry();
         prepareOffer(entry, offerDeepLink, null);
+        entry.setCNonce(collectCNonce(entry));
+        entry.createProofs();
         return entry;
     }
 
