@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.request_object.RequestObjectAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -113,6 +115,58 @@ class VerifierPayloadEncryptionTest extends BaseTest {
 
         // Then
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+    }
+
+    @ParameterizedTest(name = "[{index}] reject {0} decompression bomb")
+    @EnumSource(JWESupport.DecompressionBombEncoding.class)
+    @XrayTest(
+            key = "EIDOMNI-1252",
+            summary = "Verifier rejects oversized decompressed direct_post.jwt payloads",
+            description = """
+                    The Wallet follows the normal encrypted OID4VP direct_post.jwt flow but deliberately supplies a
+                    highly compressible zip=DEF Authorization Response whose decompressed UTF-8 payload exceeds
+                    21 MiB. ASCII and multibyte variants verify that the Verifier enforces a byte-size limit before
+                    JSON and business processing, without changing the verification state or triggering a callback.
+                    """
+    )
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "JWE decompressed-payload limits are not available on these verifier tags"
+    )
+    void directPostJwtPayloadEncryption_whenDecompressedPayloadIsOversized_thenRejectedWithoutSideEffects(
+            final JWESupport.DecompressionBombEncoding encoding
+    ) {
+        // Given
+        final ManagementResponse verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .encrypted()
+                .createManagementResponse();
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        final RequestObject requestObject = wallet.getVerificationRequestObject(
+                verification.getVerificationDeeplink()
+        );
+        assertThat(requestObject.getResponseMode()).isEqualTo(ResponseModeType.DIRECT_POST_JWT);
+        final int callbacksBefore = awaitStableVerifierCallbacks();
+        final String prefix = "{\"error\":\"access_denied\",\"error_description\":\"";
+        final String suffix = "\",\"state\":\"" + requestObject.getState() + "\"}";
+        final String payload = JWESupport.createDecompressionBombPayload(prefix, suffix, encoding);
+
+        // When
+        final HttpClientErrorException exception = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.respondToVerificationWithEncryptedPayload(requestObject, payload)
+        );
+
+        // Then
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("invalid_credential")
+                .hasErrorDescription("Response cannot be decrypted.");
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        awaitNoneVerifierCallback(callbacksBefore);
     }
 
     @Test

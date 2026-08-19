@@ -382,7 +382,7 @@ public class Wallet {
         }
 
         final String finalPayload = useEncryption
-                ? encryptCredentialRequest(walletEntry, requestPayload)
+                ? encryptCredentialRequestPayload(walletEntry, requestPayload)
                 : requestPayload;
 
         String bearerToken = token.getAccessToken();
@@ -449,7 +449,11 @@ public class Wallet {
         return completeCredentialResponse;
     }
 
-    private String encryptCredentialRequest(WalletEntry walletEntry, String requestJson) {
+    public String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
+        if (!useEncryption) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
         try {
             var metadata = walletEntry.getIssuerMetadata();
             var requestEncryptionMetadata = metadata.getCredentialRequestEncryption();
@@ -587,6 +591,44 @@ public class Wallet {
             }
         }
 
+        return postVerificationResponse(requestObject, formData);
+    }
+
+    /**
+     * Encrypts and posts a caller-supplied direct_post.jwt payload using the response key and algorithms
+     * advertised by the Verifier. Intended for negative protocol tests that require a deliberately malformed
+     * or oversized plaintext while preserving normal Wallet encryption behavior.
+     */
+    public ResponseEntity<String> respondToVerificationWithEncryptedPayload(
+            final RequestObject requestObject,
+            final String payload
+    ) {
+        return postEncryptedVerificationResponse(
+                requestObject,
+                encryptVerificationResponsePayload(requestObject, payload)
+        );
+    }
+
+    /**
+     * Posts an already encrypted direct_post.jwt response through the normal Wallet transport path.
+     */
+    public ResponseEntity<String> postEncryptedVerificationResponse(
+            final RequestObject requestObject,
+            final String encryptedPayload
+    ) {
+        if (!useEncryption) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+        formData.add("response", encryptedPayload);
+        return postVerificationResponse(requestObject, formData);
+    }
+
+    private ResponseEntity<String> postVerificationResponse(
+            final RequestObject requestObject,
+            final MultiValueMap<String, Object> formData
+    ) {
         return restClient.post()
                 .uri(verifierContext.getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
@@ -664,6 +706,26 @@ public class Wallet {
     }
 
     public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
+        prepareOffer(entry, offerDeepLink, count);
+        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
+        return entry;
+    }
+
+    /**
+     * Prepares the Wallet state for a Credential Request without sending that request. This keeps offer parsing,
+     * metadata discovery, token collection and holder-key generation identical for custom negative request tests.
+     */
+    public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
+        final WalletBatchEntry entry = createWalletBatchEntry();
+        prepareOffer(entry, offerDeepLink, null);
+        return entry;
+    }
+
+    private void prepareOffer(
+            final WalletBatchEntry entry,
+            final URI offerDeepLink,
+            final Integer count
+    ) {
         entry.receiveDeepLinkAndValidateIt(issuerContext.getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
@@ -682,62 +744,12 @@ public class Wallet {
                 ? count
                 : entry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         entry.generateHolderKeys(effectiveCount);
-
-        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
-
-        return entry;
     }
 
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry) {
         final URI credentialUri = walletEntry.getIssuerCredentialUri();
-        final OAuthToken token = walletEntry.getToken();
-        final String bearerToken = token.getAccessToken();
-
-        var proofsDto = new ProofsDto();
-        proofsDto.setJwt(walletEntry.getProofsAsJwt());
-
-        var metadata = walletEntry.getIssuerMetadata();
-        var requestDto = new CreateCredentialRequest()
-                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
-                .proofs(proofsDto);
-        if (this.useEncryption) {
-            walletEntry.generateEphemeralEncryptionKey();
-
-            final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
-            var encryptionMetadata = metadata.getCredentialResponseEncryption();
-            var responseEncryption = new CredentialResponseEncryption()
-                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
-                    .jwk(jwk);
-
-            requestDto.credentialResponseEncryption(responseEncryption);
-        }
-
-        final String requestPayload;
-        try {
-            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
-        } catch (JacksonException ex) {
-            throw new IllegalStateException("Failed to serialize credential request payload", ex);
-        }
-
-        final String finalPayload = useEncryption
-                ? encryptCredentialRequest(walletEntry, requestPayload)
-                : requestPayload;
-
-        var requestBuilder = restClient.post()
-                .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
-
-        if (this.useDPoP) {
-            final String dPoP = generateDpopForCredentialEndpoint(walletEntry);
-            requestBuilder = requestBuilder.header(DPOP, dPoP);
-        }
-
-        final ResponseEntity<String> response = requestBuilder
-                .body(finalPayload)
-                .retrieve()
-                .toEntity(String.class);
+        final String requestPayload = createCredentialRequestPayload(walletEntry);
+        final ResponseEntity<String> response = postCredentialRequestWithCustomPayload(walletEntry, requestPayload);
 
         int responseCode = response.getStatusCode().value();
         String rawResponse = response.getBody();
@@ -777,6 +789,97 @@ public class Wallet {
         walletEntry.setCredentialResponse(completeCredentialResponse);
 
         return completeCredentialResponse;
+    }
+
+    /**
+     * Creates the same Credential Request plaintext as the regular Wallet flow without posting it. Negative protocol
+     * tests can add one deliberate mutation while retaining valid proofs and response-encryption parameters.
+     */
+    public String createCredentialRequestPayload(final WalletBatchEntry walletEntry) {
+
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(walletEntry.getProofsAsJwt());
+
+        var metadata = walletEntry.getIssuerMetadata();
+        var requestDto = new CreateCredentialRequest()
+                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+        if (this.useEncryption) {
+            walletEntry.generateEphemeralEncryptionKey();
+
+            final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
+            var encryptionMetadata = metadata.getCredentialResponseEncryption();
+            var responseEncryption = new CredentialResponseEncryption()
+                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
+                    .jwk(jwk);
+
+            requestDto.credentialResponseEncryption(responseEncryption);
+        }
+
+        try {
+            return new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Failed to serialize credential request payload", ex);
+        }
+    }
+
+    /**
+     * Posts a caller-supplied Credential Request plaintext using the Wallet's configured encryption, authorization
+     * and DPoP behavior. Intended for negative protocol tests that cannot use the generated request DTO.
+     */
+    public ResponseEntity<String> postCredentialRequestWithCustomPayload(
+            final WalletBatchEntry walletEntry,
+            final String requestPayload
+    ) {
+        final URI credentialUri = walletEntry.getIssuerCredentialUri();
+        final OAuthToken token = walletEntry.getToken();
+        final String finalPayload = useEncryption
+                ? encryptCredentialRequestPayload(walletEntry, requestPayload)
+                : requestPayload;
+
+        return postCredentialRequestPayload(walletEntry, credentialUri, token, finalPayload);
+    }
+
+    /**
+     * Posts an already encrypted Credential Request through the normal Wallet authorization and DPoP transport path.
+     */
+    public ResponseEntity<String> postCredentialRequestWithEncryptedPayload(
+            final WalletBatchEntry walletEntry,
+            final String encryptedPayload
+    ) {
+        if (!useEncryption) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        return postCredentialRequestPayload(
+                walletEntry,
+                walletEntry.getIssuerCredentialUri(),
+                walletEntry.getToken(),
+                encryptedPayload
+        );
+    }
+
+    private ResponseEntity<String> postCredentialRequestPayload(
+            final WalletBatchEntry walletEntry,
+            final URI credentialUri,
+            final OAuthToken token,
+            final String finalPayload
+    ) {
+
+        var requestBuilder = restClient.post()
+                .uri(issuerContext.getContextualizedUri(credentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + token.getAccessToken())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
+
+        if (this.useDPoP) {
+            requestBuilder = requestBuilder.header(DPOP, generateDpopForCredentialEndpoint(walletEntry));
+        }
+
+        return requestBuilder
+                .body(finalPayload)
+                .retrieve()
+                .toEntity(String.class);
     }
 
     String resolveCredentialResponseEncryptionEnc(final List<String> supportedEncValues) {
@@ -906,11 +1009,6 @@ public class Wallet {
 
     private String buildEncryptedResponse(final RequestObject requestObject, final Map<String, Object> payload) {
         try {
-            final JsonWebKey jsonWebKey = requestObject.getClientMetadata()
-                    .getJwks()
-                    .getKeys()
-                    .getFirst();
-            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
             final Map<String, Object> responsePayload = new LinkedHashMap<>();
             responsePayload.put(VP_TOKEN, payload);
             if (requestObject.getState() != null) {
@@ -918,9 +1016,25 @@ public class Wallet {
             }
             final String vpTokenPayload =
                     new ObjectMapper().writeValueAsString(responsePayload);
-            return JweUtil.encrypt(vpTokenPayload, verifierPublicKey);
+            return encryptVerificationResponsePayload(requestObject, vpTokenPayload);
         } catch (Exception e) {
             throw new WalletEncryptionException("Failed to build encrypted VP token response (JWE creation failed)", e);
+        }
+    }
+
+    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+        if (!useEncryption) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        try {
+            final JsonWebKey jsonWebKey = requestObject.getClientMetadata()
+                    .getJwks()
+                    .getKeys()
+                    .getFirst();
+            return JweUtil.encrypt(payload, JWESupport.toECKey(jsonWebKey));
+        } catch (Exception e) {
+            throw new WalletEncryptionException("Failed to encrypt VP token response (JWE creation failed)", e);
         }
     }
 
