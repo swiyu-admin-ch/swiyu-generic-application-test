@@ -289,4 +289,49 @@ public class Wallet {
     public Optional<URI> respondToVerificationWithError( final URI responseUri, final String state, final String error, final String errorDescription ) {
         return verifier.respondToVerificationWithError(responseUri, state, error, errorDescription);
     }
+
+    /** Prepares an offer without sending its Credential Request, for deliberate request mutations. */
+    public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
+        return credentialIssuer.prepareOffer(offerDeepLink);
+    }
+
+    public String createCredentialRequestPayload(final WalletBatchEntry walletEntry) {
+        return credentialIssuer.createCredentialRequestPayload(walletEntry);
+    }
+
+    public String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
+        return credentialIssuer.encryptCredentialRequestPayload(walletEntry, requestJson);
+    }
+
+    public ResponseEntity<String> postCredentialRequestWithCustomPayload(
+            final WalletBatchEntry walletEntry,
+            final String requestPayload
+    ) {
+        return credentialIssuer.postCredentialRequestWithCustomPayload(walletEntry, requestPayload);
+    }
+
+    public ResponseEntity<String> postCredentialRequestWithEncryptedPayload(
+            final WalletBatchEntry walletEntry,
+            final String encryptedPayload
+    ) {
+        return credentialIssuer.postCredentialRequestWithEncryptedPayload(walletEntry, encryptedPayload);
+    }
+
+    public ResponseEntity<String> respondToVerificationWithEncryptedPayload(
+            final RequestObject requestObject,
+            final String payload
+    ) {
+        return verifier.respondToVerificationWithEncryptedPayload(requestObject, payload);
+    }
+
+    public ResponseEntity<String> postEncryptedVerificationResponse(
+            final RequestObject requestObject,
+            final String encryptedPayload
+    ) {
+        return verifier.postEncryptedVerificationResponse(requestObject, encryptedPayload);
+    }
+
+    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+        return verifier.encryptVerificationResponsePayload(requestObject, payload);
+    }
 }
