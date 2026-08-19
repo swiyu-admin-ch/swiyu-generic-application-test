@@ -158,8 +158,8 @@ class VerifierRedirectUriTest extends BaseTest {
             description = """
                     Using a common setup, this test compares an Authorization Error Response for a redirect-enabled
                     verification with a successful legacy verification. An Error Response may omit redirect_uri; when
-                    present its response_code is used to retrieve the failed result, otherwise the result remains
-                    retrievable without a code. Clients without redirect_uri remain backward compatible.
+                    present its response_code is used to retrieve the failed result. When omitted, the Wallet performs
+                    no further action. Clients without redirect_uri remain backward compatible.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
@@ -199,17 +199,14 @@ class VerifierRedirectUriTest extends BaseTest {
         assertThat(legacyRedirect).isEmpty();
         assertThat(legacyResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
 
-        // Then – the failed result remains retrievable whether the optional redirect is returned or omitted
-        final ManagementResponse failedResult;
+        // Then – the Wallet follows the optional error redirect only when the Verifier returns one
         if (errorRedirect.isPresent()) {
             final URI holderErrorRedirect = errorRedirect.orElseThrow();
             assertRedirectUri(holderErrorRedirect, requestedErrorRedirect, errorSessionNonce);
-            failedResult = verifierManager.getVerificationById(
+            final ManagementResponse failedResult = verifierManager.getVerificationById(
                     failedVerification.getId(), responseCodeFrom(holderErrorRedirect));
-        } else {
-            failedResult = verifierManager.getVerificationById(failedVerification.getId());
+            assertThat(failedResult.getState()).isEqualTo(VerificationStatus.FAILED);
         }
-        assertThat(failedResult.getState()).isEqualTo(VerificationStatus.FAILED);
     }
 
     private ManagementResponse createRedirectEnabledVerification(String sessionNonce) {
