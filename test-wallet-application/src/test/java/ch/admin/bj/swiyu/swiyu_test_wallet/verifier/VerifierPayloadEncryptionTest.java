@@ -197,6 +197,62 @@ class VerifierPayloadEncryptionTest extends BaseTest {
 
     @Test
     @XrayTest(
+            key = "EIDOMNI-1252",
+            summary = "Verifier accepts an encrypted authorization response at the inclusive 21 MiB boundary",
+            description = """
+                    The Wallet sends a valid encrypted direct_post.jwt error response whose decompressed UTF-8 payload
+                    is exactly 21 MiB. The Verifier must accept that inclusive Swiss Profile boundary, close the
+                    verification as failed, and preserve the Wallet error details.
+                    """
+    )
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "The 21 MiB JWE decompressed-payload boundary is not available on these verifier tags"
+    )
+    void directPostJwtPayloadEncryption_whenPayloadIsExactlyTwentyOneMiB_thenAccepted() {
+        // Given
+        final String errorDescription = "Wallet declined the presentation";
+        final ManagementResponse verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .encrypted()
+                .createManagementResponse();
+        final RequestObject requestObject = wallet.getVerificationRequestObject(
+                verification.getVerificationDeeplink()
+        );
+        final String validErrorResponse = wallet.createVerificationErrorPayload(
+                requestObject,
+                "access_denied",
+                errorDescription
+        );
+        final String payload = JWESupport.createCompressibleJsonPayloadAtSize(
+                validErrorResponse,
+                JWESupport.VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES
+        );
+        final String encryptedPayload = wallet.encryptVerificationResponsePayload(requestObject, payload);
+        JWESupport.assertEncryptedPayloadAtSize(
+                payload,
+                encryptedPayload,
+                JWESupport.VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES
+        );
+
+        // When
+        final var response = wallet.postEncryptedVerificationResponse(requestObject, encryptedPayload);
+
+        // Then
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        final ManagementResponse failedVerification =
+                verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        assertThat(failedVerification.getWalletResponse()).isNotNull();
+        assertThat(failedVerification.getWalletResponse().getErrorCode())
+                .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+        assertThat(failedVerification.getWalletResponse().getErrorDescription()).isEqualTo(errorDescription);
+    }
+
+    @Test
+    @XrayTest(
             key = "EIDOMNI-1108",
             summary = "Accept unencrypted wallet error response for direct_post.jwt",
             description = """
