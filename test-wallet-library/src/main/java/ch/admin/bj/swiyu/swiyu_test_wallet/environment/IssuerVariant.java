@@ -14,6 +14,7 @@ public enum IssuerVariant {
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
+    private static final long CACHED_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS = 0;
 
     private final String surname;
     private final boolean hsm;
@@ -64,6 +65,7 @@ public enum IssuerVariant {
         if (this == CACHED) {
             config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
             config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
+            config.setTrustRegistryClockSkewBufferSeconds(CACHED_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS);
         }
         return config;
     }
@@ -80,6 +82,7 @@ public enum IssuerVariant {
         target.setEnableHsm(source.isEnableHsm());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
+        target.setTrustRegistryClockSkewBufferSeconds(source.getTrustRegistryClockSkewBufferSeconds());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());

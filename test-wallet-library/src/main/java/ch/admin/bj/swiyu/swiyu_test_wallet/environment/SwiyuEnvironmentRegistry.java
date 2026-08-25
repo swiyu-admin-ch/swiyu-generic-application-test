@@ -22,6 +22,7 @@ import java.security.PrivateKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -82,6 +83,8 @@ public class SwiyuEnvironmentRegistry {
     public synchronized void ensureStarted(final SwiyuEnvironmentSelection selection) {
         ensureRunning("database", dbContainer);
         ensureRunning("mockserver", mockServerContainer);
+        stopUnselectedIssuers(selection.issuers());
+        stopUnselectedVerifiers(selection.verifiers());
         if (selection.hsm()) {
             softHsm();
         }
@@ -94,6 +97,10 @@ public class SwiyuEnvironmentRegistry {
     }
 
     public synchronized IssuerHandle issuer(final IssuerVariant variant) {
+        final IssuerHandle existingIssuer = issuers.get(variant);
+        if (existingIssuer != null && !existingIssuer.container().isRunning()) {
+            issuers.remove(variant);
+        }
         return issuers.computeIfAbsent(variant, this::startIssuer);
     }
 
@@ -120,6 +127,10 @@ public class SwiyuEnvironmentRegistry {
     }
 
     public synchronized VerifierHandle verifier(final VerifierVariant variant) {
+        final VerifierHandle existingVerifier = verifiers.get(variant);
+        if (existingVerifier != null && !existingVerifier.container().isRunning()) {
+            verifiers.remove(variant);
+        }
         return verifiers.computeIfAbsent(variant, this::startVerifier);
     }
 
@@ -141,6 +152,26 @@ public class SwiyuEnvironmentRegistry {
 
     public MockAttestationAuthority mockAttestationAuthority() {
         return mockAttestationAuthority;
+    }
+
+    private void stopUnselectedIssuers(final Set<IssuerVariant> selectedVariants) {
+        issuers.entrySet().removeIf(entry -> {
+            if (selectedVariants.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().container().stop();
+            return true;
+        });
+    }
+
+    private void stopUnselectedVerifiers(final Set<VerifierVariant> selectedVariants) {
+        verifiers.entrySet().removeIf(entry -> {
+            if (selectedVariants.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().container().stop();
+            return true;
+        });
     }
 
     private IssuerHandle startIssuer(final IssuerVariant variant) {

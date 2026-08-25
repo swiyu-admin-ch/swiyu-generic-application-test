@@ -23,6 +23,7 @@ public class IssuerImageConfig {
     private boolean enableHsm = false;
     private long trustRegistryMaxCacheSize = 0;
     private long trustRegistryMaxCacheTtlSeconds = 0;
+    private long trustRegistryClockSkewBufferSeconds = 60;
 
     private String hsmUser = "admin";
     private String hsmPassword = "password";

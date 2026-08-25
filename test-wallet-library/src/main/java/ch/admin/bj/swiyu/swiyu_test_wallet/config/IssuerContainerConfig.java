@@ -57,6 +57,8 @@ public class IssuerContainerConfig {
                             String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheSize()))
                     .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS",
                             String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheTtlSeconds()))
+                    .withEnv("SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS",
+                            String.valueOf(issuerImageConfig.getTrustRegistryClockSkewBufferSeconds()))
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
