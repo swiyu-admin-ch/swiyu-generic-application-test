@@ -56,6 +56,25 @@ public class JWESupport {
             final int decompressedPayloadLimitBytes,
             final PayloadSizeScenario scenario
     ) {
+        final int targetBytes = switch (scenario) {
+            case COMPACT_JWE_OVER_HTTP_LIMIT -> OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES;
+            default -> decompressedPayloadLimitBytes + 1;
+        };
+        return createJsonPayload(baseJson, targetBytes, scenario);
+    }
+
+    public static String createCompressibleJsonPayloadAtSize(
+            final String baseJson,
+            final int targetBytes
+    ) {
+        return createJsonPayload(baseJson, targetBytes, PayloadSizeScenario.DECOMPRESSED_ASCII);
+    }
+
+    private static String createJsonPayload(
+            final String baseJson,
+            final int targetBytes,
+            final PayloadSizeScenario scenario
+    ) {
         final int closingBrace = baseJson.lastIndexOf('}');
         if (closingBrace < 0 || !baseJson.substring(closingBrace + 1).isBlank()) {
             throw new IllegalArgumentException("Expected a JSON object as base payload");
@@ -65,10 +84,6 @@ public class JWESupport {
         final String separator = jsonWithoutClosingBrace.stripTrailing().endsWith("{") ? "" : ",";
         final String prefix = jsonWithoutClosingBrace + separator + JSON_PADDING_PROPERTY;
         final String suffix = "\"}";
-        final int targetBytes = switch (scenario) {
-            case COMPACT_JWE_OVER_HTTP_LIMIT -> OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES;
-            default -> decompressedPayloadLimitBytes + 1;
-        };
         final int paddingBytes = targetBytes - utf8Length(prefix) - utf8Length(suffix);
         if (paddingBytes <= 0) {
             throw new IllegalArgumentException("JSON framing exceeds the target payload size");
@@ -85,7 +100,7 @@ public class JWESupport {
         if (scenario == PayloadSizeScenario.DECOMPRESSED_MULTIBYTE_UTF8) {
             assertThat(payload.length())
                     .as("UTF-8 scenario must detect Java character-count limits")
-                    .isLessThan(decompressedPayloadLimitBytes);
+                    .isLessThan(targetBytes);
         }
         return payload;
     }
@@ -96,16 +111,7 @@ public class JWESupport {
             final int decompressedPayloadLimitBytes,
             final PayloadSizeScenario scenario
     ) {
-        assertIsJWE(compactJwe);
-        final JWEObject jweObject;
-        try {
-            jweObject = JWEObject.parse(compactJwe);
-        } catch (ParseException ex) {
-            throw new AssertionError("Expected a parseable compact JWE", ex);
-        }
-        assertThat(jweObject.getHeader().getCompressionAlgorithm())
-                .as("JWE compression algorithm")
-                .isEqualTo(CompressionAlgorithm.DEF);
+        final JWEObject jweObject = parseAndAssertDeflatedJwe(compactJwe);
 
         final int compressedCipherTextBytes = jweObject.getCipherText().decode().length;
         if (scenario == PayloadSizeScenario.COMPACT_JWE_OVER_HTTP_LIMIT) {
@@ -125,6 +131,33 @@ public class JWESupport {
             assertThat(compressedCipherTextBytes)
                     .as("A decompression bomb must stay below the compressed-ciphertext limit")
                     .isLessThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+        }
+    }
+
+    public static void assertEncryptedPayloadAtSize(
+            final String plaintext,
+            final String compactJwe,
+            final int expectedDecompressedBytes
+    ) {
+        parseAndAssertDeflatedJwe(compactJwe);
+        assertThat(utf8Length(plaintext))
+                .as("Decompressed JWE payload boundary")
+                .isEqualTo(expectedDecompressedBytes);
+        assertThat(utf8Length(compactJwe))
+                .as("A compressed boundary payload must stay below the HTTP content limit")
+                .isLessThan(HTTP_CONTENT_LIMIT_BYTES);
+    }
+
+    private static JWEObject parseAndAssertDeflatedJwe(final String compactJwe) {
+        assertIsJWE(compactJwe);
+        try {
+            final JWEObject jweObject = JWEObject.parse(compactJwe);
+            assertThat(jweObject.getHeader().getCompressionAlgorithm())
+                    .as("JWE compression algorithm")
+                    .isEqualTo(CompressionAlgorithm.DEF);
+            return jweObject;
+        } catch (ParseException ex) {
+            throw new AssertionError("Expected a parseable compact JWE", ex);
         }
     }
 
