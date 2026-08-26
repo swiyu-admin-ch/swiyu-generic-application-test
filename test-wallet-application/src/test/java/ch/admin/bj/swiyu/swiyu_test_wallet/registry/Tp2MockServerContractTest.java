@@ -294,7 +294,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String unknownProtectedIssuanceAuthorizationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/protected-issuance-authorization-trust-statement")
-                        .queryParam("sub", "did:tdw:QmUnknown:identifier.admin.ch:api:v1:did")
+                        .queryParam("sub", "did:webvh:QmUnknown:identifier.admin.ch:api:v1:did")
                         .queryParam("filterActive", false)
                         .queryParam("page", 0)
                         .queryParam("size", 5)
@@ -313,7 +313,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String unknownProtectedVerificationAuthorizationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/protected-verification-authorization-trust-statement")
-                        .queryParam("sub", "did:tdw:QmUnknown:identifier.admin.ch:api:v1:did")
+                        .queryParam("sub", "did:webvh:QmUnknown:identifier.admin.ch:api:v1:did")
                         .queryParam("filterActive", false)
                         .queryParam("page", 0)
                         .queryParam("size", 5)
@@ -332,7 +332,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String unknownVerificationListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/verification-query-public-statement")
-                        .queryParam("sub", "did:tdw:QmUnknown:identifier.admin.ch:api:v1:did")
+                        .queryParam("sub", "did:webvh:QmUnknown:identifier.admin.ch:api:v1:did")
                         .queryParam("filterActive", false)
                         .queryParam("page", 0)
                         .queryParam("size", 5)
@@ -351,7 +351,7 @@ class Tp2MockServerContractTest extends BaseTest {
         String unknownIdentityListBody = client.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/api/v2/identity-trust-statement")
-                        .queryParam("sub", "did:tdw:QmUnknown:identifier.admin.ch:api:v1:did")
+                        .queryParam("sub", "did:webvh:QmUnknown:identifier.admin.ch:api:v1:did")
                         .queryParam("filterActive", false)
                         .queryParam("page", 0)
                         .queryParam("size", 5)
@@ -621,7 +621,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertThatExceptionOfType(RestClientResponseException.class)
                 .isThrownBy(() -> client.get()
                         .uri("/api/v2/identity-trust-statement/{identifier}",
-                                "did:tdw:QmUnknown:identifier.admin.ch:api:v1:did")
+                                "did:webvh:QmUnknown:identifier.admin.ch:api:v1:did")
                         .retrieve()
                         .body(String.class))
                 .satisfies(exception -> assertThat(exception.getStatusCode().value()).isEqualTo(404));
@@ -933,7 +933,7 @@ class Tp2MockServerContractTest extends BaseTest {
         List<Map<String, Object>> actors = (List<Map<String, Object>>) statement.getJWTClaimsSet().getClaim("non_compliant_actors");
         assertThat(actors).hasSize(2);
         assertThat(actors.getFirst())
-                .containsEntry("actor", "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did")
+                .containsEntry("actor", "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did")
                 .containsEntry("flagged_at", "2026-02-25T07:07:35Z")
                 .containsEntry("reason", "Mock bad actor entry used by application tests.")
                 .containsEntry("reason#de", "Mock bad actor entry used by application tests. (DE)")

@@ -3,6 +3,12 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
+import com.nimbusds.jose.PlainHeader;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.PlainJWT;
+import com.nimbusds.jwt.SignedJWT;
 import tools.jackson.databind.ObjectMapper;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.matchers.TimeToLive;
@@ -11,8 +17,10 @@ import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +37,19 @@ import static org.mockserver.model.HttpResponse.response;
  * helper keeps that behavior in one place while still using the shared statement factory.</p>
  */
 public final class Tp2TrustStatementRouteSupport {
+
+    public enum IssuerTrustStatementTarget {
+        IDENTITY,
+        PROTECTED_ISSUANCE_AUTHORIZATION
+    }
+
+    private enum SignatureMutation {
+        NONE,
+        TAMPERED_PAYLOAD,
+        TAMPERED_SIGNATURE,
+        WRONG_KEY,
+        ALG_NONE
+    }
 
     public static final String IDENTITY_TRUST_STATEMENT_PATH = "/api/v2/identity-trust-statement";
     public static final String PROTECTED_ISSUANCE_AUTHORIZATION_PATH =
@@ -51,8 +72,29 @@ public final class Tp2TrustStatementRouteSupport {
                                          VerifierConfig verifierConfig,
                                          TrustConfig trustConfig,
                                          ObjectMapper objectMapper) {
+        this(
+                mockServerClient,
+                issuerConfig,
+                verifierConfig,
+                trustConfig,
+                objectMapper,
+                Tp2TrustStatementAlgorithm.ES256
+        );
+    }
+
+    public Tp2TrustStatementRouteSupport(MockServerClient mockServerClient,
+                                         IssuerConfig issuerConfig,
+                                         VerifierConfig verifierConfig,
+                                         TrustConfig trustConfig,
+                                         ObjectMapper objectMapper,
+                                         Tp2TrustStatementAlgorithm signatureAlgorithm) {
         this.mockServerClient = mockServerClient;
-        this.statementFactory = new Tp2TrustRegistryStatementFactory(issuerConfig, verifierConfig, trustConfig);
+        this.statementFactory = new Tp2TrustRegistryStatementFactory(
+                issuerConfig,
+                verifierConfig,
+                trustConfig,
+                signatureAlgorithm
+        );
         this.responseFactory = new Tp2MockServerResponseFactory(objectMapper);
     }
 
@@ -62,34 +104,48 @@ public final class Tp2TrustStatementRouteSupport {
 
     public void registerIssuerSuccess(Duration lifetime, String piaTsVct) {
         clearIssuerRoutes();
-        registerIdentityRoute(lifetime, false, null);
-        registerPiaTsRoute(lifetime, piaTsVct, null);
+        registerIdentityRoute(lifetime, SignatureMutation.NONE, null);
+        registerPiaTsRoute(lifetime, piaTsVct, SignatureMutation.NONE, null);
+    }
+
+    public void registerIssuerTamperedPayload(Duration lifetime, IssuerTrustStatementTarget target) {
+        registerIssuerInvalid(lifetime, SignatureMutation.TAMPERED_PAYLOAD, target);
+    }
+
+    public void registerIssuerWrongKey(Duration lifetime, IssuerTrustStatementTarget target) {
+        registerIssuerInvalid(lifetime, SignatureMutation.WRONG_KEY, target);
+    }
+
+    public void registerIssuerAlgorithmNone(Duration lifetime) {
+        clearIssuerRoutes();
+        registerIdentityRoute(lifetime, SignatureMutation.ALG_NONE, null);
+        registerPiaTsRoute(lifetime, PROTECTED_VCT, SignatureMutation.ALG_NONE, null);
     }
 
     public void registerIssuerTransientErrorThenSuccess(Duration lifetime) {
         clearIssuerRoutes();
-        registerIdentityRoute(lifetime, false, new AtomicInteger());
-        registerPiaTsRoute(lifetime, PROTECTED_VCT, new AtomicInteger());
+        registerIdentityRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
+        registerPiaTsRoute(lifetime, PROTECTED_VCT, SignatureMutation.NONE, new AtomicInteger());
     }
 
     public void registerVerifierSuccess(Duration lifetime) {
         clearVerifierRoutes();
-        registerIdentityRoute(lifetime, false, null);
-        registerPvaTsRoute(lifetime, false, null);
+        registerIdentityRoute(lifetime, SignatureMutation.NONE, null);
+        registerPvaTsRoute(lifetime, SignatureMutation.NONE, null);
         registerVqPsRoute(lifetime, null);
     }
 
     public void registerVerifierInvalidIdentity(Duration lifetime) {
         clearVerifierRoutes();
-        registerIdentityRoute(lifetime, true, null);
-        registerPvaTsRoute(lifetime, false, null);
+        registerIdentityRoute(lifetime, SignatureMutation.TAMPERED_SIGNATURE, null);
+        registerPvaTsRoute(lifetime, SignatureMutation.NONE, null);
         registerVqPsRoute(lifetime, null);
     }
 
     public void registerVerifierTransientErrorThenSuccess(Duration lifetime) {
         clearVerifierRoutes();
-        registerIdentityRoute(lifetime, false, new AtomicInteger());
-        registerPvaTsRoute(lifetime, false, new AtomicInteger());
+        registerIdentityRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
+        registerPvaTsRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
         registerVqPsRoute(lifetime, new AtomicInteger());
     }
 
@@ -178,7 +234,28 @@ public final class Tp2TrustStatementRouteSupport {
         ).length;
     }
 
-    private void registerIdentityRoute(Duration lifetime, boolean tamperSignature, AtomicInteger transientFailures) {
+    private void registerIssuerInvalid(Duration lifetime,
+                                       SignatureMutation mutation,
+                                       IssuerTrustStatementTarget target) {
+        clearIssuerRoutes();
+        registerIdentityRoute(
+                lifetime,
+                target == IssuerTrustStatementTarget.IDENTITY ? mutation : SignatureMutation.NONE,
+                null
+        );
+        registerPiaTsRoute(
+                lifetime,
+                PROTECTED_VCT,
+                target == IssuerTrustStatementTarget.PROTECTED_ISSUANCE_AUTHORIZATION
+                        ? mutation
+                        : SignatureMutation.NONE,
+                null
+        );
+    }
+
+    private void registerIdentityRoute(Duration lifetime,
+                                       SignatureMutation mutation,
+                                       AtomicInteger transientFailures) {
         mockServerClient.when(
                         request().withMethod("GET").withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?"),
                         Times.unlimited(),
@@ -199,7 +276,7 @@ public final class Tp2TrustStatementRouteSupport {
                     }
                     String jwt = statementFactory.buildIdentityTrustStatement(subject, lifetime);
                     return responseFactory.jsonResponse(responseFactory.pagedContent(
-                            List.of(tamperSignature ? tamperJwtSignature(jwt) : jwt),
+                            List.of(mutateJwt(jwt, mutation)),
                             httpRequest
                     ));
                 });
@@ -219,11 +296,14 @@ public final class Tp2TrustStatementRouteSupport {
                     }
 
                     String jwt = statementFactory.buildIdentityTrustStatement(extractLastPathSegment(httpRequest), lifetime);
-                    return responseFactory.jwtResponse(tamperSignature ? tamperJwtSignature(jwt) : jwt);
+                    return responseFactory.jwtResponse(mutateJwt(jwt, mutation));
                 });
     }
 
-    private void registerPiaTsRoute(Duration lifetime, String vct, AtomicInteger transientFailures) {
+    private void registerPiaTsRoute(Duration lifetime,
+                                    String vct,
+                                    SignatureMutation mutation,
+                                    AtomicInteger transientFailures) {
         mockServerClient.when(
                         request().withMethod("GET").withPath(PROTECTED_ISSUANCE_AUTHORIZATION_PATH + "/?"),
                         Times.unlimited(),
@@ -245,11 +325,13 @@ public final class Tp2TrustStatementRouteSupport {
                             lifetime,
                             vct
                     );
-                    return responseFactory.jsonResponse(pagedContent(jwt));
+                    return responseFactory.jsonResponse(pagedContent(mutateJwt(jwt, mutation)));
                 });
     }
 
-    private void registerPvaTsRoute(Duration lifetime, boolean tamperSignature, AtomicInteger transientFailures) {
+    private void registerPvaTsRoute(Duration lifetime,
+                                    SignatureMutation mutation,
+                                    AtomicInteger transientFailures) {
         mockServerClient.when(
                         request().withMethod("GET").withPath(PROTECTED_VERIFICATION_AUTHORIZATION_PATH + "/?"),
                         Times.unlimited(),
@@ -270,7 +352,7 @@ public final class Tp2TrustStatementRouteSupport {
                             UUID.randomUUID().toString(),
                             lifetime
                     );
-                    return responseFactory.jsonResponse(pagedContent(tamperSignature ? tamperJwtSignature(jwt) : jwt));
+                    return responseFactory.jsonResponse(pagedContent(mutateJwt(jwt, mutation)));
                 });
     }
 
@@ -344,8 +426,49 @@ public final class Tp2TrustStatementRouteSupport {
                 .count();
     }
 
+    private String mutateJwt(String jwt, SignatureMutation mutation) {
+        return switch (mutation) {
+            case NONE -> jwt;
+            case TAMPERED_PAYLOAD -> tamperJwtPayload(jwt);
+            case TAMPERED_SIGNATURE -> tamperJwtSignature(jwt);
+            case WRONG_KEY -> statementFactory.resignWithUntrustedKey(jwt);
+            case ALG_NONE -> unsecuredJwt(jwt);
+        };
+    }
+
+    private String tamperJwtPayload(String jwt) {
+        try {
+            SignedJWT parsed = SignedJWT.parse(jwt);
+            JWTClaimsSet tamperedClaims = new JWTClaimsSet.Builder(parsed.getJWTClaimsSet())
+                    .claim("tampered", true)
+                    .build();
+            String[] parts = jwt.split("\\.", -1);
+            return parts[0] + "." + Base64URL.encode(tamperedClaims.toString()) + "." + parts[2];
+        } catch (ParseException e) {
+            throw new TestSupportException("Cannot tamper TP2 trust-statement payload: " + e.getMessage());
+        }
+    }
+
     private String tamperJwtSignature(String jwt) {
-        return jwt + "A";
+        String[] parts = jwt.split("\\.", -1);
+        char replacement = parts[2].charAt(0) == 'A' ? 'B' : 'A';
+        parts[2] = replacement + parts[2].substring(1);
+        return String.join(".", parts);
+    }
+
+    static String unsecuredJwt(String jwt) {
+        try {
+            SignedJWT parsed = SignedJWT.parse(jwt);
+            Map<String, Object> customParams = new HashMap<>(parsed.getHeader().getCustomParams());
+            customParams.put("kid", parsed.getHeader().getKeyID());
+            PlainHeader header = new PlainHeader.Builder()
+                    .type(parsed.getHeader().getType())
+                    .customParams(customParams)
+                    .build();
+            return new PlainJWT(header, parsed.getJWTClaimsSet()).serialize();
+        } catch (ParseException e) {
+            throw new TestSupportException("Cannot create alg=none TP2 trust statement: " + e.getMessage());
+        }
     }
 
     private String extractLastPathSegment(HttpRequest httpRequest) {

@@ -285,10 +285,8 @@ class VerifierResolverCacheE2ETest extends BaseTest {
     }
 
     private String didLogWithTamperedAssertionKey() {
-        final JsonArray didLog = JsonParser.parseString(issuerConfig.getIssuerDidLog()).getAsJsonArray();
-        final JsonObject didDocument = didLog.get(3)
-                .getAsJsonObject()
-                .getAsJsonObject("value");
+        final JsonObject didLog = JsonParser.parseString(issuerConfig.getIssuerDidLog()).getAsJsonObject();
+        final JsonObject didDocument = didLog.getAsJsonObject("state");
         final JsonArray verificationMethods = didDocument.getAsJsonArray("verificationMethod");
         final JWK tamperedAssertionKey = KeyUtil.createJWKFromKeyPair(KeyUtil.generateEC256KeyPair()).toPublicJWK();
 

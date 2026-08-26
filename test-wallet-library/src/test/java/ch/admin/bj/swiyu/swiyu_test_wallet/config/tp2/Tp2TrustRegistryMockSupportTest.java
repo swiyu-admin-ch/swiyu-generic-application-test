@@ -3,12 +3,26 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
-import tools.jackson.databind.ObjectMapper;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.crypto.Ed25519Verifier;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jwt.PlainJWT;
 import com.nimbusds.jwt.SignedJWT;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockserver.model.HttpRequest;
 
+import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -23,9 +37,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class Tp2TrustRegistryMockSupportTest {
 
     private static final String TRUST_DID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA1:identifier.admin.ch:api:v1:did";
     private static final String ISSUER_DID =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRAA2:identifier.admin.ch:api:v1:did";
     private static final String PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
 
     private Tp2TrustRegistryStatementFactory statementFactory;
@@ -72,6 +86,124 @@ class Tp2TrustRegistryMockSupportTest {
                 .isNotEqualTo(first.getJWTClaimsSet().getJWTID());
     }
 
+    @ParameterizedTest(name = "[{index}] TP2 fixture signs with {0}")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ED25519", "EDDSA_LEGACY"}
+    )
+    void trustStatement_whenAlternativeAlgorithmSelected_thenSignatureIsCryptographicallyValid(
+            Tp2TrustStatementAlgorithm algorithm) throws ParseException, JOSEException {
+        TrustConfig agileTrustConfig = buildAgileTrustConfig();
+        Tp2TrustRegistryStatementFactory agileFactory = new Tp2TrustRegistryStatementFactory(
+                issuerConfig,
+                null,
+                agileTrustConfig,
+                algorithm
+        );
+
+        SignedJWT statement = SignedJWT.parse(
+                agileFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid())
+        );
+
+        assertThat(statement.getHeader().getAlgorithm().getName())
+                .isEqualTo(algorithm == Tp2TrustStatementAlgorithm.ED25519 ? "Ed25519" : "EdDSA");
+        assertThat(statement.getHeader().getKeyID())
+                .isEqualTo(agileTrustConfig.getTrustEd25519AssertKeyId());
+        assertThat(statement.verify(verifierFor(algorithm, agileTrustConfig))).isTrue();
+    }
+
+    @ParameterizedTest(name = "[{index}] TP2 fixture rejects an untrusted {0} key")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ES256", "ED25519"}
+    )
+    void trustStatement_whenResignedWithUntrustedKey_thenTrustedKeyRejectsSignature(
+            Tp2TrustStatementAlgorithm algorithm) throws ParseException, JOSEException {
+        TrustConfig algorithmTrustConfig = algorithm == Tp2TrustStatementAlgorithm.ES256
+                ? buildTrustConfig()
+                : buildAgileTrustConfig();
+        Tp2TrustRegistryStatementFactory algorithmFactory = new Tp2TrustRegistryStatementFactory(
+                issuerConfig,
+                null,
+                algorithmTrustConfig,
+                algorithm
+        );
+        String trustedJwt = algorithmFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid());
+        String untrustedJwt = algorithmFactory.resignWithUntrustedKey(trustedJwt);
+        JWSVerifier trustedVerifier = verifierFor(algorithm, algorithmTrustConfig);
+
+        assertThat(SignedJWT.parse(trustedJwt).verify(trustedVerifier)).isTrue();
+        assertThat(SignedJWT.parse(untrustedJwt).verify(trustedVerifier)).isFalse();
+    }
+
+    @Test
+    void ed25519TrustConfig_whenCreated_thenDidPublishesTheMatchingAssertionKey()
+            throws ParseException, JOSEException {
+        TrustConfig agileTrustConfig = buildAgileTrustConfig();
+        JsonObject didLogEntry = JsonParser.parseString(agileTrustConfig.getTrustDidLog()).getAsJsonObject();
+        JsonObject didDocument = didLogEntry.getAsJsonObject("state");
+
+        assertThat(didLogEntry.get("versionId").getAsString()).startsWith("1-");
+        assertThat(didLogEntry.getAsJsonObject("parameters").get("method").getAsString())
+                .isEqualTo("did:webvh:1.0");
+        assertThat(didLogEntry.getAsJsonArray("proof")).hasSize(1);
+        JsonObject proof = didLogEntry.getAsJsonArray("proof").get(0).getAsJsonObject();
+        assertThat(proof.get("proofPurpose").getAsString()).isEqualTo("assertionMethod");
+        assertThat(proof.has("challenge")).isFalse();
+        assertThat(agileTrustConfig.getTrustDid()).startsWith("did:webvh:");
+        assertThat(didDocument.get("id").getAsString()).isEqualTo(agileTrustConfig.getTrustDid());
+        assertThat(didDocument.getAsJsonArray("assertionMethod").get(0).getAsString())
+                .isEqualTo(agileTrustConfig.getTrustEd25519AssertKeyId());
+
+        JsonObject publishedVerificationMethod = findVerificationMethod(
+                didDocument.getAsJsonArray("verificationMethod"),
+                agileTrustConfig.getTrustEd25519AssertKeyId()
+        );
+        assertThat(publishedVerificationMethod.get("type").getAsString()).isEqualTo("JsonWebKey2020");
+        assertThat(publishedVerificationMethod.get("controller").getAsString())
+                .isEqualTo(agileTrustConfig.getTrustDid());
+
+        JWK publishedKey = JWK.parse(publishedVerificationMethod.getAsJsonObject("publicKeyJwk").toString());
+        assertThat(publishedKey.getKeyType().getValue()).isEqualTo("OKP");
+        assertThat(publishedKey.toOctetKeyPair().getCurve()).isEqualTo(Curve.Ed25519);
+        assertThat(publishedKey.toOctetKeyPair().getX())
+                .isEqualTo(agileTrustConfig.getTrustEd25519AssertKey().toPublicJWK().getX());
+        assertThat(publishedKey.isPrivate()).isFalse();
+
+        Tp2TrustRegistryStatementFactory agileFactory = new Tp2TrustRegistryStatementFactory(
+                issuerConfig,
+                null,
+                agileTrustConfig,
+                Tp2TrustStatementAlgorithm.ED25519
+        );
+        SignedJWT statement = SignedJWT.parse(
+                agileFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid())
+        );
+        assertThat(statement.getHeader().getKeyID()).isEqualTo(agileTrustConfig.getTrustEd25519AssertKeyId());
+        assertThat(statement.verify(new Ed25519Verifier(publishedKey.toOctetKeyPair()))).isTrue();
+    }
+
+    @Test
+    void trustStatement_whenConvertedToUnsecuredJwt_thenOnlyAlgorithmAndSignatureChange()
+            throws ParseException {
+        SignedJWT signedStatement = SignedJWT.parse(
+                statementFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid())
+        );
+
+        PlainJWT unsecuredStatement = PlainJWT.parse(
+                Tp2TrustStatementRouteSupport.unsecuredJwt(signedStatement.serialize())
+        );
+
+        assertThat(unsecuredStatement.getHeader().getAlgorithm().getName()).isEqualTo("none");
+        assertThat(unsecuredStatement.getHeader().getType()).isEqualTo(signedStatement.getHeader().getType());
+        assertThat(unsecuredStatement.getHeader().getCustomParam("kid"))
+                .isEqualTo(signedStatement.getHeader().getKeyID());
+        assertThat(unsecuredStatement.getHeader().getCustomParam("profile_version"))
+                .isEqualTo(signedStatement.getHeader().getCustomParam("profile_version"));
+        assertThat(unsecuredStatement.getJWTClaimsSet().toJSONObject())
+                .isEqualTo(signedStatement.getJWTClaimsSet().toJSONObject());
+    }
+
     @Test
     void protectedIssuanceAuthorization_whenBuilt_thenContainsAuthorizedVctValues() throws ParseException {
         SignedJWT statement = SignedJWT.parse(
@@ -99,7 +231,7 @@ class Tp2TrustRegistryMockSupportTest {
 
     @Test
     void identityTrustStatements_whenUnknownSubjectRequested_thenReturnEmptyList() {
-        List<String> statements = statementFactory.buildIdentityTrustStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did");
+        List<String> statements = statementFactory.buildIdentityTrustStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did");
 
         assertThat(statements).isEmpty();
     }
@@ -159,14 +291,14 @@ class Tp2TrustRegistryMockSupportTest {
         assertThat(statementFactory.buildVerificationQueryPublicStatements(
                 Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
         )).hasSize(1);
-        assertThat(statementFactory.buildVerificationQueryPublicStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+        assertThat(statementFactory.buildVerificationQueryPublicStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did"))
                 .isEmpty();
         assertThat(statementFactory.buildProtectedVerificationAuthorizationStatements(
                 Tp2TrustRegistryStatementFactory.TP2_DEFAULT_VERIFIER_SUBJECT
         )).hasSize(1);
         assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements(issuerConfig.getIssuerDid()))
                 .hasSize(1);
-        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements("did:tdw:QmUnknown:identifier.admin.ch:api:v1:did"))
+        assertThat(statementFactory.buildProtectedIssuanceAuthorizationStatements("did:webvh:QmUnknown:identifier.admin.ch:api:v1:did"))
                 .isEmpty();
         assertThat(statementFactory.isKnownVerificationQueryPublicStatementJti(statementFactory.verificationQueryPublicJti()))
                 .isTrue();
@@ -264,6 +396,12 @@ class Tp2TrustRegistryMockSupportTest {
                 .build();
     }
 
+    private static TrustConfig buildAgileTrustConfig() {
+        return Tp2TrustConfigFactory.createEd25519TrustConfig(
+                URI.create("https://mockserver:1080/api/v1/did/ed25519-fixture")
+        );
+    }
+
     private static IssuerConfig buildIssuerConfig() {
         KeyPair issuerKeyPair = generateEcKeyPair();
         return IssuerConfig.builder()
@@ -294,6 +432,27 @@ class Tp2TrustRegistryMockSupportTest {
                 .encodeToString(keyPair.getPublic().getEncoded());
         return "-----BEGIN PRIVATE KEY-----\n" + privateKeyBase64 + "\n-----END PRIVATE KEY-----\n"
                 + "-----BEGIN PUBLIC KEY-----\n" + publicKeyBase64 + "\n-----END PUBLIC KEY-----\n";
+    }
+
+    private JWSVerifier verifierFor(Tp2TrustStatementAlgorithm algorithm, TrustConfig agileTrustConfig)
+            throws JOSEException {
+        return switch (algorithm) {
+            case ES256 -> new ECDSAVerifier(
+                    JWK.parseFromPEMEncodedObjects(agileTrustConfig.getTrustAssertKeyPemString()).toECKey()
+            );
+            case ED25519, EDDSA_LEGACY ->
+                    new Ed25519Verifier(agileTrustConfig.getTrustEd25519AssertKey().toPublicJWK());
+        };
+    }
+
+    private JsonObject findVerificationMethod(JsonArray verificationMethods, String expectedId) {
+        for (JsonElement verificationMethod : verificationMethods) {
+            JsonObject candidate = verificationMethod.getAsJsonObject();
+            if (expectedId.equals(candidate.get("id").getAsString())) {
+                return candidate;
+            }
+        }
+        throw new AssertionError("No verification method published for " + expectedId);
     }
 
     private void assertProtectedVctUrl(String vct) {

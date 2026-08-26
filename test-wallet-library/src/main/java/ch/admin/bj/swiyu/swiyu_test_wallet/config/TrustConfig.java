@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
@@ -24,6 +25,9 @@ public class TrustConfig {
     private final String trustAuthKeyId;
     private final String trustAssertKeyPemString;
     private final String trustAuthKeyPemString;
+    private final String trustEd25519AssertKeyId;
+    @ToString.Exclude
+    private final OctetKeyPair trustEd25519AssertKey;
 
     public static TrustConfig createTrustDid(URI identifierRegistryUrl) {
         KeyPair assertKeys = generateEC256KeyPair();
