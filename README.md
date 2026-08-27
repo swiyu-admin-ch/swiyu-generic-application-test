@@ -15,6 +15,7 @@ This project starts the Issuer and Verifier services inside containers and inter
 - [Project Structure](#project-structure)
 - [Test Environment Model](#test-environment-model)
 - [Configuration](#configuration)
+- [Version Regression Tests](#version-regression-tests)
 - [Hardware Security Module (HSM) Integration](#hardware-security-module-hsm-integration)
 - [Local Development and Testing](#local-development-and-testing)
 - [Contributions and feedback](#contributions-and-feedback)
@@ -238,6 +239,34 @@ Container logs are controlled per service. Issuer and Verifier logs are enabled 
 When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated during test execution. These traces are saved as Markdown files in the `target/traces/` directory, organized by test name. This feature is particularly useful for understanding the flow of happy path tests and debugging.
 
 **Note**: Enabling tracing may cause some edge case tests to fail. It is recommended to use tracing primarily for analyzing happy path test flows.
+
+## Version Regression Tests
+
+Version regression tests are opt-in and exercise a stateful `Previous` to `Candidate` transition on one component
+schema. PostgreSQL and MockServer stay running while the Previous component is stopped and the Candidate component
+starts and applies its database migrations. Issuer and Verifier transitions support independent versions, variants and
+metadata; the currently implemented E2E flow covers only an offer created by the Previous Issuer and issued by the
+Candidate Issuer.
+
+Run it with explicit image versions:
+
+```bash
+./mvnw -Pversion-regression clean verify \
+  -Dregression.issuer.previous.version=4.1.0 \
+  -Dregression.issuer.candidate.version=4.2.0
+```
+
+Each descriptor also accepts `.variant` and `.metadata` properties. Metadata locations must use either
+`classpath:...` or `file:...`. Equivalent environment variables use uppercase underscore names, for example
+`REGRESSION_ISSUER_PREVIOUS_VERSION`, `REGRESSION_ISSUER_PREVIOUS_VARIANT`, and
+`REGRESSION_ISSUER_PREVIOUS_METADATA`.
+
+The standard `./mvnw clean verify` excludes the `version_regression` tag and does not start regression components.
+
+To run only version regression tests from GitHub Actions, start the **Run E2E Tests** workflow, select
+`version-regression`, set `issuer-image-tag` to the Candidate version, and provide `previous-issuer-image-tag`.
+The optional `previous-verifier-image-tag` already configures a Verifier transition for future regression scenarios;
+no Verifier regression E2E test is currently executed.
 
 ## Hardware Security Module (HSM) Integration
 
