@@ -468,6 +468,13 @@ components:
           type: string
         detail:
           type: string
+    CredentialEvaluation:
+      type: object
+      properties:
+        credential_status:
+          $ref: "#/components/schemas/StatusVerificationResult"
+        trust_markers:
+          $ref: "#/components/schemas/IssuerTrustMarker"
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -680,6 +687,13 @@ components:
           $ref: "#/components/schemas/VerificationStatus"
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+        credential_evaluation:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/CredentialEvaluation"
+          description: "Object of evaluations, where the key is the id of the DCQL credential query"
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -696,6 +710,40 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+    IssuerTrustMarker:
+      type: object
+      properties:
+        trust_method:
+          $ref: "#/components/schemas/TrustMethod"
+        is_trusted:
+          type: boolean
+          description: Overall result of the issuer trust evaluation
+        viTM:
+          type: boolean
+          description: Verified Identity Trust Marker
+        caTM:
+          type: boolean
+          description: Compliant Actor Trust Marker
+        gucTM:
+          type: boolean
+          description: Governed Use Case Trust Marker
+        gucaTM:
+          type: boolean
+          description: Governed Use Case Authorization Trust Marker
+    StatusVerificationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        status:
+          type: integer
+          format: int32
+    TrustMethod:
+      type: string
+      enum:
+      - TRUST_PROTOCOL_1_0
+      - TRUST_PROTOCOL_2_0
+      - TRUSTED_AUTHORITY
     VerificationErrorResponseCode:
       type: string
       description: |
