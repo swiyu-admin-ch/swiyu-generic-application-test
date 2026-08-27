@@ -37,6 +37,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.REVOKED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.SUSPENDED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertCredentialStatus;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -162,13 +166,15 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"));
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!")),
+                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+            );
         }
 
         // Then - Verify that renewed credentials cannot be verified
@@ -180,13 +186,15 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"));
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!")),
+                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+            );
         }
     }
 
@@ -258,13 +266,15 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"));
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!")),
+                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+            );
         }
 
         // Then - Verify that renewed credentials cannot be verified
@@ -276,13 +286,15 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, presentation);
-            });
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"));
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!")),
+                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+            );
         }
 
         // When - Reactivate credentials by setting status back to ISSUED

@@ -33,6 +33,10 @@ import org.springframework.web.client.HttpServerErrorException;
 import java.util.List;
 import java.util.Map;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.REVOKED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.SUSPENDED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertCredentialStatus;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -93,17 +97,17 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, presentation);
-            });
-
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"))
-                    .hasDetail("credential_revoked")
-                    .hasErrorCode("credential_revoked");
-
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"))
+                            .hasDetail("credential_revoked")
+                            .hasErrorCode("credential_revoked"),
+                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+            );
         }
     }
 
@@ -159,17 +163,20 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final int index = i;
-            final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-                wallet.respondToVerification(verificationDetails, batchEntry.getVerifiableCredential(index));
-            });
-
-            ApiErrorAssert.assertThat(ex)
-                    .hasError("invalid_transaction_data")
-                    .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"))
-                    .hasDetail("credential_suspended")
-                    .hasErrorCode("credential_suspended");
-
-            verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+            assertRejected(
+                    () -> wallet.respondToVerification(
+                            verificationDetails,
+                            batchEntry.getVerifiableCredential(index)
+                    ),
+                    verifierManager,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasError("invalid_transaction_data")
+                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"))
+                            .hasDetail("credential_suspended")
+                            .hasErrorCode("credential_suspended"),
+                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+            );
         }
 
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
