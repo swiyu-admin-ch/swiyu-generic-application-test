@@ -27,6 +27,7 @@ public class VerifierContainerConfig {
     private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
     private static final String DATASOURCE_MINIMUM_IDLE = "1";
 
+    /** Builds a Verifier container using the standard Application Tests metadata fixture without starting it. */
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createVerifierContainer(
             Network network,
@@ -37,6 +38,35 @@ public class VerifierContainerConfig {
             ManagementAuthConfig managementAuthConfig,
             String tokenDirPath,
             ContainerLogConfig containerLogConfig) {
+        return createVerifierContainer(
+                network,
+                dbContainer,
+                config,
+                imageName,
+                verifierImageConfig,
+                managementAuthConfig,
+                tokenDirPath,
+                containerLogConfig,
+                MountableFile.forHostPath(getResourcePath("verifier/metadata.json"))
+        );
+    }
+
+    /**
+     * Builds a Verifier container with an explicit metadata source mounted at {@code /tmp/metadata.json}.
+     *
+     * <p>The returned container is configured but not started; its caller owns the runtime lifecycle.
+     */
+    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    public static GenericContainer<?> createVerifierContainer(
+            Network network,
+            PostgreSQLContainer<?> dbContainer,
+            VerifierConfig config,
+            String imageName,
+            VerifierImageConfig verifierImageConfig,
+            ManagementAuthConfig managementAuthConfig,
+            String tokenDirPath,
+            ContainerLogConfig containerLogConfig,
+            MountableFile metadata) {
         GenericContainer<?> container = new GenericContainer<>(imageName);
         container
                     .withExposedPorts(8080)
@@ -76,7 +106,7 @@ public class VerifierContainerConfig {
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
-                    .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("verifier/metadata.json")), "/tmp/metadata.json")
+                    .withCopyFileToContainer(metadata, "/tmp/metadata.json")
                     .waitingFor(Wait.forLogMessage(".*Started Application.*", 1).withStartupTimeout(STARTUP_TIMEOUT))
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")

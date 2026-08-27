@@ -22,6 +22,7 @@ public class IssuerContainerConfig {
     private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
     private static final String DATASOURCE_MINIMUM_IDLE = "1";
 
+    /** Builds an Issuer container using the standard Application Tests metadata fixture without starting it. */
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
             final Network network,
@@ -34,6 +35,39 @@ public class IssuerContainerConfig {
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority) {
+        return createIssuerContainer(
+                network,
+                dbContainer,
+                config,
+                mockServer,
+                imageName,
+                issuerImageConfig,
+                managementAuthConfig,
+                containerLogConfig,
+                tokenDirPath,
+                mockAttestationAuthority,
+                MountableFile.forHostPath(getResourcePath("issuer/metadata.json"))
+        );
+    }
+
+    /**
+     * Builds an Issuer container with an explicit metadata source mounted at {@code /tmp/metadata.json}.
+     *
+     * <p>The returned container is configured but not started; its caller owns the runtime lifecycle.
+     */
+    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    public static GenericContainer<?> createIssuerContainer(
+            final Network network,
+            final PostgreSQLContainer<?> dbContainer,
+            final IssuerConfig config,
+            final MockServerContainer mockServer,
+            final String imageName,
+            final IssuerImageConfig issuerImageConfig,
+            final ManagementAuthConfig managementAuthConfig,
+            final ContainerLogConfig containerLogConfig,
+            final String tokenDirPath,
+            final MockAttestationAuthority mockAttestationAuthority,
+            final MountableFile metadata) {
         GenericContainer<?> containerBuilder = new GenericContainer<>(imageName);
         containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
@@ -85,7 +119,7 @@ public class IssuerContainerConfig {
                     .withNetwork(network)
                     .withNetworkAliases(issuerImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
-                    .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("issuer/metadata.json")), "/tmp/metadata.json")
+                    .withCopyFileToContainer(metadata, "/tmp/metadata.json")
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .withEnv(

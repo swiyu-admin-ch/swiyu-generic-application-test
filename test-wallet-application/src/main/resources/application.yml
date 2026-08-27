@@ -4,6 +4,26 @@ spring:
 
 logging.level.org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 
+regression:
+  issuer:
+    previous:
+      version: "${REGRESSION_ISSUER_PREVIOUS_VERSION:}"
+      variant: "${REGRESSION_ISSUER_PREVIOUS_VARIANT:DEFAULT}"
+      metadata: "${REGRESSION_ISSUER_PREVIOUS_METADATA:classpath:issuer/metadata.json}"
+    candidate:
+      version: "${REGRESSION_ISSUER_CANDIDATE_VERSION:}"
+      variant: "${REGRESSION_ISSUER_CANDIDATE_VARIANT:DEFAULT}"
+      metadata: "${REGRESSION_ISSUER_CANDIDATE_METADATA:classpath:issuer/metadata.json}"
+  verifier:
+    previous:
+      version: "${REGRESSION_VERIFIER_PREVIOUS_VERSION:}"
+      variant: "${REGRESSION_VERIFIER_PREVIOUS_VARIANT:DEFAULT}"
+      metadata: "${REGRESSION_VERIFIER_PREVIOUS_METADATA:classpath:verifier/metadata.json}"
+    candidate:
+      version: "${REGRESSION_VERIFIER_CANDIDATE_VERSION:}"
+      variant: "${REGRESSION_VERIFIER_CANDIDATE_VARIANT:DEFAULT}"
+      metadata: "${REGRESSION_VERIFIER_CANDIDATE_METADATA:classpath:verifier/metadata.json}"
+
 application:
   issuer:
     base-image: "${ISSUER_IMAGE_NAME:ghcr.io/swiyu-admin-ch/swiyu-issuer}"
