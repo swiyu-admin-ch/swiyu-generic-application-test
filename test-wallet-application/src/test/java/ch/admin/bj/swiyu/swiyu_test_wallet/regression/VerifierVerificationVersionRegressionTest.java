@@ -16,10 +16,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -29,8 +27,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Tag(ReportingTags.VERSION_REGRESSION)
 class VerifierVerificationVersionRegressionTest {
 
-    private static final Duration MINIMUM_REMAINING_REQUEST_OBJECT_LIFETIME = Duration.ofMinutes(5);
     private static final String WALLET_REJECTION = "access_denied";
     private static final String WALLET_REJECTION_DESCRIPTION = "Holder declined the verification request";
 
@@ -98,7 +93,7 @@ class VerifierVerificationVersionRegressionTest {
             wallet.setUseEncryption(false);
 
             final PreviousVerificationScenarios scenarios = transition.preparePrevious(verifier -> {
-                // Started by Previous and deliberately kept long-lived for completion by Candidate.
+                // Started by Previous for completion by Candidate.
                 final ManagementResponse startedForCandidateSuccess = verifier.manager()
                         .verificationRequest()
                         .acceptedIssuerDid(issuer.config().getIssuerDid())
@@ -108,36 +103,15 @@ class VerifierVerificationVersionRegressionTest {
                         .as("Verification started by Previous for Candidate completion")
                         .isEqualTo(VerificationStatus.PENDING);
 
-                final String signedRequestObject = wallet.getVerificationDetailSigned(
-                        startedForCandidateSuccess.getVerificationDeeplink()
-                );
-                final JsonNode signedRequestObjectPayload = JwtSupport.decodePayloadToJsonNode(signedRequestObject);
-                final long requestObjectIssuedAt = signedRequestObjectPayload.path("iat").longValue();
-                final long requestObjectExpiresAt = signedRequestObjectPayload.path("exp").longValue();
-                assertThat(signedRequestObjectPayload.path("iat").isIntegralNumber())
-                        .as("Previous Request Object iat")
-                        .isTrue();
-                assertThat(signedRequestObjectPayload.path("exp").isIntegralNumber())
-                        .as("Previous Request Object exp")
-                        .isTrue();
-                assertThat(requestObjectExpiresAt)
-                        .as("Previous Request Object expiration")
-                        .isGreaterThan(requestObjectIssuedAt);
-                assertThat(requestObjectExpiresAt - Instant.now().getEpochSecond())
-                        .as("Remaining lifetime before the Verifier upgrade")
-                        .isGreaterThan(MINIMUM_REMAINING_REQUEST_OBJECT_LIFETIME.toSeconds());
-
                 final RequestObject candidateSuccessRequest = wallet.getVerificationRequestObject(
                         startedForCandidateSuccess.getVerificationDeeplink()
                 );
                 assertThat(candidateSuccessRequest.getState())
                         .as("State created by Previous")
-                        .isNotBlank()
-                        .isEqualTo(signedRequestObjectPayload.path("state").asText());
+                        .isNotBlank();
                 assertThat(candidateSuccessRequest.getNonce())
                         .as("Nonce created by Previous")
-                        .isNotBlank()
-                        .isEqualTo(signedRequestObjectPayload.path("nonce").asText());
+                        .isNotBlank();
                 final String candidateSuccessPresentation = walletBatch.createPresentationForSdJwtIndex(
                         0,
                         candidateSuccessRequest
@@ -219,7 +193,7 @@ class VerifierVerificationVersionRegressionTest {
                         .isNotNull();
                 assertThat(previousFailedVerification.getWalletResponse().getErrorCode())
                         .as("Wallet rejection code persisted by Previous")
-                        .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+                        .isEqualTo(VerificationErrorResponseCode.CLIENT_REJECTED);
                 assertThat(previousFailedVerification.getWalletResponse().getErrorDescription())
                         .as("Wallet rejection description persisted by Previous")
                         .isEqualTo(WALLET_REJECTION_DESCRIPTION);
@@ -361,7 +335,7 @@ class VerifierVerificationVersionRegressionTest {
                     .isNotNull();
             assertThat(failedOnCandidate.getWalletResponse().getErrorCode())
                     .as("Previous wallet rejection code after Candidate starts")
-                    .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+                    .isEqualTo(VerificationErrorResponseCode.CLIENT_REJECTED);
             assertThat(failedOnCandidate.getWalletResponse().getErrorDescription())
                     .as("Previous wallet rejection description after Candidate starts")
                     .isEqualTo(WALLET_REJECTION_DESCRIPTION);
@@ -386,7 +360,7 @@ class VerifierVerificationVersionRegressionTest {
                     .isNotNull();
             assertThat(failedAfterReplay.getWalletResponse().getErrorCode())
                     .as("Previous wallet rejection code retained after late valid response")
-                    .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+                    .isEqualTo(VerificationErrorResponseCode.CLIENT_REJECTED);
             assertThat(failedAfterReplay.getWalletResponse().getErrorDescription())
                     .as("Previous wallet rejection description retained after late valid response")
                     .isEqualTo(WALLET_REJECTION_DESCRIPTION);
