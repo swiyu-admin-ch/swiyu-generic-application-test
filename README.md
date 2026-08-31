@@ -70,7 +70,7 @@ Before running the tests, ensure you have the following tools and dependencies i
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| **Java** | 21+ | Runtime for Maven and test execution |
+| **Java** | 25+ | Runtime for Maven and test execution |
 | **Maven** | 3.8+ | Build tool and test runner |
 | **Docker** | 20.10+ | Container runtime for services |
 
@@ -242,31 +242,30 @@ When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated duri
 
 ## Version Regression Tests
 
-Version regression tests are opt-in and exercise a stateful `Previous` to `Candidate` transition on one component
-schema. PostgreSQL and MockServer stay running while the Previous component is stopped and the Candidate component
-starts and applies its database migrations. Issuer and Verifier transitions support independent versions, variants and
-metadata; the currently implemented E2E flow covers only an offer created by the Previous Issuer and issued by the
-Candidate Issuer.
+Version regression tests are opt-in and exercise a stateful `Previous` to `Candidate` transition. PostgreSQL and
+MockServer stay running while the Previous component is stopped and the Candidate component starts and applies its
+database migrations.
 
 Run it with explicit image versions:
 
 ```bash
 ./mvnw -Pversion-regression clean verify \
   -Dregression.issuer.previous.version=4.1.0 \
-  -Dregression.issuer.candidate.version=4.2.0
+  -Dregression.issuer.candidate.version=4.2.0 \
+  -Dregression.verifier.previous.version=4.1.0 \
+  -Dregression.verifier.candidate.version=4.2.0
 ```
 
-Each descriptor also accepts `.variant` and `.metadata` properties. Metadata locations must use either
-`classpath:...` or `file:...`. Equivalent environment variables use uppercase underscore names, for example
-`REGRESSION_ISSUER_PREVIOUS_VERSION`, `REGRESSION_ISSUER_PREVIOUS_VARIANT`, and
-`REGRESSION_ISSUER_PREVIOUS_METADATA`.
+Previous and Candidate can use different variants and metadata files:
+
+| Configuration | Previous example | Candidate example |
+| --- | --- | --- |
+| Issuer variant | `-Dregression.issuer.previous.variant=DEFAULT` | `-Dregression.issuer.candidate.variant=STRICT` |
+| Issuer metadata | `-Dregression.issuer.previous.metadata=classpath:issuer/metadata.json` | `-Dregression.issuer.candidate.metadata=file:/tmp/issuer-candidate.json` |
+| Verifier variant | `-Dregression.verifier.previous.variant=DEFAULT` | `-Dregression.verifier.candidate.variant=CACHED` |
+| Verifier metadata | `-Dregression.verifier.previous.metadata=classpath:verifier/metadata.json` | `-Dregression.verifier.candidate.metadata=file:/tmp/verifier-candidate.json` |
 
 The standard `./mvnw clean verify` excludes the `version_regression` tag and does not start regression components.
-
-To run only version regression tests from GitHub Actions, start the **Run E2E Tests** workflow, select
-`version-regression`, set `issuer-image-tag` to the Candidate version, and provide `previous-issuer-image-tag`.
-The optional `previous-verifier-image-tag` already configures a Verifier transition for future regression scenarios;
-no Verifier regression E2E test is currently executed.
 
 ## Hardware Security Module (HSM) Integration
 
