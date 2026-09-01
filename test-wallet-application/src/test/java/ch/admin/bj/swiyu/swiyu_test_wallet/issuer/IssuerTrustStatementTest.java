@@ -368,7 +368,7 @@ public class IssuerTrustStatementTest extends BaseTest {
 
     private CredentialWithDeeplinkResponse createCredentialOffer(ConfigurationOverride configurationOverride,
                                                                  String credentialConfigurationId) {
-        final StatusList statusList = createStatusList(configurationOverride);
+        final StatusList statusList = createTenantStatusList(configurationOverride.getIssuerDid());
         final CreateCredentialOfferRequest offerRequest = new CreateCredentialOfferRequest()
                 .metadataCredentialSupportedId(List.of(credentialConfigurationId))
                 .credentialSubjectData(CredentialSubjectFixtures.completeEmployeeProfile())
@@ -380,11 +380,14 @@ public class IssuerTrustStatementTest extends BaseTest {
         return issuerManager.createCredential(offerRequest);
     }
 
-    private StatusList createStatusList(ConfigurationOverride configurationOverride) {
+    private StatusList createTenantStatusList(String issuerDid) {
+        final ConfigurationOverride statusListOverride = new ConfigurationOverride()
+                .issuerDid(issuerDid)
+                .verificationMethod(issuerConfig.getIssuerAuthKeyId());
         final StatusListCreate statusListCreate = new StatusListCreate()
                 .maxLength(100000)
                 .config(new StatusListCreateConfig().bits(2))
-                .configurationOverride(configurationOverride);
+                .configurationOverride(statusListOverride);
 
         return issuerManager.getStatusListApi().createStatusList(statusListCreate);
     }
