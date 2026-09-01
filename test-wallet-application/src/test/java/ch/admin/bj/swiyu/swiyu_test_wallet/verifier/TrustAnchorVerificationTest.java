@@ -19,11 +19,11 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.HttpClientErrorException;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertIssuerUntrusted;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -102,16 +102,17 @@ class TrustAnchorVerificationTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
         final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class,
-                () -> wallet.respondToVerification(verificationDetails, presentation));
-
         // Then
-        ApiErrorAssert.assertThat(ex)
-                .hasStatus(400)
-                .hasError("invalid_transaction_data")
-                .hasDetail("issuer_not_accepted")
-                .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor");
-
-        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        assertRejected(
+                () -> wallet.respondToVerification(verificationDetails, presentation),
+                verifierManager,
+                verification.getId(),
+                ex -> ApiErrorAssert.assertThat(ex)
+                        .hasStatus(400)
+                        .hasError("invalid_transaction_data")
+                        .hasDetail("issuer_not_accepted")
+                        .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor"),
+                evaluation -> assertIssuerUntrusted(evaluation)
+        );
     }
 }
