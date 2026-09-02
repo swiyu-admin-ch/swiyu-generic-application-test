@@ -29,6 +29,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -59,7 +61,7 @@ class MultipleSigningKeysE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1236",
+            key = "EIDOMNI-1307",
             summary = "Issuer selects the signing key bound to each configured DID",
             description = """
                     Given one issuer runtime configured with a default and a migration signing identity.
@@ -148,7 +150,7 @@ class MultipleSigningKeysE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1236",
+            key = "EIDOMNI-1308",
             summary = "Verifier selects the signing key bound to each configured DID",
             description = """
                     Given one verifier runtime configured with a default and a migration signing identity.
@@ -159,6 +161,7 @@ class MultipleSigningKeysE2ETest extends BaseTest {
     )
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Disabled("Waiting on the EIDOMNI-1236 for the verifier to be merged")
     void verifierWithTwoSigningIdentities_whenRequestsCompleted_thenEachUsesItsBoundDidAndKey() throws Exception {
         // Given
         assertThat(verifierConfig.getAdditionalSigningIdentities())
