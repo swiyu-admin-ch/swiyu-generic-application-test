@@ -12,6 +12,8 @@ import org.testcontainers.utility.MountableFile;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
@@ -153,6 +155,10 @@ public class VerifierContainerConfig {
                 );
             }
 
+            if (verifierImageConfig.isMultipleSigningKeys()) {
+                configureMultipleSigningKeys(container, config);
+            }
+
             if (verifierImageConfig.isRejectSuspendedCredentials()) {
                 container.withEnv("APPLICATION_REJECTSUSPENDEDCREDENTIALS", "true");
             }
@@ -181,5 +187,21 @@ public class VerifierContainerConfig {
             }
 
         return container;
+    }
+
+    private static void configureMultipleSigningKeys(
+            final GenericContainer<?> container,
+            final VerifierConfig primaryIdentity) {
+        final List<VerifierConfig> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        identities.addAll(primaryIdentity.getAdditionalSigningIdentities());
+
+        for (int index = 0; index < identities.size(); index++) {
+            final VerifierConfig identity = identities.get(index);
+            final String prefix = "APPLICATION_SIGNINGKEYS_%d_".formatted(index);
+            container
+                    .withEnv(prefix + "VERIFICATIONMETHOD", identity.getVerifierAuthKeyId())
+                    .withEnv(prefix + "PRIVATEKEY", identity.getVerifierAuthKeyPemString());
+        }
     }
 }

@@ -157,11 +157,13 @@ public class MockServerClientConfig {
     public void registerIssuer(final IssuerConfig issuerConfig) {
         issuerConfigsByDid.put(issuerConfig.getIssuerDid(), issuerConfig);
         registerDidLog(issuerConfig.getIssuerDid(), issuerConfig.getIssuerDidLog());
+        issuerConfig.getAdditionalSigningIdentities().forEach(this::registerIssuer);
     }
 
     public void registerVerifier(final VerifierConfig verifierConfig) {
         verifierConfigsByDid.put(verifierConfig.getVerifierDid(), verifierConfig);
         registerDidLog(verifierConfig.getVerifierDid(), verifierConfig.getVerifierDidLog());
+        verifierConfig.getAdditionalSigningIdentities().forEach(this::registerVerifier);
     }
 
     public void registerTrust(final TrustConfig trustConfig) {
