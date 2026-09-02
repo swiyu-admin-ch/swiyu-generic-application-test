@@ -41,10 +41,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.REVOKED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.SUSPENDED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertCredentialStatus;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAcceptedAndManagementRejected;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementAccepted;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -98,16 +96,20 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         final List<String> batch1 = entry.getIssuedCredentials();
 
         for (int i = 0; i < batch1.size(); i++) {
-            final String deepLink = verifierManager.verificationRequest()
+            final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
                     .withUniversityDCQL()
-                    .create();
+                    .createManagementResponse();
 
-            final RequestObject details = wallet.getVerificationRequestObject(deepLink);
+            final RequestObject details = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = entry.createPresentationForSdJwtIndex(i, details);
 
-            wallet.respondToVerification(details, presentation);
-            verifierManager.verifyState();
+            final ManagementResponse result = assertWalletAndManagementAccepted(
+                    () -> wallet.respondToVerificationWithVpTokens(details, List.of(presentation)),
+                    verifierManager,
+                    verification.getId()
+            );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
         }
 
         return offer;
@@ -116,7 +118,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-713",
-            summary = "Revocation applies to both initial and renewed credentials in OID4VP flow",
+            summary = "Revoked initial and renewed credentials get Wallet HTTP 200 and management HTTP 400",
             description = """
                     This test validates that when an Issuer revokes a credential after it has been renewed,
                     the revocation applies to all related credential batches.
@@ -127,8 +129,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     When the Issuer revokes the credential through the management endpoint, both the
                     initial batch and the renewed batch must be considered revoked.
                     
-                    Any attempt by the Wallet to present credentials from either batch in an OID4VP
-                    verification flow must be rejected by the Verifier.
+                    Every Wallet OID4VP submission must return HTTP 200, while each corresponding
+                    Business Verifier management request must return HTTP 400.
                     """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
@@ -181,14 +183,10 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!")),
-                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+                    verification.getId()
             );
         }
 
@@ -201,14 +199,10 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!")),
-                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+                    verification.getId()
             );
         }
     }
@@ -216,7 +210,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-714",
-            summary = "Suspension applies to both initial and renewed credentials until reactivation in OID4VP flow",
+            summary = "Suspended initial and renewed credentials follow the enabled management rejection policy",
             description = """
                     This test validates that when an Issuer suspends a credential after it has been renewed,
                     the suspension applies to all related credential batches managed under the same offer.
@@ -228,8 +222,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     When the Issuer suspends the credential via the management endpoint, both the
                     initial batch and the renewed batch must be considered suspended.
                     
-                    Any attempt by the Wallet to present credentials from either batch in an OID4VP
-                    verification flow must be rejected by the Verifier.
+                    Every Wallet OID4VP submission must return HTTP 200. Because reject_suspended_credentials
+                    is enabled, each corresponding Business Verifier management request must return HTTP 400.
                     
                     Once the Issuer reactivates the credential by setting the status back to ISSUED,
                     the Wallet must be able to successfully complete the OID4VP verification flow.
@@ -283,14 +277,10 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!")),
-                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+                    verification.getId()
             );
         }
 
@@ -303,14 +293,10 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!")),
-                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+                    verification.getId()
             );
         }
 
@@ -330,8 +316,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = initialEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(verificationDetails, presentation);
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            final ManagementResponse result = assertWalletAndManagementAccepted(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
+                    verifierManager,
+                    verification.getId()
+            );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
         }
 
         for (int i = 0; i < renewedEntry.getIssuedCredentials().size(); i++) {
@@ -342,8 +332,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
 
             final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
             final String presentation = renewedEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            wallet.respondToVerification(verificationDetails, presentation);
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            final ManagementResponse result = assertWalletAndManagementAccepted(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
+                    verifierManager,
+                    verification.getId()
+            );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
         }
     }
 

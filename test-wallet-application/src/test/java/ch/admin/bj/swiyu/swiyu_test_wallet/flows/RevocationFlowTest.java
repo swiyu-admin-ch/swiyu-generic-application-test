@@ -37,10 +37,8 @@ import org.springframework.web.client.HttpServerErrorException;
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.REVOKED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.SUSPENDED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertCredentialStatus;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAcceptedAndManagementRejected;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementAccepted;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,7 +63,7 @@ public class RevocationFlowTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-711",
-            summary = "Revoked credentials cannot be used in OID4VP verification flow",
+            summary = "Revoked credentials get Wallet HTTP 200 and Business Verifier management HTTP 400",
             description = """
                         This test validates that once credentials have been issued and subsequently revoked by the Issuer,
                         any attempt by the Wallet to use them in an OID4VP verification flow is rejected.
@@ -73,9 +71,9 @@ public class RevocationFlowTest extends BaseTest {
                         The Issuer first issues a batch of credentials to the Wallet. After confirming successful issuance,
                         the Issuer changes the credential status to REVOKED.
 
-                        When the Wallet attempts to present each credential to the Verifier, the verification process
-                        must fail with a credential_revoked error. The Verifier must transition the verification state
-                        to FAILED, ensuring that revoked credentials cannot be reused.
+                        When the Wallet presents each credential, its OID4VP submission must return HTTP 200.
+                        The Business Verifier management request must return HTTP 400, ensuring that revoked
+                        credentials cannot be used for business purposes.
                     """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
@@ -112,16 +110,10 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"))
-                            .hasDetail("credential_revoked")
-                            .hasErrorCode("credential_revoked"),
-                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+                    verification.getId()
             );
         }
     }
@@ -129,13 +121,14 @@ public class RevocationFlowTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-712",
-            summary = "Suspended credentials are rejected during OID4VP verification and become verifiable again once reactivated by the issuer",
+            summary = "Suspended credentials get Wallet HTTP 200 and policy-dependent management rejection until reactivated",
             description = """
                 This test validates the credential lifecycle behavior in an OID4VP verification flow when the Issuer suspends
                 and later reactivates a batch of issued credentials.
 
                 The Issuer first issues a batch of credentials to the Wallet. The Issuer then suspends the batch, and any attempt
-                by the Wallet to present one of these credentials to the Verifier must be rejected with a credential_suspended error.
+                by the Wallet to present one of these credentials must return HTTP 200, while management returns HTTP 400
+                because reject_suspended_credentials is enabled.
                 Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
                 the credentials successfully and the Verifier accepts the verification.
                 """)
@@ -180,19 +173,13 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final int index = i;
-            assertRejected(
-                    () -> wallet.respondToVerification(
+            assertWalletAcceptedAndManagementRejected(
+                    () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
-                            batchEntry.getVerifiableCredential(index)
+                            List.of(batchEntry.getVerifiableCredential(index))
                     ),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"))
-                            .hasDetail("credential_suspended")
-                            .hasErrorCode("credential_suspended"),
-                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+                    verification.getId()
             );
         }
 
@@ -207,11 +194,17 @@ public class RevocationFlowTest extends BaseTest {
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+            final String credential = batchEntry.getVerifiableCredential(i);
 
-            wallet.respondToVerification(verificationDetails,
-                    batchEntry.getVerifiableCredential(i));
-
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            final ManagementResponse result = assertWalletAndManagementAccepted(
+                    () -> wallet.respondToVerificationWithVpTokens(
+                            verificationDetails,
+                            List.of(credential)
+                    ),
+                    verifierManager,
+                    verification.getId()
+            );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
         }
     }
 
