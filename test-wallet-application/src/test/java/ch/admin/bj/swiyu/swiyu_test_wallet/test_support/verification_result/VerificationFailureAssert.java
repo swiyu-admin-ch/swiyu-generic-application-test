@@ -72,22 +72,6 @@ public final class VerificationFailureAssert {
     }
 
     /**
-     * Verifies that a credential evaluation reports the expected token status-list state.
-     */
-    public static void assertCredentialStatus(
-            final CredentialEvaluation evaluation,
-            final CredentialStatusState expectedStatus
-    ) {
-        assertThat(evaluation.getCredentialStatus())
-                .as("The credential status evaluation must be present")
-                .isNotNull()
-                .satisfies(status -> {
-                    assertThat(status.getValid()).isFalse();
-                    assertThat(status.getStatus()).isEqualTo(expectedStatus.getCode());
-                });
-    }
-
-    /**
      * Verifies that issuer trust evaluation was performed and rejected the credential issuer.
      */
     public static void assertIssuerUntrusted(final CredentialEvaluation evaluation) {
@@ -104,24 +88,6 @@ public final class VerificationFailureAssert {
             return null;
         } catch (final HttpClientErrorException exception) {
             return exception;
-        }
-    }
-
-    /**
-     * Credential status-list values exposed by the verifier evaluation API.
-     */
-    public enum CredentialStatusState {
-        REVOKED(1),
-        SUSPENDED(2);
-
-        private final int code;
-
-        CredentialStatusState(final int code) {
-            this.code = code;
-        }
-
-        private int getCode() {
-            return code;
         }
     }
 }

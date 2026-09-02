@@ -710,6 +710,13 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+        vp_token:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Full presentation as sent by the wallet, if audit feature has been activated"
     IssuerTrustMarker:
       type: object
       properties:

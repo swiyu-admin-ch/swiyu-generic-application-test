@@ -12,6 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -21,6 +23,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -33,24 +37,37 @@ import org.springframework.web.client.HttpServerErrorException;
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.REVOKED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.CredentialStatusState.SUSPENDED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertCredentialStatus;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.REVOKED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.SUSPENDED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.VALID;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementRespondOk;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@UseVerifiers(VerifierVariant.DEFAULT)
 @Slf4j
 public class RevocationFlowTest extends BaseTest {
+
+    @BeforeEach
+    void useDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
+
+    @AfterEach
+    void restoreDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
 
     @Test
     @XrayTest(
             key = "EIDOMNI-711",
-            summary = "Revoked credentials cannot be used in OID4VP verification flow",
+            summary = "Revoked credentials produce failed credential evaluations",
             description = """
                         This test validates that once credentials have been issued and subsequently revoked by the Issuer,
                         any attempt by the Wallet to use them in an OID4VP verification flow is rejected.
@@ -58,14 +75,14 @@ public class RevocationFlowTest extends BaseTest {
                         The Issuer first issues a batch of credentials to the Wallet. After confirming successful issuance,
                         the Issuer changes the credential status to REVOKED.
 
-                        When the Wallet attempts to present each credential to the Verifier, the verification process
-                        must fail with a credential_revoked error. The Verifier must transition the verification state
-                        to FAILED, ensuring that revoked credentials cannot be reused.
+                        When the Wallet presents each credential, the Wallet and Business Verifier APIs return HTTP 200.
+                        Management returns state FAILED and exposes credential_status.valid=false with the REVOKED
+                        status-list value 1.
                     """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
     @Tag("edge_case")
-    void revokedCredential_whenVerified_thenVerificationIsRejected() {
+    void revokedCredential_whenVerified_thenVerificationFailsWithInvalidEvaluation() {
         // Given
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
 
@@ -97,41 +114,39 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertRejected(
-                    () -> wallet.respondToVerification(verificationDetails, presentation),
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is not valid", "Credential has been Revoked!"))
-                            .hasDetail("credential_revoked")
-                            .hasErrorCode("credential_revoked"),
-                    evaluation -> assertCredentialStatus(evaluation, REVOKED)
+                    verification.getId()
             );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, REVOKED);
         }
     }
 
     @Test
     @XrayTest(
             key = "EIDOMNI-712",
-            summary = "Suspended credentials are rejected during OID4VP verification and become verifiable again once reactivated by the issuer",
+            summary = "Suspended credentials produce failed evaluations until reactivated",
             description = """
                 This test validates the credential lifecycle behavior in an OID4VP verification flow when the Issuer suspends
                 and later reactivates a batch of issued credentials.
 
                 The Issuer first issues a batch of credentials to the Wallet. The Issuer then suspends the batch, and any attempt
-                by the Wallet to present one of these credentials to the Verifier must be rejected with a credential_suspended error.
+                by the Wallet to present one of these credentials must return HTTP 200. Management also returns HTTP 200,
+                returns state FAILED and exposes credential_status.valid=false with status 2.
                 Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
-                the credentials successfully and the Verifier accepts the verification.
+                the credentials successfully with state SUCCESS and credential_status.valid=true.
                 """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Feature not available yet on stable"
     )
-    void suspendedCredential_whenSuspended_thenVerificationRejected_whenRevalidated_thenVerificationAccepted() {
+    void suspendedCredential_whenSuspended_thenEvaluationFails_whenRevalidated_thenEvaluationSucceeds() {
         // Given
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
@@ -163,20 +178,16 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final int index = i;
-            assertRejected(
-                    () -> wallet.respondToVerification(
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
-                            batchEntry.getVerifiableCredential(index)
+                            List.of(batchEntry.getVerifiableCredential(index))
                     ),
                     verifierManager,
-                    verification.getId(),
-                    ex -> ApiErrorAssert.assertThat(ex)
-                            .hasError("invalid_transaction_data")
-                            .hasErrorDescription(List.of("Credential is suspended", "Credential has been Suspended!"))
-                            .hasDetail("credential_suspended")
-                            .hasErrorCode("credential_suspended"),
-                    evaluation -> assertCredentialStatus(evaluation, SUSPENDED)
+                    verification.getId()
             );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, SUSPENDED);
         }
 
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
@@ -190,11 +201,18 @@ public class RevocationFlowTest extends BaseTest {
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+            final String credential = batchEntry.getVerifiableCredential(i);
 
-            wallet.respondToVerification(verificationDetails,
-                    batchEntry.getVerifiableCredential(i));
-
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(
+                            verificationDetails,
+                            List.of(credential)
+                    ),
+                    verifierManager,
+                    verification.getId()
+            );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, true, VALID);
         }
     }
 

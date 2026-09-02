@@ -24,6 +24,7 @@ public class VerifierImageConfig {
     private long jwkCacheTtlMillis = 0;
     private long trustStatementCacheTtlMillis = 0;
     private int requestObjectTtlSeconds = 0;
+    private boolean rejectSuspendedCredentials = false;
 
     private String hsmUser = "admin";
     private String hsmPassword = "password";
