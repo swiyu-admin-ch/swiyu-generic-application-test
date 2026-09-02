@@ -37,16 +37,20 @@ import org.springframework.web.client.HttpServerErrorException;
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAcceptedAndManagementRejected;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementAccepted;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.REVOKED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.SUSPENDED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.VALID;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementRespondOk;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.REJECT_SUSPENDED})
+@UseVerifiers(VerifierVariant.DEFAULT)
 @Slf4j
 public class RevocationFlowTest extends BaseTest {
 
@@ -63,7 +67,7 @@ public class RevocationFlowTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-711",
-            summary = "Revoked credentials get Wallet HTTP 200 and Business Verifier management HTTP 400",
+            summary = "Revoked credentials produce failed credential evaluations",
             description = """
                         This test validates that once credentials have been issued and subsequently revoked by the Issuer,
                         any attempt by the Wallet to use them in an OID4VP verification flow is rejected.
@@ -71,14 +75,14 @@ public class RevocationFlowTest extends BaseTest {
                         The Issuer first issues a batch of credentials to the Wallet. After confirming successful issuance,
                         the Issuer changes the credential status to REVOKED.
 
-                        When the Wallet presents each credential, its OID4VP submission must return HTTP 200.
-                        The Business Verifier management request must return HTTP 400, ensuring that revoked
-                        credentials cannot be used for business purposes.
+                        When the Wallet presents each credential, the Wallet and Business Verifier APIs return HTTP 200.
+                        Management returns state FAILED and exposes credential_status.valid=false with the REVOKED
+                        status-list value 1.
                     """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
     @Tag("edge_case")
-    void revokedCredential_whenVerified_thenVerificationIsRejected() {
+    void revokedCredential_whenVerified_thenVerificationFailsWithInvalidEvaluation() {
         // Given
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
 
@@ -110,27 +114,29 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final String presentation = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
-            assertWalletAcceptedAndManagementRejected(
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(verificationDetails, List.of(presentation)),
                     verifierManager,
                     verification.getId()
             );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, REVOKED);
         }
     }
 
     @Test
     @XrayTest(
             key = "EIDOMNI-712",
-            summary = "Suspended credentials get Wallet HTTP 200 and policy-dependent management rejection until reactivated",
+            summary = "Suspended credentials produce failed evaluations until reactivated",
             description = """
                 This test validates the credential lifecycle behavior in an OID4VP verification flow when the Issuer suspends
                 and later reactivates a batch of issued credentials.
 
                 The Issuer first issues a batch of credentials to the Wallet. The Issuer then suspends the batch, and any attempt
-                by the Wallet to present one of these credentials must return HTTP 200, while management returns HTTP 400
-                because reject_suspended_credentials is enabled.
+                by the Wallet to present one of these credentials must return HTTP 200. Management also returns HTTP 200,
+                returns state FAILED and exposes credential_status.valid=false with status 2.
                 Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
-                the credentials successfully and the Verifier accepts the verification.
+                the credentials successfully with state SUCCESS and credential_status.valid=true.
                 """)
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
@@ -140,9 +146,8 @@ public class RevocationFlowTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Feature not available yet on stable"
     )
-    void suspendedCredential_whenSuspended_thenVerificationRejected_whenRevalidated_thenVerificationAccepted() {
+    void suspendedCredential_whenSuspended_thenEvaluationFails_whenRevalidated_thenEvaluationSucceeds() {
         // Given
-        useVerifier(verifier(VerifierVariant.REJECT_SUSPENDED));
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -173,7 +178,7 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
             final int index = i;
-            assertWalletAcceptedAndManagementRejected(
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
                             List.of(batchEntry.getVerifiableCredential(index))
@@ -181,6 +186,8 @@ public class RevocationFlowTest extends BaseTest {
                     verifierManager,
                     verification.getId()
             );
+            assertThat(result.getState()).isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, SUSPENDED);
         }
 
         issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.ISSUED);
@@ -196,7 +203,7 @@ public class RevocationFlowTest extends BaseTest {
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
             final String credential = batchEntry.getVerifiableCredential(i);
 
-            final ManagementResponse result = assertWalletAndManagementAccepted(
+            final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
                             List.of(credential)
@@ -205,6 +212,7 @@ public class RevocationFlowTest extends BaseTest {
                     verification.getId()
             );
             assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, true, VALID);
         }
     }
 

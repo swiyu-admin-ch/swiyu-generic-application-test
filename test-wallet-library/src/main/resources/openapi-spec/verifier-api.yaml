@@ -475,8 +475,6 @@ components:
           $ref: "#/components/schemas/StatusVerificationResult"
         trust_markers:
           $ref: "#/components/schemas/IssuerTrustMarker"
-        valid:
-          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
