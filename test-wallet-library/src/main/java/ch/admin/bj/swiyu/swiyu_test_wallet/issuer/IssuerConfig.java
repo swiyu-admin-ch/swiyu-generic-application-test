@@ -8,6 +8,7 @@ import lombok.Data;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
@@ -31,6 +32,9 @@ public class IssuerConfig {
     private String issuerAuthKeyPemString;
 
     private KeyPair keyPair;
+
+    @Builder.Default
+    private List<IssuerConfig> additionalSigningIdentities = List.of();
 
     public static IssuerConfig createIssuerConfig(final URI identifierRegistryUrl,
                                                   final boolean enableHsm,
