@@ -24,6 +24,7 @@ public class TrustConfig {
     private final String trustAuthKeyId;
     private final String trustAssertKeyPemString;
     private final String trustAuthKeyPemString;
+    private final String trustAssertPublicJwk;
 
     public static TrustConfig createTrustDid(URI identifierRegistryUrl) {
         KeyPair assertKeys = generateEC256KeyPair();
@@ -42,6 +43,7 @@ public class TrustConfig {
                 .trustAuthKeyId(trustDid + "#auth-key-01")
                 .trustAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .trustAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
+                .trustAssertPublicJwk(assertJwk.toPublicJWK().toJSONString())
                 .build();
     }
 }

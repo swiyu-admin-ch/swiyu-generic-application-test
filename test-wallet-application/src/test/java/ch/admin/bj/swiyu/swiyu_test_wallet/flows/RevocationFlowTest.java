@@ -12,6 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -21,6 +23,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -44,8 +48,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.REJECT_SUSPENDED})
 @Slf4j
 public class RevocationFlowTest extends BaseTest {
+
+    @BeforeEach
+    void useDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
+
+    @AfterEach
+    void restoreDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
 
     @Test
     @XrayTest(
@@ -129,10 +144,12 @@ public class RevocationFlowTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Feature not available yet on stable"
     )
     void suspendedCredential_whenSuspended_thenVerificationRejected_whenRevalidated_thenVerificationAccepted() {
         // Given
+        useVerifier(verifier(VerifierVariant.REJECT_SUSPENDED));
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();

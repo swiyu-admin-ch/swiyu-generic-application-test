@@ -153,6 +153,10 @@ public class VerifierContainerConfig {
                 );
             }
 
+            if (verifierImageConfig.isRejectSuspendedCredentials()) {
+                container.withEnv("APPLICATION_REJECTSUSPENDEDCREDENTIALS", "true");
+            }
+
             if (verifierImageConfig.isEnableHsm()) {
                 container
                         .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)

@@ -475,6 +475,8 @@ components:
           $ref: "#/components/schemas/StatusVerificationResult"
         trust_markers:
           $ref: "#/components/schemas/IssuerTrustMarker"
+        valid:
+          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -710,6 +712,13 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+        vp_token:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Full presentation as sent by the wallet, if audit feature has been activated"
     IssuerTrustMarker:
       type: object
       properties:

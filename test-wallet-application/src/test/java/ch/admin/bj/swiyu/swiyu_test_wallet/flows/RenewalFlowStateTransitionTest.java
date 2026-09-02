@@ -13,6 +13,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -24,7 +26,9 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -50,11 +54,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
+@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.REJECT_SUSPENDED})
 public class RenewalFlowStateTransitionTest extends BaseTest {
 
     @BeforeAll
     void setUp() {
         wallet.setUseDPoP(true);
+    }
+
+    @BeforeEach
+    void useDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
+
+    @AfterEach
+    void restoreDefaultVerifier() {
+        useVerifier(verifier(VerifierVariant.DEFAULT));
     }
 
     private CredentialWithDeeplinkResponse initializeCredentials(final WalletBatchEntry entry) {
@@ -224,10 +239,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This fix is not available yet"
     )
     void credentialRenewal_whenSuspended_thenAllCredentialsAreRejected() {
         // Given
+        useVerifier(verifier(VerifierVariant.REJECT_SUSPENDED));
         wallet.setUseDPoP(true);
 
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
