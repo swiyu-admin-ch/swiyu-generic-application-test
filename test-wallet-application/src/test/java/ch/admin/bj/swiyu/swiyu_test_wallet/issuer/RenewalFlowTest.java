@@ -36,12 +36,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyPair;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -710,54 +706,54 @@ class RenewalFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {
+    void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() {
 
         log.info("Create initial credentials for issuance A");
         WalletBatchEntry entryA = new WalletBatchEntry(wallet);
         final CredentialWithDeeplinkResponse offerA = initializeCredentials(entryA);
         final UUID managementA = offerA.getManagementId();
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Initial issuance A must create exactly one credential offer")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform first renewal for issuance A");
         performRefresh(entryA);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("First renewal of A must create a second credential offer linked to the same management")
-                .isEqualTo(2);
+                .hasSize(2);
 
         log.info("Create initial credentials for issuance B");
         WalletBatchEntry entryB = new WalletBatchEntry(wallet);
         final CredentialWithDeeplinkResponse offerB = initializeCredentials(entryB);
         final UUID managementB = offerB.getManagementId();
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Initial issuance B must create exactly one credential offer")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform second renewal for issuance A");
         performRefresh(entryA);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Second renewal of A must create a third credential offer linked to management A")
-                .isEqualTo(3);
+                .hasSize(3);
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Renewals of A must not affect credential offers linked to management B")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform renewal for issuance B");
         performRefresh(entryB);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Management A must contain exactly three credential offers after two renewals")
-                .isEqualTo(3);
+                .hasSize(3);
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Management B must contain exactly two credential offers after one renewal")
-                .isEqualTo(2);
+                .hasSize(2);
     }
 
     private void performRefresh(WalletBatchEntry entry) {
@@ -789,31 +785,4 @@ class RenewalFlowTest extends BaseTest {
         wallet.postCredentialRequest(entry);
     }
 
-    private int countOffersForManagement(UUID managementId) throws SQLException {
-
-        final String sql = """
-                SELECT COUNT(*)
-                FROM %s.credential_offer
-                WHERE credential_management_id = ?
-                """.formatted(issuerImageConfig.getDbSchema());
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setObject(1, managementId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new NoSuchElementException(
-                            "No result found for managementId=" + managementId
-                    );
-                }
-                final int result = rs.getInt(1);
-                if (rs.next()) {
-                    throw new IllegalStateException(
-                            "Multiple results found for managementId=" + managementId
-                    );
-                }
-
-                return result;
-            }
-        }
-    }
 }
