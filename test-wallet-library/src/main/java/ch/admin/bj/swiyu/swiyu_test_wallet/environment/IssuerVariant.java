@@ -11,7 +11,8 @@ public enum IssuerVariant {
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, null, null, null),
     MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null),
-    MULTI_SIGNING_KEYS("multi_signing_keys", false, null, null, null, null);
+    MULTI_SIGNING_KEYS("multi_signing_keys", false, null, null, null, null),
+    CRYPTO_AGILITY("crypto_agility", false, null, null, null, null);
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
@@ -45,6 +46,10 @@ public enum IssuerVariant {
 
     public boolean requiresKeycloak() {
         return this == MANAGEMENT_KEYCLOAK;
+    }
+
+    public boolean requiresCryptoAgilityMetadata() {
+        return this == CRYPTO_AGILITY;
     }
 
     public IssuerImageConfig imageConfig(final IssuerImageConfig template) {
