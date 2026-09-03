@@ -77,7 +77,11 @@ class CredentialManagementConsumerPactTest {
                         .array("status_lists")
                         .nullValue("configuration_override")).build())
                 .willRespondWith()
-                .status(400)
+                // The issuer maps request-body bean-validation failures (here: empty
+                // metadata_credential_supported_id) to 422 UNPROCESSABLE_ENTITY via
+                // DefaultExceptionHandler.handleMethodArgumentNotValid. Service-level rejections
+                // of a well-formed body (see rejectUpdateOfNonDeferredCredential) still return 400.
+                .status(422)
                 .toPact(V4Pact.class);
     }
 
@@ -200,7 +204,7 @@ class CredentialManagementConsumerPactTest {
         final var invalidRequest = new CreateCredentialOfferRequest()
                 .metadataCredentialSupportedId(List.of());
 
-        assertBadRequest(() -> buildBusinessIssuer(mockServer).createCredential(invalidRequest));
+        assertClientError(() -> buildBusinessIssuer(mockServer).createCredential(invalidRequest), 422);
     }
 
     @Test
@@ -253,9 +257,9 @@ class CredentialManagementConsumerPactTest {
     @Test
     @PactTestFor(pactMethod = "rejectUpdateOfNonDeferredCredential")
     void shouldRejectUpdateOfNonDeferredCredential(final MockServer mockServer) {
-        assertBadRequest(() -> buildBusinessIssuer(mockServer).updateCredentialForDeferredFlowRequestCreation(
+        assertClientError(() -> buildBusinessIssuer(mockServer).updateCredentialForDeferredFlowRequestCreation(
                 MANAGEMENT_ID,
-                Map.of("firstName", "John")));
+                Map.of("firstName", "John")), 400);
     }
 
     @Test
@@ -273,10 +277,10 @@ class CredentialManagementConsumerPactTest {
                 "offerId", OFFER_ID.toString());
     }
 
-    private static void assertBadRequest(final Runnable request) {
+    private static void assertClientError(final Runnable request, final int expectedStatus) {
         assertThatThrownBy(request::run)
                 .isInstanceOf(RestClientResponseException.class)
                 .satisfies(exception -> assertThat(((RestClientResponseException) exception).getStatusCode().value())
-                        .isEqualTo(400));
+                        .isEqualTo(expectedStatus));
     }
 }
