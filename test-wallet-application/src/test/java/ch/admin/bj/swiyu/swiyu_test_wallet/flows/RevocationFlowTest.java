@@ -82,6 +82,10 @@ public class RevocationFlowTest extends BaseTest {
     @Tag("ucv_c3")
     @Tag("ucv_o2c")
     @Tag("edge_case")
+    @DisableIfImageTag(
+            verifier = {ImageTags.STAGING},
+            reason = "EIDOMNI-1090 is not available in staging: revoked credentials return HTTP 400 instead of credential evaluations"
+    )
     void revokedCredential_whenVerified_thenVerificationFailsWithInvalidEvaluation() {
         // Given
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.REVOKED;
