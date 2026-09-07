@@ -195,18 +195,18 @@ paths:
           format: uuid
       - name: response_code
         in: query
-        description: Optional for legacy verifications and required when redirect_uri was used
+        description: Optional for normal use. Mandatory if `redirect_uri` was used
         required: false
         schema:
           type: string
           format: uuid
       responses:
         "400":
-          description: Bad Request
+          description: Bad request or mismatching `response_code`
           content:
             '*/*':
               schema:
-                type: object
+                $ref: "#/components/schemas/ApiErrorDto"
         "200":
           description: Verification found
           content:
@@ -458,7 +458,10 @@ components:
         redirect_uri:
           type: string
           format: uri
-          description: Optional URI to which the Wallet redirects the Holder after processing the Authorization Response
+          description: "[EXPERIMENTAL] Optional: Only provided if set in the initial\
+            \ request. It is used to route the response back to the business verifier's\
+            \ endpoint."
+          example: https://shop.ch/callback?session_nonce=123&response_code=xyz
     ApiErrorDto:
       type: object
       properties:
@@ -475,6 +478,8 @@ components:
           $ref: "#/components/schemas/StatusVerificationResult"
         trust_markers:
           $ref: "#/components/schemas/IssuerTrustMarker"
+        valid:
+          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -649,11 +654,6 @@ components:
             - degree_name
           - path:
             - graduation_year
-        credential_sets:
-        - options:
-          - - identity_credential_dcql
-          - - university_degree_dcql
-          required: true
       properties:
         credentials:
           type: array
@@ -675,6 +675,27 @@ components:
       - credentials
       x-implementation-status:
         status: not-implemented
+    IssuerTrustMarker:
+      type: object
+      properties:
+        trust_method:
+          $ref: "#/components/schemas/TrustMethod"
+        is_trusted:
+          type: boolean
+          description: Overall result of Trust Mark evaluation
+        viTM:
+          type: boolean
+          description: Verified Identity Trust Marker
+        caTM:
+          type: boolean
+          description: Compliant Actor Trust Marker
+        gucTM:
+          type: boolean
+          description: Governed Use Case Trust Marker - is the VC governed?
+        gucaTM:
+          type: boolean
+          description: Governed Use Case Authorization Trust Marker - Does the Issuer
+            have authorization for the governed use case?
     ManagementResponse:
       type: object
       properties:
@@ -693,7 +714,8 @@ components:
             type: array
             items:
               $ref: "#/components/schemas/CredentialEvaluation"
-          description: "Object of evaluations, where the key is the id of the DCQL credential query"
+          description: "Object of Evaluations, where the key is the id of the dcql_query\
+            \ credential"
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -710,33 +732,16 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+          description: "Requested Claims, where the key is the id of the credential\
+            \ request"
         vp_token:
           type: object
           additionalProperties:
             type: array
             items:
               type: string
-          description: "Full presentation as sent by the wallet, if audit feature has been activated"
-    IssuerTrustMarker:
-      type: object
-      properties:
-        trust_method:
-          $ref: "#/components/schemas/TrustMethod"
-        is_trusted:
-          type: boolean
-          description: Overall result of the issuer trust evaluation
-        viTM:
-          type: boolean
-          description: Verified Identity Trust Marker
-        caTM:
-          type: boolean
-          description: Compliant Actor Trust Marker
-        gucTM:
-          type: boolean
-          description: Governed Use Case Trust Marker
-        gucaTM:
-          type: boolean
-          description: Governed Use Case Authorization Trust Marker
+          description: "Full presentation as sent by the wallet, if audit feature\
+            \ has been activated"
     StatusVerificationResult:
       type: object
       properties:
@@ -933,8 +938,9 @@ components:
         redirect_uri:
           type: string
           format: uri
-          description: Optional absolute URI containing session_nonce to redirect the Holder after verification
-          example: https://business-verifier.example/callback?session_nonce=091535f699ea575c7937fa5f0f454aee
+          description: "[EXPERIMENTAL] Optional absolute URI to redirect the user\
+            \ after the verification process. Must contain a session_nonce parameter."
+          example: https://example.com/redirect?session_nonce=12345
       required:
       - dcql_query
     ResponseModeType:
@@ -1120,24 +1126,23 @@ components:
             \ further information about the verifier, such as name and logo. It is\
             \ UTF-8 encoded. It MUST NOT be present if client_metadata_uri parameter\
             \ is present."
-          example: |-
-            {
-                "client_name#en": "English name (all regions)",
-                "client_name#fr": "French name (all regions)",
-                "client_name#de-DE": "German name (region Germany)",
-                "client_name#de-CH": "German name (region Switzerland)",
-                "client_name#de": "German name (fallback)",
-                "client_name": "Fallback name",
-                "client_logo": "www.example.com/logo.png",
-                "client_logo#fr": "www.example.com/logo_fr.png",
-                "vp_formats": {
-                    "jwt_vp": {
-                        "alg": [
-                            "ES256"
-                        ],
-                    }
-                }
-            }
+          example:
+            client_name#en: English name (all regions)
+            client_name#fr: French name (all regions)
+            client_name#de-DE: German name (region Germany)
+            client_name#de-CH: German name (region Switzerland)
+            client_name#de: German name (fallback)
+            client_name: Fallback name
+            client_logo: www.example.com/logo.png
+            client_logo#fr: www.example.com/logo_fr.png
+            vp_formats_supported:
+              dc+sd-jwt:
+                sd-jwt_alg_values:
+                - ES256
+                - Ed25519
+                kb-jwt_alg_values:
+                - ES256
+                - Ed25519
         state:
           type: string
           description: |
