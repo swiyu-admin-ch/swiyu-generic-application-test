@@ -175,7 +175,7 @@ class RenewalFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1301 is not available in these issuer images"
     )
     void credentialRefreshDisabled_whenWalletAttemptsRenewal_thenRejectedWithoutBusinessIssuerCall() {
