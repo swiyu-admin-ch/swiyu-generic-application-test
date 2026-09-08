@@ -10,7 +10,9 @@ import org.mockserver.matchers.Times;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Pattern;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -54,6 +56,37 @@ public final class Tp2TrustStatementRouteSupport {
         this.mockServerClient = mockServerClient;
         this.statementFactory = new Tp2TrustRegistryStatementFactory(issuerConfig, verifierConfig, trustConfig);
         this.responseFactory = new Tp2MockServerResponseFactory(objectMapper);
+    }
+
+    /**
+     * Registers an idTS for one subject with a scenario-specific status list URI.
+     * The caller clears only this subject's expectation after the scenario.
+     */
+    public String registerIdentityTrustStatement(String subject, Duration lifetime, String statusListUri) {
+        final String jwt = statementFactory.buildIdentityTrustStatement(subject, lifetime, statusListUri);
+        mockServerClient.when(
+                        request().withMethod("GET")
+                                .withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?")
+                                .withQueryStringParameter("sub", subject),
+                        Times.unlimited(),
+                        TimeToLive.unlimited(),
+                        200
+                )
+                .respond(httpRequest -> responseFactory.jsonResponse(
+                        responseFactory.pagedContent(List.of(jwt), httpRequest)
+                ));
+        mockServerClient.when(identityTrustStatementPathRequest(subject),
+                        Times.unlimited(), TimeToLive.unlimited(), 200)
+                .respond(responseFactory.jwtResponse(jwt));
+        return jwt;
+    }
+
+    /** Matches the subject endpoint whether MockServer exposes the encoded or decoded path. */
+    public static HttpRequest identityTrustStatementPathRequest(String subject) {
+        final String path = IDENTITY_TRUST_STATEMENT_PATH + "/";
+        return request().withMethod("GET").withPath(
+                Pattern.quote(path + subject) + "|"
+                        + Pattern.quote(path + URLEncoder.encode(subject, StandardCharsets.UTF_8)));
     }
 
     public void registerIssuerSuccess(Duration lifetime) {
