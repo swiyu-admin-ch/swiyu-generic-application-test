@@ -1,0 +1,103 @@
+name: Publish Management Pact Contracts
+run-name: ${{ github.repository }} is publishing management consumer contracts
+
+# Publication is manual only. Provider verification belongs to issuer/verifier.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish-pacts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout consumer repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate PactFlow configuration
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+        run: |
+          set -euo pipefail
+          : "${PACT_BROKER_BASE_URL:?PACT_BROKER_BASE_URL secret is required}"
+          : "${PACT_BROKER_TOKEN:?PACT_BROKER_TOKEN secret is required}"
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Generate management consumer pacts
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -pl test-wallet-library -am \
+            clean test \
+            -Dtest='*ManagementConsumerPactTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Validate generated management pacts
+        run: |
+          set -euo pipefail
+          PACT_DIR=test-wallet-library/target/pacts
+          shopt -s nullglob
+          PACT_FILES=("$PACT_DIR"/*.json)
+
+          if [[ ${#PACT_FILES[@]} -ne 2 ]]; then
+            echo "Expected exactly two management Pact files in $PACT_DIR" >&2
+            exit 1
+          fi
+
+          jq -s -e '
+            ([.[] | [.consumer.name, .provider.name]] | sort) == [
+              ["swiyu-business-issuer-reference", "swiyu-issuer"],
+              ["swiyu-business-verifier-reference", "swiyu-verifier"]
+            ]
+            and all(.[];
+              (.metadata.pactSpecification.version | type == "string" and startswith("4."))
+              and (.interactions | type == "array" and length > 0)
+              and (.interactions | all(.[];
+                .type == "Synchronous/HTTP"
+                and (.providerStates | type == "array" and length > 0)
+                and (.providerStates | all(.[]; .name | type == "string" and length > 0))
+                and (.request.method | type == "string" and length > 0)
+                and (.request.path | type == "string" and startswith("/management/api/"))
+                and (.response.status | type == "number")
+                and ((.request.headers // {} | keys | map(ascii_downcase) | index("authorization")) == null)
+              ))
+            )
+          ' "${PACT_FILES[@]}"
+
+      - name: Publish management contracts to PactFlow
+        env:
+          PACT_BROKER_BASE_URL: ${{ secrets.PACT_BROKER_BASE_URL }}
+          PACT_BROKER_TOKEN: ${{ secrets.PACT_BROKER_TOKEN }}
+          PACT_PUBLISH_CONSUMER_VERSION: ${{ github.sha }}
+          PACT_PUBLISH_CONSUMER_BRANCHNAME: ${{ github.ref_name }}
+          PACT_PUBLISH_CONSUMER_BUILDURL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ./mvnw --batch-mode --no-transfer-progress \
+            -pl test-wallet-library \
+            au.com.dius.pact.provider:maven:publish \
+            -Dpact.projectVersion="$PACT_PUBLISH_CONSUMER_VERSION"
+
+      - name: Upload management pacts and test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: management-pacts-and-reports
+          path: |
+            test-wallet-library/target/pacts/*.json
+            test-wallet-library/target/surefire-reports/
+          if-no-files-found: warn

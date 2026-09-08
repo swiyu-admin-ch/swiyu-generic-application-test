@@ -208,6 +208,18 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <!-- Invoked explicitly by the manual Pact publication workflow, never by the build lifecycle. -->
+            <plugin>
+                <groupId>au.com.dius.pact.provider</groupId>
+                <artifactId>maven</artifactId>
+                <version>${pact.version}</version>
+                <configuration>
+                    <pactDirectory>${project.build.directory}/pacts</pactDirectory>
+                    <pactBrokerUrl>${env.PACT_BROKER_BASE_URL}</pactBrokerUrl>
+                    <pactBrokerToken>${env.PACT_BROKER_TOKEN}</pactBrokerToken>
+                    <trimSnapshot>false</trimSnapshot>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

@@ -11,6 +11,7 @@ This project starts the Issuer and Verifier services inside containers and inter
 ## Table of Contents
 
 - [Overview](#overview)
+- [Management Pact Publication](#management-pact-publication)
 - [Prerequisites](#prerequisites)
 - [Project Structure](#project-structure)
 - [Test Environment Model](#test-environment-model)
@@ -61,6 +62,29 @@ flowchart LR
     ver --- db
     
 ```
+
+## Management Pact Publication
+
+The manual [Publish Management Pact Contracts](.github/workflows/publish-pacts.yml) workflow generates and publishes:
+
+- `swiyu-business-issuer-reference` → `swiyu-issuer` (IF-113 / IF-114).
+- `swiyu-business-verifier-reference` → `swiyu-verifier` (IF-100).
+
+In GitHub Actions, select this workflow, choose **Run workflow**, and select the branch to publish.
+The workflow must first be present on the default branch to be available through the manual workflow UI.
+Provide the same secrets used by issuer and verifier: `PACT_BROKER_BASE_URL` and `PACT_BROKER_TOKEN`.
+Organization secrets must grant this repository access; the token needs permission to publish contracts.
+
+Only the management consumer Pact tests in `test-wallet-library` run, not the E2E suite.
+Both V4 contracts are validated before publication. PactFlow records the consumer version as the commit SHA,
+together with the branch and the GitHub Actions run URL. Generated JSON files stay under
+`test-wallet-library/target/pacts`, are uploaded with the test reports, and are not committed.
+Neither standard Maven builds nor pushes or pull requests publish contracts automatically.
+
+After publication, launch the manual provider verification workflow in issuer and verifier. To select contracts
+from a feature branch, set `consumer_version_selectors` to `[{"branch":"your-consumer-branch"}]`.
+The providers' default `mainBranch` selector requires the consumer's main branch to be configured in PactFlow
+and contracts to have been published from that branch. Publishing alone does not verify the providers.
 
 ## Prerequisites
 
