@@ -10,7 +10,8 @@ public enum IssuerVariant {
     COMPLETE("complete", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, null, null, null),
-    MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null);
+    MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null),
+    MULTI_SIGNING_KEYS("multi_signing_keys", false, null, null, null, null);
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
@@ -67,6 +68,9 @@ public enum IssuerVariant {
             config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
             config.setTrustRegistryClockSkewBufferSeconds(CACHED_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS);
         }
+        if (this == MULTI_SIGNING_KEYS) {
+            config.setMultipleSigningKeys(true);
+        }
         return config;
     }
 
@@ -80,6 +84,7 @@ public enum IssuerVariant {
         target.setEnableJwtAuth(source.isEnableJwtAuth());
         target.setEncryptionEnforce(source.isEncryptionEnforce());
         target.setEnableHsm(source.isEnableHsm());
+        target.setMultipleSigningKeys(source.isMultipleSigningKeys());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setTrustRegistryClockSkewBufferSeconds(source.getTrustRegistryClockSkewBufferSeconds());

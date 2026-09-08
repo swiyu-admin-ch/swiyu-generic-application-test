@@ -227,6 +227,7 @@ public class BaseTest {
         final IssuerHandle primaryIssuer = issuer(selection.primaryIssuer());
         final VerifierHandle primaryVerifier = verifier(selection.primaryVerifier());
         wallet = new Wallet(restClient, primaryIssuer.serviceLocation(), primaryVerifier.serviceLocation());
+        wallet.setTrustConfig(trustConfig);
         useComponents(primaryIssuer, primaryVerifier);
 
         connection = DriverManager.getConnection(
@@ -349,6 +350,7 @@ public class BaseTest {
         final String credentialRequestEncryptionEnc = wallet.getCredentialRequestEncryptionEnc();
         final String credentialResponseEncryptionEnc = wallet.getCredentialResponseEncryptionEnc();
         final MockAttestationAuthority activeMockAttestationAuthority = wallet.getMockAttestationAuthority();
+        final TrustConfig activeTrustConfig = wallet.getTrustConfig();
 
         wallet = new Wallet(restClient, issuerContext, verifierContext);
         wallet.setUseEncryption(useEncryption);
@@ -357,6 +359,7 @@ public class BaseTest {
         wallet.setCredentialRequestEncryptionEnc(credentialRequestEncryptionEnc);
         wallet.setCredentialResponseEncryptionEnc(credentialResponseEncryptionEnc);
         wallet.setMockAttestationAuthority(activeMockAttestationAuthority);
+        wallet.setTrustConfig(activeTrustConfig);
 
         issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
         verifierManager.intercept(new HttpTraceInterceptor(traceFile, "Verifier Management"));

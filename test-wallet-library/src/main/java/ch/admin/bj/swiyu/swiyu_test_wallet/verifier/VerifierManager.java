@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestPresentationDefinitions;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -206,6 +207,14 @@ public class VerifierManager {
 
     public ManagementResponse getVerificationById(UUID id, UUID responseCode) {
         return managementApi.getVerification(id, responseCode);
+    }
+
+    public ResponseEntity<ManagementResponse> getVerificationByIdWithHttpInfo(UUID id) {
+        return getVerificationByIdWithHttpInfo(id, null);
+    }
+
+    public ResponseEntity<ManagementResponse> getVerificationByIdWithHttpInfo(UUID id, UUID responseCode) {
+        return managementApi.getVerificationWithHttpInfo(id, responseCode);
     }
 
     public ManagementResponse verifyState(final UUID verificationId) {

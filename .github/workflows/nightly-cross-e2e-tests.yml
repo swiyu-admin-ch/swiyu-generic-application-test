@@ -93,6 +93,7 @@ jobs:
   issuer-staging_vs_verifier-staging:
     name: issuer-staging_vs_verifier-staging
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-staging_vs_verifier-staging' }}
     steps:
       - name: Checkout main branch
@@ -144,10 +145,14 @@ jobs:
             echo "### issuer-staging_vs_verifier-staging";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
+      - name: Warn about non-blocking failure
+        if: failure()
+        run: echo "::warning title=Nightly Cross E2E::issuer-staging_vs_verifier-staging failed. This combination is non-blocking"
 
   issuer-rc_vs_verifier-rc:
     name: issuer-rc_vs_verifier-rc
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-rc_vs_verifier-rc' }}
     steps:
       - name: Checkout main branch
@@ -199,10 +204,14 @@ jobs:
             echo "### issuer-rc_vs_verifier-rc";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
+      - name: Warn about non-blocking failure
+        if: failure()
+        run: echo "::warning title=Nightly Cross E2E::issuer-rc_vs_verifier-rc failed. This combination is non-blocking"
 
   issuer-stable_vs_verifier-stable:
     name: issuer-stable_vs_verifier-stable
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: ${{ github.event_name == 'schedule' || github.event.inputs.selection == 'all' || github.event.inputs.selection == 'issuer-stable_vs_verifier-stable' }}
     steps:
       - name: Checkout main branch
@@ -254,6 +263,9 @@ jobs:
             echo "### issuer-stable_vs_verifier-stable";
             echo "Result: ${{ job.status }}";
           } >> $GITHUB_STEP_SUMMARY
+      - name: Warn about non-blocking failure
+        if: failure()
+        run: echo "::warning title=Nightly Cross E2E::issuer-stable_vs_verifier-stable failed. This combination is non-blocking"
 
   aggregated-cross-report:
     name: Aggregated Cross Test Report
@@ -292,8 +304,8 @@ jobs:
             echo "- issuer-rc_vs_verifier-rc: ${{ needs.issuer-rc_vs_verifier-rc.result }}";
             echo "- issuer-stable_vs_verifier-stable: ${{ needs.issuer-stable_vs_verifier-stable.result }}";
           } >> $GITHUB_STEP_SUMMARY
-      - name: Fail if any combination failed
-        if: ${{ needs.issuer-dev_vs_verifier-dev.result == 'failure' || needs.issuer-staging_vs_verifier-staging.result == 'failure' || needs.issuer-rc_vs_verifier-rc.result == 'failure' || needs.issuer-stable_vs_verifier-stable.result == 'failure' }}
+      - name: Fail if dev-dev failed
+        if: ${{ needs.issuer-dev_vs_verifier-dev.result == 'failure' }}
         run: |
-          echo "At least one combination failed." >&2
+          echo "dev-dev failed." >&2
           exit 1

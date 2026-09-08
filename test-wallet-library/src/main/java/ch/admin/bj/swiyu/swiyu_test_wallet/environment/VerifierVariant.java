@@ -7,7 +7,9 @@ public enum VerifierVariant {
     CACHED("cached", false),
     HSM("hsm", true),
     MANAGEMENT_KEYCLOAK("management_keycloak", false),
-    SHORT_LIVED_REQUEST_OBJECT("short_lived_request_object", false);
+    SHORT_LIVED_REQUEST_OBJECT("short_lived_request_object", false),
+    REJECT_SUSPENDED("reject_suspended", false),
+    MULTI_SIGNING_KEYS("multi_signing_keys", false);
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
@@ -44,6 +46,12 @@ public enum VerifierVariant {
         if (this == SHORT_LIVED_REQUEST_OBJECT) {
             config.setRequestObjectTtlSeconds(SHORT_LIVED_REQUEST_OBJECT_TTL_SECONDS);
         }
+        if (this == REJECT_SUSPENDED) {
+            config.setRejectSuspendedCredentials(true);
+        }
+        if (this == MULTI_SIGNING_KEYS) {
+            config.setMultipleSigningKeys(true);
+        }
         return config;
     }
 
@@ -54,11 +62,13 @@ public enum VerifierVariant {
         target.setSwiyuPartnerId(source.getSwiyuPartnerId());
         target.setSurname(source.getSurname());
         target.setEnableHsm(source.isEnableHsm());
+        target.setMultipleSigningKeys(source.isMultipleSigningKeys());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setJwkCacheTtlMillis(source.getJwkCacheTtlMillis());
         target.setTrustStatementCacheTtlMillis(source.getTrustStatementCacheTtlMillis());
         target.setRequestObjectTtlSeconds(source.getRequestObjectTtlSeconds());
+        target.setRejectSuspendedCredentials(source.isRejectSuspendedCredentials());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());

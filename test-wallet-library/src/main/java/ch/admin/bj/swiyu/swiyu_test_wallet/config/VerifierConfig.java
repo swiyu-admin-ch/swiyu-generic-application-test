@@ -3,9 +3,11 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
@@ -21,6 +23,10 @@ public class VerifierConfig {
     private final String verifierDidLog;
     private final String verifierAuthKeyId;
     private final String verifierAuthKeyPemString;
+
+    @Builder.Default
+    @Setter
+    private List<VerifierConfig> additionalSigningIdentities = List.of();
 
     public static VerifierConfig createVerifierConfig(final URI identifierRegistryUrl) {
         KeyPair authKeys = generateEC256KeyPair();

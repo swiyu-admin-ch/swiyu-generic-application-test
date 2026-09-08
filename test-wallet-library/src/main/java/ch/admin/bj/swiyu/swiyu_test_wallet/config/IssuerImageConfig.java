@@ -21,6 +21,7 @@ public class IssuerImageConfig {
     private boolean enableJwtAuth = false;
     private boolean encryptionEnforce = false;
     private boolean enableHsm = false;
+    private boolean multipleSigningKeys = false;
     private long trustRegistryMaxCacheSize = 0;
     private long trustRegistryMaxCacheTtlSeconds = 0;
     private long trustRegistryClockSkewBufferSeconds = 60;

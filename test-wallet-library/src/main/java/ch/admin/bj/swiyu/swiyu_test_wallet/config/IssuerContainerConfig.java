@@ -11,6 +11,8 @@ import org.testcontainers.utility.MountableFile;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
@@ -138,6 +140,10 @@ public class IssuerContainerConfig {
                 containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
             }
 
+            if (issuerImageConfig.isMultipleSigningKeys()) {
+                configureMultipleSigningKeys(containerBuilder, config);
+            }
+
             if (managementAuthConfig.isEnabled()) {
                 containerBuilder
                         .withEnv("SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI",
@@ -187,5 +193,25 @@ public class IssuerContainerConfig {
             }
 
         return containerBuilder;
+    }
+
+    private static void configureMultipleSigningKeys(
+            final GenericContainer<?> container,
+            final IssuerConfig primaryIdentity) {
+        final List<IssuerConfig> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        identities.addAll(primaryIdentity.getAdditionalSigningIdentities());
+
+        for (int index = 0; index < identities.size(); index++) {
+            final IssuerConfig identity = identities.get(index);
+            final String sdJwtPrefix = "APPLICATION_KEY_SDJWT_SIGNINGKEYS_%d_".formatted(index);
+            final String statusListPrefix = "APPLICATION_STATUSLIST_SIGNINGKEYS_%d_".formatted(index);
+
+            container
+                    .withEnv(sdJwtPrefix + "VERIFICATIONMETHOD", identity.getIssuerAssertKeyId())
+                    .withEnv(sdJwtPrefix + "PRIVATEKEY", identity.getIssuerAssertKeyPemString())
+                    .withEnv(statusListPrefix + "VERIFICATIONMETHOD", identity.getIssuerAuthKeyId())
+                    .withEnv(statusListPrefix + "PRIVATEKEY", identity.getIssuerAuthKeyPemString());
+        }
     }
 }

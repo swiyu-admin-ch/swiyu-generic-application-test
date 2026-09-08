@@ -20,6 +20,9 @@ public final class CredentialConfigurationFixtures {
     public static final String UNBOUND_EXAMPLE_SD_JWT =
             "unbound_example_sd_jwt";
 
+    public static final String CREDENTIAL_REFRESH_DISABLED_EXAMPLE_SD_JWT =
+            "credential_refresh_disabled_example_sd_jwt";
+
     public static final String UNIVERSITY_EXAMPLE_HIGH_KEY_ATTESTATION_REQUIRED_SD_JWT =
             "university_example_high_key_attestation_required_sd_jwt";
 

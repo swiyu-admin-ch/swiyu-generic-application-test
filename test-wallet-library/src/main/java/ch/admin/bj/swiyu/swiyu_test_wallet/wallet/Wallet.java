@@ -1,11 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.*;
+import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
@@ -72,6 +74,9 @@ public class Wallet {
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
+    private TrustConfig trustConfig;
+
+    private static final VerificationQueryResolver VERIFICATION_QUERY_RESOLVER = new VerificationQueryResolver();
 
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -573,7 +578,10 @@ public class Wallet {
             final RequestObject requestObject,
             final List<String> tokens
     ) {
-        final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
+        final String tokenId = resolveVerificationQuery(requestObject)
+                .getCredentials()
+                .getFirst()
+                .getId();
         final Map<String, Object> vpToken = Map.of(tokenId, tokens);
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
@@ -597,6 +605,10 @@ public class Wallet {
                 .body(formData)
                 .retrieve()
                 .toEntity(String.class);
+    }
+
+    DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
+        return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, trustConfig);
     }
 
     public Optional<URI> respondToVerificationWithError(

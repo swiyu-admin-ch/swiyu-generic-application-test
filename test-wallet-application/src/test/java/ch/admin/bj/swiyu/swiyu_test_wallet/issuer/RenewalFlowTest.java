@@ -8,13 +8,12 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
@@ -33,20 +32,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyPair;
+import java.util.ArrayList;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockserver.model.HttpRequest.request;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 
@@ -162,6 +159,84 @@ class RenewalFlowTest extends BaseTest {
                 .hasSize(TestConstants.UNIVERSITY_EXAMPLE_BATCH_SIZE * 2)
                 .as("All credential JWTs must be unique")
                 .doesNotHaveDuplicates();
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1301",
+            summary = "Issuer rejects renewal when credential refresh is disabled",
+            description = """
+                    This test validates that an issuer exposes credential_refresh_disabled=true for a credential configuration that does not support 
+                    renewal. If a wallet ignores this metadata signal and still attempts renewal, the issuer must reject it with HTTP 400 
+                    credential_request_denied without forwarding the request to the Business Issuer renewal endpoint.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.UCI_I1E)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "EIDOMNI-1301 is not available in these issuer images"
+    )
+    void credentialRefreshDisabled_whenWalletAttemptsRenewal_thenRejectedWithoutBusinessIssuerCall() {
+        // Given
+        final String credentialConfigurationId =
+                CredentialConfigurationFixtures.CREDENTIAL_REFRESH_DISABLED_EXAMPLE_SD_JWT;
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialWithSignedJwt(
+                jwtKey,
+                keyId,
+                credentialConfigurationId
+        );
+        final WalletBatchEntry entry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+
+        final var credentialRefreshDisabled = entry.getIssuerMetadataRaw()
+                .path("credential_configurations_supported")
+                .path(credentialConfigurationId)
+                .path("credential_refresh_disabled");
+
+        assertThat(credentialRefreshDisabled.isBoolean())
+                .as("credential_refresh_disabled must be exposed as a boolean")
+                .isTrue();
+        assertThat(credentialRefreshDisabled.booleanValue())
+                .as("Wallet metadata must signal that refresh is disabled for this credential configuration")
+                .isTrue();
+        assertThat(entry.getToken().getRefreshToken())
+                .as("The OAuth token response still contains a refresh token")
+                .isNotBlank();
+
+        final String nonce = wallet.collectCNonce(entry);
+        final String dpop = DPoPSupport.createDpopProofForToken(
+                entry.getIssuerTokenUri().toString(),
+                nonce,
+                wallet.getDpopKeyPair(),
+                wallet.getDpopPublicKey(),
+                entry.getToken().getRefreshToken()
+        );
+        entry.setToken(wallet.collectRefreshTokenWithDPoP(entry, dpop));
+
+        final int renewalCallsBeforeAttempt = mockServerClient.retrieveRecordedRequests(
+                request()
+                        .withMethod("POST")
+                        .withPath("/renewal")
+        ).length;
+
+        // When
+        final HttpClientErrorException exception = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.renewedCredentials(entry)
+        );
+
+        // Then
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("credential_request_denied");
+        assertThat(mockServerClient.retrieveRecordedRequests(
+                request()
+                        .withMethod("POST")
+                        .withPath("/renewal")
+        ))
+                .as("Disabled credential refresh must not be forwarded to the Business Issuer")
+                .hasSize(renewalCallsBeforeAttempt);
     }
 
     @Test
@@ -710,54 +785,54 @@ class RenewalFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
-    void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() throws Exception {
+    void credentialManagement_shouldLinkRenewalsCorrectly_acrossMultipleInitialOffers() {
 
         log.info("Create initial credentials for issuance A");
         WalletBatchEntry entryA = new WalletBatchEntry(wallet);
         final CredentialWithDeeplinkResponse offerA = initializeCredentials(entryA);
         final UUID managementA = offerA.getManagementId();
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Initial issuance A must create exactly one credential offer")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform first renewal for issuance A");
         performRefresh(entryA);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("First renewal of A must create a second credential offer linked to the same management")
-                .isEqualTo(2);
+                .hasSize(2);
 
         log.info("Create initial credentials for issuance B");
         WalletBatchEntry entryB = new WalletBatchEntry(wallet);
         final CredentialWithDeeplinkResponse offerB = initializeCredentials(entryB);
         final UUID managementB = offerB.getManagementId();
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Initial issuance B must create exactly one credential offer")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform second renewal for issuance A");
         performRefresh(entryA);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Second renewal of A must create a third credential offer linked to management A")
-                .isEqualTo(3);
+                .hasSize(3);
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Renewals of A must not affect credential offers linked to management B")
-                .isEqualTo(1);
+                .hasSize(1);
 
         log.info("Perform renewal for issuance B");
         performRefresh(entryB);
 
-        assertThat(countOffersForManagement(managementA))
+        assertThat(issuerManager.getCredentialById(managementA).getCredentialOffers())
                 .as("Management A must contain exactly three credential offers after two renewals")
-                .isEqualTo(3);
+                .hasSize(3);
 
-        assertThat(countOffersForManagement(managementB))
+        assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Management B must contain exactly two credential offers after one renewal")
-                .isEqualTo(2);
+                .hasSize(2);
     }
 
     private void performRefresh(WalletBatchEntry entry) {
@@ -789,31 +864,4 @@ class RenewalFlowTest extends BaseTest {
         wallet.postCredentialRequest(entry);
     }
 
-    private int countOffersForManagement(UUID managementId) throws SQLException {
-
-        final String sql = """
-                SELECT COUNT(*)
-                FROM %s.credential_offer
-                WHERE credential_management_id = ?
-                """.formatted(issuerImageConfig.getDbSchema());
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setObject(1, managementId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    throw new NoSuchElementException(
-                            "No result found for managementId=" + managementId
-                    );
-                }
-                final int result = rs.getInt(1);
-                if (rs.next()) {
-                    throw new IllegalStateException(
-                            "Multiple results found for managementId=" + managementId
-                    );
-                }
-
-                return result;
-            }
-        }
-    }
 }

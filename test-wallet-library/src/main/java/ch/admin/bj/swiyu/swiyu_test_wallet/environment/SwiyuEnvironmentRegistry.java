@@ -9,6 +9,7 @@ import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -180,6 +181,17 @@ public class SwiyuEnvironmentRegistry {
                 imageConfig.isEnableHsm(),
                 imageConfig.isEnableHsm() ? supportServices.tokenDirPath() : null
         );
+        if (imageConfig.isMultipleSigningKeys()) {
+            config.setAdditionalSigningIdentities(List.of(EnvironmentConfig.createIssuerConfig(
+                    toUri(String.format(
+                            "https://%s/api/v1/did/%s",
+                            MockServerClientConfig.MOCKSERVER_HOST,
+                            UUID.randomUUID()
+                    )),
+                    false,
+                    null
+            )));
+        }
         return issuerRuntimeFactory.start(new IssuerRuntimeFactory.StartRequest(
                 variant,
                 config,
@@ -196,6 +208,15 @@ public class SwiyuEnvironmentRegistry {
         final VerifierConfig config = EnvironmentConfig.createVerifierConfig(
                 toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, UUID.randomUUID()))
         );
+        if (imageConfig.isMultipleSigningKeys()) {
+            config.setAdditionalSigningIdentities(List.of(EnvironmentConfig.createVerifierConfig(
+                    toUri(String.format(
+                            "https://%s/api/v1/did/%s",
+                            MockServerClientConfig.MOCKSERVER_HOST,
+                            UUID.randomUUID()
+                    ))
+            )));
+        }
         return verifierRuntimeFactory.start(new VerifierRuntimeFactory.StartRequest(
                 variant,
                 config,
