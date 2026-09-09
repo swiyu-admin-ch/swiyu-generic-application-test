@@ -5,6 +5,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 public enum IssuerVariant {
     DEFAULT("default", false, null, null, null, null),
     STRICT("strict", false, true, false, true, false),
+    NO_REFRESH_TOKEN_ROTATION("no_refresh_token_rotation", false, true, false, false, false),
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
@@ -71,6 +72,9 @@ public enum IssuerVariant {
         if (this == MULTI_SIGNING_KEYS) {
             config.setMultipleSigningKeys(true);
         }
+        if (this == NO_REFRESH_TOKEN_ROTATION) {
+            config.setAllowRefreshTokenRotation(false);
+        }
         return config;
     }
 
@@ -85,6 +89,7 @@ public enum IssuerVariant {
         target.setEncryptionEnforce(source.isEncryptionEnforce());
         target.setEnableHsm(source.isEnableHsm());
         target.setMultipleSigningKeys(source.isMultipleSigningKeys());
+        target.setAllowRefreshTokenRotation(source.isAllowRefreshTokenRotation());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setTrustRegistryClockSkewBufferSeconds(source.getTrustRegistryClockSkewBufferSeconds());
