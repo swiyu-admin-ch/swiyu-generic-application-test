@@ -40,14 +40,13 @@ class VerifierManagementConsumerPactTest {
     V4Pact createVerification(final PactDslWithProvider builder) {
         return builder
                 .given("verification creation is available", verificationStateParameters())
-                .uponReceiving("IF-100 POST creates a verification (DEMO: expects 201 instead of 200)")
+                .uponReceiving("IF-100 POST creates a verification")
                 .method("POST")
                 .path("/management/api/verifications")
                 .matchHeader("Content-Type", JSON_CONTENT_TYPE_REGEX, "application/json")
                 .body(validVerificationRequestBody(), "application/json")
                 .willRespondWith()
-                // Temporary PactFlow demo mismatch: the generic verifier returns 200 OK.
-                .status(201)
+                .status(200)
                 .matchHeader("Content-Type", JSON_CONTENT_TYPE_REGEX, "application/json")
                 .body(verificationResponseBody("PENDING", false))
                 .toPact(V4Pact.class);
@@ -129,7 +128,7 @@ class VerifierManagementConsumerPactTest {
 
     @Test
     @PactTestFor(pactMethod = "createVerification")
-    void shouldConsumeCreatedResponseForContractMismatchDemo(final MockServer mockServer) {
+    void shouldCreateVerification(final MockServer mockServer) {
         final var response = buildVerifierManager(mockServer).createVerificationRequest(validVerificationRequest());
 
         assertThat(response.getId()).isEqualTo(VERIFICATION_ID);
