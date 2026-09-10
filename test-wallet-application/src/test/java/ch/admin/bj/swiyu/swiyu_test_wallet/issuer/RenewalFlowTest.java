@@ -2,15 +2,18 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -28,22 +31,38 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
+import org.mockserver.matchers.MatchType;
+import org.mockserver.matchers.TimeToLive;
+import org.mockserver.matchers.Times;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.security.KeyPair;
 import java.util.ArrayList;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.REVOKED;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementRespondOk;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.JsonBody.json;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 
@@ -833,6 +852,167 @@ class RenewalFlowTest extends BaseTest {
         assertThat(issuerManager.getCredentialById(managementB).getCredentialOffers())
                 .as("Management B must contain exactly two credential offers after one renewal")
                 .hasSize(2);
+    }
+
+    @Test
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @XrayTest(key = "EIDOMNI-1337",
+            summary = "Delayed Business Issuer renewal succeeds and both batches can subsequently be revoked",
+            description = "Sequential baseline for R29: delay the renewal response, await success, then revoke and verify every initial and renewed credential.")
+    @DisableIfImageTag(issuer = {ImageTags.STABLE, ImageTags.RC}, verifier = {ImageTags.STAGING},
+            reason = "Requires the renewal fixes and verifier credential evaluations used by the renewal revocation tests")
+    void renewalFlow_whenBusinessIssuerRespondsSlowly_thenRenewedFamilyCanBeRevoked() throws SQLException {
+        // Given
+        final WalletBatchEntry initialEntry = new WalletBatchEntry(wallet);
+        final var offer = initializeCredentials(initialEntry);
+        final var renewedEntry = initialEntry.duplicate();
+        final var initialReferences = credentialStatusReferences(offer.getManagementId());
+        final var renewalRequest = request().withMethod("POST").withPath("/renewal")
+                .withBody(json("{\"management_id\":\"" + offer.getManagementId() + "\"}", MatchType.ONLY_MATCHING_FIELDS));
+        final String renewalBody = new ObjectMapper().writeValueAsString(Map.of(
+                "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                "credential_subject_data", CredentialSubjectFixtures.completeEmployeeProfile(),
+                "credential_valid_from", Instant.now().minusSeconds(60).truncatedTo(ChronoUnit.SECONDS).toString(),
+                "credential_valid_until", Instant.now().plusSeconds(3600).truncatedTo(ChronoUnit.SECONDS).toString(),
+                "status_lists", List.of(getCurrentStatusList().getStatusRegistryUrl())));
+        final var expectation = mockServerClient.when(renewalRequest, Times.exactly(1), TimeToLive.unlimited(), 100)
+                .respond(response().withStatusCode(200).withHeader("Content-Type", "application/json")
+                        .withBody(renewalBody).withDelay(TimeUnit.MILLISECONDS, 300));
+
+        // When
+        final long started = System.nanoTime();
+        try {
+            assertThat(wallet.renewedCredentials(renewedEntry).getStatus())
+                    .isEqualTo(200);
+            assertThat(mockServerClient.retrieveRecordedRequests(renewalRequest))
+                    .as("The renewal reached this management's delayed mock response")
+                    .hasSize(1);
+        } finally {
+            mockServerClient.clear(expectation[0].getId());
+        }
+
+        // Then
+        assertThat(Duration.ofNanos(System.nanoTime() - started))
+                .isGreaterThanOrEqualTo(Duration.ofMillis(300));
+        final var renewedManagement = issuerManager.getCredentialById(offer.getManagementId());
+        assertThat(renewedManagement.getCredentialOffers())
+                .hasSize(2);
+        assertThat(renewedManagement.getRenewalResponseCount())
+                .isEqualTo(1);
+        assertThat(credentialStatusReferences(offer.getManagementId()))
+                .hasSize(initialReferences.size() * 2)
+                .containsAll(initialReferences)
+                .doesNotHaveDuplicates();
+
+        // When: revocation is sent only after renewal has completed.
+        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+
+        // Then
+        assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.REVOKED);
+        for (final WalletBatchEntry batch : List.of(initialEntry, renewedEntry)) {
+            for (int index = 0; index < batch.getIssuedCredentials().size(); index++) {
+                final var verification = verifierManager.verificationRequest()
+                        .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                        .withUniversityDCQL(true)
+                        .createManagementResponse();
+                final var details = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+                final String presentation = batch.createPresentationForSdJwtIndex(index, details);
+                final var result = assertWalletAndManagementRespondOk(
+                        () -> wallet.respondToVerificationWithVpTokens(details, List.of(presentation)),
+                        verifierManager, verification.getId());
+                assertThat(result.getState())
+                        .isEqualTo(VerificationStatus.FAILED);
+                assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, REVOKED);
+            }
+        }
+    }
+
+    @Test
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @XrayTest(key = "EIDOMNI-1339",
+            summary = "Business Issuer renewal failure leaves no partial batch and does not prevent subsequent revocation",
+            description = "Sequential baseline for R30: a targeted renewal 503 leaves offers and status references unchanged; revoke then invalidates the original batch.")
+    @DisableIfImageTag(issuer = {ImageTags.STABLE, ImageTags.RC}, verifier = {ImageTags.STAGING},
+            reason = "Requires the renewal fixes and verifier credential evaluations used by the renewal revocation tests")
+    void renewalFlow_whenBusinessIssuerFails_thenNoPartialBatchSurvivesAndRevocationStillWorks() throws SQLException {
+        // Given
+        final WalletBatchEntry entry = new WalletBatchEntry(wallet);
+        final var offer = initializeCredentials(entry);
+        final var failedRenewalEntry = entry.duplicate();
+        final var initialManagement = issuerManager.getCredentialById(offer.getManagementId());
+        final var initialCredentials = List.copyOf(entry.getIssuedCredentials());
+        final var initialReferences = credentialStatusReferences(offer.getManagementId());
+        final var expectation = mockServerClient.when(request().withMethod("POST").withPath("/renewal")
+                        .withBody(json("{\"management_id\":\"" + offer.getManagementId() + "\"}", MatchType.ONLY_MATCHING_FIELDS)),
+                        Times.exactly(1), TimeToLive.unlimited(), 100)
+                .respond(response().withStatusCode(503));
+
+        // When
+        try {
+            final var error = assertThrows(HttpServerErrorException.class, () -> wallet.renewedCredentials(failedRenewalEntry));
+            assertThat(error.getStatusCode().value())
+                    .isEqualTo(503);
+        } finally {
+            mockServerClient.clear(expectation[0].getId());
+        }
+
+        // Then
+        final var managementAfterFailure = issuerManager.getCredentialById(offer.getManagementId());
+        assertThat(managementAfterFailure.getStatus())
+                .isEqualTo(CredentialStatusType.ISSUED);
+        assertThat(managementAfterFailure.getCredentialOffers())
+                .containsExactlyElementsOf(initialManagement.getCredentialOffers());
+        assertThat(managementAfterFailure.getRenewalResponseCount())
+                .isEqualTo(initialManagement.getRenewalResponseCount());
+        assertThat(credentialStatusReferences(offer.getManagementId()))
+                .containsExactlyElementsOf(initialReferences);
+        assertThat(entry.getIssuedCredentials())
+                .containsExactlyElementsOf(initialCredentials);
+        assertThat(failedRenewalEntry.getIssuedCredentials())
+                .isEmpty();
+
+        // When
+        issuerManager.updateStateWithSignedJwt(jwtKey, keyId, offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
+
+        // Then
+        assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.REVOKED);
+        for (int index = 0; index < entry.getIssuedCredentials().size(); index++) {
+            final var verification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .createManagementResponse();
+            final var details = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+            final String presentation = entry.createPresentationForSdJwtIndex(index, details);
+            final var result = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(details, List.of(presentation)),
+                    verifierManager, verification.getId());
+            assertThat(result.getState())
+                    .isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, REVOKED);
+        }
+        assertThat(credentialStatusReferences(offer.getManagementId()))
+                .containsExactlyElementsOf(initialReferences);
+    }
+
+    private List<String> credentialStatusReferences(final UUID managementId) throws SQLException {
+        final String schema = currentIssuer.imageConfig().getDbSchema();
+        final String sql = "SELECT s.status_list_id, s.index FROM " + schema + ".credential_offer_status s JOIN "
+                + schema + ".credential_offer o ON o.id = s.credential_offer_id "
+                + "WHERE o.credential_management_id = ? ORDER BY s.status_list_id, s.index";
+        try (var statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, managementId);
+            try (var result = statement.executeQuery()) {
+                final List<String> references = new ArrayList<>();
+                while (result.next()) {
+                    references.add(result.getString(1) + ":" + result.getInt(2));
+                }
+                return references;
+            }
+        }
     }
 
     private void performRefresh(WalletBatchEntry entry) {
