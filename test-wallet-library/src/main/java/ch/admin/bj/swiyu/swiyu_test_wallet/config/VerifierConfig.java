@@ -7,11 +7,11 @@ import lombok.Setter;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.security.interfaces.ECPublicKey;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.createJWKFromKeyPair;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256KeyPair;
 
 @Getter
@@ -32,10 +32,7 @@ public class VerifierConfig {
         KeyPair authKeys = generateEC256KeyPair();
         KeyPair assertKeys = generateEC256KeyPair();
 
-        var authJwk = createJWKFromKeyPair(authKeys);
-        var assertJwk = createJWKFromKeyPair(assertKeys);
-
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        var didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         var verifierDid = getDidFromDidLog(didLog);
 
         return VerifierConfig.builder()

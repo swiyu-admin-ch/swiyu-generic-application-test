@@ -72,15 +72,10 @@
             <artifactId>jackson-databind-nullable</artifactId>
             <scope>compile</scope>
         </dependency>
-        <!-- Encoding -->
+        <!-- DID Toolbox -->
         <dependency>
-            <groupId>org.bitcoinj</groupId>
-            <artifactId>bitcoinj-core</artifactId>
-        </dependency>
-        <!-- JSON Canonicalization -->
-        <dependency>
-            <groupId>io.github.erdtman</groupId>
-            <artifactId>java-json-canonicalization</artifactId>
+            <groupId>ch.admin.swiyu</groupId>
+            <artifactId>didtoolbox</artifactId>
         </dependency>
         <!-- Testing Assertions -->
         <dependency>
