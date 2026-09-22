@@ -85,6 +85,12 @@ services:
       DID_VERIFICATION_METHOD: ${DID_VERIFICATION_METHOD}
       SIGNING_KEY: ${SIGNING_KEY}
 
+      # Audit information is omitted from the management API response by default (EIDOMNI-1321).
+      # The local stack mirrors the E2E harness and opts in to all of it.
+      ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED: "true"
+      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED: "true"
+      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED: "true"
+
       # Persistence
       POSTGRES_USER: "db_mgmt_user"
       POSTGRES_PASSWORD: "secret"
