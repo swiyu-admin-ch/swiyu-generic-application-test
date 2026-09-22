@@ -119,6 +119,7 @@ public final class SdJwtCredential {
         private final SdJwtCredential source;
         private String keyId;
         private String issuer;
+        private boolean withoutIssuer;
         private JWK holderKey;
         private boolean withoutStatus;
         private KeyPair ecKey;
@@ -152,6 +153,12 @@ public final class SdJwtCredential {
             return this;
         }
 
+        /** Drops the {@code iss} claim. The Swiss anchor profile says trust follows the {@code kid}, so the claim may be absent. */
+        public Resign withoutIssuer() {
+            this.withoutIssuer = true;
+            return this;
+        }
+
         /** Binds the credential to this key through {@code cnf.jwk} (RFC 9901 §4.1.2). */
         public Resign holderKey(final JWK holderKey) {
             this.holderKey = holderKey;
@@ -173,9 +180,15 @@ public final class SdJwtCredential {
                         .keyID(keyId != null ? keyId : original.getHeader().getKeyID())
                         .customParams(original.getHeader().getCustomParams());
 
+                if (issuer != null && withoutIssuer) {
+                    throw new IllegalStateException("issuer(...) and withoutIssuer() contradict each other");
+                }
                 final JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder(original.getJWTClaimsSet());
                 if (issuer != null) {
                     claims.issuer(issuer);
+                }
+                if (withoutIssuer) {
+                    claims.claim("iss", null);
                 }
                 if (holderKey != null) {
                     claims.claim("cnf", Map.of("jwk", holderKey.toPublicJWK().toJSONObject()));

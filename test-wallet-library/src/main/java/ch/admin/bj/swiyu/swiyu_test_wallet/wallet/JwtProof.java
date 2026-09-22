@@ -81,7 +81,7 @@ public class JwtProof {
                 if (attestationAuthority != null) {
                     final String attestation = AttestationFactory.validHighAttestation(
                             publicJwk,
-                            attestationAuthority.getDid(),
+                            attestationAuthority.getIssuerClaim(),
                             attestationAuthority.getSigningPrivateKey(),
                             attestationAuthority.getKid()
                     );
