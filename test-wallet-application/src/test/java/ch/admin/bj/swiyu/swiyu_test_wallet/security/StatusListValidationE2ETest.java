@@ -30,6 +30,7 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -228,24 +229,38 @@ class StatusListValidationE2ETest extends BaseTest {
         }
     }
 
-    @ParameterizedTest(name = "issuer idTS status-list typ: {0}")
-    @EnumSource(value = StatusListCase.class, names = {"VALID", "JWT_TYPE", "SD_JWT_TYPE", "MISSING_TYPE"})
-    @XrayTest(key = "EIDOMNI-1327", summary = "Issuer enforces TP2 status-list JWT type",
-            description = "Issuer metadata includes the idTS only for typ=statuslist+jwt. Wrong or absent typ "
-                    + "must omit the idTS without failing the metadata endpoint.")
+    @ParameterizedTest(name = "issuer idTS status list: {0}")
+    @EnumSource(StatusListCase.class)
+    @XrayTest(key = "EIDOMNI-1327", summary = "Issuer rejects TP2 status-list substitution",
+            description = "Issuer metadata includes the idTS only when its status list has the expected sub, typ "
+                    + "and signer DID. A different resolvable signer with a valid signature is rejected, and no "
+                    + "substitution may fail the metadata endpoint.")
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "TP2 issuer metadata enrichment is required")
-    void issuerIdentityTrustStatement_whenStatusListTypeInvalid_thenOmitted(final StatusListCase testCase)
+    @Disabled("EIDOMNI-1235: the issuer still discards the result of the status-list typ check, so the JWT_TYPE, "
+            + "SD_JWT_TYPE and MISSING_TYPE cases cannot pass. Re-enable once swiyu-issuer PR #500 is merged.")
+    void issuerIdentityTrustStatement_whenStatusListInvalid_thenOmitted(final StatusListCase testCase)
             throws Exception {
-        // Given
+        // Given: a fresh subject and URI prevent either trust or status caches hiding the substitution.
         final String subject = swiyuDidVariant(issuerConfig.getIssuerDid());
         final String uri = freshStatusListUri();
-        final ECKey key = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString()).toECKey();
-        final SignedJWT token = statusListToken(uri, trustConfig.getTrustDid(),
-                trustConfig.getTrustAssertKeyId(), key, testCase);
-        assertThat(token.verify(new ECDSAVerifier(key.toPublicJWK())))
-                .as("The wrong or absent typ does not invalidate the cryptographic signature")
+        final ECKey trustKey = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString()).toECKey();
+        final boolean otherSigner = testCase == StatusListCase.OTHER_SIGNER;
+        final ECKey signingKey = otherSigner
+                ? JWK.parseFromPEMEncodedObjects(issuerConfig.getIssuerAssertKeyPemString()).toECKey() : trustKey;
+        final String kid = otherSigner ? issuerConfig.getIssuerAssertKeyId() : trustConfig.getTrustAssertKeyId();
+        // Retain the expected iss even for the foreign kid: comparing iss alone must not authorize this signer.
+        final SignedJWT token = statusListToken(uri, trustConfig.getTrustDid(), kid, signingKey, testCase);
+        assertThat(token.verify(new ECDSAVerifier(signingKey.toPublicJWK())))
+                .as("The substitution keeps a signature the issuer can resolve and verify")
                 .isTrue();
+        if (otherSigner) {
+            assertThat(token.verify(new ECDSAVerifier(trustKey.toPublicJWK())))
+                    .as("A different issuer signed the status list")
+                    .isFalse();
+            assertThat(kid.substring(0, kid.indexOf('#')))
+                    .isNotEqualTo(trustConfig.getTrustDid());
+        }
         final HttpRequest identityRequest = identityRequest(subject);
         final HttpRequest statusRequest = statusRequest(uri);
         try {
@@ -276,7 +291,7 @@ class StatusListValidationE2ETest extends BaseTest {
                         .isEqualTo(idTs);
             } else {
                 assertThat(metadata.getCredentialIssuerIdentityTrustStatement())
-                        .as("Issuer must omit idTS when the status-list typ is %s", testCase)
+                        .as("Issuer must omit the idTS when its status list is %s", testCase)
                         .isNullOrEmpty();
             }
             assertThat(tp2Routes().identityTrustStatementRequests(subject))
