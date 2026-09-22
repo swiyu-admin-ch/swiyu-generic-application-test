@@ -17,10 +17,14 @@ public class MockServerContainerConfig {
                         .withTag("7.6.0"));
         container.withExposedPorts(1080);
         container.withNetwork(network);
+        container.withEnv(
+                "MOCKSERVER_SSL_SUBJECT_ALTERNATIVE_NAME_DOMAINS",
+                "localhost,mockserver,untrusted-registry"
+        );
         if (containerLogConfig.isMockServer()) {
             container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mockserver")));
         }
-        container.withNetworkAliases("mockserver");
+        container.withNetworkAliases("mockserver", "untrusted-registry");
         return container;
     }
 }

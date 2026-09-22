@@ -50,6 +50,7 @@ public class MockServerClientConfig {
     @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
     public static final String VERIFIER_CALLBACK_PATH = "/callbacks/issuer";
     public static final String MOCKSERVER_HOST = "mockserver:1080";
+    public static final String UNTRUSTED_REGISTRY_HOST = "untrusted-registry:1080";
     private static final String STATUSLIST_URI_PATTERN = "https://" + MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
     private static final List<String> TP2_ROUTE_PATTERNS = List.of(
             "/api/v2/identity-trust-statement.*",
