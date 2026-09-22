@@ -93,6 +93,10 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildIdentityTrustStatement(String subject, Duration lifetime) {
+        return buildIdentityTrustStatement(subject, lifetime, TP2_STATUS_LIST_URI);
+    }
+
+    String buildIdentityTrustStatement(String subject, Duration lifetime, String statusListUri) {
         String entityName = resolveEntityName(subject);
         SignedJWT statement = new AccessibleIdTsBuilder()
                 .withTrustRegistryMetadata(
@@ -101,7 +105,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt(lifetime)
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, statusListUri)
                 .withJti(UUID.randomUUID().toString())
                 .addEntityName(entityName)
                 .addEntityName(entityName, "en")
