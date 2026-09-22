@@ -184,6 +184,7 @@ class CredentialManagementConsumerPactTest {
 
         assertThat(response.getManagementId()).isEqualTo(MANAGEMENT_ID);
         assertThat(response.getOfferId()).isEqualTo(OFFER_ID);
+        assertThat(response.getTxCode()).isEqualTo(IssuerManagementConsumerPactSupport.TX_CODE);
     }
 
     @Test

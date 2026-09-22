@@ -26,6 +26,7 @@ final class IssuerManagementConsumerPactSupport {
     static final UUID OFFER_ID = UUID.fromString("33333333-3333-4333-8333-333333333333");
     static final String STATUS_REGISTRY_URL = "https://status.example.com/api/v1/statuslist/" + STATUS_LIST_ID + ".jwt";
     static final String OFFER_DEEPLINK = "swiyu://?credential_offer=example-" + OFFER_ID;
+    static final String TX_CODE = "123456";
 
     private IssuerManagementConsumerPactSupport() {
     }
@@ -70,7 +71,8 @@ final class IssuerManagementConsumerPactSupport {
         return LambdaDsl.newJsonBody(body -> body
                 .uuid("management_id", MANAGEMENT_ID)
                 .uuid("offer_id", OFFER_ID)
-                .stringMatcher("offer_deeplink", URL_REGEX, OFFER_DEEPLINK)).build();
+                .stringMatcher("offer_deeplink", URL_REGEX, OFFER_DEEPLINK)
+                .stringMatcher("tx_code", "^[0-9]{6}$", TX_CODE)).build();
     }
 
     static DslPart credentialManagementResponseBody() {

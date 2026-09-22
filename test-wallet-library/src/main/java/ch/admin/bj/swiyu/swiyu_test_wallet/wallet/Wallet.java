@@ -53,6 +53,7 @@ public class Wallet {
     public static final String VP_TOKEN = "vp_token";
     public static final String STATE = "state";
     public static final String DPOP = "DPoP";
+    public static final String TRANSACTION_CODE = "tx_code";
 
     private final RestClient restClient;
     private ServiceLocationContext issuerContext;
