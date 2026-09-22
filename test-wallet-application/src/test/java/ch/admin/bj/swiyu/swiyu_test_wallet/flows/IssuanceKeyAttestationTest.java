@@ -238,7 +238,9 @@ public class IssuanceKeyAttestationTest extends BaseTest {
 
     private IssuerHandle startIssuerTrusting(final MockAttestationAuthority attestationAuthority) {
         final IssuerImageConfig isolatedImageConfig = IssuerVariant.DEFAULT.imageConfig(issuerImageConfig);
-        isolatedImageConfig.setSurname("external_attestation_" + UUID.randomUUID().toString().replace("-", ""));
+        isolatedImageConfig.setSurname(
+                "external_attestation_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16)
+        );
 
         final IssuerConfig isolatedIssuerConfig = EnvironmentConfig.createIssuerConfig(
                 URI.create("https://%s/api/v1/did/%s".formatted(MOCKSERVER_HOST, UUID.randomUUID())),
