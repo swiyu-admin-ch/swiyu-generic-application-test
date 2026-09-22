@@ -74,6 +74,31 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/VerificationPresentationResponseDto"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
+        "410":
+          description: Gone. The verification process for this Request Object is already
+            closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "415":
+          description: Unsupported Media Type. The request body must be application/x-www-form-urlencoded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationPresentationResponseDto"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
   /management/api/verifications:
     post:
       tags:
@@ -140,6 +165,44 @@ paths:
                 $ref: "#/components/schemas/RequestObject"
         "404":
           description: Request Object not found
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "405":
+          description: Method Not Allowed
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+        "406":
+          description: Not Acceptable. The requested Accept header does not match
+            any of the produced media types
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+        "410":
+          description: Gone. The verification process for this Request Object is already
+            closed
+          content:
+            application/oauth-authz-req+jwt:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorDto"
+        "500":
+          description: Internal Server Error
           content:
             application/oauth-authz-req+jwt:
               schema:
@@ -478,8 +541,6 @@ components:
           $ref: "#/components/schemas/StatusVerificationResult"
         trust_markers:
           $ref: "#/components/schemas/IssuerTrustMarker"
-        valid:
-          type: boolean
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -715,7 +776,8 @@ components:
             items:
               $ref: "#/components/schemas/CredentialEvaluation"
           description: "Object of Evaluations, where the key is the id of the dcql_query\
-            \ credential"
+            \ credential. Only present if `application.additional-audit-information.credential-evaluation-enabled`\
+            \ is set to true (default: false)."
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -733,15 +795,16 @@ components:
           type: object
           additionalProperties: {}
           description: "Requested Claims, where the key is the id of the credential\
-            \ request"
+            \ request. Only present if `application.additional-audit-information.credential-subject-data-enabled`\
+            \ is set to true (default: false)."
         vp_token:
           type: object
           additionalProperties:
             type: array
             items:
               type: string
-          description: "Full presentation as sent by the wallet, if audit feature\
-            \ has been activated"
+          description: "Full presentation as sent by the wallet. Only present if `application.additional-audit-information.vp-token-enabled`\
+            \ is set to true (default: false)."
     StatusVerificationResult:
       type: object
       properties:

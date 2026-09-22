@@ -15,27 +15,31 @@ public class AttestationFactory {
 
     private static final JOSEObjectType ATTESTATION_TYP = new JOSEObjectType("key-attestation+jwt");
 
-    public static String validHighAttestation(final ECKey attestedKey, final String issuerDid, final PrivateKey signingKey, final String kid) {
-        return buildAttestation(attestedKey, issuerDid, signingKey, kid, "iso_18045_high");
+    public static String validHighAttestation(final ECKey attestedKey, final String issuerClaim, final PrivateKey signingKey, final String kid) {
+        return buildAttestation(attestedKey, issuerClaim, signingKey, kid, "iso_18045_high");
     }
 
-    public static String validBasicAttestation(final ECKey attestedKey, final String issuerDid, final PrivateKey signingKey, final String kid) {
-        return buildAttestation(attestedKey, issuerDid, signingKey, kid, "iso_18045_enhanced_basic");
+    public static String validBasicAttestation(final ECKey attestedKey, final String issuerClaim, final PrivateKey signingKey, final String kid) {
+        return buildAttestation(attestedKey, issuerClaim, signingKey, kid, "iso_18045_enhanced_basic");
     }
 
     public static String invalidAttestation() {
         return "invalid.jwt.token";
     }
 
-    private static String buildAttestation(final ECKey attestedKey, final String issuerDid, final PrivateKey signingKey, final String kid, final String level) {
+    private static String buildAttestation(final ECKey attestedKey, final String issuerClaim, final PrivateKey signingKey, final String kid, final String level) {
+        final JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
+                .issueTime(new Date())
+                .expirationTime(new Date(System.currentTimeMillis() + 60000))
+                .claim("key_storage", List.of(level))
+                .claim("attested_keys", List.of(attestedKey.toPublicJWK().toJSONObject()));
+
+        if (issuerClaim != null) {
+            claims.issuer(issuerClaim);
+        }
+
         return JwtUtil.signJwt(
-                new JWTClaimsSet.Builder()
-                        .issuer(issuerDid)
-                        .issueTime(new Date())
-                        .expirationTime(new Date(System.currentTimeMillis() + 60000))
-                        .claim("key_storage", List.of(level))
-                        .claim("attested_keys", List.of(attestedKey.toPublicJWK().toJSONObject()))
-                        .build(),
+                claims.build(),
                 new JWSHeader.Builder(JWSAlgorithm.ES256)
                         .type(ATTESTATION_TYP)
                         .keyID(kid)
