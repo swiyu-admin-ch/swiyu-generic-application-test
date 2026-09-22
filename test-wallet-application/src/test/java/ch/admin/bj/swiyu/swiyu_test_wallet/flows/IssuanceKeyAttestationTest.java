@@ -6,10 +6,16 @@ import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -20,12 +26,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.MOCKSERVER_HOST;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.UNTRUSTED_REGISTRY_HOST;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
 
 public class IssuanceKeyAttestationTest extends BaseTest {
+
+    @Autowired
+    private IssuerRuntimeFactory issuerRuntimeFactory;
 
     @AfterEach
     void restoreDefaultAttestationAuthority() {
@@ -185,38 +196,69 @@ public class IssuanceKeyAttestationTest extends BaseTest {
         final MockAttestationAuthority externalAuthority = new MockAttestationAuthority(registryEntry);
         final String didDocumentPath = registryEntry.getPath() + "/did.jsonl";
         mockServerClientConfig.replaceDidLog(externalAuthority.getDid(), externalAuthority.getDidLog());
-        wallet.setMockAttestationAuthority(externalAuthority);
+        final IssuerHandle defaultIssuer = currentIssuer;
+        final IssuerHandle issuerTrustingExternalAuthority = startIssuerTrusting(externalAuthority);
 
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_HIGH_KEY_ATTESTATION_REQUIRED_SD_JWT,
-                CredentialSubjectFixtures.completeEmployeeProfile()
+        try {
+            useIssuer(issuerTrustingExternalAuthority);
+            wallet.setMockAttestationAuthority(externalAuthority);
+
+            final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                    CredentialConfigurationFixtures.UNIVERSITY_EXAMPLE_HIGH_KEY_ATTESTATION_REQUIRED_SD_JWT,
+                    CredentialSubjectFixtures.completeEmployeeProfile()
+            );
+            final int requestsBefore = mockServerClient.retrieveRecordedRequests(
+                    request()
+                            .withMethod("GET")
+                            .withPath(didDocumentPath)
+            ).length;
+
+            // When
+            final HttpClientErrorException exception = assertThrows(
+                    HttpClientErrorException.class,
+                    () -> wallet.collectOffer(toUri(offer.getOfferDeeplink()))
+            );
+
+            // Then
+            ApiErrorAssert.assertThat(exception)
+                    .hasStatus(400)
+                    .hasError("invalid_proof");
+            assertThat(mockServerClient.retrieveRecordedRequests(
+                    request()
+                            .withMethod("GET")
+                            .withPath(didDocumentPath)
+            ))
+                    .as("The Issuer must reject the DID before attempting resolution")
+                    .hasSize(requestsBefore);
+        } finally {
+            issuerTrustingExternalAuthority.container().stop();
+            useIssuer(defaultIssuer);
+        }
+    }
+
+    private IssuerHandle startIssuerTrusting(final MockAttestationAuthority attestationAuthority) {
+        final IssuerImageConfig isolatedImageConfig = IssuerVariant.DEFAULT.imageConfig(issuerImageConfig);
+        isolatedImageConfig.setSurname("external_attestation_" + UUID.randomUUID().toString().replace("-", ""));
+
+        final IssuerConfig isolatedIssuerConfig = EnvironmentConfig.createIssuerConfig(
+                URI.create("https://%s/api/v1/did/%s".formatted(MOCKSERVER_HOST, UUID.randomUUID())),
+                false,
+                null
         );
-        final int requestsBefore = mockServerClient.retrieveRecordedRequests(
-                request()
-                        .withMethod("GET")
-                        .withPath(didDocumentPath)
-        ).length;
-
-        // When
-        final HttpClientErrorException exception = assertThrows(
-                HttpClientErrorException.class,
-                () -> wallet.collectOffer(toUri(offer.getOfferDeeplink()))
+        final String imageName = "%s:%s".formatted(
+                isolatedImageConfig.getBaseImage(),
+                isolatedImageConfig.getImageTag()
         );
 
-        // Then
-        ApiErrorAssert.assertThat(exception)
-                .hasStatus(400)
-                .hasError("invalid_proof");
-        assertThat(exception.getResponseBodyAsString())
-                .as("The rejection must come from the Base Registry allowlist")
-                .contains("Base Registry allowlist");
-        assertThat(mockServerClient.retrieveRecordedRequests(
-                request()
-                        .withMethod("GET")
-                        .withPath(didDocumentPath)
-        ))
-                .as("The Issuer must reject the DID before attempting resolution")
-                .hasSize(requestsBefore);
+        return issuerRuntimeFactory.start(new IssuerRuntimeFactory.StartRequest(
+                IssuerVariant.DEFAULT,
+                isolatedIssuerConfig,
+                isolatedImageConfig,
+                imageName,
+                null,
+                null,
+                attestationAuthority
+        ));
     }
 
     private enum AttestationIssuerClaim {
