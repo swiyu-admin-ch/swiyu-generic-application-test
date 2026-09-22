@@ -35,8 +35,20 @@ public class CredentialOffer {
     }
 
     public String getPreAuthorizedCode() {
-        var grants = credentialOfferJson.get("grants").getAsJsonObject();
-        var preAuthorizedCode = grants.get("urn:ietf:params:oauth:grant-type:pre-authorized_code").getAsJsonObject();
-        return preAuthorizedCode.get("pre-authorized_code").getAsString();
+        return getPreAuthorizedCodeGrant().get("pre-authorized_code").getAsString();
+    }
+
+    /**
+     * Returns the transaction-code metadata advertised for the pre-authorized code grant.
+     *
+     * @return the metadata object, or {@code null} when the offer does not require a transaction code
+     */
+    public JsonObject getTransactionCodeMetadata() {
+        return getPreAuthorizedCodeGrant().getAsJsonObject("tx_code");
+    }
+
+    private JsonObject getPreAuthorizedCodeGrant() {
+        var grants = credentialOfferJson.getAsJsonObject("grants");
+        return grants.getAsJsonObject("urn:ietf:params:oauth:grant-type:pre-authorized_code");
     }
 }

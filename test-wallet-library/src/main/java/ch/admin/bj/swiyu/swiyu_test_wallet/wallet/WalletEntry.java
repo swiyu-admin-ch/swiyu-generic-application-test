@@ -60,6 +60,7 @@ public class WalletEntry {
     private ECKey ephemeralEncryptionKey;
     private CredentialResponse credentialResponse;
     private String cNonce;
+    private String transactionCode;
 
     public WalletEntry(final Wallet wallet) {
         this.wallet = wallet;
