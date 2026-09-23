@@ -55,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.ENCRYPTION)
-@Disabled("Disable until the EIDOMNI-1220 is fixed")
 class IssuerPayloadEncryptionTest extends BaseTest {
 
     private static final String ECDH_ES = "ECDH-ES";

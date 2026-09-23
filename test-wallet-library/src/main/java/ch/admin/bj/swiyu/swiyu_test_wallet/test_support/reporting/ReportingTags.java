@@ -4,6 +4,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ReportingTags {
+    public final static String VERSION_REGRESSION = "version_regression";
     public final static String HAPPY_PATH = "happy_path";
     public final static String EDGE_CASE = "edge_case";
     public final static String UCI_C1 = "uci_c1";

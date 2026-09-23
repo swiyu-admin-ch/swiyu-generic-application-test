@@ -1,11 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.issuer.model.*;
+import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
@@ -72,6 +74,9 @@ public class Wallet {
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
+    private TrustConfig trustConfig;
+
+    private static final VerificationQueryResolver VERIFICATION_QUERY_RESOLVER = new VerificationQueryResolver();
 
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -562,17 +567,21 @@ public class Wallet {
         return ((VerificationRequestObject.Signed) request).jwt();
     }
 
-    public void respondToVerification(RequestObject requestObject, String token) {
+    public Optional<URI> respondToVerification(RequestObject requestObject, String token) {
         final ResponseEntity<String> response = respondToVerificationWithVpTokens(requestObject, List.of(token));
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return readRedirectUri(response);
     }
 
     public ResponseEntity<String> respondToVerificationWithVpTokens(
             final RequestObject requestObject,
             final List<String> tokens
     ) {
-        final String tokenId = requestObject.getDcqlQuery().getCredentials().getFirst().getId();
+        final String tokenId = resolveVerificationQuery(requestObject)
+                .getCredentials()
+                .getFirst()
+                .getId();
         final Map<String, Object> vpToken = Map.of(tokenId, tokens);
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
@@ -598,12 +607,16 @@ public class Wallet {
                 .toEntity(String.class);
     }
 
-    public void respondToVerificationWithError(
+    DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
+        return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, trustConfig);
+    }
+
+    public Optional<URI> respondToVerificationWithError(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
     ) {
-        respondToVerificationWithError(
+        return respondToVerificationWithError(
                 PathSupport.toUri(requestObject.getResponseUri()),
                 requestObject.getState(),
                 error,
@@ -611,7 +624,7 @@ public class Wallet {
         );
     }
 
-    public void respondToVerificationWithError(
+    public Optional<URI> respondToVerificationWithError(
             final URI responseUri,
             final String state,
             final String error,
@@ -639,6 +652,33 @@ public class Wallet {
                 .toEntity(String.class);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        return readRedirectUri(response);
+    }
+
+    private Optional<URI> readRedirectUri(ResponseEntity<String> response) {
+        if (response.getStatusCode().value() != 200 || response.getBody() == null || response.getBody().isBlank()) {
+            return Optional.empty();
+        }
+
+        assertThat(response.getHeaders().getContentType())
+                .as("OID4VP Response Endpoint Content-Type")
+                .isNotNull()
+                .matches(MediaType.APPLICATION_JSON::isCompatibleWith);
+
+        try {
+            final JsonNode redirectUriNode = objectMapper.readTree(response.getBody()).get("redirect_uri");
+            if (redirectUriNode == null || redirectUriNode.isNull()) {
+                return Optional.empty();
+            }
+
+            final URI redirectUri = URI.create(redirectUriNode.asText());
+            if (!redirectUri.isAbsolute()) {
+                throw new IllegalArgumentException("redirect_uri must be an absolute URI");
+            }
+            return Optional.of(redirectUri);
+        } catch (JacksonException e) {
+            throw new IllegalArgumentException("Unable to process redirect_uri from verifier response", e);
+        }
     }
 
     public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {

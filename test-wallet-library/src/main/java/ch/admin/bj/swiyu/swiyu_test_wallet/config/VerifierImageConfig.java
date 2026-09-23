@@ -19,11 +19,13 @@ public class VerifierImageConfig {
 
     private String surname = "default";
     private boolean enableHsm = false;
+    private boolean multipleSigningKeys = false;
     private long trustRegistryMaxCacheSize = 0;
     private long trustRegistryMaxCacheTtlSeconds = 0;
     private long jwkCacheTtlMillis = 0;
     private long trustStatementCacheTtlMillis = 0;
     private int requestObjectTtlSeconds = 0;
+    private boolean rejectSuspendedCredentials = false;
 
     private String hsmUser = "admin";
     private String hsmPassword = "password";

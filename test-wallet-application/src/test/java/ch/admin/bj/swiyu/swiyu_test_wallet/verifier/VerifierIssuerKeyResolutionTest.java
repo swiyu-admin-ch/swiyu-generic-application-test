@@ -26,16 +26,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.security.interfaces.ECPublicKey;
 import java.text.ParseException;
 import java.util.UUID;
 
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertIssuerUntrusted;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest
@@ -102,22 +102,23 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         final int attackerDidRequestsBefore = didDocumentRequests(attacker.didDocumentPath());
 
         // When
-        final HttpClientErrorException ex = assertThrows(
-                HttpClientErrorException.class,
-                () -> wallet.respondToVerification(requestObject, presentation)
+        assertRejected(
+                () -> wallet.respondToVerification(requestObject, presentation),
+                verifierManager,
+                verification.getId(),
+                ex -> ApiErrorAssert.assertThat(ex)
+                        .hasStatus(400)
+                        .hasError("invalid_transaction_data")
+                        .hasDetail("issuer_not_accepted")
+                        .hasErrorCode("issuer_not_accepted")
+                        .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor"),
+                evaluation -> assertIssuerUntrusted(evaluation)
         );
 
         // Then
-        ApiErrorAssert.assertThat(ex)
-                .hasStatus(400)
-                .hasError("invalid_transaction_data")
-                .hasDetail("issuer_not_accepted")
-                .hasErrorCode("issuer_not_accepted")
-                .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor");
         assertThat(didDocumentRequests(attacker.didDocumentPath()))
                 .as("The verifier must resolve the DID selected from the credential kid")
                 .isGreaterThan(attackerDidRequestsBefore);
-        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
     }
 
     private WalletBatchEntry issueBoundCredential() {

@@ -25,6 +25,7 @@ public class TrustConfig {
     private final String trustAuthKeyId;
     private final String trustAssertKeyPemString;
     private final String trustAuthKeyPemString;
+    private final String trustAssertPublicJwk;
     private final String trustEd25519AssertKeyId;
     @ToString.Exclude
     private final OctetKeyPair trustEd25519AssertKey;
@@ -46,6 +47,7 @@ public class TrustConfig {
                 .trustAuthKeyId(trustDid + "#auth-key-01")
                 .trustAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .trustAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
+                .trustAssertPublicJwk(assertJwk.toPublicJWK().toJSONString())
                 .build();
     }
 }

@@ -193,6 +193,13 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: response_code
+        in: query
+        description: Optional for legacy verifications and required when redirect_uri was used
+        required: false
+        schema:
+          type: string
+          format: uuid
       responses:
         "400":
           description: Bad Request
@@ -445,7 +452,13 @@ components:
           description: |
             The OAuth State is an opaque value used by the client to maintain state between the request and callback.<br>
             If provided in the request object the state string <em>MUST</em> be returned in the response.
-    VerificationPresentationResponseDto: {}
+    VerificationPresentationResponseDto:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          description: Optional URI to which the Wallet redirects the Holder after processing the Authorization Response
     ApiErrorDto:
       type: object
       properties:
@@ -455,6 +468,13 @@ components:
           type: string
         detail:
           type: string
+    CredentialEvaluation:
+      type: object
+      properties:
+        credential_status:
+          $ref: "#/components/schemas/StatusVerificationResult"
+        trust_markers:
+          $ref: "#/components/schemas/IssuerTrustMarker"
     DcqlClaimDto:
       type: object
       description: Represents an individual claim object within the 'claims' array
@@ -667,6 +687,13 @@ components:
           $ref: "#/components/schemas/VerificationStatus"
         dcql_query:
           $ref: "#/components/schemas/DcqlQueryDto"
+        credential_evaluation:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/CredentialEvaluation"
+          description: "Object of evaluations, where the key is the id of the DCQL credential query"
         wallet_response:
           $ref: "#/components/schemas/ResponseData"
         verification_url:
@@ -683,6 +710,47 @@ components:
         credential_subject_data:
           type: object
           additionalProperties: {}
+        vp_token:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Full presentation as sent by the wallet, if audit feature has been activated"
+    IssuerTrustMarker:
+      type: object
+      properties:
+        trust_method:
+          $ref: "#/components/schemas/TrustMethod"
+        is_trusted:
+          type: boolean
+          description: Overall result of the issuer trust evaluation
+        viTM:
+          type: boolean
+          description: Verified Identity Trust Marker
+        caTM:
+          type: boolean
+          description: Compliant Actor Trust Marker
+        gucTM:
+          type: boolean
+          description: Governed Use Case Trust Marker
+        gucaTM:
+          type: boolean
+          description: Governed Use Case Authorization Trust Marker
+    StatusVerificationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        status:
+          type: integer
+          format: int32
+    TrustMethod:
+      type: string
+      enum:
+      - TRUST_PROTOCOL_1_0
+      - TRUST_PROTOCOL_2_0
+      - TRUSTED_AUTHORITY
     VerificationErrorResponseCode:
       type: string
       description: |
@@ -862,6 +930,11 @@ components:
           description: "Optional transparency metadata for registration at the TMS.\
             \ When present, the verifier registers the DCQL query and injects the\
             \ resulting vqPS into subsequent Authorization Requests."
+        redirect_uri:
+          type: string
+          format: uri
+          description: Optional absolute URI containing session_nonce to redirect the Holder after verification
+          example: https://business-verifier.example/callback?session_nonce=091535f699ea575c7937fa5f0f454aee
       required:
       - dcql_query
     ResponseModeType:

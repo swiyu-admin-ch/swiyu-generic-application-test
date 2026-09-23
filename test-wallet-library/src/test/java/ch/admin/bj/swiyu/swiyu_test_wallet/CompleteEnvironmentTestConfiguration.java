@@ -1,7 +1,10 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.EnvironmentSupportServices;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierRuntimeFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.DisposableBean;
@@ -60,6 +63,62 @@ public class CompleteEnvironmentTestConfiguration {
     @Bean
     public HSMConfig hsmConfig() {
         return new HSMConfig();
+    }
+
+    @Bean
+    public EnvironmentSupportServices environmentSupportServices(
+            Network network,
+            ManagementAuthConfig managementAuthConfig,
+            HSMConfig hsmConfig,
+            ContainerLogConfig containerLogConfig,
+            String tokenDirPath) {
+        return new EnvironmentSupportServices(
+                network,
+                managementAuthConfig,
+                hsmConfig,
+                containerLogConfig,
+                tokenDirPath
+        );
+    }
+
+    @Bean
+    public IssuerRuntimeFactory issuerRuntimeFactory(
+            Network network,
+            PostgreSQLContainer<?> dbTestContainer,
+            MockServerContainer mockServer,
+            MockServerClientConfig mockServerClientConfig,
+            ContainerLogConfig containerLogConfig,
+            String tokenDirPath,
+            MockAttestationAuthority mockAttestationAuthority,
+            EnvironmentSupportServices environmentSupportServices) {
+        return new IssuerRuntimeFactory(
+                network,
+                dbTestContainer,
+                mockServer,
+                mockServerClientConfig,
+                containerLogConfig,
+                tokenDirPath,
+                mockAttestationAuthority,
+                environmentSupportServices
+        );
+    }
+
+    @Bean
+    public VerifierRuntimeFactory verifierRuntimeFactory(
+            Network network,
+            PostgreSQLContainer<?> dbTestContainer,
+            MockServerClientConfig mockServerClientConfig,
+            ContainerLogConfig containerLogConfig,
+            String tokenDirPath,
+            EnvironmentSupportServices environmentSupportServices) {
+        return new VerifierRuntimeFactory(
+                network,
+                dbTestContainer,
+                mockServerClientConfig,
+                containerLogConfig,
+                tokenDirPath,
+                environmentSupportServices
+        );
     }
 
     @Bean(destroyMethod = "")
@@ -154,28 +213,25 @@ public class CompleteEnvironmentTestConfiguration {
             MockServerClientConfig mockServerClientConfig,
             TrustConfig trustConfig,
             MockAttestationAuthority mockAttestationAuthority,
-            ContainerLogConfig containerLogConfig,
             IssuerImageConfig issuerImageConfig,
             VerifierImageConfig verifierImageConfig,
-            ManagementAuthConfig managementAuthConfig,
-            HSMConfig hsmConfig,
-            String tokenDirPath) {
+            IssuerRuntimeFactory issuerRuntimeFactory,
+            VerifierRuntimeFactory verifierRuntimeFactory,
+            EnvironmentSupportServices environmentSupportServices) {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedEnvironmentRegistry == null) {
                 sharedEnvironmentRegistry = new SwiyuEnvironmentRegistry(
-                        network,
                         dbTestContainer,
                         mockServer,
                         mockServerClient,
                         mockServerClientConfig,
                         trustConfig,
                         mockAttestationAuthority,
-                        containerLogConfig,
                         issuerImageConfig,
                         verifierImageConfig,
-                        managementAuthConfig,
-                        hsmConfig,
-                        tokenDirPath
+                        issuerRuntimeFactory,
+                        verifierRuntimeFactory,
+                        environmentSupportServices
                 );
             }
             return sharedEnvironmentRegistry;

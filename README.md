@@ -15,6 +15,7 @@ This project starts the Issuer and Verifier services inside containers and inter
 - [Project Structure](#project-structure)
 - [Test Environment Model](#test-environment-model)
 - [Configuration](#configuration)
+- [Version Regression Tests](#version-regression-tests)
 - [Hardware Security Module (HSM) Integration](#hardware-security-module-hsm-integration)
 - [Local Development and Testing](#local-development-and-testing)
 - [Contributions and feedback](#contributions-and-feedback)
@@ -69,7 +70,7 @@ Before running the tests, ensure you have the following tools and dependencies i
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| **Java** | 21+ | Runtime for Maven and test execution |
+| **Java** | 25+ | Runtime for Maven and test execution |
 | **Maven** | 3.8+ | Build tool and test runner |
 | **Docker** | 20.10+ | Container runtime for services |
 
@@ -238,6 +239,33 @@ Container logs are controlled per service. Issuer and Verifier logs are enabled 
 When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated during test execution. These traces are saved as Markdown files in the `target/traces/` directory, organized by test name. This feature is particularly useful for understanding the flow of happy path tests and debugging.
 
 **Note**: Enabling tracing may cause some edge case tests to fail. It is recommended to use tracing primarily for analyzing happy path test flows.
+
+## Version Regression Tests
+
+Version regression tests are opt-in and exercise a stateful `Previous` to `Candidate` transition. PostgreSQL and
+MockServer stay running while the Previous component is stopped and the Candidate component starts and applies its
+database migrations.
+
+Run it with explicit image versions:
+
+```bash
+./mvnw -Pversion-regression clean verify \
+  -Dregression.issuer.previous.version=4.1.0 \
+  -Dregression.issuer.candidate.version=4.2.0 \
+  -Dregression.verifier.previous.version=4.1.0 \
+  -Dregression.verifier.candidate.version=4.2.0
+```
+
+Previous and Candidate can use different variants and metadata files:
+
+| Configuration | Previous example | Candidate example |
+| --- | --- | --- |
+| Issuer variant | `-Dregression.issuer.previous.variant=DEFAULT` | `-Dregression.issuer.candidate.variant=STRICT` |
+| Issuer metadata | `-Dregression.issuer.previous.metadata=classpath:issuer/metadata.json` | `-Dregression.issuer.candidate.metadata=file:/tmp/issuer-candidate.json` |
+| Verifier variant | `-Dregression.verifier.previous.variant=DEFAULT` | `-Dregression.verifier.candidate.variant=CACHED` |
+| Verifier metadata | `-Dregression.verifier.previous.metadata=classpath:verifier/metadata.json` | `-Dregression.verifier.candidate.metadata=file:/tmp/verifier-candidate.json` |
+
+The standard `./mvnw clean verify` excludes the `version_regression` tag and does not start regression components.
 
 ## Hardware Security Module (HSM) Integration
 

@@ -11,6 +11,8 @@ import org.testcontainers.utility.MountableFile;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
@@ -22,6 +24,7 @@ public class IssuerContainerConfig {
     private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
     private static final String DATASOURCE_MINIMUM_IDLE = "1";
 
+    /** Builds an Issuer container using the standard Application Tests metadata fixture without starting it. */
     @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
             final Network network,
@@ -34,6 +37,39 @@ public class IssuerContainerConfig {
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority) {
+        return createIssuerContainer(
+                network,
+                dbContainer,
+                config,
+                mockServer,
+                imageName,
+                issuerImageConfig,
+                managementAuthConfig,
+                containerLogConfig,
+                tokenDirPath,
+                mockAttestationAuthority,
+                MountableFile.forHostPath(getResourcePath("issuer/metadata.json"))
+        );
+    }
+
+    /**
+     * Builds an Issuer container with an explicit metadata source mounted at {@code /tmp/metadata.json}.
+     *
+     * <p>The returned container is configured but not started; its caller owns the runtime lifecycle.
+     */
+    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    public static GenericContainer<?> createIssuerContainer(
+            final Network network,
+            final PostgreSQLContainer<?> dbContainer,
+            final IssuerConfig config,
+            final MockServerContainer mockServer,
+            final String imageName,
+            final IssuerImageConfig issuerImageConfig,
+            final ManagementAuthConfig managementAuthConfig,
+            final ContainerLogConfig containerLogConfig,
+            final String tokenDirPath,
+            final MockAttestationAuthority mockAttestationAuthority,
+            final MountableFile metadata) {
         GenericContainer<?> containerBuilder = new GenericContainer<>(imageName);
         containerBuilder.withExposedPorts(8080)
                     .withEnv("ISSUER_ID", config.getIssuerDid())
@@ -57,6 +93,8 @@ public class IssuerContainerConfig {
                             String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheSize()))
                     .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS",
                             String.valueOf(issuerImageConfig.getTrustRegistryMaxCacheTtlSeconds()))
+                    .withEnv("SWIYU_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS",
+                            String.valueOf(issuerImageConfig.getTrustRegistryClockSkewBufferSeconds()))
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
                     .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
@@ -83,7 +121,7 @@ public class IssuerContainerConfig {
                     .withNetwork(network)
                     .withNetworkAliases(issuerImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
-                    .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("issuer/metadata.json")), "/tmp/metadata.json")
+                    .withCopyFileToContainer(metadata, "/tmp/metadata.json")
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .withEnv(
@@ -100,6 +138,10 @@ public class IssuerContainerConfig {
             if (issuerImageConfig.isEnableJwtAuth()) {
                 var jwtKeyGen = issuerImageConfig.getJwtKeyGenerator();
                 containerBuilder.withEnv("JWKS_ALLOWLIST", jwtKeyGen.getJwksAsJson());
+            }
+
+            if (issuerImageConfig.isMultipleSigningKeys()) {
+                configureMultipleSigningKeys(containerBuilder, config);
             }
 
             if (managementAuthConfig.isEnabled()) {
@@ -151,5 +193,25 @@ public class IssuerContainerConfig {
             }
 
         return containerBuilder;
+    }
+
+    private static void configureMultipleSigningKeys(
+            final GenericContainer<?> container,
+            final IssuerConfig primaryIdentity) {
+        final List<IssuerConfig> identities = new ArrayList<>();
+        identities.add(primaryIdentity);
+        identities.addAll(primaryIdentity.getAdditionalSigningIdentities());
+
+        for (int index = 0; index < identities.size(); index++) {
+            final IssuerConfig identity = identities.get(index);
+            final String sdJwtPrefix = "APPLICATION_KEY_SDJWT_SIGNINGKEYS_%d_".formatted(index);
+            final String statusListPrefix = "APPLICATION_STATUSLIST_SIGNINGKEYS_%d_".formatted(index);
+
+            container
+                    .withEnv(sdJwtPrefix + "VERIFICATIONMETHOD", identity.getIssuerAssertKeyId())
+                    .withEnv(sdJwtPrefix + "PRIVATEKEY", identity.getIssuerAssertKeyPemString())
+                    .withEnv(statusListPrefix + "VERIFICATIONMETHOD", identity.getIssuerAuthKeyId())
+                    .withEnv(statusListPrefix + "PRIVATEKEY", identity.getIssuerAuthKeyPemString());
+        }
     }
 }
