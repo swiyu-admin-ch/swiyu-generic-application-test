@@ -97,7 +97,7 @@ public class IssuerContainerConfig {
                             String.valueOf(issuerImageConfig.getTrustRegistryClockSkewBufferSeconds()))
                     .withEnv("SPRING_APPLICATION_NAME", "swiyu-demo-issuer-service")
                     .withEnv("ENABLE_JWT_AUTH", String.valueOf(issuerImageConfig.isEnableJwtAuth()))
-                    .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", "true")
+                    .withEnv("ALLOW_REFRESH_TOKEN_ROTATION", String.valueOf(issuerImageConfig.isAllowRefreshTokenRotation()))
                     .withEnv("RENEWAL_FLOW_ENABLED", "true")
                     .withEnv("BUSINESS_ISSUER_RENEWAL_API_ENDPOINT",
                             config.getMockServerUri() + "/renewal?issuerDid=" + config.getIssuerDid())

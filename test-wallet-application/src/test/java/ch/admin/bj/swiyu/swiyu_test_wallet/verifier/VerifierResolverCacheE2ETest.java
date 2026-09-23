@@ -25,7 +25,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.JWK;
-import org.apache.http.protocol.HTTP;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -34,6 +33,7 @@ import org.mockserver.matchers.TimeToLive;
 import org.mockserver.matchers.Times;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 
@@ -253,7 +253,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                 )
                 .respond(httpRequest -> response()
                         .withStatusCode(200)
-                        .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                        .withHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                         .withBody(registryFetches.getAndIncrement() == 0
                                 ? trustedResponse
                                 : "[]"));

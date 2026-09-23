@@ -143,7 +143,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "This fix is not available yet"
+            verifier = {ImageTags.STAGING},
+            reason = "Requires issuer renewal fixes and verifier credential evaluations (EIDOMNI-1090), unavailable in these images"
     )
     void credentialRenewal_whenRevoked_thenAllCredentialsHaveFailedEvaluations() {
         // Given
@@ -381,7 +382,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "This fix is not available yet"
+            verifier = {ImageTags.STAGING},
+            reason = "Requires issuer renewal fixes and verifier credential evaluations (EIDOMNI-1090), unavailable in these images"
     )
     void credentialRenewal_whenRevokedBeforeRenewal_thenRenewalIsRejected() {
         // Given
@@ -442,7 +444,8 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
     @Tag("edge_case")
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "This fix is not available yet"
+            verifier = {ImageTags.STAGING},
+            reason = "Requires issuer renewal fixes and verifier credential evaluations (EIDOMNI-1090), unavailable in these images"
     )
     void credentialRenewal_whenSuspendedBeforeRenewal_thenNoValidRenewedCredentialsAreIssued() {
         // Given

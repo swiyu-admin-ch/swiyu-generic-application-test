@@ -571,7 +571,7 @@ public class SubjectClaimsTest extends BaseTest {
                 .hasErrorDescription(List.of("Not all requested claim values are satisfied", "Requested DCQL path could not be found"));
 
         // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
     }
 
     @ParameterizedTest
@@ -634,6 +634,6 @@ public class SubjectClaimsTest extends BaseTest {
                 .hasErrorDescription(List.of("Not all requested claim values are satisfied", "Requested DCQL path could not be found"));
 
         // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
     }
 }

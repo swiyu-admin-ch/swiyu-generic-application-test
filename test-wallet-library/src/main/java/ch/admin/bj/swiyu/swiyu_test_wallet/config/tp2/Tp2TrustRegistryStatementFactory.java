@@ -24,6 +24,7 @@ import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -33,6 +34,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -106,6 +108,10 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     String buildIdentityTrustStatement(String subject, Duration lifetime) {
+        return buildIdentityTrustStatement(subject, lifetime, trustStatusListUri());
+    }
+
+    String buildIdentityTrustStatement(String subject, Duration lifetime, String statusListUri) {
         String entityName = resolveEntityName(subject);
         SignedJWT statement = new AccessibleIdTsBuilder()
                 .withTrustRegistryMetadata(
@@ -114,7 +120,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt(lifetime)
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, statusListUri)
                 .withJti(UUID.randomUUID().toString())
                 .addEntityName(entityName)
                 .addEntityName(entityName, "en")
@@ -214,7 +220,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt(lifetime)
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, trustStatusListUri())
                 .withJti(jti)
                 .withAuthorizedFields(PROTECTED_FIELD_NAMES)
                 .build();
@@ -245,7 +251,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt(lifetime)
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, trustStatusListUri())
                 .withJti(jti)
                 .withCanIssue(
                         vct,
@@ -276,7 +282,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt()
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, trustStatusListUri())
                 .withJti(jti)
                 .withVctValues(PROTECTED_VCT_VALUES)
                 .build();
@@ -299,7 +305,7 @@ final class Tp2TrustRegistryStatementFactory {
                         issuedAt(),
                         expiresAt()
                 )
-                .withStatus(0, TP2_STATUS_LIST_URI)
+                .withStatus(0, trustStatusListUri())
                 .addNonCompliantActor(
                         new NcTlsBuilder.NonCompliantActorBuilder(
                                 TP2_BAD_ACTOR_SUBJECT,
@@ -334,7 +340,7 @@ final class Tp2TrustRegistryStatementFactory {
                 STATUS_LIST_TYPE,
                 new JWTClaimsSet.Builder()
                         .issuer(trustConfig.getTrustDid())
-                        .subject(TP2_STATUS_LIST_URI)
+                        .subject(trustStatusListUri())
                         .issueTime(Date.from(issuedAt()))
                         .expirationTime(Date.from(expiresAt()))
                         .claim("status_list", Map.of(
@@ -400,6 +406,20 @@ final class Tp2TrustRegistryStatementFactory {
 
     private Instant issuedAt() {
         return Instant.now().minus(ISSUED_AT_CLOCK_SKEW_CUSHION).truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    String trustStatusListPath() {
+        return URI.create(trustStatusListUri()).getPath();
+    }
+
+    private String trustStatusListUri() {
+        if (signatureAlgorithm == Tp2TrustStatementAlgorithm.ES256) {
+            return TP2_STATUS_LIST_URI;
+        }
+        return TP2_STATUS_LIST_URI.replace(
+                ".jwt",
+                "-" + signatureAlgorithm.name().toLowerCase(Locale.ROOT) + ".jwt"
+        );
     }
 
     private Instant expiresAt() {

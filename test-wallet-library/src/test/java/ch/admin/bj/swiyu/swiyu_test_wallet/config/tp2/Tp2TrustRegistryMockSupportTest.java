@@ -179,8 +179,18 @@ class Tp2TrustRegistryMockSupportTest {
         SignedJWT statement = SignedJWT.parse(
                 agileFactory.buildIdentityTrustStatement(issuerConfig.getIssuerDid())
         );
+        @SuppressWarnings("unchecked")
+        Map<String, Object> statusListReference = (Map<String, Object>) statement.getJWTClaimsSet()
+                .getJSONObjectClaim("status")
+                .get("status_list");
+        String statusListUri = (String) statusListReference.get("uri");
+        SignedJWT statusList = SignedJWT.parse(agileFactory.buildTrustStatusListJwt());
+
         assertThat(statement.getHeader().getKeyID()).isEqualTo(agileTrustConfig.getTrustEd25519AssertKeyId());
         assertThat(statement.verify(new Ed25519Verifier(publishedKey.toOctetKeyPair()))).isTrue();
+        assertThat(statusListUri).endsWith("-ed25519.jwt");
+        assertThat(agileFactory.trustStatusListPath()).isEqualTo(URI.create(statusListUri).getPath());
+        assertThat(statusList.getJWTClaimsSet().getSubject()).isEqualTo(statusListUri);
     }
 
     @Test

@@ -187,20 +187,20 @@ public class IssuerTrustStatementTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-1239",
-            summary = "Issuer rejects a valid Trust Statement signed with an unapproved algorithm",
+            summary = "Issuer rejects algorithm confusion between Ed25519 and ES256",
             description = """
-                    Given the trusted TP2 registry DID publishes an Ed25519 assertion key and returns cryptographically
-                    valid idTS and piaTS values using the deprecated EdDSA alg identifier.
+                    Given the trusted TP2 registry DID publishes an Ed25519 assertion key and returns idTS and piaTS
+                    values whose protected alg header was changed to ES256 after signing.
                     When the Generic Issuer validates the statements.
-                    Then it rejects them because only ES256 and Ed25519 are in the EIDOMNI-1050 allowlist.
+                    Then it rejects them because the declared algorithm, key type and signature do not match.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "EIDOMNI-1050 is not available yet")
-    void tenantIssuerMetadata_whenTrustStatementAlgorithmNotAllowed_thenRejectsWithoutAlgorithmConfusion() {
-        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(Tp2TrustStatementAlgorithm.EDDSA_LEGACY);
+    void tenantIssuerMetadata_whenTrustStatementAlgorithmAndKeyTypeConflict_thenRejectsWithoutAlgorithmConfusion() {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(Tp2TrustStatementAlgorithm.ED25519);
 
         // Given
-        tp2Routes.registerIssuerSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        tp2Routes.registerIssuerAlgorithmConfusion(CACHED_TRUST_STATEMENT_LIFETIME);
 
         try {
             final ConfigurationOverride issuerOverride = uniqueIssuerOverride();
@@ -211,10 +211,10 @@ public class IssuerTrustStatementTest extends BaseTest {
 
             // Then
             assertThat(metadata.getCredentialIssuerIdentityTrustStatement())
-                    .as("A valid signature with a non-allowlisted algorithm must be rejected")
+                    .as("An Ed25519 signature declared as ES256 must be rejected")
                     .isNull();
             assertThat(protectedIssuanceAuthorizationTrustStatement(walletEntry.getIssuerMetadataRaw()))
-                    .as("The algorithm policy must also protect piaTS validation")
+                    .as("The algorithm-confusion check must also protect piaTS validation")
                     .isNull();
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);

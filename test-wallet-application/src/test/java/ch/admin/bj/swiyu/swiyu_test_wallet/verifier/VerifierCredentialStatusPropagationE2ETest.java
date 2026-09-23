@@ -20,7 +20,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -31,7 +30,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -45,7 +43,6 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_resu
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -210,73 +207,6 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
         assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, SUSPENDED);
     }
 
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-1303",
-            summary = "A suspended credential gets Wallet HTTP 200 and management HTTP 400 when rejection is enabled",
-            description = """
-                    Given a suspended credential and reject_suspended_credentials enabled.
-                    When the wallet submits that credential in an OID4VP response.
-                    Then the Wallet API returns HTTP 200 with an application/json object without redirect_uri, while
-                    the Business Verifier management API returns HTTP 400.
-                    """
-    )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Depends on EIDOMNI-1310")
-    void suspendedCredential_withRejectionEnabled_thenBusinessManagementRejects() {
-        // Given
-        useVerifier(verifier(VerifierVariant.REJECT_SUSPENDED));
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
-                subjectClaims
-        );
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
-
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL()
-                .createManagementResponse();
-        final RequestObject requestObject = wallet.getVerificationRequestObject(
-                verification.getVerificationDeeplink()
-        );
-        final String presentation = batchEntry.createSelectiveDisclosurePresentationForSdJwtIndex(
-                0,
-                requestObject
-        );
-
-        assertThat(requestObject.getDcqlQuery().getCredentials())
-                .singleElement()
-                .extracting(credential -> credential.getId())
-                .isEqualTo(DEFAULT_CREDENTIAL_ID);
-
-        // When
-        final ResponseEntity<String> walletResponse = wallet.respondToVerificationWithVpTokens(
-                requestObject,
-                List.of(presentation)
-        );
-
-        // Then
-        assertThat(walletResponse.getStatusCode().value())
-                .isEqualTo(200);
-        assertThat(walletResponse.getHeaders().getContentType())
-                .isNotNull()
-                .matches(MediaType.APPLICATION_JSON::isCompatibleWith);
-        assertThat(walletResponse.getBody())
-                .isNotBlank();
-        assertThat(JsonParser.parseString(walletResponse.getBody()).getAsJsonObject().has("redirect_uri"))
-                .isFalse();
-        final HttpClientErrorException managementError = assertThrows(
-                HttpClientErrorException.class,
-                () -> verifierManager.getVerificationByIdWithHttpInfo(verification.getId())
-        );
-        assertThat(managementError.getStatusCode().value())
-                .as("Business Verifier management HTTP status")
-                .isEqualTo(400);
-    }
-
     @ParameterizedTest(name = "revoked credential produces a failed business evaluation with {0}")
     @EnumSource(value = VerifierVariant.class, names = {"DEFAULT", "REJECT_SUSPENDED"})
     @XrayTest(
@@ -292,7 +222,6 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
     )
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
-
     void revokedCredential_withEitherConfiguration_thenFailsAndPropagatesStatusEvaluation(
             final VerifierVariant verifierVariant
     ) {

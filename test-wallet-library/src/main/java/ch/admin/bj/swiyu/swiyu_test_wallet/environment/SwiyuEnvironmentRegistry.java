@@ -7,7 +7,6 @@ import org.mockserver.client.MockServerClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.MountableFile;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -198,15 +197,11 @@ public class SwiyuEnvironmentRegistry {
                 config,
                 imageConfig,
                 imageName,
-                issuerMetadata(variant),
+                variant.requiresCryptoAgilityMetadata()
+                        ? IssuerMetadataFixtures.cryptoAgilityMetadata()
+                        : null,
                 null
         ));
-    }
-
-    private static MountableFile issuerMetadata(final IssuerVariant variant) {
-        return variant.requiresCryptoAgilityMetadata()
-                ? IssuerMetadataFixtures.cryptoAgilityMetadata()
-                : null;
     }
 
     private VerifierHandle startVerifier(final VerifierVariant variant) {

@@ -8,6 +8,7 @@ import lombok.ToString;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.security.interfaces.ECPublicKey;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
@@ -35,9 +36,8 @@ public class TrustConfig {
         KeyPair authKeys = generateEC256KeyPair();
 
         var assertJwk = createJWKFromKeyPair(assertKeys);
-        var authJwk = createJWKFromKeyPair(authKeys);
 
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        var didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         var trustDid = getDidFromDidLog(didLog);
 
         return TrustConfig.builder()

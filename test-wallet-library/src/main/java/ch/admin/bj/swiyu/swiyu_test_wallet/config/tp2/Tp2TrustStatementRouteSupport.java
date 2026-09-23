@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.PlainHeader;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -16,6 +18,7 @@ import org.mockserver.matchers.Times;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -48,6 +52,7 @@ public final class Tp2TrustStatementRouteSupport {
         TAMPERED_PAYLOAD,
         TAMPERED_SIGNATURE,
         WRONG_KEY,
+        ALGORITHM_CONFUSION,
         ALG_NONE
     }
 
@@ -102,8 +107,40 @@ public final class Tp2TrustStatementRouteSupport {
         registerIssuerSuccess(lifetime, PROTECTED_VCT);
     }
 
+    /**
+     * Registers an idTS for one subject with a scenario-specific status list URI.
+     * The caller clears only this subject's expectation after the scenario.
+     */
+    public String registerIdentityTrustStatement(String subject, Duration lifetime, String statusListUri) {
+        final String jwt = statementFactory.buildIdentityTrustStatement(subject, lifetime, statusListUri);
+        mockServerClient.when(
+                        request().withMethod("GET")
+                                .withPath(IDENTITY_TRUST_STATEMENT_PATH + "/?")
+                                .withQueryStringParameter("sub", subject),
+                        Times.unlimited(),
+                        TimeToLive.unlimited(),
+                        200
+                )
+                .respond(httpRequest -> responseFactory.jsonResponse(
+                        responseFactory.pagedContent(List.of(jwt), httpRequest)
+                ));
+        mockServerClient.when(identityTrustStatementPathRequest(subject),
+                        Times.unlimited(), TimeToLive.unlimited(), 200)
+                .respond(responseFactory.jwtResponse(jwt));
+        return jwt;
+    }
+
+    /** Matches the subject endpoint whether MockServer exposes the encoded or decoded path. */
+    public static HttpRequest identityTrustStatementPathRequest(String subject) {
+        final String path = IDENTITY_TRUST_STATEMENT_PATH + "/";
+        return request().withMethod("GET").withPath(
+                Pattern.quote(path + subject) + "|"
+                        + Pattern.quote(path + URLEncoder.encode(subject, StandardCharsets.UTF_8)));
+    }
+
     public void registerIssuerSuccess(Duration lifetime, String piaTsVct) {
         clearIssuerRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.NONE, null);
         registerPiaTsRoute(lifetime, piaTsVct, SignatureMutation.NONE, null);
     }
@@ -118,18 +155,28 @@ public final class Tp2TrustStatementRouteSupport {
 
     public void registerIssuerAlgorithmNone(Duration lifetime) {
         clearIssuerRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.ALG_NONE, null);
         registerPiaTsRoute(lifetime, PROTECTED_VCT, SignatureMutation.ALG_NONE, null);
     }
 
+    public void registerIssuerAlgorithmConfusion(Duration lifetime) {
+        clearIssuerRoutes();
+        registerScenarioStatusListRoute();
+        registerIdentityRoute(lifetime, SignatureMutation.ALGORITHM_CONFUSION, null);
+        registerPiaTsRoute(lifetime, PROTECTED_VCT, SignatureMutation.ALGORITHM_CONFUSION, null);
+    }
+
     public void registerIssuerTransientErrorThenSuccess(Duration lifetime) {
         clearIssuerRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
         registerPiaTsRoute(lifetime, PROTECTED_VCT, SignatureMutation.NONE, new AtomicInteger());
     }
 
     public void registerVerifierSuccess(Duration lifetime) {
         clearVerifierRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.NONE, null);
         registerPvaTsRoute(lifetime, SignatureMutation.NONE, null);
         registerVqPsRoute(lifetime, null);
@@ -137,6 +184,7 @@ public final class Tp2TrustStatementRouteSupport {
 
     public void registerVerifierInvalidIdentity(Duration lifetime) {
         clearVerifierRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.TAMPERED_SIGNATURE, null);
         registerPvaTsRoute(lifetime, SignatureMutation.NONE, null);
         registerVqPsRoute(lifetime, null);
@@ -144,6 +192,7 @@ public final class Tp2TrustStatementRouteSupport {
 
     public void registerVerifierTransientErrorThenSuccess(Duration lifetime) {
         clearVerifierRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
         registerPvaTsRoute(lifetime, SignatureMutation.NONE, new AtomicInteger());
         registerVqPsRoute(lifetime, new AtomicInteger());
@@ -155,6 +204,7 @@ public final class Tp2TrustStatementRouteSupport {
                                 ObjectMapper objectMapper) {
         clearIssuerRoutes();
         clearVerifierRoutes();
+        clearStatusListRoute();
         Tp2TrustRegistryMockServerConfigurer.registerRoutes(
                 mockServerClient,
                 issuerConfig,
@@ -238,6 +288,7 @@ public final class Tp2TrustStatementRouteSupport {
                                        SignatureMutation mutation,
                                        IssuerTrustStatementTarget target) {
         clearIssuerRoutes();
+        registerScenarioStatusListRoute();
         registerIdentityRoute(
                 lifetime,
                 target == IssuerTrustStatementTarget.IDENTITY ? mutation : SignatureMutation.NONE,
@@ -385,6 +436,26 @@ public final class Tp2TrustStatementRouteSupport {
                 });
     }
 
+    private void registerScenarioStatusListRoute() {
+        clearStatusListRoute();
+        mockServerClient.when(
+                        request().withMethod("GET").withPath(statementFactory.trustStatusListPath()),
+                        Times.unlimited(),
+                        TimeToLive.unlimited(),
+                        100
+                )
+                .respond(httpRequest -> responseFactory.statusListJwtResponse(
+                        statementFactory.buildTrustStatusListJwt()
+                ));
+    }
+
+    private void clearStatusListRoute() {
+        mockServerClient.clear(
+                request().withMethod("GET").withPath(statementFactory.trustStatusListPath()),
+                ClearType.EXPECTATIONS
+        );
+    }
+
     private boolean shouldFailOnce(AtomicInteger attempts) {
         return attempts != null && attempts.getAndIncrement() == 0;
     }
@@ -432,8 +503,22 @@ public final class Tp2TrustStatementRouteSupport {
             case TAMPERED_PAYLOAD -> tamperJwtPayload(jwt);
             case TAMPERED_SIGNATURE -> tamperJwtSignature(jwt);
             case WRONG_KEY -> statementFactory.resignWithUntrustedKey(jwt);
+            case ALGORITHM_CONFUSION -> confuseJwtAlgorithm(jwt);
             case ALG_NONE -> unsecuredJwt(jwt);
         };
+    }
+
+    private String confuseJwtAlgorithm(String jwt) {
+        try {
+            SignedJWT parsed = SignedJWT.parse(jwt);
+            Map<String, Object> headerParameters = new HashMap<>(parsed.getHeader().toJSONObject());
+            headerParameters.put("alg", JWSAlgorithm.ES256.getName());
+            JWSHeader confusedHeader = JWSHeader.parse(headerParameters);
+            String[] parts = jwt.split("\\.", -1);
+            return confusedHeader.toBase64URL() + "." + parts[1] + "." + parts[2];
+        } catch (ParseException e) {
+            throw new TestSupportException("Cannot confuse TP2 trust-statement algorithm: " + e.getMessage());
+        }
     }
 
     private String tamperJwtPayload(String jwt) {

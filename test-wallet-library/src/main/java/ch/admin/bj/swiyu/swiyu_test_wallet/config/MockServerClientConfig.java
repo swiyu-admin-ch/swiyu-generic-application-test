@@ -22,7 +22,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.protocol.HTTP;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
@@ -39,6 +38,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 @Getter
 @Setter
@@ -232,7 +232,7 @@ public class MockServerClientConfig {
                 .respond(httpRequest -> {
                     log.info("Entered GET expectation for status list retrieval with path: {}", httpRequest.getPath().getValue());
                     return response()
-                            .withHeader(HTTP.CONTENT_TYPE, "application/statuslist+jwt")
+                            .withHeader(CONTENT_TYPE, "application/statuslist+jwt")
                             .withStatusCode(HttpStatusCode.OK_200.code())
                             .withBody(getStatusListJwt(httpRequest, issuerConfigForStatusList(httpRequest)));
                         });
@@ -248,7 +248,7 @@ public class MockServerClientConfig {
                             .formatted(id, STATUSLIST_URI_PATTERN.formatted(id));
                     return response()
                             .withStatusCode(200)
-                            .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                            .withHeader(CONTENT_TYPE, "application/json")
                             .withBody(payload);
                 });
         mockServerClient.when(request().withMethod("PUT").withPath(
@@ -261,7 +261,7 @@ public class MockServerClientConfig {
                         log.debug("Status list error mode enabled - returning 500 error");
                         return response()
                                 .withStatusCode(500)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withHeader(CONTENT_TYPE, "application/json")
                                 .withBody("{\"error\": \"Internal server error - status list update failed\"}");
                     }
 
@@ -295,7 +295,7 @@ public class MockServerClientConfig {
                     if (didLog != null) {
                         return response()
                                 .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/jsonl+json")
+                                .withHeader(CONTENT_TYPE, "application/jsonl+json")
                                 .withBody(didLog);
                     }
 
@@ -331,7 +331,7 @@ public class MockServerClientConfig {
                     try {
                         return response()
                                 .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withHeader(CONTENT_TYPE, "application/json")
                                 .withBody(new ObjectMapper().writeValueAsString(
                                         Map.of(
                                                 "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
@@ -365,12 +365,12 @@ public class MockServerClientConfig {
 
                             return response()
                                     .withStatusCode(200)
-                                    .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                    .withHeader(CONTENT_TYPE, "application/json")
                                     .withBody(OBJECT_MAPPER.writeValueAsString(trustStatements));
                         }
                         return response()
                                 .withStatusCode(200)
-                                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                                .withHeader(CONTENT_TYPE, "application/json")
                                 .withBody("[]");
                     } catch (Exception e) {
                         return response().withStatusCode(500);

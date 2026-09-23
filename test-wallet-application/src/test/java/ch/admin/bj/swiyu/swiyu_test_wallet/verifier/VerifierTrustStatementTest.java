@@ -372,7 +372,11 @@ class VerifierTrustStatementTest extends BaseTest {
         }
     }
 
-    @Test
+    @ParameterizedTest(name = "[{index}] invalid idTS signature using {0}")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ES256", "ED25519"}
+    )
     @XrayTest(
             key = "EIDOMNI-1097",
             summary = "Verifier skips invalid idTS and keeps valid pvaTS",
@@ -386,9 +390,10 @@ class VerifierTrustStatementTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
     )
-    void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped() {
+    void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped(
+            Tp2TrustStatementAlgorithm algorithm) {
         useCachedVerifier();
-        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(algorithm);
 
         // Given
         tp2Routes.registerVerifierInvalidIdentity(CACHED_TRUST_STATEMENT_LIFETIME);
