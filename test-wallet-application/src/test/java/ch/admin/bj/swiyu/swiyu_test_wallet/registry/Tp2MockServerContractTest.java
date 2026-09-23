@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import tools.jackson.core.type.TypeReference;
@@ -17,7 +18,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.net.URI;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +37,49 @@ class Tp2MockServerContractTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-XXX",
+            summary = "TP2 route replacement preserves credential status lists",
+            description = "Replacing and restoring TP2 scenario routes must not remove the credential status list route.")
+    void tp2Routes_whenReplacedAndRestored_thenCredentialStatusListRemainsResolvable() throws Exception {
+        // Given
+        final RestClient client = mockServerRestClient();
+        final String statusListUri = String.valueOf(getCurrentStatusList().getStatusRegistryUrl());
+        final String statusListPath = URI.create(statusListUri).getPath();
+        final Tp2TrustStatementRouteSupport routes = new Tp2TrustStatementRouteSupport(
+                mockServerClient, issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        final String initialStatusList = client.get().uri(statusListPath).retrieve().body(String.class);
+        assertThat(SignedJWT.parse(initialStatusList).getJWTClaimsSet().getSubject())
+                .isEqualTo(statusListUri);
+
+        try {
+            // When
+            routes.registerIssuerSuccess(Duration.ofMinutes(5));
+
+            // Then
+            final String scenarioStatusList = client.get().uri(statusListPath).retrieve().body(String.class);
+            assertThat(SignedJWT.parse(scenarioStatusList).getJWTClaimsSet().getSubject())
+                    .isEqualTo(statusListUri);
+        } finally {
+            routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+
+        // When
+        mockServerClientConfig.registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
+
+        // Then
+        final String restoredStatusList = client.get().uri(statusListPath).retrieve().body(String.class);
+        assertThat(SignedJWT.parse(restoredStatusList).getJWTClaimsSet().getSubject())
+                .isEqualTo(statusListUri);
+        final String trustStatusList = client.get()
+                .uri("/api/v1/statuslist/tp2-trust-statements.jwt")
+                .retrieve()
+                .body(String.class);
+        assertThat(SignedJWT.parse(trustStatusList).getJWTClaimsSet().getIssuer())
+                .isEqualTo(trustConfig.getTrustDid());
+    }
 
     @Test
     @XrayTest(
