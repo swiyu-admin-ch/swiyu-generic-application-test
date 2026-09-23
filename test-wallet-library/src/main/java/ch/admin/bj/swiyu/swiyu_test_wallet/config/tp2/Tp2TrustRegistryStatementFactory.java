@@ -16,7 +16,11 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.Ed25519Signer;
+import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
+import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
@@ -38,12 +42,12 @@ final class Tp2TrustRegistryStatementFactory {
 
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
     static final String TP2_DEFAULT_VERIFIER_SUBJECT =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRBB1:identifier.admin.ch:api:v1:did";
     static final String TP2_PROTECTED_VCT = TestConstants.ISSUER_URL + "/oid4vci/vct/my-vct-v01";
     static final String TP2_AUTHORIZED_FIELD = "personal_administrative_number";
 
     private static final String TP2_BAD_ACTOR_SUBJECT =
-            "did:tdw:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did";
+            "did:webvh:QmYyQSo1c1Ym7orWxLYvCrzRLZad5ZxQ8HkBLyEE4RRCC1:identifier.admin.ch:api:v1:did";
     private static final String TP2_DEFAULT_VERIFICATION_QUERY_ID = "employment-verification";
     private static final String TP2_DEFAULT_VERIFICATION_SCOPE = "ch.swiyu.tp2.employment.presentation";
     private static final String TP2_STATUS_LIST_URI = "https://mockserver:1080/api/v1/statuslist/tp2-trust-statements.jwt";
@@ -60,19 +64,28 @@ final class Tp2TrustRegistryStatementFactory {
     private final IssuerConfig issuerConfig;
     private final TrustConfig trustConfig;
     private final VerifierConfig verifierConfig;
+    private final Tp2TrustStatementAlgorithm signatureAlgorithm;
     private final Map<String, PublishedVerificationQueryPublicStatement> publishedVerificationQueryPublicStatements =
             new HashMap<>();
 
     record PublishedVerificationQueryPublicStatement(String subject, String jti, String jwt) { }
 
     Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig, TrustConfig trustConfig) {
-        this(issuerConfig, null, trustConfig);
+        this(issuerConfig, null, trustConfig, Tp2TrustStatementAlgorithm.ES256);
     }
 
     Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig, VerifierConfig verifierConfig, TrustConfig trustConfig) {
+        this(issuerConfig, verifierConfig, trustConfig, Tp2TrustStatementAlgorithm.ES256);
+    }
+
+    Tp2TrustRegistryStatementFactory(IssuerConfig issuerConfig,
+                                     VerifierConfig verifierConfig,
+                                     TrustConfig trustConfig,
+                                     Tp2TrustStatementAlgorithm signatureAlgorithm) {
         this.issuerConfig = issuerConfig;
         this.verifierConfig = verifierConfig;
         this.trustConfig = trustConfig;
+        this.signatureAlgorithm = signatureAlgorithm;
     }
 
     List<String> buildIdentityTrustStatements(String requestedSubject) {
@@ -96,7 +109,7 @@ final class Tp2TrustRegistryStatementFactory {
         String entityName = resolveEntityName(subject);
         SignedJWT statement = new AccessibleIdTsBuilder()
                 .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
+                        trustKeyId(),
                         subject,
                         issuedAt(),
                         expiresAt(lifetime)
@@ -196,7 +209,7 @@ final class Tp2TrustRegistryStatementFactory {
     String buildProtectedVerificationAuthorizationStatement(String subject, String jti, Duration lifetime) {
         SignedJWT statement = new AccessiblePvaTsBuilder()
                 .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
+                        trustKeyId(),
                         subject,
                         issuedAt(),
                         expiresAt(lifetime)
@@ -227,7 +240,7 @@ final class Tp2TrustRegistryStatementFactory {
     String buildProtectedIssuanceAuthorizationStatement(String subject, String jti, Duration lifetime, String vct) {
         SignedJWT statement = new AccessiblePiaTsBuilder()
                 .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
+                        trustKeyId(),
                         subject,
                         issuedAt(),
                         expiresAt(lifetime)
@@ -259,7 +272,7 @@ final class Tp2TrustRegistryStatementFactory {
     String buildProtectedIssuanceTrustListStatement(String jti) {
         SignedJWT statement = new AccessiblePiTlsBuilder()
                 .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
+                        trustKeyId(),
                         issuedAt(),
                         expiresAt()
                 )
@@ -282,7 +295,7 @@ final class Tp2TrustRegistryStatementFactory {
     String buildNonComplianceTrustList() {
         SignedJWT statement = new AccessibleNcTlsBuilder()
                 .withTrustRegistryMetadata(
-                        trustConfig.getTrustAssertKeyId(),
+                        trustKeyId(),
                         issuedAt(),
                         expiresAt()
                 )
@@ -572,17 +585,38 @@ final class Tp2TrustRegistryStatementFactory {
 
     private String sign(SignedJWT statement) {
         try {
-            statement.sign(trustSigner());
-            return statement.serialize();
+            SignedJWT agileStatement = new SignedJWT(
+                    new JWSHeader.Builder(jwsAlgorithm())
+                            .type(statement.getHeader().getType())
+                            .keyID(trustKeyId())
+                            .customParams(statement.getHeader().getCustomParams())
+                            .build(),
+                    statement.getJWTClaimsSet()
+            );
+            agileStatement.sign(trustSigner());
+            return agileStatement.serialize();
         } catch (JOSEException e) {
             throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage());
+        } catch (java.text.ParseException e) {
+            throw new TestSupportException("Cannot read TP2 trust-registry statement claims: " + e.getMessage());
+        }
+    }
+
+    String resignWithUntrustedKey(String jwt) {
+        try {
+            SignedJWT parsed = SignedJWT.parse(jwt);
+            SignedJWT forged = new SignedJWT(parsed.getHeader(), parsed.getJWTClaimsSet());
+            forged.sign(untrustedSigner());
+            return forged.serialize();
+        } catch (JOSEException | java.text.ParseException e) {
+            throw new TestSupportException("Cannot forge TP2 trust-registry statement: " + e.getMessage());
         }
     }
 
     private String createSignedJwt(String type, JWTClaimsSet claimsSet, boolean includeProfileVersion) {
         try {
-            final JWSHeader.Builder headerBuilder = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .keyID(trustConfig.getTrustAssertKeyId())
+            final JWSHeader.Builder headerBuilder = new JWSHeader.Builder(jwsAlgorithm())
+                    .keyID(trustKeyId())
                     .type(new JOSEObjectType(type));
             if (includeProfileVersion) {
                 headerBuilder.customParam("profile_version", TP2_PROFILE_VERSION);
@@ -597,8 +631,36 @@ final class Tp2TrustRegistryStatementFactory {
     }
 
     private JWSSigner trustSigner() throws JOSEException {
-        final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
-        return new ECDSASigner(trustJwk.toECKey());
+        return switch (signatureAlgorithm) {
+            case ES256 -> {
+                final JWK trustJwk = JWK.parseFromPEMEncodedObjects(trustConfig.getTrustAssertKeyPemString());
+                yield new ECDSASigner(trustJwk.toECKey());
+            }
+            case ED25519, EDDSA_LEGACY -> new Ed25519Signer(trustConfig.getTrustEd25519AssertKey());
+        };
+    }
+
+    private JWSSigner untrustedSigner() throws JOSEException {
+        return switch (signatureAlgorithm) {
+            case ES256 -> new ECDSASigner(new ECKeyGenerator(Curve.P_256).generate());
+            case ED25519, EDDSA_LEGACY ->
+                    new Ed25519Signer(new OctetKeyPairGenerator(Curve.Ed25519).generate());
+        };
+    }
+
+    private JWSAlgorithm jwsAlgorithm() {
+        return switch (signatureAlgorithm) {
+            case ES256 -> JWSAlgorithm.ES256;
+            case ED25519 -> JWSAlgorithm.Ed25519;
+            case EDDSA_LEGACY -> JWSAlgorithm.EdDSA;
+        };
+    }
+
+    private String trustKeyId() {
+        return switch (signatureAlgorithm) {
+            case ES256 -> trustConfig.getTrustAssertKeyId();
+            case ED25519, EDDSA_LEGACY -> trustConfig.getTrustEd25519AssertKeyId();
+        };
     }
 
     private String resolveEntityName(String subject) {

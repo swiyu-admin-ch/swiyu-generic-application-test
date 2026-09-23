@@ -44,15 +44,14 @@ public class DidLogUtil {
                 useAbsolutePublicKeyJwkKid);
 
 
-        var didLogEntryWithoutProofAndSignature = new JsonArray();
-        didLogEntryWithoutProofAndSignature.add(SCID_PLACEHOLDER);
-        didLogEntryWithoutProofAndSignature.add(DateTimeFormatter.ISO_INSTANT.format(zdt.truncatedTo(ChronoUnit.SECONDS)));
-
-        didLogEntryWithoutProofAndSignature.add(createDidParams(keyPair));
-
-        JsonObject initialDidDoc = new JsonObject();
-        initialDidDoc.add("value", didDoc);
-        didLogEntryWithoutProofAndSignature.add(initialDidDoc);
+        var didLogEntryWithoutProofAndSignature = new JsonObject();
+        didLogEntryWithoutProofAndSignature.addProperty("versionId", SCID_PLACEHOLDER);
+        didLogEntryWithoutProofAndSignature.addProperty(
+                "versionTime",
+                DateTimeFormatter.ISO_INSTANT.format(zdt.truncatedTo(ChronoUnit.SECONDS))
+        );
+        didLogEntryWithoutProofAndSignature.add("parameters", createDidParams(keyPair));
+        didLogEntryWithoutProofAndSignature.add("state", didDoc);
 
         String scid = null;
         try {
@@ -61,11 +60,10 @@ public class DidLogUtil {
             throw new IllegalStateException(e);
         }
 
-        String didDocWithSCID = didDoc.toString().replace(SCID_PLACEHOLDER, scid);
-        didDoc = JsonParser.parseString(didDocWithSCID).getAsJsonObject();
-
         String didLogEntryWithoutProofAndSignatureWithSCID = didLogEntryWithoutProofAndSignature.toString().replace(SCID_PLACEHOLDER, scid);
-        JsonArray didLogEntryWithSCIDWithoutProofAndSignature = JsonParser.parseString(didLogEntryWithoutProofAndSignatureWithSCID).getAsJsonArray();
+        JsonObject didLogEntryWithSCIDWithoutProofAndSignature = JsonParser
+                .parseString(didLogEntryWithoutProofAndSignatureWithSCID)
+                .getAsJsonObject();
 
         String entryHash = null;
         try {
@@ -74,22 +72,27 @@ public class DidLogUtil {
             throw new IllegalStateException(e);
         }
 
-        JsonArray didLogEntryWithProof = new JsonArray();
-        var challenge = "1-" + entryHash; // versionId as the proof challenge
-        didLogEntryWithProof.add(challenge);
-        didLogEntryWithProof.add(didLogEntryWithSCIDWithoutProofAndSignature.get(1));
-        didLogEntryWithProof.add(didLogEntryWithSCIDWithoutProofAndSignature.get(2));
-        didLogEntryWithProof.add(didLogEntryWithSCIDWithoutProofAndSignature.get(3));
+        JsonObject didLogEntryWithProof = new JsonObject();
+        var versionId = "1-" + entryHash;
+        didLogEntryWithProof.addProperty("versionId", versionId);
+        didLogEntryWithProof.add("versionTime", didLogEntryWithSCIDWithoutProofAndSignature.get("versionTime"));
+        didLogEntryWithProof.add("parameters", didLogEntryWithSCIDWithoutProofAndSignature.get("parameters"));
+        didLogEntryWithProof.add("state", didLogEntryWithSCIDWithoutProofAndSignature.get("state"));
 
         JsonArray proofs = new JsonArray();
         try {
             proofs.add(JCSHasherUtil.buildDataIntegrityProof(
-                    didDoc, false, challenge, JCSHasherUtil.PROOF_PURPOSE_AUTHENTICATION, zdt, keyPair
+                    didLogEntryWithProof,
+                    false,
+                    null,
+                    JCSHasherUtil.PROOF_PURPOSE_ASSERTION_METHOD,
+                    zdt,
+                    keyPair
             ));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-        didLogEntryWithProof.add(proofs);
+        didLogEntryWithProof.add("proof", proofs);
 
         return didLogEntryWithProof.toString();
     }
@@ -103,7 +106,7 @@ public class DidLogUtil {
             throw new IllegalArgumentException("At least one authentication key and one assertion method key must be provided");
         }
 
-        var didTDW = getDidTDW(identifierRegistryUrl);
+        var didWebvh = getDidWebvh(identifierRegistryUrl);
 
         var context = new JsonArray();
         context.add("https://www.w3.org/ns/did/v1");
@@ -111,7 +114,7 @@ public class DidLogUtil {
 
         var didDoc = new JsonObject();
         didDoc.add("@context", context);
-        didDoc.addProperty("id", didTDW);
+        didDoc.addProperty("id", didWebvh);
 
         JsonArray verificationMethod = new JsonArray();
 
@@ -120,9 +123,9 @@ public class DidLogUtil {
             JsonArray authentication = new JsonArray();
             for (var i = 0; i < authenticationKeys.size(); i++) {
                 var keyType = "auth-key-%02d".formatted(i + 1);
-                authentication.add(didTDW + "#" + keyType);
+                authentication.add(didWebvh + "#" + keyType);
                 verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(
-                        didTDW,
+                        didWebvh,
                         keyType,
                         authenticationKeys.get(i),
                         useAbsolutePublicKeyJwkKid));
@@ -137,9 +140,9 @@ public class DidLogUtil {
             JsonArray assertionMethod = new JsonArray();
             for (var i = 0; i < assertionMethodKeys.size(); i++) {
                 var keyType = "assert-key-%02d".formatted(i + 1);
-                assertionMethod.add(didTDW + "#" + keyType);
+                assertionMethod.add(didWebvh + "#" + keyType);
                 verificationMethod.add(buildVerificationMethodWithPublicKeyJwk(
-                        didTDW,
+                        didWebvh,
                         keyType,
                         assertionMethodKeys.get(i),
                         useAbsolutePublicKeyJwkKid));
@@ -152,25 +155,25 @@ public class DidLogUtil {
         return didDoc;
     }
 
-    private static String getDidTDW(URI identifierRegistryUrl) {
-        var didTDW = "%s:{SCID}:%s".formatted("did:tdw", identifierRegistryUrl.getHost());
+    private static String getDidWebvh(URI identifierRegistryUrl) {
+        var didWebvh = "%s:{SCID}:%s".formatted("did:webvh", identifierRegistryUrl.getHost());
         int port = identifierRegistryUrl.getPort();
         if (port != -1) {
-            didTDW = "%s%%3A%d".formatted(didTDW, port);
+            didWebvh = "%s%%3A%d".formatted(didWebvh, port);
         }
         String path = identifierRegistryUrl.getPath();
         if (!path.isEmpty()) {
-            didTDW = "%s%s".formatted(didTDW,
+            didWebvh = "%s%s".formatted(didWebvh,
                     path.replace("/did.jsonl", "")
                             .replace("/", ":"));
         }
-        return didTDW;
+        return didWebvh;
     }
 
-    private JsonObject buildVerificationMethodWithPublicKeyJwk(String didTDW, String keyType, JWK privateJwk,
+    private JsonObject buildVerificationMethodWithPublicKeyJwk(String didWebvh, String keyType, JWK privateJwk,
                                                                boolean useAbsolutePublicKeyJwkKid) {
 
-        final String verificationMethodId = didTDW + "#" + keyType;
+        final String verificationMethodId = didWebvh + "#" + keyType;
         String publicKeyJwk = privateJwk.toPublicJWK().toJSONString();
         JsonObject publicKeyJwkObject = JsonParser.parseString(publicKeyJwk).getAsJsonObject();
         publicKeyJwkObject.addProperty("kid", useAbsolutePublicKeyJwkKid ? verificationMethodId : keyType);
@@ -178,7 +181,7 @@ public class DidLogUtil {
         JsonObject verificationMethodObj = new JsonObject();
         verificationMethodObj.addProperty("id", verificationMethodId);
         verificationMethodObj.addProperty("type", "JsonWebKey2020");
-        verificationMethodObj.addProperty("controller", didTDW);
+        verificationMethodObj.addProperty("controller", didWebvh);
         verificationMethodObj.add("publicKeyJwk", publicKeyJwkObject);
 
         return verificationMethodObj;
@@ -187,7 +190,7 @@ public class DidLogUtil {
     private JsonObject createDidParams(KeyPair keyPair) {
 
         JsonObject didMethodParameters = new JsonObject();
-        didMethodParameters.addProperty("method", "did:tdw:0.3");
+        didMethodParameters.addProperty("method", "did:webvh:1.0");
         didMethodParameters.addProperty("scid", SCID_PLACEHOLDER);
 
         var updateKeysJsonArray = new JsonArray();
@@ -200,9 +203,10 @@ public class DidLogUtil {
     }
 
     public static String getDidFromDidLog(String didLog) {
-        JsonArray didLogArray = JsonParser.parseString(didLog).getAsJsonArray();
-        JsonObject didParams = didLogArray.get(3).getAsJsonObject();
-        JsonObject values = didParams.get("value").getAsJsonObject();
-        return values.get("id").getAsString();
+        return JsonParser.parseString(didLog)
+                .getAsJsonObject()
+                .getAsJsonObject("state")
+                .get("id")
+                .getAsString();
     }
 }
