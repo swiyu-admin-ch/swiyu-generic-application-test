@@ -91,8 +91,9 @@ class TrustAnchorVerificationTest extends BaseTest {
         assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
         // When
+        // TP2 uses the configured registry, not the legacy /untrusted URL; the anchor must not sign the issuer's statements.
         final TrustAnchor anchor = new TrustAnchor()
-                .did(trustConfig.getTrustDid())
+                .did(verifierConfig.getVerifierDid())
                 .trustRegistryUri(String.format("https://%s/untrusted", MockServerClientConfig.MOCKSERVER_HOST));
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .trustAnchor(anchor)

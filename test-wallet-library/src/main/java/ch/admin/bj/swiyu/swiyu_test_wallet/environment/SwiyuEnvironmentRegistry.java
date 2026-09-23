@@ -197,7 +197,9 @@ public class SwiyuEnvironmentRegistry {
                 config,
                 imageConfig,
                 imageName,
-                null,
+                variant.requiresCryptoAgilityMetadata()
+                        ? IssuerMetadataFixtures.cryptoAgilityMetadata()
+                        : null,
                 null
         ));
     }

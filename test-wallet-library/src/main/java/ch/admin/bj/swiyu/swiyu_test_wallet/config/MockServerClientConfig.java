@@ -225,10 +225,12 @@ public class MockServerClientConfig {
     }
 
     private void registerStatusListRoutes(MockServerClient mockServerClient) {
+        // Keep credential UUIDs disjoint from TP2 paths: clearing a TP2 route must not match this expectation.
         mockServerClient.when(
                 request()
                     .withMethod("GET")
-                    .withPath("/api/v1/statuslist/[a-zA-Z0-9-_]+\\.jwt"))
+                    .withPath("/api/v1/statuslist/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                            + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.jwt"))
                 .respond(httpRequest -> {
                     log.info("Entered GET expectation for status list retrieval with path: {}", httpRequest.getPath().getValue());
                     return response()
