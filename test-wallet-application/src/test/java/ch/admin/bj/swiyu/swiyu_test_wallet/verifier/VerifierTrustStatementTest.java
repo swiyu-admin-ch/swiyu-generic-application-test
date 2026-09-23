@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -96,6 +97,11 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the Generic Verifier validates and injects both statements into verifier_info.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1050 is not available yet"
@@ -386,6 +392,11 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then verifier_info omits idTS and still contains the valid pvaTS.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."

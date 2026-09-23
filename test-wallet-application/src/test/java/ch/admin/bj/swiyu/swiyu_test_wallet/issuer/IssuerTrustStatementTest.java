@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -98,6 +99,11 @@ public class IssuerTrustStatementTest extends BaseTest {
                     Then the Generic Issuer validates and injects both Trust Statements into issuer metadata.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "EIDOMNI-1050 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementsUseAllowedAlgorithm_thenAcceptsBothAlgorithms(
             Tp2TrustStatementAlgorithm algorithm) {
@@ -143,6 +149,11 @@ public class IssuerTrustStatementTest extends BaseTest {
                     Then the Generic Issuer rejects the invalid statement and still injects the independently valid one.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "EIDOMNI-1050 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementSignatureInvalid_thenRejectsForBothAlgorithms(
             Tp2TrustStatementAlgorithm algorithm,
@@ -195,6 +206,11 @@ public class IssuerTrustStatementTest extends BaseTest {
                     Then it rejects them because the declared algorithm, key type and signature do not match.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "EIDOMNI-1050 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementAlgorithmAndKeyTypeConflict_thenRejectsWithoutAlgorithmConfusion() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(Tp2TrustStatementAlgorithm.ED25519);

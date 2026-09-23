@@ -31,6 +31,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -105,6 +106,11 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires a verifier image with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     void verification_whenIssuerSdJwtUsesEd25519_thenSucceeds() throws Exception {
         final WalletBatchEntry batchEntry = issueBoundCredential();
         final Ed25519Issuer edIssuer = createEd25519Issuer();
@@ -189,6 +195,11 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires a verifier image with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     void verification_whenEd25519SignatureIsInvalid_thenStrictlyRejected(
             final Ed25519SignatureTarget signatureTarget
     ) throws Exception {
