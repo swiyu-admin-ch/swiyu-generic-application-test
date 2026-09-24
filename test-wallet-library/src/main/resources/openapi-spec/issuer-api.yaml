@@ -62,6 +62,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthToken"
+        "400":
+          description: "Invalid request, grant or token"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "405":
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthToken"
+        "415":
+          description: Unsupported content type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthToken"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/api/nonce:
     post:
       tags:
@@ -81,6 +111,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NonceResponse"
+        "405":
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/api/deferred_credential:
     post:
       tags:
@@ -137,10 +179,13 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-            application/jwt:
+                $ref: "#/components/schemas/DpopError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/ApiError"
       security:
       - bearer-jwt: []
   /oid4vci/api/credential:
@@ -192,6 +237,59 @@ paths:
                 $ref: "#/components/schemas/DeferredCredentialPendingResponse"
         "400":
           description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DpopError"
+        "404":
+          description: Referenced resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "405":
+          description: HTTP method not allowed
+          content:
+            application/json:
+              schema:
+                type: string
+            application/jwt:
+              schema:
+                type: string
+        "409":
+          description: The requested credential is currently locked by another operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "420":
+          description: Non-standard status forwarded verbatim from the external Business
+            Issuer renewal backend during a renewal request. Not a fixed contract
+            value.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: Request validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: A renewal request for this credential is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
           content:
             application/json:
               schema:
@@ -674,11 +772,23 @@ paths:
           type: string
       responses:
         "200":
-          description: OK
+          description: Credential Issuer Metadata
           content:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/openid-credential-issuer/oid4vci/{tenantId}:
     get:
       tags:
@@ -699,11 +809,23 @@ paths:
           type: string
       responses:
         "200":
-          description: OK
+          description: Credential Issuer Metadata
           content:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /{tenantId}/.well-known/openid-credential-issuer:
     get:
       tags:
@@ -724,11 +846,23 @@ paths:
           type: string
       responses:
         "200":
-          description: OK
+          description: Credential Issuer Metadata
           content:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/{tenantId}/.well-known/openid-credential-issuer:
     get:
       tags:
@@ -749,11 +883,23 @@ paths:
           type: string
       responses:
         "200":
-          description: OK
+          description: Credential Issuer Metadata
           content:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/openid-credential-issuer/oid4vci:
     get:
       tags:
@@ -777,6 +923,19 @@ paths:
               schema:
                 type: string
                 description: Signed issuer metadata as JWT
+        "406":
+          description: "None of the requested Accept media types are supported, or\
+            \ signed metadata was requested but is not configured for this issuer"
+          content:
+            '*/*':
+              schema:
+                type: object
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/.well-known/openid-credential-issuer:
     get:
       tags:
@@ -800,6 +959,19 @@ paths:
               schema:
                 type: string
                 description: Signed issuer metadata as JWT
+        "406":
+          description: "None of the requested Accept media types are supported, or\
+            \ signed metadata was requested but is not configured for this issuer"
+          content:
+            '*/*':
+              schema:
+                type: object
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/openid-credential-issuer:
     get:
       tags:
@@ -823,6 +995,19 @@ paths:
               schema:
                 type: string
                 description: Signed issuer metadata as JWT
+        "406":
+          description: "None of the requested Accept media types are supported, or\
+            \ signed metadata was requested but is not configured for this issuer"
+          content:
+            '*/*':
+              schema:
+                type: object
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/{tenantId}/.well-known/oauth-authorization-server:
     get:
       tags:
@@ -854,6 +1039,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /{tenantId}/.well-known/oauth-authorization-server/oid4vci:
     get:
       tags:
@@ -885,6 +1082,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/{tenantId}/.well-known/openid-configuration:
     get:
       tags:
@@ -916,6 +1125,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /{tenantId}/.well-known/oauth-authorization-server:
     get:
       tags:
@@ -947,6 +1168,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/oauth-authorization-server/{tenantId}:
     get:
       tags:
@@ -978,6 +1211,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /{tenantId}/.well-known/openid-configuration:
     get:
       tags:
@@ -1009,6 +1254,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/oauth-authorization-server/{tenantId}/oid4vci:
     get:
       tags:
@@ -1040,6 +1297,18 @@ paths:
             '*/*':
               schema:
                 type: object
+        "404":
+          description: No credential offer exists for the given tenant id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/openid-configuration:
     get:
       tags:
@@ -1057,6 +1326,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "406":
+          description: None of the requested Accept media types are supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/oauth-authorization-server/oid4vci:
     get:
       tags:
@@ -1074,6 +1355,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "406":
+          description: None of the requested Accept media types are supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /.well-known/oauth-authorization-server:
     get:
       tags:
@@ -1091,6 +1384,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "406":
+          description: None of the requested Accept media types are supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/.well-known/oauth-authorization-server:
     get:
       tags:
@@ -1108,6 +1413,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "406":
+          description: None of the requested Accept media types are supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /oid4vci/.well-known/openid-configuration:
     get:
       tags:
@@ -1125,6 +1442,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "406":
+          description: None of the requested Accept media types are supported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthAuthorizationServerMetadata"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     ApiError:
@@ -1531,6 +1860,14 @@ components:
       required:
       - interval
       - transaction_id
+    DpopError:
+      type: object
+      description: "Error response for DPoP as specified in rfc9449, based on rfc6750"
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
     IssuerCredentialRequestEncryption:
       type: object
       properties:

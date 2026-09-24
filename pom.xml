@@ -20,16 +20,16 @@
         <java.version>25</java.version>
         <!-- Dependency Versions -->
         <gson.version>2.14.0</gson.version>
-        <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
+        <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <jackson-databind-nullable.version>0.2.11</jackson-databind-nullable.version>
         <java-json-canonicalization.version>1.1</java-json-canonicalization.version>
         <didtoolbox.version>2.3.0</didtoolbox.version>
         <bouncycastle.version>1.86</bouncycastle.version>
-        <mockserver.version>7.6.0</mockserver.version>
+        <mockserver.version>8.0.0</mockserver.version>
         <postgresql.version>42.7.13</postgresql.version>
         <xray-junit.version>1.0.1</xray-junit.version>
-        <generic-java-lib.version>3.0.0</generic-java-lib.version>
+        <generic-java-lib.version>3.1.0</generic-java-lib.version>
         <pact.version>4.7.5</pact.version>
         <!-- Plugin Versions -->
         <openapi-generator-maven-plugin.version>7.25.0</openapi-generator-maven-plugin.version>
@@ -102,11 +102,6 @@
                 <version>${bouncycastle.version}</version>
             </dependency>
             <!-- Mock Server -->
-            <dependency>
-                <groupId>org.mock-server</groupId>
-                <artifactId>mockserver-netty</artifactId>
-                <version>${mockserver.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.mock-server</groupId>
                 <artifactId>mockserver-client-java</artifactId>
