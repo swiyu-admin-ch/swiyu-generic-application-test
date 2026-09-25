@@ -237,8 +237,6 @@ class StatusListValidationE2ETest extends BaseTest {
                     + "substitution may fail the metadata endpoint.")
     @Tag(ReportingTags.EDGE_CASE)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "TP2 issuer metadata enrichment is required")
-    @Disabled("EIDOMNI-1235: the issuer still discards the result of the status-list typ check, so the JWT_TYPE, "
-            + "SD_JWT_TYPE and MISSING_TYPE cases cannot pass. Re-enable once swiyu-issuer PR #500 is merged.")
     void issuerIdentityTrustStatement_whenStatusListInvalid_thenOmitted(final StatusListCase testCase)
             throws Exception {
         // Given: a fresh subject and URI prevent either trust or status caches hiding the substitution.
