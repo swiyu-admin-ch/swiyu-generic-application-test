@@ -1824,6 +1824,11 @@ components:
           format: uuid
         offer_deeplink:
           type: string
+        tx_code:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: Transaction code required to redeem the pre-authorized credential offer, when enabled.
+          example: "123456"
     DeferredCredentialEndpointRequest:
       type: object
       description: Request to the deferred credential endpoint.
@@ -2176,6 +2181,9 @@ components:
           minLength: 1
         pre-authorized_code:
           type: string
+        tx_code:
+          type: string
+          description: Transaction code required when the credential offer contained a tx_code object.
         refresh_token:
           type: string
       required:

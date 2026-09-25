@@ -61,6 +61,7 @@ public class Wallet {
     public static final String VP_TOKEN = "vp_token";
     public static final String STATE = "state";
     public static final String DPOP = "DPoP";
+    public static final String TRANSACTION_CODE = "tx_code";
 
     private final RestClient restClient;
     private ServiceLocationContext issuerContext;
@@ -284,6 +285,9 @@ public class Wallet {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code");
         params.add("pre-authorized_code", preAuthorizedCode);
+        if (walletEntry.getTransactionCode() != null) {
+            params.add(TRANSACTION_CODE, walletEntry.getTransactionCode());
+        }
 
         return restClient.post()
                 .uri(tokenUri)
@@ -852,6 +856,9 @@ public class Wallet {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code");
         params.add("pre-authorized_code", preAuthorizedCode);
+        if (walletEntry.getTransactionCode() != null) {
+            params.add(TRANSACTION_CODE, walletEntry.getTransactionCode());
+        }
 
         final ResponseEntity<OAuthToken> response = restClient.post()
                 .uri(tokenUri)
