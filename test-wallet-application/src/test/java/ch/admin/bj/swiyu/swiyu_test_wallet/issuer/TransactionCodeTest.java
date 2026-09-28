@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
@@ -11,6 +12,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -20,6 +22,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
+
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -200,5 +209,116 @@ class TransactionCodeTest extends BaseTest {
                 lockedOffer.getManagementId(), lockedOffer.getOfferId()).getStatus())
                 .as("offer is in a terminal invalidated state")
                 .isIn(CredentialStatusType.CANCELLED, CredentialStatusType.EXPIRED);
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-XXX",
+            summary = "Consume a transaction-code-protected pre-authorized code only once under concurrent requests",
+            description = """
+                    Verifies that two concurrent DPoP-protected token requests using the same pre-authorized_code and
+                    valid tx_code cannot both succeed. Exactly one access token is returned, the competing request is
+                    rejected with invalid_grant, and the successful token remains usable for credential issuance.
+                    """)
+    @Tag(ReportingTags.UCI_C1)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    void preAuthorizedOffer_whenValidTokenRequestsRace_thenCodeIsConsumedOnlyOnce() throws Exception {
+        // Given
+        final CredentialWithDeeplinkResponse credentialOffer = issuerManager.createCredentialOfferWithTransactionCode(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        assertThat(credentialOffer.getTxCode())
+                .as("transaction code returned to the Business Issuer")
+                .matches("^[0-9]{6}$");
+
+        final WalletBatchEntry firstWalletEntry = wallet.createWalletBatchEntry();
+        firstWalletEntry.receiveDeepLinkAndValidateIt(
+                wallet.getIssuerContext().getContextualizedUri(toUri(credentialOffer.getOfferDeeplink())));
+        firstWalletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(firstWalletEntry));
+        firstWalletEntry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(firstWalletEntry));
+        firstWalletEntry.setTransactionCode(credentialOffer.getTxCode());
+
+        final WalletBatchEntry secondWalletEntry = wallet.createWalletBatchEntry();
+        secondWalletEntry.receiveDeepLinkAndValidateIt(
+                wallet.getIssuerContext().getContextualizedUri(toUri(credentialOffer.getOfferDeeplink())));
+        secondWalletEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(secondWalletEntry));
+        secondWalletEntry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(secondWalletEntry));
+        secondWalletEntry.setTransactionCode(credentialOffer.getTxCode());
+
+        final String firstDpopNonce = wallet.collectDPoPNonce(firstWalletEntry);
+        final String firstDpopProof = DPoPSupport.createDpopProofForToken(
+                firstWalletEntry.getIssuerTokenUri().toString(),
+                firstDpopNonce,
+                wallet.getDpopKeyPair(),
+                wallet.getDpopPublicKey());
+        final String secondDpopNonce = wallet.collectDPoPNonce(secondWalletEntry);
+        final String secondDpopProof = DPoPSupport.createDpopProofForToken(
+                secondWalletEntry.getIssuerTokenUri().toString(),
+                secondDpopNonce,
+                wallet.getDpopKeyPair(),
+                wallet.getDpopPublicKey());
+
+        final CyclicBarrier tokenRequestBarrier = new CyclicBarrier(2);
+        final Callable<Object> firstTokenRequest = () -> {
+            tokenRequestBarrier.await(10, TimeUnit.SECONDS);
+            try {
+                return wallet.collectTokenWithDPoP(firstWalletEntry, firstDpopProof);
+            } catch (HttpClientErrorException exception) {
+                return exception;
+            }
+        };
+        final Callable<Object> secondTokenRequest = () -> {
+            tokenRequestBarrier.await(10, TimeUnit.SECONDS);
+            try {
+                return wallet.collectTokenWithDPoP(secondWalletEntry, secondDpopProof);
+            } catch (HttpClientErrorException exception) {
+                return exception;
+            }
+        };
+
+        // When
+        final List<Object> tokenRequestResults;
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            final var firstResult = executor.submit(firstTokenRequest);
+            final var secondResult = executor.submit(secondTokenRequest);
+            tokenRequestResults = List.of(
+                    firstResult.get(30, TimeUnit.SECONDS),
+                    secondResult.get(30, TimeUnit.SECONDS));
+        }
+
+        // Then
+        final List<OAuthToken> issuedTokens = tokenRequestResults.stream()
+                .filter(OAuthToken.class::isInstance)
+                .map(OAuthToken.class::cast)
+                .toList();
+        final List<HttpClientErrorException> rejectedRequests = tokenRequestResults.stream()
+                .filter(HttpClientErrorException.class::isInstance)
+                .map(HttpClientErrorException.class::cast)
+                .toList();
+
+        assertThat(issuedTokens)
+                .as("access tokens returned for one pre-authorized code")
+                .hasSize(1);
+        assertThat(issuedTokens.getFirst().getAccessToken())
+                .isNotBlank();
+        assertThat(issuedTokens.getFirst().getTokenType())
+                .isEqualTo("DPoP");
+        assertThat(rejectedRequests)
+                .as("concurrent token requests rejected after the code was consumed")
+                .hasSize(1);
+        ApiErrorAssert.assertThat(rejectedRequests.getFirst())
+                .hasStatus(400)
+                .hasError("invalid_grant");
+
+        firstWalletEntry.setToken(issuedTokens.getFirst());
+        firstWalletEntry.generateHolderKeys(CredentialConfigurationFixtures.BATCH_SIZE);
+        firstWalletEntry.setCNonce(wallet.collectCNonce(firstWalletEntry));
+        firstWalletEntry.createProofs();
+        final List<String> issuedCredentials = wallet.getVerifiableCredentialFromIssuer(firstWalletEntry);
+
+        SdJwtBatchAssert.assertThat(issuedCredentials)
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique();
+        issuerManager.verifyStatus(credentialOffer.getManagementId(), CredentialStatusType.ISSUED);
     }
 }
