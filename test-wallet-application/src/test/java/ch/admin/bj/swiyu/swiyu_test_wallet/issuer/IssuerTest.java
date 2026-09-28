@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -247,7 +248,7 @@ class IssuerTest extends BaseTest {
 
         final WalletBatchEntry invalidCodeEntry = spy(batchEntry);
 
-        doReturn("unknown-pre-authorized-code")
+        doReturn(UUID.randomUUID().toString())
                 .when(invalidCodeEntry)
                 .getPreAuthorizedCode();
 
