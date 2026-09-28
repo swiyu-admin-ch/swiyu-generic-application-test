@@ -5,6 +5,7 @@ import au.com.dius.pact.consumer.dsl.DslPart;
 import au.com.dius.pact.consumer.dsl.LambdaDsl;
 import ch.admin.bj.swiyu.gen.issuer.model.CreateCredentialOfferRequest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
+import ch.admin.bj.swiyu.gen.issuer.model.TransactionCodeConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 
@@ -45,7 +46,10 @@ final class IssuerManagementConsumerPactSupport {
                         "lastName", "Doe",
                         "dateOfBirth", "2000-01-01"))
                 .credentialMetadata(new CredentialOfferMetadataDto().deferred(deferred))
-                .offerValiditySeconds(86400);
+                .offerValiditySeconds(86400)
+                .txCodeConfig(new TransactionCodeConfig()
+                        .useTxCode(true)
+                        .length(6));
     }
 
     static DslPart credentialCreationRequestBody(final boolean deferred) {
@@ -64,7 +68,11 @@ final class IssuerManagementConsumerPactSupport {
                 .nullValue("credential_valid_until")
                 .nullValue("credential_valid_from")
                 .array("status_lists")
-                .nullValue("configuration_override")).build();
+                .nullValue("configuration_override")
+                .object("tx_code_config", txCode -> txCode
+                        .booleanValue("use_tx_code", true)
+                        .nullValue("description")
+                        .numberValue("length", 6))).build();
     }
 
     static DslPart credentialCreationResponseBody() {

@@ -63,7 +63,8 @@ class CredentialManagementConsumerPactTest {
                         .nullValue("credential_valid_until")
                         .nullValue("credential_valid_from")
                         .array("status_lists")
-                        .nullValue("configuration_override")).build())
+                        .nullValue("configuration_override")
+                        .nullValue("tx_code_config")).build())
                 .willRespondWith()
                 // The issuer maps request-body bean-validation failures (here: empty
                 // metadata_credential_supported_id) to 422 UNPROCESSABLE_ENTITY via

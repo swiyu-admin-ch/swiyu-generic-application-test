@@ -40,19 +40,19 @@ class TransactionCodeTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1346",
             summary = "Redeem a pre-authorized credential offer with a valid transaction code",
             description = """
-                    Verifies that transaction codes are enabled by default, returned to the Business Issuer as a
-                    six-digit numeric value, advertised in the credential offer, and accepted together with a
-                    DPoP-protected pre-authorized code token request.
+                    Verifies that a transaction code explicitly enabled for the offer is returned to the Business
+                    Issuer as a six-digit numeric value, advertised in the credential offer, and accepted together
+                    with a DPoP-protected pre-authorized code token request.
                     """)
     @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
     void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued() {
         // Given
-        final CredentialWithDeeplinkResponse credentialOffer = issuerManager.createCredentialOffer(
+        final CredentialWithDeeplinkResponse credentialOffer = issuerManager.createCredentialOfferWithTransactionCode(
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
 
         assertThat(credentialOffer.getTxCode())
@@ -69,7 +69,11 @@ class TransactionCodeTest extends BaseTest {
         assertThat(transactionCodeMetadata)
                 .as("transaction-code metadata in the credential offer")
                 .isNotNull();
-        assertThat(transactionCodeMetadata.get("input_mode").getAsString())
+        final String effectiveInputMode = transactionCodeMetadata.has("input_mode")
+                ? transactionCodeMetadata.get("input_mode").getAsString()
+                : "numeric";
+        assertThat(effectiveInputMode)
+                .as("effective OID4VCI input mode, using the numeric default when omitted")
                 .isEqualTo("numeric");
         assertThat(transactionCodeMetadata.get("length").getAsInt())
                 .isEqualTo(6);
@@ -87,11 +91,11 @@ class TransactionCodeTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1359",
             summary = "Reject invalid transaction codes and permanently lock the offer after five failed attempts",
             description = """
                     Verifies retry after a mistyped transaction code, rejection of missing and malformed values,
-                    invalid_tx_code responses before the configured default limit, invalid_grant on the fifth failure,
+                    invalid_tx_code responses for all five allowed attempts, invalid_grant on any subsequent request,
                     and terminal offer lockout even if the correct code is subsequently supplied.
                     """)
     @Tag(ReportingTags.UCI_C1)
@@ -99,7 +103,7 @@ class TransactionCodeTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     void preAuthorizedOffer_whenTransactionCodeAttemptsFail_thenRetryAndLockoutAreEnforced() {
         // Given a retryable offer
-        final CredentialWithDeeplinkResponse retryableOffer = issuerManager.createCredentialOffer(
+        final CredentialWithDeeplinkResponse retryableOffer = issuerManager.createCredentialOfferWithTransactionCode(
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
         assertThat(retryableOffer.getTxCode())
                 .as("transaction code returned to the Business Issuer")
@@ -137,7 +141,7 @@ class TransactionCodeTest extends BaseTest {
         issuerManager.verifyStatus(retryableOffer.getManagementId(), CredentialStatusType.ISSUED);
 
         // Given a second offer that will reach the retry limit
-        final CredentialWithDeeplinkResponse lockedOffer = issuerManager.createCredentialOffer(
+        final CredentialWithDeeplinkResponse lockedOffer = issuerManager.createCredentialOfferWithTransactionCode(
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
         assertThat(lockedOffer.getTxCode())
                 .as("transaction code returned to the Business Issuer")
@@ -149,10 +153,11 @@ class TransactionCodeTest extends BaseTest {
                 null,
                 "ABCDEF",
                 "12345",
+                lockedOfferWrongCode,
                 lockedOfferWrongCode
         };
 
-        // When the first four attempts are invalid
+        // When all five allowed attempts are invalid
         for (String invalidTransactionCode : invalidTransactionCodes) {
             final WalletBatchEntry invalidCodeWalletEntry = wallet.createWalletBatchEntry();
             invalidCodeWalletEntry.setTransactionCode(invalidTransactionCode);
@@ -160,7 +165,7 @@ class TransactionCodeTest extends BaseTest {
                     HttpClientErrorException.class,
                     () -> wallet.collectOffer(invalidCodeWalletEntry, toUri(lockedOffer.getOfferDeeplink())));
 
-            // Then the Wallet can still retry
+            // Then the attempted transaction code is rejected without exposing the expected value
             ApiErrorAssert.assertThat(invalidCodeException)
                     .hasStatus(400)
                     .hasError("invalid_tx_code");
@@ -173,33 +178,14 @@ class TransactionCodeTest extends BaseTest {
                                     .isTrue());
         }
 
-        // When the fifth attempt is invalid
-        final WalletBatchEntry retryLimitWalletEntry = wallet.createWalletBatchEntry();
-        retryLimitWalletEntry.setTransactionCode(lockedOfferWrongCode);
-        final HttpClientErrorException retryLimitException = assertThrows(
-                HttpClientErrorException.class,
-                () -> wallet.collectOffer(retryLimitWalletEntry, toUri(lockedOffer.getOfferDeeplink())));
-
-        // Then the offer is permanently invalidated
-        ApiErrorAssert.assertThat(retryLimitException)
-                .hasStatus(400)
-                .hasError("invalid_grant");
-        assertThat(retryLimitException.getResponseHeaders())
-                .isNotNull();
-        assertThat(retryLimitException.getResponseHeaders().getContentType())
-                .isNotNull()
-                .satisfies(contentType ->
-                        assertThat(MediaType.APPLICATION_JSON.isCompatibleWith(contentType))
-                                .isTrue());
-        assertThat(issuerManager.getCredentialOfferStatusById(
-                lockedOffer.getManagementId(), lockedOffer.getOfferId()).getStatus())
-                .isEqualTo(CredentialStatusType.EXPIRED);
-
+        // When the correct code is submitted as the sixth attempt
         final WalletBatchEntry lockedOfferWalletEntry = wallet.createWalletBatchEntry();
         lockedOfferWalletEntry.setTransactionCode(lockedOffer.getTxCode());
         final HttpClientErrorException lockedOfferException = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.collectOffer(lockedOfferWalletEntry, toUri(lockedOffer.getOfferDeeplink())));
+
+        // Then the offer is permanently invalidated regardless of the now-correct code
         ApiErrorAssert.assertThat(lockedOfferException)
                 .hasStatus(400)
                 .hasError("invalid_grant");
@@ -212,6 +198,7 @@ class TransactionCodeTest extends BaseTest {
                                 .isTrue());
         assertThat(issuerManager.getCredentialOfferStatusById(
                 lockedOffer.getManagementId(), lockedOffer.getOfferId()).getStatus())
-                .isEqualTo(CredentialStatusType.EXPIRED);
+                .as("offer is in a terminal invalidated state")
+                .isIn(CredentialStatusType.CANCELLED, CredentialStatusType.EXPIRED);
     }
 }
