@@ -42,6 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Import(CompleteEnvironmentTestConfiguration.class)
 class VerifierOID4VPTest extends BaseTest {
     private static final String DECENTRALIZED_IDENTIFIER_CLIENT_ID_PREFIX = "decentralized_identifier:";
+    private static final String PROFILE_VERSION_HEADER = "profile_version";
+    private static final String SWISS_VERIFICATION_PROFILE_VERSION = "swiss-profile-verification:1.0.0";
 
     @Test
     @XrayTest(
@@ -73,6 +75,7 @@ class VerifierOID4VPTest extends BaseTest {
         // WHEN – wallet fetches request object (OID4VP)
         final String requestObjectJwt =
                 wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink());
+        final var requestObject = JwtSupport.parse(requestObjectJwt);
         final JsonNode payload = JwtSupport.decodePayloadToJsonNode(requestObjectJwt);
 
         // THEN – signed request object (UCV_O1a)
@@ -85,6 +88,14 @@ class VerifierOID4VPTest extends BaseTest {
         assertThat(JwtSupport.isCompactJwt(requestObjectJwt))
                 .as("OID4VP request object must be a compact JWS (header.payload.signature)")
                 .isTrue();
+
+        assertThat(requestObject.getHeader().getCustomParam(PROFILE_VERSION_HEADER))
+                .as("Request Object JOSE header must identify the Swiss verification profile")
+                .isEqualTo(SWISS_VERIFICATION_PROFILE_VERSION);
+
+        assertThat(payload.get(PROFILE_VERSION_HEADER))
+                .as("profile_version belongs in the JOSE header, not in the Request Object payload")
+                .isNull();
 
         assertThat(payload.get("client_id"))
                 .as("Request object must contain client_id")
