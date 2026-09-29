@@ -119,6 +119,72 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
 
+    @ParameterizedTest(name = "[{index}] recover after excessive decompressed bytes: {0}")
+    @EnumSource(JWESupport.PayloadEncoding.class)
+    @XrayTest(key = "EIDOMNI-1274", summary = "Verifier rejects excess decompressed bytes and permits a valid retry",
+            description = """
+                    A malicious wallet sends a DEF-compressed direct_post.jwt response expanding to 20 MiB plus
+                    one byte, exceeding the service's configured decompression limit. ASCII and multibyte UTF-8
+                    payloads must fail at the JWE boundary without state changes or callbacks. The same verification
+                    then processes a valid encrypted wallet refusal above Nimbus's default one million bytes.
+                    """)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    void directPostJwtPayloadEncryption_whenDecompressionLimitExceeded_thenAllowsValidRetry(
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        // Given: the service defaults to 20 MiB, independently of the 21 MiB business requirement.
+        final int decompressionLimitBytes = 20 * 1_024 * 1_024;
+        final var verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withUniversityDCQL(false)
+                .encrypted()
+                .createManagementResponse();
+        final var requestObject = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        final int callbacksBefore = awaitStableVerifierCallbacks();
+        final String errorDescription = "Wallet declined the presentation";
+        final String responsePayload = wallet.createVerificationErrorPayload(
+                requestObject, "access_denied", errorDescription);
+        final int oversizedBytes = decompressionLimitBytes + 1;
+        final String oversized = JWESupport.createDecompressedJsonPayloadAtSize(
+                responsePayload, oversizedBytes, encoding);
+        final String encrypted = wallet.encryptVerificationResponsePayload(requestObject, oversized);
+        JWESupport.assertDecompressedPayloadAtSize(oversized, encrypted, oversizedBytes);
+
+        // When
+        final var exception = assertThrows(HttpClientErrorException.class,
+                () -> wallet.postEncryptedVerificationResponse(requestObject, encrypted));
+
+        // Then
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("invalid_credential")
+                .hasErrorDescription("Response cannot be decrypted.");
+        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
+        awaitNoneVerifierCallback(callbacksBefore);
+
+        // When: a valid wallet refusal must still reach business processing after rejection.
+        final int validBytes = 1_000_001;
+        final String valid = JWESupport.createDecompressedJsonPayloadAtSize(
+                responsePayload, validBytes, encoding);
+        final String validEncrypted = wallet.encryptVerificationResponsePayload(requestObject, valid);
+        JWESupport.assertDecompressedPayloadAtSize(valid, validEncrypted, validBytes);
+        final var response = wallet.postEncryptedVerificationResponse(requestObject, validEncrypted);
+
+        // Then
+        assertThat(response.getStatusCode().is2xxSuccessful())
+                .isTrue();
+        final var completed = verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        assertThat(completed.getWalletResponse())
+                .isNotNull();
+        assertThat(completed.getWalletResponse().getErrorCode())
+                .isEqualTo(VerificationErrorResponseCode.ACCESS_DENIED);
+        assertThat(completed.getWalletResponse().getErrorDescription())
+                .isEqualTo(errorDescription);
+        awaitOneVerifierCallback(callbacksBefore);
+    }
+
     @ParameterizedTest(name = "[{index}] accept decompressed payload below 21 MiB: {0}")
     @EnumSource(JWESupport.PayloadEncoding.class)
     @XrayTest(
