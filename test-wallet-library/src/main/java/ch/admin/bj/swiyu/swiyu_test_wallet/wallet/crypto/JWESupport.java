@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
+import com.nimbusds.jose.CompressionAlgorithm;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
