@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 
 public enum VerifierVariant {
     DEFAULT("default", false),
+    NO_STATIC_DID("no_static_did", false),
     CACHED("cached", false),
     HSM("hsm", true),
     MANAGEMENT_KEYCLOAK("management_keycloak", false),
@@ -37,6 +38,9 @@ public enum VerifierVariant {
         final VerifierImageConfig config = copy(template);
         config.setSurname(surname);
         config.setEnableHsm(hsm);
+        if (this == NO_STATIC_DID) {
+            config.setOmitStaticVerifierDid(true);
+        }
         if (this == CACHED) {
             config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
             config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
@@ -63,6 +67,7 @@ public enum VerifierVariant {
         target.setSurname(source.getSurname());
         target.setEnableHsm(source.isEnableHsm());
         target.setMultipleSigningKeys(source.isMultipleSigningKeys());
+        target.setOmitStaticVerifierDid(source.isOmitStaticVerifierDid());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setJwkCacheTtlMillis(source.getJwkCacheTtlMillis());

@@ -31,7 +31,6 @@ import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -45,7 +44,9 @@ import java.net.URI;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,11 +58,13 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRo
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.JsonBody.json;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED})
+@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED, VerifierVariant.NO_STATIC_DID})
 class VerifierTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
@@ -522,7 +525,6 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the verifier registers a vqPS, substitutes scope, and embeds the matching vqPS in verifier_info.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
-    @Disabled("Re-enable once IF-014 vQPS submission authentication is bearer-jwt only and no longer declares OIDC.")
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet"
@@ -583,6 +585,160 @@ class VerifierTrustStatementTest extends BaseTest {
                     "Verification of university credential claims",
                     expectedDcqlQuery
             );
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+    }
+
+    @ParameterizedTest(name = "vqPS override with {0}")
+    @EnumSource(value = VerifierVariant.class, names = {"DEFAULT", "NO_STATIC_DID"})
+    @XrayTest(
+            key = "EIDOMNI-1338",
+            summary = "vqPS submission uses the request DID with or without a static verifier DID",
+            description = """
+                    Given a verifier with or without a static DID and a per-request verifier_did override.
+                    When the Business Verifier creates a verification with verification_purpose.
+                    Then the Trust Registry submission and embedded vqPS use the override DID,
+                    consistently with the OID4VP request object's client_id.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."
+    )
+    void tenantVerifierManagement_whenDidOverridden_thenVqPsUsesOverride(VerifierVariant variant) {
+        useVerifier(verifier(variant));
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String overrideDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String scope = "ch.swiyu.tp2.override." + UUID.randomUUID();
+        assertThat(verifierContainer.getEnvMap().get("VERIFIER_DID"))
+                .as("The container must exercise the requested static DID configuration")
+                .isEqualTo(variant == VerifierVariant.NO_STATIC_DID ? "" : verifierConfig.getVerifierDid());
+        assertThat(overrideDid)
+                .isNotEqualTo(verifierConfig.getVerifierDid());
+
+        try {
+            // When
+            final ManagementResponse managementResponse = verifierManager.verificationRequest()
+                    .withUniversityDCQL()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .configurationOverride(new ConfigurationOverrideDto().verifierDid(overrideDid))
+                    .verificationPurpose(verificationPurpose(scope, "Override proof", "Per-request verifier identity"))
+                    .jwtSecure()
+                    .createManagementResponse();
+            final JsonNode requestObject = JwtSupport.decodePayloadToJsonNode(
+                    wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink())
+            );
+            final var submissions = mockServerClient.retrieveRecordedRequests(request()
+                    .withMethod("POST")
+                    .withPath("/api/v1/trust/vqps-submissions/?")
+                    .withBody(json(Map.of("scope", scope))));
+
+            // Then
+            assertThat(submissions)
+                    .as("A fresh purpose must be submitted once to the Trust Registry")
+                    .hasSize(1);
+            final JsonNode submission = OBJECT_MAPPER.readTree(submissions[0].getBodyAsString());
+            assertThat(submission.path("sub").asText())
+                    .isEqualTo(overrideDid);
+            assertThat(submission.path("waitForPublication").asBoolean())
+                    .isTrue();
+            assertThat(requestObject.path("client_id").asText())
+                    .isEqualTo("decentralized_identifier:" + overrideDid);
+            assertThat(requestObject.path("scope").asText())
+                    .isEqualTo(scope);
+            assertThat(requestObject.has("dcql_query"))
+                    .isFalse();
+            final String vqPs = firstVerifierInfoEntry(
+                    requestObject.path("verifier_info"), VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE);
+            assertThat(vqPs)
+                    .isNotBlank();
+            final JsonNode statement = statementPayload(vqPs);
+            assertThat(statement.path("sub").asText())
+                    .isEqualTo(overrideDid);
+            assertThat(statement.path("request").path("scope").asText())
+                    .isEqualTo(scope);
+            assertThat(statement.path("request").path("query"))
+                    .isEqualTo(submission.path("query"));
+            verifierManager.verifyState(managementResponse.getId(), VerificationStatus.PENDING);
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1338",
+            summary = "vqPS cache remains isolated between verifier DID overrides",
+            description = """
+                    Given identical purpose metadata and DCQL for two verifier DID overrides.
+                    When the Business Verifier creates requests for tenant A, tenant B, then tenant A again.
+                    Then each tenant receives its own vqPS subject and tenant A reuses only its own cache entry.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."
+    )
+    void tenantVerifierManagement_whenSamePurposeUsedAcrossDids_thenVqPsCacheIsIsolated() {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String firstDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String secondDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String scope = "ch.swiyu.tp2.isolation." + UUID.randomUUID();
+        final VerificationPurpose purpose = verificationPurpose(scope, "Tenant proof", "Isolated verifier identities");
+        final Map<String, String> statementsByDid = new HashMap<>();
+
+        try {
+            for (String verifierDid : List.of(firstDid, secondDid, firstDid)) {
+                // When
+                final ManagementResponse managementResponse = verifierManager.verificationRequest()
+                        .withUniversityDCQL()
+                        .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                        .configurationOverride(new ConfigurationOverrideDto().verifierDid(verifierDid))
+                        .verificationPurpose(purpose)
+                        .jwtSecure()
+                        .createManagementResponse();
+                final JsonNode requestObject = JwtSupport.decodePayloadToJsonNode(
+                        wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink())
+                );
+                final String vqPs = firstVerifierInfoEntry(
+                        requestObject.path("verifier_info"), VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE);
+
+                // Then
+                assertThat(requestObject.path("client_id").asText())
+                        .isEqualTo("decentralized_identifier:" + verifierDid);
+                assertThat(vqPs)
+                        .isNotBlank();
+                assertThat(statementPayload(vqPs).path("sub").asText())
+                        .as("A tenant must never receive another tenant's cached vqPS")
+                        .isEqualTo(verifierDid);
+                assertThat(statementPayload(vqPs).path("request").path("scope").asText())
+                        .isEqualTo(scope);
+                final String previousStatement = statementsByDid.putIfAbsent(verifierDid, vqPs);
+                if (previousStatement != null) {
+                    assertThat(vqPs)
+                            .as("Repeating tenant A must reuse its published vqPS")
+                            .isEqualTo(previousStatement);
+                }
+                verifierManager.verifyState(managementResponse.getId(), VerificationStatus.PENDING);
+            }
+            final var submissions = mockServerClient.retrieveRecordedRequests(request()
+                    .withMethod("POST")
+                    .withPath("/api/v1/trust/vqps-submissions/?")
+                    .withBody(json(Map.of("scope", scope))));
+            assertThat(submissions)
+                    .as("Publish once per DID, then reuse tenant A's cache")
+                    .hasSize(2);
+            assertThat(Arrays.stream(submissions)
+                    .map(submission -> OBJECT_MAPPER.readTree(submission.getBodyAsString()).path("sub").asText())
+                    .toList())
+                    .containsExactlyInAnyOrder(firstDid, secondDid);
         } finally {
             tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
         }
@@ -652,8 +808,8 @@ class VerifierTrustStatementTest extends BaseTest {
     private VerificationPurpose verificationPurpose(String scope, String purposeName, String purposeDescription) {
         return new VerificationPurpose()
                 .scope(scope)
-                .purposeName(Map.of("en", purposeName))
-                .purposeDescription(Map.of("en", purposeDescription));
+                .purposeName(Map.of("default", purposeName, "en", purposeName))
+                .purposeDescription(Map.of("default", purposeDescription, "en", purposeDescription));
     }
 
     private JsonNode verifierInfo(String requestObjectJwt) {

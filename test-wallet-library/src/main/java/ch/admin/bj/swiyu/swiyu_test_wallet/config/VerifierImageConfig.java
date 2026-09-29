@@ -20,6 +20,7 @@ public class VerifierImageConfig {
     private String surname = "default";
     private boolean enableHsm = false;
     private boolean multipleSigningKeys = false;
+    private boolean omitStaticVerifierDid = false;
     private long trustRegistryMaxCacheSize = 0;
     private long trustRegistryMaxCacheTtlSeconds = 0;
     private long jwkCacheTtlMillis = 0;
