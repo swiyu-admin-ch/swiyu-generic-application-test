@@ -104,6 +104,30 @@ class IssuerTest extends BaseTest {
 
     @Test
     @XrayTest(
+            key = "EIDOMNI-179",
+            summary = "Issuer metadata exposes only the dc+sd-jwt credential format",
+            description = """
+                    This test verifies that every configured OID4VCI credential uses the current dc+sd-jwt format
+                    after support for the deprecated vc+sd-jwt identifier was removed from the issuer contract.
+                    """
+    )
+    @Tag(ReportingTags.UCI_M1)
+    @Tag(ReportingTags.HAPPY_PATH)
+    void metadataAdvertisesOnlyDcSdJwtCredentialConfigurations() {
+        // Given
+        final IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
+
+        // Then
+        assertThat(metadata.getCredentialConfigurationsSupported())
+                .isNotEmpty()
+                .allSatisfy((configurationId, configuration) ->
+                        assertThat(configuration.getFormat())
+                                .as("credential format advertised for %s", configurationId)
+                                .isEqualTo("dc+sd-jwt"));
+    }
+
+    @Test
+    @XrayTest(
             key = "EIDOMNI-391",
             summary = "OpenID configuration validation for OID4VCI issuer",
             description = """
