@@ -54,7 +54,7 @@ class VerifierDcqlMissingDisclosureE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1258",
+            key = "EIDOMNI-1377",
             summary = "Verifier rejects an undisclosed object requested by a DCQL array index",
             description = """
                     Given a bound SD-JWT credential containing an array of degree objects.
