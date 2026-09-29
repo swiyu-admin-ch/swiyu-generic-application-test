@@ -5,6 +5,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 public enum IssuerVariant {
     DEFAULT("default", false, null, null, null, null),
     STRICT("strict", false, true, false, true, false),
+    RENEWAL_API_KEY("renewal_api_key", false, true, false, true, false),
+    RENEWAL_WEBHOOK_ONLY("renewal_webhook_only", false, true, false, true, false),
     NO_REFRESH_TOKEN_ROTATION("no_refresh_token_rotation", false, true, false, false, false),
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     CACHED("cached", false, null, true, null, null),

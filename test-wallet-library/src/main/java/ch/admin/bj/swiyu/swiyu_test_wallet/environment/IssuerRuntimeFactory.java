@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -75,6 +76,15 @@ public final class IssuerRuntimeFactory {
 
         mockServerClientConfig.registerIssuer(request.config());
         final GenericContainer<?> container = createContainer(request, managementAuthConfig);
+
+        if (variant == IssuerVariant.RENEWAL_API_KEY || variant == IssuerVariant.RENEWAL_WEBHOOK_ONLY) {
+            container.withEnv("WEBHOOK_API_KEY_HEADER", RenewalApiKeyFixtures.WEBHOOK_HEADER)
+                    .withEnv("WEBHOOK_API_KEY_VALUE", RenewalApiKeyFixtures.WEBHOOK_VALUE);
+        }
+        if (variant == IssuerVariant.RENEWAL_API_KEY) {
+            container.withEnv("BUSINESS_ISSUER_RENEWAL_API_KEY_HEADER", RenewalApiKeyFixtures.RENEWAL_HEADER)
+                    .withEnv("BUSINESS_ISSUER_RENEWAL_API_KEY_VALUE", RenewalApiKeyFixtures.RENEWAL_VALUE);
+        }
 
         if (variant.requiresHsm()) {
             container.dependsOn(supportServices.softHsm());
