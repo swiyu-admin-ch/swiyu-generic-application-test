@@ -72,7 +72,7 @@ public class VerifierContainerConfig {
         GenericContainer<?> container = new GenericContainer<>(imageName);
         container
                     .withExposedPorts(8080)
-                    .withEnv("VERIFIER_DID", config.getVerifierDid())
+                    .withEnv("VERIFIER_DID", verifierImageConfig.isOmitStaticVerifierDid() ? "" : config.getVerifierDid())
                     .withEnv("OPENID_CLIENT_METADATA_FILE", "file:///tmp/metadata.json")
                     .withEnv("EXTERNAL_URL", TestConstants.VERIFIER_URL)
                     .withEnv("DID_VERIFICATION_METHOD", config.getVerifierAuthKeyId())
