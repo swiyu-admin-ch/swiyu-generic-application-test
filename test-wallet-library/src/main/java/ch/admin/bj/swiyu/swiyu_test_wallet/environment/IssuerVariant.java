@@ -5,15 +5,21 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 public enum IssuerVariant {
     DEFAULT("default", false, null, null, null, null),
     STRICT("strict", false, true, false, true, false),
+    RENEWAL_API_KEY("renewal_api_key", false, true, false, true, false),
+    RENEWAL_WEBHOOK_ONLY("renewal_webhook_only", false, true, false, true, false),
+    NO_REFRESH_TOKEN_ROTATION("no_refresh_token_rotation", false, true, false, false, false),
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, null, null, null),
-    MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null);
+    MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null),
+    MULTI_SIGNING_KEYS("multi_signing_keys", false, null, null, null, null),
+    CRYPTO_AGILITY("crypto_agility", false, null, null, null, null);
 
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE = 1_000;
     private static final long CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS = 3;
+    private static final long CACHED_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS = 0;
 
     private final String surname;
     private final boolean hsm;
@@ -45,6 +51,10 @@ public enum IssuerVariant {
         return this == MANAGEMENT_KEYCLOAK;
     }
 
+    public boolean requiresCryptoAgilityMetadata() {
+        return this == CRYPTO_AGILITY;
+    }
+
     public IssuerImageConfig imageConfig(final IssuerImageConfig template) {
         final IssuerImageConfig config = copy(template);
         config.setSurname(surname);
@@ -64,6 +74,13 @@ public enum IssuerVariant {
         if (this == CACHED) {
             config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
             config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
+            config.setTrustRegistryClockSkewBufferSeconds(CACHED_TRUST_REGISTRY_CLOCK_SKEW_BUFFER_SECONDS);
+        }
+        if (this == MULTI_SIGNING_KEYS) {
+            config.setMultipleSigningKeys(true);
+        }
+        if (this == NO_REFRESH_TOKEN_ROTATION) {
+            config.setAllowRefreshTokenRotation(false);
         }
         return config;
     }
@@ -78,8 +95,11 @@ public enum IssuerVariant {
         target.setEnableJwtAuth(source.isEnableJwtAuth());
         target.setEncryptionEnforce(source.isEncryptionEnforce());
         target.setEnableHsm(source.isEnableHsm());
+        target.setMultipleSigningKeys(source.isMultipleSigningKeys());
+        target.setAllowRefreshTokenRotation(source.isAllowRefreshTokenRotation());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
+        target.setTrustRegistryClockSkewBufferSeconds(source.getTrustRegistryClockSkewBufferSeconds());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());

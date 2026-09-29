@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.Getter;
 
 import java.net.URI;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.interfaces.ECPublicKey;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
@@ -27,9 +27,8 @@ public class MockAttestationAuthority {
         final KeyPair authKeys = generateEC256KeyPair();
 
         final ECKey assertJwk = createJWKFromKeyPair(assertKeys).toECKey();
-        final ECKey authJwk = createJWKFromKeyPair(authKeys).toECKey();
 
-        this.didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        this.didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         this.did = getDidFromDidLog(didLog);
         this.kid = did + "#assert-key-01";
         this.signingPrivateKey = assertKeys.getPrivate();

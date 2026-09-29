@@ -30,14 +30,18 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.sql.SQLException;
+import java.time.Instant;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -210,6 +214,104 @@ class DeferredFlowTest extends BaseTest {
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique()
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
+    }
+
+    @Test
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @XrayTest(key = "EIDOMNI-1340",
+            summary = "Deferred claims cannot be replaced after the first update marks the offer READY",
+            description = "Sequential baseline for R39: claims A are accepted, claims B are refused, and every issued credential contains only claims A.")
+    @DisableIfImageTag(issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "Requires the deferred lifecycle fixes used by the existing deferred flow tests")
+    void deferredData_whenUpdatedAgainAfterReady_thenOriginalClaimsAreIssued() {
+        // Given
+        final Map<String, Object> claimsA = new HashMap<>(CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
+        claimsA.put(CredentialSubjectFixtures.TEXT_MANDATORY_CLAIM_KEY, "First update");
+        claimsA.put(CredentialSubjectFixtures.NUMBER_MANDATORY_CLAIM_KEY, 101);
+        final Map<String, Object> claimsB = new HashMap<>(CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
+        claimsB.put(CredentialSubjectFixtures.TEXT_MANDATORY_CLAIM_KEY, "Second update");
+        claimsB.put(CredentialSubjectFixtures.NUMBER_MANDATORY_CLAIM_KEY, 202);
+        final var offer = issuerManager.createDeferredCredentialOffer(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
+                CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
+        final var entry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
+
+        // When
+        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), claimsA);
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.READY);
+        final var error = assertThrows(HttpClientErrorException.class,
+                () -> issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), claimsB));
+
+        // Then
+        ApiErrorAssert.assertThat(error)
+                .hasStatus(400)
+                .hasDetail("Credential is either not deferred or has an incorrect status, cannot update offer data");
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.READY);
+        assertThat(wallet.getCredentialFromTransactionId(entry).getStatus())
+                .isEqualTo(200);
+        SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
+                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
+                .areUnique()
+                .allHaveExactlyInAnyOrderDisclosures(claimsA);
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.ISSUED);
+        assertThat(issuerManager.getCredentialById(offer.getManagementId()).getCredentialOffers())
+                .hasSize(1);
+    }
+
+    @ParameterizedTest(name = "Expired offer previously {0}")
+    @ValueSource(strings = {"DEFERRED", "READY"})
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @XrayTest(key = "EIDOMNI-1341",
+            summary = "Expired deferred offers reject collection and cannot return to READY",
+            description = "Sequential baseline for R40: expire only the prepared offer, keep its access token valid, then reject collection and a new READY transition.")
+    @DisableIfImageTag(issuer = {ImageTags.STABLE, ImageTags.RC},
+            reason = "Requires the deferred lifecycle fixes used by the existing deferred flow tests")
+    void deferredOffer_whenExpired_thenCollectionAndReadyTransitionAreRejected(final String initialState) throws SQLException {
+        // Given
+        final var offer = issuerManager.createDeferredCredentialOffer(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
+                CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
+        final var entry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
+        if ("READY".equals(initialState)) {
+            issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
+        }
+
+        // When: only this offer's deadline changes; no scheduler or concurrent request is involved.
+        final String schema = currentIssuer.imageConfig().getDbSchema();
+        try (var statement = connection.prepareStatement("UPDATE " + schema
+                + ".credential_offer SET offer_expiration_timestamp = ? WHERE id = ? AND credential_management_id = ?")) {
+            statement.setLong(1, Instant.now().minusSeconds(1).getEpochSecond());
+            statement.setObject(2, offer.getOfferId());
+            statement.setObject(3, offer.getManagementId());
+            assertThat(statement.executeUpdate())
+                    .isEqualTo(1);
+        }
+        // The management GET performs the issuer's expiration check and commits EXPIRED.
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.EXPIRED);
+        final var collectionError = assertThrows(HttpClientErrorException.class,
+                () -> wallet.getCredentialFromTransactionId(entry));
+
+        // Then
+        ApiErrorAssert.assertThat(collectionError)
+                .hasStatus(400)
+                .hasError("credential_request_denied")
+                .hasErrorDescription("The credential cannot be issued anymore, the offer was either cancelled or expired");
+        assertThat(entry.getIssuedCredentials())
+                .isEmpty();
+        final var readyError = assertThrows(HttpClientErrorException.class,
+                () -> issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY));
+        ApiErrorAssert.assertThat(readyError)
+                .hasStatus(400);
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(CredentialStatusType.EXPIRED);
+        assertThat(issuerManager.getCredentialById(offer.getManagementId()).getCredentialOffers())
+                .hasSize(1);
     }
 
     @Test

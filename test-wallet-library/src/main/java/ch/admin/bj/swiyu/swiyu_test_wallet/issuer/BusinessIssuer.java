@@ -64,6 +64,19 @@ public class BusinessIssuer {
         statusListCreatedListener = listener == null ? ignored -> { } : listener;
     }
 
+    /**
+     * Associates an already persisted status list with a new client for the same logical Issuer and database schema.
+     *
+     * <p>No management API call is performed. The caller is responsible for ensuring that the list belongs to the
+     * current Issuer identity and remains available in its database.
+     */
+    public StatusList useStatusList(final StatusList existingStatusList) {
+        if (existingStatusList == null) {
+            throw new IllegalArgumentException("Existing status list is required");
+        }
+        return rememberStatusList(existingStatusList);
+    }
+
     private void applyStoredBearerToken(ApiClient apiClient) {
         if (bearerToken != null && !bearerToken.isBlank()) {
             apiClient.addDefaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
@@ -143,8 +156,20 @@ public class BusinessIssuer {
         return credentialApi.getCredentialInformation(id);
     }
 
+    public CredentialInfoResponse getCredentialOfferById(UUID managementId, UUID offerId) {
+        return credentialApi.getCredentialOfferInformation(managementId, offerId);
+    }
+
     public StatusResponse getStatusById(UUID id) {
         return credentialApi.getCredentialStatus(id);
+    }
+
+    public StatusResponse getCredentialOfferStatusById(UUID managementId, UUID offerId) {
+        return credentialApi.getCredentialStatus1(managementId, offerId);
+    }
+
+    public StatusList getStatusListById(UUID statusListId) {
+        return statusListApi.getStatusListInformation(statusListId);
     }
 
     public StatusList updateStatusListRegistryEntry(UUID statusListId, StatusListUpdate statusListUpdate) {
@@ -162,7 +187,13 @@ public class BusinessIssuer {
 
     public void updateVcStatus(UUID id,
                                ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
-        credentialApi.updateCredentialStatus(id, newState);
+        updateCredentialStatus(id, newState);
+    }
+
+    public UpdateStatusResponse updateCredentialStatus(
+            UUID id,
+            ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
+        return credentialApi.updateCredentialStatus(id, newState);
     }
 
     public Map<String, Object> health() {

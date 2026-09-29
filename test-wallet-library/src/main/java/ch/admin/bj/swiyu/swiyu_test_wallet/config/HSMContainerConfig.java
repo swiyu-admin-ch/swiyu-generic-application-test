@@ -18,7 +18,8 @@ import java.time.Duration;
 @UtilityClass
 public class HSMContainerConfig {
 
-    public static final String IMAGE_NAME = "eclipse-temurin:21-jre-ubi9-minimal";
+    public static final String IMAGE_NAME = "eclipse-temurin:25-jre-ubi10-minimal";
+    private static final String IMAGE_PLATFORM = "linux/amd64";
 
     public static GenericContainer<?> createSoftHsmContainer(
             final Network network,
@@ -28,7 +29,9 @@ public class HSMContainerConfig {
 
         GenericContainer<?> container = new GenericContainer<>(IMAGE_NAME)
                 .withNetwork(network)
-                .withNetworkAliases(hsmConfig.getNetworkAlias());
+                .withNetworkAliases(hsmConfig.getNetworkAlias())
+                // The bundled SoftHSM executables and libraries are x86-64 binaries.
+                .withCreateContainerCmdModifier(cmd -> cmd.withPlatform(IMAGE_PLATFORM));
 
         container
                 .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)

@@ -9,6 +9,9 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustConfigFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementAlgorithm;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
@@ -28,16 +31,22 @@ import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
+import java.net.URI;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,11 +58,13 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRo
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.JsonBody.json;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED})
+@UseVerifiers({VerifierVariant.DEFAULT, VerifierVariant.CACHED, VerifierVariant.NO_STATIC_DID})
 class VerifierTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
@@ -67,10 +78,63 @@ class VerifierTrustStatementTest extends BaseTest {
             "swiyu-protected-verification-authorization-trust-statement+jwt";
     private static final String VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE =
             "swiyu-verification-query-public-statement+jwt";
+    private final Map<Tp2TrustStatementAlgorithm, TrustConfig> agileTrustConfigs =
+            new EnumMap<>(Tp2TrustStatementAlgorithm.class);
 
     @BeforeEach
     void useDefaultVerifier() {
         useVerifier(verifier(VerifierVariant.DEFAULT));
+    }
+
+    @ParameterizedTest(name = "[{index}] Trust Statements signed with {0}")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ES256", "ED25519"}
+    )
+    @XrayTest(
+            key = "EIDOMNI-1245",
+            summary = "Verifier accepts ES256 and Ed25519 Trust Statement signatures",
+            description = """
+                    Given the trusted TP2 registry publishes a P-256 or Ed25519 assertion key.
+                    When it returns correctly signed idTS and pvaTS values using either allowed algorithm.
+                    Then the Generic Verifier validates and injects both statements into verifier_info.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "EIDOMNI-1050 is not available yet"
+    )
+    void tenantVerifierRequestObject_whenTrustStatementsUseAllowedAlgorithm_thenAcceptsBothAlgorithms(
+            Tp2TrustStatementAlgorithm algorithm) {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(algorithm);
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String verifierDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final ManagementResponse managementResponse = createVerification(verifierDid);
+
+        try {
+            // When
+            final JsonNode verifierInfo = verifierInfo(wallet.getVerificationDetailSigned(
+                    managementResponse.getVerificationDeeplink()
+            ));
+
+            // Then
+            assertVerifierInfoEntries(verifierInfo, algorithm);
+            assertVerifierInfoStatementSubject(verifierInfo, IDENTITY_TRUST_STATEMENT_TYPE, verifierDid);
+            assertVerifierInfoStatementSubject(
+                    verifierInfo,
+                    PROTECTED_VERIFICATION_AUTHORIZATION_TRUST_STATEMENT_TYPE,
+                    verifierDid
+            );
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
     }
 
     @Test
@@ -317,7 +381,11 @@ class VerifierTrustStatementTest extends BaseTest {
         }
     }
 
-    @Test
+    @ParameterizedTest(name = "[{index}] invalid idTS signature using {0}")
+    @EnumSource(
+            value = Tp2TrustStatementAlgorithm.class,
+            names = {"ES256", "ED25519"}
+    )
     @XrayTest(
             key = "EIDOMNI-1097",
             summary = "Verifier skips invalid idTS and keeps valid pvaTS",
@@ -327,13 +395,19 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then verifier_info omits idTS and still contains the valid pvaTS.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @EnabledIfSystemProperty(
+            named = "didresolver.version",
+            matches = "2\\.9\\.0",
+            disabledReason = "Requires product images with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
+    )
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
     )
-    void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped() {
+    void tenantVerifierRequestObject_whenIdentityTrustStatementSignatureInvalid_thenIdTsIsSkipped(
+            Tp2TrustStatementAlgorithm algorithm) {
         useCachedVerifier();
-        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes(algorithm);
 
         // Given
         tp2Routes.registerVerifierInvalidIdentity(CACHED_TRUST_STATEMENT_LIFETIME);
@@ -451,7 +525,6 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the verifier registers a vqPS, substitutes scope, and embeds the matching vqPS in verifier_info.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
-    @Disabled("Re-enable once IF-014 vQPS submission authentication is bearer-jwt only and no longer declares OIDC.")
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet"
@@ -517,14 +590,192 @@ class VerifierTrustStatementTest extends BaseTest {
         }
     }
 
+    @ParameterizedTest(name = "vqPS override with {0}")
+    @EnumSource(value = VerifierVariant.class, names = {"DEFAULT", "NO_STATIC_DID"})
+    @XrayTest(
+            key = "EIDOMNI-1338",
+            summary = "vqPS submission uses the request DID with or without a static verifier DID",
+            description = """
+                    Given a verifier with or without a static DID and a per-request verifier_did override.
+                    When the Business Verifier creates a verification with verification_purpose.
+                    Then the Trust Registry submission and embedded vqPS use the override DID,
+                    consistently with the OID4VP request object's client_id.
+                    """)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."
+    )
+    void tenantVerifierManagement_whenDidOverridden_thenVqPsUsesOverride(VerifierVariant variant) {
+        useVerifier(verifier(variant));
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String overrideDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String scope = "ch.swiyu.tp2.override." + UUID.randomUUID();
+        assertThat(verifierContainer.getEnvMap().get("VERIFIER_DID"))
+                .as("The container must exercise the requested static DID configuration")
+                .isEqualTo(variant == VerifierVariant.NO_STATIC_DID ? "" : verifierConfig.getVerifierDid());
+        assertThat(overrideDid)
+                .isNotEqualTo(verifierConfig.getVerifierDid());
+
+        try {
+            // When
+            final ManagementResponse managementResponse = verifierManager.verificationRequest()
+                    .withUniversityDCQL()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .configurationOverride(new ConfigurationOverrideDto().verifierDid(overrideDid))
+                    .verificationPurpose(verificationPurpose(scope, "Override proof", "Per-request verifier identity"))
+                    .jwtSecure()
+                    .createManagementResponse();
+            final JsonNode requestObject = JwtSupport.decodePayloadToJsonNode(
+                    wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink())
+            );
+            final var submissions = mockServerClient.retrieveRecordedRequests(request()
+                    .withMethod("POST")
+                    .withPath("/api/v1/trust/vqps-submissions/?")
+                    .withBody(json(Map.of("scope", scope))));
+
+            // Then
+            assertThat(submissions)
+                    .as("A fresh purpose must be submitted once to the Trust Registry")
+                    .hasSize(1);
+            final JsonNode submission = OBJECT_MAPPER.readTree(submissions[0].getBodyAsString());
+            assertThat(submission.path("sub").asText())
+                    .isEqualTo(overrideDid);
+            assertThat(submission.path("waitForPublication").asBoolean())
+                    .isTrue();
+            assertThat(requestObject.path("client_id").asText())
+                    .isEqualTo("decentralized_identifier:" + overrideDid);
+            assertThat(requestObject.path("scope").asText())
+                    .isEqualTo(scope);
+            assertThat(requestObject.has("dcql_query"))
+                    .isFalse();
+            final String vqPs = firstVerifierInfoEntry(
+                    requestObject.path("verifier_info"), VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE);
+            assertThat(vqPs)
+                    .isNotBlank();
+            final JsonNode statement = statementPayload(vqPs);
+            assertThat(statement.path("sub").asText())
+                    .isEqualTo(overrideDid);
+            assertThat(statement.path("request").path("scope").asText())
+                    .isEqualTo(scope);
+            assertThat(statement.path("request").path("query"))
+                    .isEqualTo(submission.path("query"));
+            verifierManager.verifyState(managementResponse.getId(), VerificationStatus.PENDING);
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1338",
+            summary = "vqPS cache remains isolated between verifier DID overrides",
+            description = """
+                    Given identical purpose metadata and DCQL for two verifier DID overrides.
+                    When the Business Verifier creates requests for tenant A, tenant B, then tenant A again.
+                    Then each tenant receives its own vqPS subject and tenant A reuses only its own cache entry.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."
+    )
+    void tenantVerifierManagement_whenSamePurposeUsedAcrossDids_thenVqPsCacheIsIsolated() {
+        final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
+
+        // Given
+        tp2Routes.registerVerifierSuccess(CACHED_TRUST_STATEMENT_LIFETIME);
+        final String firstDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String secondDid = swiyuDidVariant(verifierConfig.getVerifierDid());
+        final String scope = "ch.swiyu.tp2.isolation." + UUID.randomUUID();
+        final VerificationPurpose purpose = verificationPurpose(scope, "Tenant proof", "Isolated verifier identities");
+        final Map<String, String> statementsByDid = new HashMap<>();
+
+        try {
+            for (String verifierDid : List.of(firstDid, secondDid, firstDid)) {
+                // When
+                final ManagementResponse managementResponse = verifierManager.verificationRequest()
+                        .withUniversityDCQL()
+                        .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                        .configurationOverride(new ConfigurationOverrideDto().verifierDid(verifierDid))
+                        .verificationPurpose(purpose)
+                        .jwtSecure()
+                        .createManagementResponse();
+                final JsonNode requestObject = JwtSupport.decodePayloadToJsonNode(
+                        wallet.getVerificationDetailSigned(managementResponse.getVerificationDeeplink())
+                );
+                final String vqPs = firstVerifierInfoEntry(
+                        requestObject.path("verifier_info"), VERIFICATION_QUERY_PUBLIC_STATEMENT_TYPE);
+
+                // Then
+                assertThat(requestObject.path("client_id").asText())
+                        .isEqualTo("decentralized_identifier:" + verifierDid);
+                assertThat(vqPs)
+                        .isNotBlank();
+                assertThat(statementPayload(vqPs).path("sub").asText())
+                        .as("A tenant must never receive another tenant's cached vqPS")
+                        .isEqualTo(verifierDid);
+                assertThat(statementPayload(vqPs).path("request").path("scope").asText())
+                        .isEqualTo(scope);
+                final String previousStatement = statementsByDid.putIfAbsent(verifierDid, vqPs);
+                if (previousStatement != null) {
+                    assertThat(vqPs)
+                            .as("Repeating tenant A must reuse its published vqPS")
+                            .isEqualTo(previousStatement);
+                }
+                verifierManager.verifyState(managementResponse.getId(), VerificationStatus.PENDING);
+            }
+            final var submissions = mockServerClient.retrieveRecordedRequests(request()
+                    .withMethod("POST")
+                    .withPath("/api/v1/trust/vqps-submissions/?")
+                    .withBody(json(Map.of("scope", scope))));
+            assertThat(submissions)
+                    .as("Publish once per DID, then reuse tenant A's cache")
+                    .hasSize(2);
+            assertThat(Arrays.stream(submissions)
+                    .map(submission -> OBJECT_MAPPER.readTree(submission.getBodyAsString()).path("sub").asText())
+                    .toList())
+                    .containsExactlyInAnyOrder(firstDid, secondDid);
+        } finally {
+            tp2Routes.restoreDefaults(issuerConfig, verifierConfig, trustConfig, OBJECT_MAPPER);
+        }
+    }
+
     private Tp2TrustStatementRouteSupport tp2Routes() {
+        return tp2Routes(Tp2TrustStatementAlgorithm.ES256);
+    }
+
+    private Tp2TrustStatementRouteSupport tp2Routes(Tp2TrustStatementAlgorithm signatureAlgorithm) {
+        final TrustConfig algorithmTrustConfig = trustConfigFor(signatureAlgorithm);
         return new Tp2TrustStatementRouteSupport(
                 mockServerClient,
                 issuerConfig,
                 verifierConfig,
-                trustConfig,
-                OBJECT_MAPPER
+                algorithmTrustConfig,
+                OBJECT_MAPPER,
+                signatureAlgorithm
         );
+    }
+
+    private TrustConfig trustConfigFor(Tp2TrustStatementAlgorithm algorithm) {
+        if (algorithm == Tp2TrustStatementAlgorithm.ES256) {
+            return trustConfig;
+        }
+        return agileTrustConfigs.computeIfAbsent(algorithm, ignored -> {
+            final URI didRegistryEntry = URI.create(
+                    "https://mockserver:1080/api/v1/did/" + UUID.randomUUID()
+            );
+            final TrustConfig agileTrustConfig =
+                    Tp2TrustConfigFactory.createEd25519TrustConfig(didRegistryEntry);
+            mockServerClientConfig.replaceDidLog(
+                    agileTrustConfig.getTrustDid(),
+                    agileTrustConfig.getTrustDidLog()
+            );
+            return agileTrustConfig;
+        });
     }
 
     private void useCachedVerifier() {
@@ -557,8 +808,8 @@ class VerifierTrustStatementTest extends BaseTest {
     private VerificationPurpose verificationPurpose(String scope, String purposeName, String purposeDescription) {
         return new VerificationPurpose()
                 .scope(scope)
-                .purposeName(Map.of("en", purposeName))
-                .purposeDescription(Map.of("en", purposeDescription));
+                .purposeName(Map.of("default", purposeName, "en", purposeName))
+                .purposeDescription(Map.of("default", purposeDescription, "en", purposeDescription));
     }
 
     private JsonNode verifierInfo(String requestObjectJwt) {
@@ -577,6 +828,10 @@ class VerifierTrustStatementTest extends BaseTest {
     }
 
     private void assertVerifierInfoEntries(JsonNode verifierInfo) {
+        assertVerifierInfoEntries(verifierInfo, Tp2TrustStatementAlgorithm.ES256);
+    }
+
+    private void assertVerifierInfoEntries(JsonNode verifierInfo, Tp2TrustStatementAlgorithm algorithm) {
         assertThat(verifierInfo.isArray()).as("verifier_info must be an array").isTrue();
         for (JsonNode entry : verifierInfo) {
             assertThat(entry.path("format").asText()).isEqualTo("jwt");
@@ -584,12 +839,30 @@ class VerifierTrustStatementTest extends BaseTest {
             final String statement = entry.path("data").asText();
             assertThat(statement).isNotBlank();
             assertThat(statement.split("\\.").length).isEqualTo(3);
-            assertThat(JWSAlgorithm.ES256.equals(JwtSupport.parse(statement).getHeader().getAlgorithm())).isTrue();
+            assertThat(JwtSupport.parse(statement).getHeader().getAlgorithm())
+                    .isEqualTo(expectedJwsAlgorithm(algorithm));
+            assertThat(JwtSupport.parse(statement).getHeader().getKeyID())
+                    .isEqualTo(expectedTrustKeyId(algorithm));
             assertThat(statementProfileVersion(statement)).isEqualTo(TP2_PROFILE_VERSION);
             final String jti = statementPayload(statement).path("jti").asText();
             assertThat(jti).isNotBlank();
             assertThat(UUID.fromString(jti).version()).isEqualTo(4);
         }
+    }
+
+    private JWSAlgorithm expectedJwsAlgorithm(Tp2TrustStatementAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> JWSAlgorithm.ES256;
+            case ED25519 -> JWSAlgorithm.Ed25519;
+            case EDDSA_LEGACY -> JWSAlgorithm.EdDSA;
+        };
+    }
+
+    private String expectedTrustKeyId(Tp2TrustStatementAlgorithm algorithm) {
+        return switch (algorithm) {
+            case ES256 -> trustConfig.getTrustAssertKeyId();
+            case ED25519, EDDSA_LEGACY -> trustConfigFor(algorithm).getTrustEd25519AssertKeyId();
+        };
     }
 
     private void assertVerifierInfoStatementSubject(

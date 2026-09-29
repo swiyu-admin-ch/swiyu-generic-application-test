@@ -117,13 +117,12 @@ public class WalletBatchEntry extends WalletEntry {
     }
 
     private List<DcqlClaimDto> extractRequestedClaims(RequestObject requestObject) {
-        if (requestObject.getDcqlQuery() == null
-                || requestObject.getDcqlQuery().getCredentials() == null
-                || requestObject.getDcqlQuery().getCredentials().isEmpty()) {
+        final var dcqlQuery = wallet.resolveVerificationQuery(requestObject);
+        if (dcqlQuery.getCredentials() == null || dcqlQuery.getCredentials().isEmpty()) {
             return List.of();
         }
 
-        List<DcqlClaimDto> claims = requestObject.getDcqlQuery().getCredentials().get(0).getClaims();
+        List<DcqlClaimDto> claims = dcqlQuery.getCredentials().getFirst().getClaims();
         return claims == null ? List.of() : claims;
     }
 

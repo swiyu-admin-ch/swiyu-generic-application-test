@@ -1,12 +1,14 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import com.nimbusds.jose.jwk.OctetKeyPair;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.security.interfaces.ECPublicKey;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
@@ -24,15 +26,18 @@ public class TrustConfig {
     private final String trustAuthKeyId;
     private final String trustAssertKeyPemString;
     private final String trustAuthKeyPemString;
+    private final String trustAssertPublicJwk;
+    private final String trustEd25519AssertKeyId;
+    @ToString.Exclude
+    private final OctetKeyPair trustEd25519AssertKey;
 
     public static TrustConfig createTrustDid(URI identifierRegistryUrl) {
         KeyPair assertKeys = generateEC256KeyPair();
         KeyPair authKeys = generateEC256KeyPair();
 
         var assertJwk = createJWKFromKeyPair(assertKeys);
-        var authJwk = createJWKFromKeyPair(authKeys);
 
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        var didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         var trustDid = getDidFromDidLog(didLog);
 
         return TrustConfig.builder()
@@ -42,6 +47,7 @@ public class TrustConfig {
                 .trustAuthKeyId(trustDid + "#auth-key-01")
                 .trustAssertKeyPemString(KeyUtil.getPrivateKeyPem(assertKeys))
                 .trustAuthKeyPemString(KeyUtil.getPrivateKeyPem(authKeys))
+                .trustAssertPublicJwk(assertJwk.toPublicJWK().toJSONString())
                 .build();
     }
 }

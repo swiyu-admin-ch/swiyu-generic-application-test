@@ -5,7 +5,6 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
-import org.apache.http.protocol.HTTP;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.HttpStatusCode;
@@ -17,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.mockserver.model.HttpResponse.response;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 final class Tp2MockServerResponseFactory {
 
@@ -30,7 +30,7 @@ final class Tp2MockServerResponseFactory {
         try {
             return response()
                     .withStatusCode(HttpStatusCode.OK_200.code())
-                    .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                    .withHeader(CONTENT_TYPE, "application/json")
                     .withBody(objectMapper.writeValueAsString(body));
         } catch (JacksonException e) {
             throw new TestSupportException("Cannot serialize MockServer response: " + e.getMessage());
@@ -40,14 +40,14 @@ final class Tp2MockServerResponseFactory {
     HttpResponse jwtResponse(String jwt) {
         return response()
                 .withStatusCode(HttpStatusCode.OK_200.code())
-                .withHeader(HTTP.CONTENT_TYPE, "application/jwt")
+                .withHeader(CONTENT_TYPE, "application/jwt")
                 .withBody(jwt);
     }
 
     HttpResponse statusListJwtResponse(String jwt) {
         return response()
                 .withStatusCode(HttpStatusCode.OK_200.code())
-                .withHeader(HTTP.CONTENT_TYPE, "application/statuslist+jwt")
+                .withHeader(CONTENT_TYPE, "application/statuslist+jwt")
                 .withBody(jwt);
     }
 
@@ -88,7 +88,7 @@ final class Tp2MockServerResponseFactory {
     HttpResponse tmsValidationErrorResponse(String message, String field, String error) {
         return response()
                 .withStatusCode(HttpStatusCode.BAD_REQUEST_400.code())
-                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                .withHeader(CONTENT_TYPE, "application/json")
                 .withBody("""
                         {"status":"error","message":"%s","details":[{"field":"%s","error":"%s"}]}\
                         """.formatted(message, field, error));
@@ -106,7 +106,7 @@ final class Tp2MockServerResponseFactory {
     private HttpResponse jsonErrorResponse(HttpStatusCode statusCode, String message) {
         return response()
                 .withStatusCode(statusCode.code())
-                .withHeader(HTTP.CONTENT_TYPE, "application/json")
+                .withHeader(CONTENT_TYPE, "application/json")
                 .withBody("{\"error\":\"%s\"}".formatted(message));
     }
 

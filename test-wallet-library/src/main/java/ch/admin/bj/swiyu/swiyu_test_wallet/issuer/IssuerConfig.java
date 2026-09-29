@@ -8,11 +8,12 @@ import lombok.Data;
 
 import java.net.URI;
 import java.security.KeyPair;
+import java.security.interfaces.ECPublicKey;
+import java.util.List;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.createJWKFromKeyPair;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256KeyPair;
 
 @Builder
@@ -32,6 +33,9 @@ public class IssuerConfig {
 
     private KeyPair keyPair;
 
+    @Builder.Default
+    private List<IssuerConfig> additionalSigningIdentities = List.of();
+
     public static IssuerConfig createIssuerConfig(final URI identifierRegistryUrl,
                                                   final boolean enableHsm,
                                                   final String hsmTokenDir) {
@@ -47,10 +51,7 @@ public class IssuerConfig {
             authKeys = generateEC256KeyPair();
         }
 
-        var assertJwk = createJWKFromKeyPair(assertKeys);
-        var authJwk = createJWKFromKeyPair(authKeys);
-
-        var didLog = createDidLog(authJwk, assertJwk, identifierRegistryUrl);
+        var didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         var issuerDid = getDidFromDidLog(didLog);
 
         String assertKeyPem = KeyUtil.getPrivateKeyPem(assertKeys);

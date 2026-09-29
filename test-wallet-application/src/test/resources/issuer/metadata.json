@@ -243,6 +243,32 @@
         ]
       }
     },
+    "credential_refresh_disabled_example_sd_jwt": {
+      "format": "vc+sd-jwt",
+      "credential_refresh_disabled": true,
+      "credential_signing_alg_values_supported": [
+        "ES256"
+      ],
+      "vct": "${external-url}/oid4vci/vct/my-vct-v01",
+      "credential_metadata": {
+        "claims": [
+          {
+            "path": [
+              "name"
+            ],
+            "mandatory": true,
+            "value_type": "string"
+          },
+          {
+            "path": [
+              "annual_salary"
+            ],
+            "mandatory": true,
+            "value_type": "number"
+          }
+        ]
+      }
+    },
     "unbound_example_sd_jwt": {
       "format": "vc+sd-jwt",
       "credential_signing_alg_values_supported": [
