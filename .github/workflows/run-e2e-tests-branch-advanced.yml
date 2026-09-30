@@ -1,0 +1,221 @@
+# Advanced variant of run-e2e-tests-branch.yml.
+# Same flow (build issuer and verifier from a branch, then run the E2E suite against the
+# locally built images), plus one generic-java-lib version override per component, so an
+# issuer branch and a verifier branch can be tested against a chosen library version
+# instead of the one their pom declares.
+# Use run-e2e-tests-branch.yml when the pom-declared library versions are what you want.
+name: Run E2E Tests (Branches, Advanced)
+run-name: >-
+  E2E advanced application-tests=${{ github.ref_name }}
+  issuer=${{ inputs.issuer-branch }}${{ inputs.issuer-generic-java-lib-version && format(' lib={0}', inputs.issuer-generic-java-lib-version) || '' }}
+  verifier=${{ inputs.verifier-branch }}${{ inputs.verifier-generic-java-lib-version && format(' lib={0}', inputs.verifier-generic-java-lib-version) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      issuer-branch:
+        description: 'Issuer branch to build'
+        required: true
+        type: string
+        default: 'main'
+      issuer-generic-java-lib-version:
+        description: "generic-java-lib version for the issuer build (empty or default/keep/pom/none/unchanged = keep the version declared in the issuer pom)"
+        required: false
+        type: string
+        default: ''
+      verifier-branch:
+        description: 'Verifier branch to build'
+        required: true
+        type: string
+        default: 'main'
+      verifier-generic-java-lib-version:
+        description: "generic-java-lib version for the verifier build (empty or default/keep/pom/none/unchanged = keep the version declared in the verifier pom)"
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    env:
+      ISSUER_IMAGE_NAME: swiyu-issuer
+      ISSUER_IMAGE_TAG: local
+      VERIFIER_IMAGE_NAME: swiyu-verifier
+      VERIFIER_IMAGE_TAG: local
+    steps:
+      - name: Checkout application tests
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Checkout issuer
+        uses: actions/checkout@v4
+        with:
+          repository: swiyu-admin-ch/swiyu-issuer
+          ref: ${{ inputs.issuer-branch }}
+          path: .component-sources/swiyu-issuer
+          persist-credentials: false
+
+      - name: Checkout verifier
+        uses: actions/checkout@v4
+        with:
+          repository: swiyu-admin-ch/swiyu-verifier
+          ref: ${{ inputs.verifier-branch }}
+          path: .component-sources/swiyu-verifier
+          persist-credentials: false
+
+      # Pins <generic-java-lib.version> in each component root pom before that component is
+      # built, so the Maven package and the Docker image both carry the requested version.
+      # The property is declared exactly once per component, in its root pom, and inherited
+      # by every module, so pinning it there is enough.
+      - name: Align generic-java-lib versions
+        shell: bash
+        env:
+          ISSUER_GENERIC_JAVA_LIB_INPUT: ${{ inputs.issuer-generic-java-lib-version }}
+          VERIFIER_GENERIC_JAVA_LIB_INPUT: ${{ inputs.verifier-generic-java-lib-version }}
+        run: |
+          set -euo pipefail
+
+          read_lib_version() {
+            awk 'match($0, /<generic-java-lib\.version>[^<]*<\/generic-java-lib\.version>/) {
+                   value = substr($0, RSTART, RLENGTH)
+                   sub(/^<generic-java-lib\.version>/, "", value)
+                   sub(/<\/generic-java-lib\.version>$/, "", value)
+                   print value
+                   exit
+                 }' "$1"
+          }
+
+          align_generic_java_lib() {
+            local component="$1" pom="$2" requested="$3" env_prefix="$4"
+            local declarations declared effective note lowered
+
+            declarations="$(grep -c '<generic-java-lib\.version>' "${pom}" || true)"
+            if [ "${declarations}" != "1" ]; then
+              echo "::error file=${pom}::Expected exactly one <generic-java-lib.version> declaration, found ${declarations}"
+              exit 1
+            fi
+            declared="$(read_lib_version "${pom}")"
+            if [ -z "${declared}" ]; then
+              echo "::error file=${pom}::Could not read the declared <generic-java-lib.version>"
+              exit 1
+            fi
+
+            requested="$(printf '%s' "${requested}" | tr -d '[:space:]')"
+            lowered="$(printf '%s' "${requested}" | tr '[:upper:]' '[:lower:]')"
+            case "${lowered}" in
+              '' | default | keep | pom | none | unchanged | as-is)
+                effective="${declared}"
+                note="declared in the ${component} pom"
+                ;;
+              *)
+                if [[ ! "${requested}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+                  echo "::error::Invalid generic-java-lib version '${requested}' for the ${component}"
+                  exit 1
+                fi
+                sed -i -E "s#<generic-java-lib\.version>[^<]*</generic-java-lib\.version>#<generic-java-lib.version>${requested}</generic-java-lib.version>#" "${pom}"
+                effective="$(read_lib_version "${pom}")"
+                if [ "${effective}" != "${requested}" ]; then
+                  echo "::error file=${pom}::Failed to pin generic-java-lib to ${requested} (still ${effective})"
+                  exit 1
+                fi
+                note="pinned by workflow input, pom declared ${declared}"
+                ;;
+            esac
+
+            echo "${env_prefix}_GENERIC_JAVA_LIB_EFFECTIVE=${effective}" >> "${GITHUB_ENV}"
+            echo "${env_prefix}_GENERIC_JAVA_LIB_NOTE=${note}" >> "${GITHUB_ENV}"
+            echo "${component}: generic-java-lib ${effective} (${note})"
+          }
+
+          align_generic_java_lib issuer .component-sources/swiyu-issuer/pom.xml "${ISSUER_GENERIC_JAVA_LIB_INPUT}" ISSUER
+          align_generic_java_lib verifier .component-sources/swiyu-verifier/pom.xml "${VERIFIER_GENERIC_JAVA_LIB_INPUT}" VERIFIER
+
+          # The application tests keep the generic-java-lib version of their own branch; it is
+          # reported so a skew against the component versions stays visible in the summary.
+          tests_lib="$(read_lib_version pom.xml)"
+          echo "TESTS_GENERIC_JAVA_LIB_EFFECTIVE=${tests_lib:-n/a}" >> "${GITHUB_ENV}"
+          echo "application tests: generic-java-lib ${tests_lib:-n/a} (declared in the application-tests pom)"
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Build issuer application
+        working-directory: .component-sources/swiyu-issuer
+        run: ./mvnw --batch-mode clean package -DskipTests
+
+      - name: Build issuer Docker image
+        working-directory: .component-sources/swiyu-issuer
+        run: |
+          docker build --pull \
+            --build-arg SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal \
+            --tag "${ISSUER_IMAGE_NAME}:${ISSUER_IMAGE_TAG}" \
+            .
+
+      - name: Build verifier application
+        working-directory: .component-sources/swiyu-verifier
+        run: ./mvnw --batch-mode clean package -DskipTests
+
+      - name: Build verifier Docker image
+        working-directory: .component-sources/swiyu-verifier
+        run: |
+          docker build --pull \
+            --build-arg SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal \
+            --tag "${VERIFIER_IMAGE_NAME}:${VERIFIER_IMAGE_TAG}" \
+            .
+
+      - name: Verify images and summarize selected sources
+        shell: bash
+        env:
+          REQUESTED_ISSUER_BRANCH: ${{ inputs.issuer-branch }}
+          REQUESTED_VERIFIER_BRANCH: ${{ inputs.verifier-branch }}
+        run: |
+          issuer_sha="$(git -C .component-sources/swiyu-issuer rev-parse HEAD)"
+          verifier_sha="$(git -C .component-sources/swiyu-verifier rev-parse HEAD)"
+          issuer_image_id="$(docker image inspect --format '{{.Id}}' "${ISSUER_IMAGE_NAME}:${ISSUER_IMAGE_TAG}")"
+          verifier_image_id="$(docker image inspect --format '{{.Id}}' "${VERIFIER_IMAGE_NAME}:${VERIFIER_IMAGE_TAG}")"
+
+          {
+            echo "## E2E component sources"
+            echo
+            echo "| Component | Requested branch | Resolved SHA | generic-java-lib | Local image |"
+            echo "| --- | --- | --- | --- | --- |"
+            echo "| Application tests | \`${GITHUB_REF_NAME}\` | \`${GITHUB_SHA}\` | \`${TESTS_GENERIC_JAVA_LIB_EFFECTIVE}\` (declared in the application-tests pom) | n/a |"
+            echo "| Issuer | \`${REQUESTED_ISSUER_BRANCH}\` | \`${issuer_sha}\` | \`${ISSUER_GENERIC_JAVA_LIB_EFFECTIVE}\` (${ISSUER_GENERIC_JAVA_LIB_NOTE}) | \`${ISSUER_IMAGE_NAME}:${ISSUER_IMAGE_TAG}\` (\`${issuer_image_id}\`) |"
+            echo "| Verifier | \`${REQUESTED_VERIFIER_BRANCH}\` | \`${verifier_sha}\` | \`${VERIFIER_GENERIC_JAVA_LIB_EFFECTIVE}\` (${VERIFIER_GENERIC_JAVA_LIB_NOTE}) | \`${VERIFIER_IMAGE_NAME}:${VERIFIER_IMAGE_TAG}\` (\`${verifier_image_id}\`) |"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Configure Docker Java client API version
+        run: echo "api.version=1.44" > ~/.docker-java.properties
+
+      - name: Build and verify E2E tests with Maven
+        run: ./mvnw --batch-mode clean verify
+
+      - name: Publish Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Maven Test Results (Advanced)
+          path: '**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-branch-e2e-test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+            **/target/TEST-junit-jupiter.xml
+          if-no-files-found: warn
+          retention-days: 30
