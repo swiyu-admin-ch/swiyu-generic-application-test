@@ -105,12 +105,6 @@ public class VerifierContainerConfig {
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
                     .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")
-                    // The verifier omits all audit information from the management API response by
-                    // default (EIDOMNI-1321). The E2E assertions inspect vp_token, credential_subject_data
-                    // and credential_evaluation, so the harness opts in explicitly.
-                    .withEnv("ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED", "true")
-                    .withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED", "true")
-                    .withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED", "true")
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")
@@ -119,6 +113,20 @@ public class VerifierContainerConfig {
                     .withCopyFileToContainer(MountableFile.forHostPath(getResourcePath("truststore.jks")), "/app/certs/truststore.jks")
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .dependsOn(dbContainer);
+
+            // Most scenarios inspect audit data explicitly; null tests the product's own defaults.
+            if (verifierImageConfig.getAuditVpTokenEnabled() != null) {
+                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED",
+                        verifierImageConfig.getAuditVpTokenEnabled().toString());
+            }
+            if (verifierImageConfig.getAuditCredentialSubjectDataEnabled() != null) {
+                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED",
+                        verifierImageConfig.getAuditCredentialSubjectDataEnabled().toString());
+            }
+            if (verifierImageConfig.getAuditCredentialEvaluationEnabled() != null) {
+                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED",
+                        verifierImageConfig.getAuditCredentialEvaluationEnabled().toString());
+            }
 
             if (containerLogConfig.isVerifier()) {
                 container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")));
