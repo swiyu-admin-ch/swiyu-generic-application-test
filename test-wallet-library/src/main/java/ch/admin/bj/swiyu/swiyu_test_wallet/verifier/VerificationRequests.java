@@ -19,7 +19,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.ISSUER_U
 public class VerificationRequests {
 
     public static final String DEFAULT_CREDENTIAL_ID = "VerifiableCredential";
-    public static final String DEFAULT_FORMAT = "vc+sd-jwt";
+    public static final String DEFAULT_FORMAT = "dc+sd-jwt";
     public static final String DEFAULT_VCT = ISSUER_URL + "/oid4vci/vct/my-vct-v01";
 
     public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding) {

@@ -149,7 +149,7 @@ public class Wallet {
                         "definition_id": "test_ldp_vc",
                         "descriptor_map": [{
                             "id": "test_descriptor",
-                            "format": "vc+sd-jwt",
+                            "format": "dc+sd-jwt",
                             "path": "$"
                         }]
                     }
