@@ -28,6 +28,11 @@ public class VerifierImageConfig {
     private int requestObjectTtlSeconds = 0;
     private boolean rejectSuspendedCredentials = false;
 
+    // Null leaves the environment variable unset to exercise the verifier's production default.
+    private Boolean auditVpTokenEnabled = true;
+    private Boolean auditCredentialSubjectDataEnabled = true;
+    private Boolean auditCredentialEvaluationEnabled = true;
+
     private String hsmUser = "admin";
     private String hsmPassword = "password";
     private String hsmUserPin = "1234";

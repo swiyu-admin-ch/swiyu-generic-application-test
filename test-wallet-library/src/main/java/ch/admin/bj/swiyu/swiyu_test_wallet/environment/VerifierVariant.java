@@ -4,6 +4,10 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 
 public enum VerifierVariant {
     DEFAULT("default", false),
+    AUDIT_DEFAULTS("audit_defaults", false),
+    AUDIT_DISABLED("audit_disabled", false),
+    AUDIT_VP_TOKEN_ONLY("audit_vp_token_only", false),
+    AUDIT_EVALUATION_ONLY("audit_evaluation_only", false),
     NO_STATIC_DID("no_static_did", false),
     CACHED("cached", false),
     HSM("hsm", true),
@@ -38,6 +42,16 @@ public enum VerifierVariant {
         final VerifierImageConfig config = copy(template);
         config.setSurname(surname);
         config.setEnableHsm(hsm);
+        if (this == AUDIT_DEFAULTS) {
+            config.setAuditVpTokenEnabled(null);
+            config.setAuditCredentialSubjectDataEnabled(null);
+            config.setAuditCredentialEvaluationEnabled(null);
+        }
+        if (this == AUDIT_DISABLED || this == AUDIT_VP_TOKEN_ONLY || this == AUDIT_EVALUATION_ONLY) {
+            config.setAuditVpTokenEnabled(this == AUDIT_VP_TOKEN_ONLY);
+            config.setAuditCredentialSubjectDataEnabled(false);
+            config.setAuditCredentialEvaluationEnabled(this == AUDIT_EVALUATION_ONLY);
+        }
         if (this == NO_STATIC_DID) {
             config.setOmitStaticVerifierDid(true);
         }
@@ -74,6 +88,9 @@ public enum VerifierVariant {
         target.setTrustStatementCacheTtlMillis(source.getTrustStatementCacheTtlMillis());
         target.setRequestObjectTtlSeconds(source.getRequestObjectTtlSeconds());
         target.setRejectSuspendedCredentials(source.isRejectSuspendedCredentials());
+        target.setAuditVpTokenEnabled(source.getAuditVpTokenEnabled());
+        target.setAuditCredentialSubjectDataEnabled(source.getAuditCredentialSubjectDataEnabled());
+        target.setAuditCredentialEvaluationEnabled(source.getAuditCredentialEvaluationEnabled());
         target.setHsmUser(source.getHsmUser());
         target.setHsmPassword(source.getHsmPassword());
         target.setHsmUserPin(source.getHsmUserPin());
