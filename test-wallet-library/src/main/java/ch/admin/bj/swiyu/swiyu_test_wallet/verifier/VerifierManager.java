@@ -8,8 +8,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestPresentationDefinitions;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
@@ -233,9 +231,7 @@ public class VerifierManager {
     private void configureApis() {
         var builder = RestClient.builder();
         if (traceInterceptor != null) {
-            builder = builder.requestFactory(
-                            new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
-                    .requestInterceptor(traceInterceptor);
+            builder = builder.requestInterceptor(traceInterceptor);
         }
         if (bearerToken != null && !bearerToken.isBlank()) {
             builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);

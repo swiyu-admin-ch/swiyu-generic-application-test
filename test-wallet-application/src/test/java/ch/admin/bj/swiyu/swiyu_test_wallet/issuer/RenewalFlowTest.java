@@ -21,12 +21,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -71,15 +71,11 @@ import static org.mockito.Mockito.doReturn;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
+@UseWallet(dpop = true)
 class RenewalFlowTest extends BaseTest {
     private static final String ERROR_INVALID_DPOP_PROOF = "invalid_dpop_proof";
     private static final String ERROR_INVALID_TOKEN = "invalid_token";
     private static final String ERROR_KEY_MISSMATCH = "Key mismatch";
-
-    @BeforeAll
-    void setUp() {
-        wallet.setUseDPoP(true);
-    }
 
     private CredentialWithDeeplinkResponse initializeCredentials(WalletBatchEntry entry, final boolean deferred) {
         wallet.setUseDPoP(true);

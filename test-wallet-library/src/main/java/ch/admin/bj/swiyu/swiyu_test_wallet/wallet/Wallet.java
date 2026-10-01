@@ -67,11 +67,7 @@ public class Wallet {
     private ServiceLocationContext issuerContext;
     private ServiceLocationContext verifierContext;
 
-    private boolean useEncryption = false;
-    private boolean useDPoP = false;
-    private boolean signedMetadataPreferred = false;
-    private String credentialRequestEncryptionEnc;
-    private String credentialResponseEncryptionEnc;
+    private WalletProfile profile = WalletProfile.unprotected();
     private KeyPair dpopKeyPair;
     private ECKey dpopPublicKey;
     private MockAttestationAuthority mockAttestationAuthority;
@@ -92,7 +88,47 @@ public class Wallet {
 
     public Wallet(RestClient restClient, ServiceLocationContext issuerContext, ServiceLocationContext verifierContext, boolean useEncryption) {
         this(restClient, issuerContext, verifierContext);
-        this.useEncryption = useEncryption;
+        this.profile = profile.withEncryption(useEncryption);
+    }
+
+    public boolean isUseEncryption() {
+        return profile.encryption();
+    }
+
+    public void setUseEncryption(final boolean useEncryption) {
+        profile = profile.withEncryption(useEncryption);
+    }
+
+    public boolean isUseDPoP() {
+        return profile.dpop();
+    }
+
+    public void setUseDPoP(final boolean useDPoP) {
+        profile = profile.withDpop(useDPoP);
+    }
+
+    public boolean isSignedMetadataPreferred() {
+        return profile.signedMetadataPreferred();
+    }
+
+    public void setSignedMetadataPreferred(final boolean signedMetadataPreferred) {
+        profile = profile.withSignedMetadataPreferred(signedMetadataPreferred);
+    }
+
+    public String getCredentialRequestEncryptionEnc() {
+        return profile.credentialRequestEncryptionEnc();
+    }
+
+    public void setCredentialRequestEncryptionEnc(final String enc) {
+        profile = profile.withCredentialRequestEncryptionEnc(enc);
+    }
+
+    public String getCredentialResponseEncryptionEnc() {
+        return profile.credentialResponseEncryptionEnc();
+    }
+
+    public void setCredentialResponseEncryptionEnc(final String enc) {
+        profile = profile.withCredentialResponseEncryptionEnc(enc);
     }
 
     public Wallet useIssuer(final IssuerHandle issuer) {
@@ -147,7 +183,7 @@ public class Wallet {
         walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
 
-        if (this.useDPoP) {
+        if (profile.dpop()) {
             final String nonceInitial = collectDPoPNonce(walletBatchEntry);
             final String tokenDPoP = DPoPSupport.createDpopProofForToken(
                     walletBatchEntry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
@@ -183,7 +219,7 @@ public class Wallet {
 
         final JsonNode rawMetadata;
 
-        if (this.isSignedMetadataPreferred()) {
+        if (profile.signedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdConfiguration)
                     .header(HttpHeaders.ACCEPT, APPLICATION_JWT)
@@ -226,7 +262,7 @@ public class Wallet {
 
         final JsonNode rawMetadata;
 
-        if (this.isSignedMetadataPreferred()) {
+        if (profile.signedMetadataPreferred()) {
             final String jwt = restClient.get()
                     .uri(issuerOpenIdCredentialIssuer)
                     .header(HttpHeaders.ACCEPT, APPLICATION_JWT)
@@ -367,7 +403,7 @@ public class Wallet {
             throw new IllegalStateException("Cannot serialize deferred credential request", e);
         }
 
-        final String finalPayload = useEncryption
+        final String finalPayload = profile.encryption()
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
@@ -387,7 +423,7 @@ public class Wallet {
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(deferredCredentialUri))
                 .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue())
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, profile.encryption() ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken);
 
         if (doPProofForCredentialRequest != null) {
@@ -404,10 +440,10 @@ public class Wallet {
         String responseBody = rawResponse;
         assertThat(responseCode)
                 .withFailMessage("POST issuer deferred credential request failed: url [%s], code [%d], body [%s], encryption=%s"
-                        .formatted(deferredCredentialUri, responseCode, responseBody, useEncryption))
+                        .formatted(deferredCredentialUri, responseCode, responseBody, profile.encryption()))
                 .isIn(List.of(200, 202));
 
-        if (useEncryption) {
+        if (profile.encryption()) {
             JWESupport.assertIsJWE(responseBody);
             responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
         }
@@ -567,7 +603,7 @@ public class Wallet {
 
         final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 
-        if (useEncryption) {
+        if (profile.encryption()) {
             formData.add("response", buildEncryptedResponse(requestObject, vpToken));
         } else {
             formData.add(VP_TOKEN, new Gson().toJson(vpToken));
@@ -690,7 +726,7 @@ public class Wallet {
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
         entry.setCredentialConfigurationSupported();
 
-        if (this.useDPoP) {
+        if (profile.dpop()) {
             final String nonceInitial = collectDPoPNonce(entry);
             final String tokenDPoP = DPoPSupport.createDpopProofForToken(
                     entry.getIssuerTokenUri().toString(), nonceInitial, dpopKeyPair, dpopPublicKey);
@@ -721,7 +757,7 @@ public class Wallet {
         var requestDto = new CreateCredentialRequest()
                 .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
                 .proofs(proofsDto);
-        if (this.useEncryption) {
+        if (profile.encryption()) {
             walletEntry.generateEphemeralEncryptionKey();
 
             final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
@@ -740,17 +776,17 @@ public class Wallet {
             throw new IllegalStateException("Failed to serialize credential request payload", ex);
         }
 
-        final String finalPayload = useEncryption
+        final String finalPayload = profile.encryption()
                 ? encryptCredentialRequest(walletEntry, requestPayload)
                 : requestPayload;
 
         var requestBuilder = restClient.post()
                 .uri(issuerContext.getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, useEncryption ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, profile.encryption() ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
                 .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
                 .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
 
-        if (this.useDPoP) {
+        if (profile.dpop()) {
             final String dPoP = generateDpopForCredentialEndpoint(walletEntry);
             requestBuilder = requestBuilder.header(DPOP, dPoP);
         }
@@ -765,10 +801,10 @@ public class Wallet {
         String responseBody = rawResponse;
         assertThat(responseCode)
                 .withFailMessage("POST issuer credential request failed: url [%s], code [%d], body [%s], encryption=%s"
-                        .formatted(credentialUri, responseCode, responseBody, useEncryption))
+                        .formatted(credentialUri, responseCode, responseBody, profile.encryption()))
                 .isIn(List.of(200, 202));
 
-        if (useEncryption) {
+        if (profile.encryption()) {
             try {
                 JWESupport.assertIsJWE(responseBody);
                 responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
@@ -801,11 +837,11 @@ public class Wallet {
     }
 
     String resolveCredentialResponseEncryptionEnc(final List<String> supportedEncValues) {
-        return resolveEncryptionEnc(supportedEncValues, credentialResponseEncryptionEnc);
+        return resolveEncryptionEnc(supportedEncValues, profile.credentialResponseEncryptionEnc());
     }
 
     private String resolveCredentialRequestEncryptionEnc(final List<String> supportedEncValues) {
-        return resolveEncryptionEnc(supportedEncValues, credentialRequestEncryptionEnc);
+        return resolveEncryptionEnc(supportedEncValues, profile.credentialRequestEncryptionEnc());
     }
 
     private String resolveEncryptionEnc(final List<String> supportedEncValues, final String requestedEnc) {
