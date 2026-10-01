@@ -19,6 +19,7 @@ import org.mockserver.model.HttpStatusCode;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -42,7 +43,13 @@ final class StatusRegistry {
 
     private final RegisteredActors actors;
 
-    private final Map<String, String> statusListBitsMap = new ConcurrentHashMap<>();
+    /** What a Credential Issuer published for a status list: the {@code bits} and the {@code lst} of its Status List Token. */
+    private record PublishedStatusList(int bits, String compressedStatuses) {
+    }
+
+    private static final PublishedStatusList EMPTY_LIST = new PublishedStatusList(2, DEFAULT_COMPRESSED_STATUSES);
+
+    private final Map<String, PublishedStatusList> publishedStatusLists = new ConcurrentHashMap<>();
     private final Map<String, String> statusListsByIssuerDid = new ConcurrentHashMap<>();
     private final Map<String, String> issuerDidByStatusListId = new ConcurrentHashMap<>();
     private volatile String currentStatusList = "";
@@ -74,13 +81,59 @@ final class StatusRegistry {
         log.debug("Status list signature corruption DISABLED");
     }
 
+    void resetFaults() {
+        disableUpdateError();
+        disableCorruptSignature();
+    }
+
+    boolean updatesFail() {
+        return throwStatusListError;
+    }
+
+    boolean servesCorruptSignature() {
+        return corruptStatusListSignature;
+    }
+
+    /** Tells the registry that {@code issuerDid} owns the status list {@code statusListId}, so it signs it with its key. */
+    void issuerOwns(final String statusListId, final String issuerDid) {
+        issuerDidByStatusListId.put(statusListId, issuerDid);
+    }
+
+    /**
+     * A status list entry was created for the Business Entity {@code businessId}: it belongs to the issuer registered with
+     * that SWIYU partner id. A creation for an unknown Business Entity leaves the list without an owner.
+     */
+    void onStatusListCreated(final String businessId, final String statusListId) {
+        actors.issuerByPartnerId(businessId).ifPresent(issuer -> issuerOwns(statusListId, issuer.getIssuerDid()));
+    }
+
+    /** The Credential Issuer published a Status List Token for {@code statusListId}: keep its {@code bits} and {@code lst}. */
+    void onStatusListPublished(final String statusListId, final String statusListTokenJwt) {
+        final PublishedStatusList published = parsePublished(statusListTokenJwt);
+        if (published != null && statusListId != null) {
+            publishedStatusLists.put(statusListId, published);
+        }
+    }
+
+    /**
+     * The Status List Token to serve for {@code statusListId}, signed by the issuer that owns the list, or empty when no
+     * issuer owns it: an unknown list is a {@code 404}, not a list signed by whichever issuer the mock knows first.
+     */
+    Optional<String> statusListToken(final String statusListId) {
+        final String issuerDid = issuerDidByStatusListId.get(statusListId);
+        if (issuerDid == null) {
+            return Optional.empty();
+        }
+        return actors.issuer(issuerDid).map(issuer -> signedStatusListToken(statusListId, issuer));
+    }
+
     void setCurrent(final String issuerDid, final String statusList) {
         currentStatusList = statusList;
         activeIssuerDid = issuerDid;
         statusListsByIssuerDid.put(issuerDid, statusList);
         final String statusListId = extractStatusListIdFromPath(statusList);
         if (statusListId != null) {
-            issuerDidByStatusListId.put(statusListId, issuerDid);
+            issuerOwns(statusListId, issuerDid);
         }
     }
 
@@ -111,10 +164,12 @@ final class StatusRegistry {
                             + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.jwt"))
                 .respond(httpRequest -> {
                     log.info("Entered GET expectation for status list retrieval with path: {}", httpRequest.getPath().getValue());
-                    return response()
-                            .withHeader(CONTENT_TYPE, "application/statuslist+jwt")
-                            .withStatusCode(HttpStatusCode.OK_200.code())
-                            .withBody(statusListJwt(httpRequest, issuerConfigForStatusList(httpRequest)));
+                    return statusListToken(extractStatusListIdFromPath(httpRequest.getPath().getValue()))
+                            .map(token -> response()
+                                    .withHeader(CONTENT_TYPE, "application/statuslist+jwt")
+                                    .withStatusCode(HttpStatusCode.OK_200.code())
+                                    .withBody(token))
+                            .orElseGet(() -> response().withStatusCode(HttpStatusCode.NOT_FOUND_404.code()));
                 });
         mockServerClient.when(
                 request()
@@ -124,6 +179,7 @@ final class StatusRegistry {
                 .respond(httpRequest -> {
                     log.info("Entered POST expectation for status list creation with path: {}", httpRequest.getPath().getValue());
                     var id = UUID.randomUUID();
+                    onStatusListCreated(businessIdFromPath(httpRequest.getPath().getValue()), id.toString());
                     var payload = "{\"id\": \"%s\", \"statusRegistryUrl\": \"%s\"}"
                             .formatted(id, STATUSLIST_URI_PATTERN.formatted(id));
                     return response()
@@ -149,12 +205,7 @@ final class StatusRegistry {
                         final String path = httpRequest.getPath().getValue();
                         final String statusListId = extractStatusListIdFromPath(path);
 
-                        final String jwtBody = httpRequest.getBodyAsString();
-                        final String compressedStatuses = extractCompressedStatusesFromJwt(jwtBody);
-
-                        if (compressedStatuses != null && statusListId != null) {
-                            statusListBitsMap.put(statusListId, compressedStatuses);
-                        }
+                        onStatusListPublished(statusListId, httpRequest.getBodyAsString());
                     } catch (Exception e) {
                         return response().withStatusCode(500);
                     }
@@ -162,56 +213,40 @@ final class StatusRegistry {
                 });
     }
 
-    private IssuerConfig issuerConfigForStatusList(final HttpRequest httpRequest) {
-        final String statusListId = extractStatusListIdFromPath(httpRequest.getPath().getValue());
-        if (statusListId == null) {
-            return actors.anyIssuer();
+    private String signedStatusListToken(final String statusListId, final IssuerConfig issuerConfig) {
+        try {
+            final JWK jwk = KeyUtil.createJWKFromKeyPair(issuerConfig.getKeyPair());
+            final JWSSigner signer = new ECDSASigner(jwk.toECKey());
+
+            final PublishedStatusList published = publishedStatusLists.getOrDefault(statusListId, EMPTY_LIST);
+            final Date issuedAt = new Date();
+
+            final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                    .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))
+                    .issuer(issuerConfig.getIssuerDid())
+                    .issueTime(issuedAt)
+                    .claim("status_list", Map.of(
+                            "bits", published.bits(),
+                            "lst", published.compressedStatuses()))
+                    .expirationTime(new Date(issuedAt.getTime() + 60 * 1000))
+                    .build();
+
+            final SignedJWT signedJWT = new SignedJWT(
+                    new JWSHeader.Builder(JWSAlgorithm.ES256)
+                            .keyID(issuerConfig.getIssuerAssertKeyId())
+                            .type(new JOSEObjectType("statuslist+jwt"))
+                            .build(),
+                    claimsSet);
+
+            signedJWT.sign(signer);
+
+            final String serializedStatusList = signedJWT.serialize();
+            return corruptStatusListSignature
+                    ? corruptJwtSignature(serializedStatusList)
+                    : serializedStatusList;
+        } catch (JOSEException e) {
+            throw new IllegalStateException("Cannot sign the status list token", e);
         }
-
-        final String issuerDid = issuerDidByStatusListId.get(statusListId);
-        if (issuerDid == null) {
-            return actors.anyIssuer();
-        }
-
-        return actors.issuer(issuerDid).orElseGet(actors::anyIssuer);
-    }
-
-    private String statusListJwt(final HttpRequest httpRequest, final IssuerConfig issuerConfig)
-            throws JOSEException, ParseException {
-
-        final JWK jwk = KeyUtil.createJWKFromKeyPair(issuerConfig.getKeyPair());
-
-        final JWSSigner signer = new ECDSASigner(jwk.toECKey());
-
-        final String path = httpRequest.getPath().getValue();
-        final String statusListId = extractStatusListIdFromPath(path);
-
-        final String compressedStatuses = statusListBitsMap.getOrDefault(statusListId, DEFAULT_COMPRESSED_STATUSES);
-        final Date issuedAt = new Date();
-
-        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))
-                .issuer(issuerConfig.getIssuerDid())
-                .issueTime(issuedAt)
-                .claim("status_list", Map.of(
-                        "bits", "2",
-                        "lst", compressedStatuses))
-                .expirationTime(new Date(issuedAt.getTime() + 60 * 1000))
-                .build();
-
-        final SignedJWT signedJWT = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.ES256)
-                        .keyID(issuerConfig.getIssuerAssertKeyId())
-                        .type(new JOSEObjectType("statuslist+jwt"))
-                        .build(),
-                claimsSet);
-
-        signedJWT.sign(signer);
-
-        final String serializedStatusList = signedJWT.serialize();
-        return corruptStatusListSignature
-                ? corruptJwtSignature(serializedStatusList)
-                : serializedStatusList;
     }
 
     private static String corruptJwtSignature(final String jwt) {
@@ -240,8 +275,11 @@ final class StatusRegistry {
         return lastSegment;
     }
 
-    /** The {@code lst} of a Status List Token received in a PUT: the base64url compressed byte array (Token Status List §4.1). */
-    private static String extractCompressedStatusesFromJwt(final String jwtBody) {
+    /**
+     * The {@code bits} and {@code lst} of a Status List Token received in a PUT (Token Status List draft 20 §4.2). The body is
+     * the JWT itself or its base64 encoding. Returns {@code null} when it is not a Status List Token.
+     */
+    private static PublishedStatusList parsePublished(final String jwtBody) {
         try {
             if (jwtBody == null || jwtBody.isEmpty()) {
                 return null;
@@ -258,14 +296,25 @@ final class StatusRegistry {
             final SignedJWT jwt = SignedJWT.parse(decodedBody);
             final Map<String, Object> claims = jwt.getJWTClaimsSet().getClaims();
 
-            if (claims.containsKey("status_list")) {
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> statusListClaim = (Map<String, Object>) claims.get("status_list");
-                return (String) statusListClaim.get("lst");
+            if (claims.get("status_list") instanceof Map<?, ?> statusListClaim && statusListClaim.get("lst") instanceof String lst) {
+                final Object bits = statusListClaim.get("bits");
+                return new PublishedStatusList(bits == null ? EMPTY_LIST.bits() : Integer.parseInt(bits.toString()), lst);
             }
-        } catch (ParseException e) {
+        } catch (ParseException | NumberFormatException e) {
             return null;
         }
         return null;
+    }
+
+    /** {@code .../business-entities/<businessId>/status-list-entries/...}: the Business Entity of the request. */
+    private static String businessIdFromPath(final String path) {
+        final String marker = "/business-entities/";
+        final int start = path.indexOf(marker);
+        if (start < 0) {
+            return null;
+        }
+        final String rest = path.substring(start + marker.length());
+        final int end = rest.indexOf('/');
+        return end < 0 ? rest : rest.substring(0, end);
     }
 }

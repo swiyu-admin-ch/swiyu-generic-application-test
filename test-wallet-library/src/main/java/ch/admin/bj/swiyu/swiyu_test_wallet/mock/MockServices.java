@@ -82,6 +82,11 @@ public class MockServices {
         statusRegistry.disableCorruptSignature();
     }
 
+    /** Puts every simulated service back to its normal behavior; {@code BaseTest} does it after each test. */
+    public void resetFaults() {
+        statusRegistry.resetFaults();
+    }
+
     public MockServerClient createMockServerClient(MockServerContainer mockServer,
             IssuerConfig issuerConfig,
             VerifierConfig verifierConfig,

@@ -31,11 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Import(CompleteEnvironmentTestConfiguration.class)
 class VerifierSignatureValidationTest extends BaseTest {
 
-    @AfterEach
-    void restoreValidStatusListSignature() {
-        mockServices.disableCorruptStatusListSignature();
-    }
-
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(SignatureFailure.class)
     @XrayTest(

@@ -116,6 +116,12 @@ public class BaseTest {
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
 
+    /** A fault one test injects into a simulated service (a failing status registry) must not outlive that test. */
+    @AfterEach
+    void resetMockServiceFaults() {
+        mockServices.resetFaults();
+    }
+
     @BeforeEach
     protected void resetIssuerCallbacks() {
         mockServices.clearIssuerCallbacks();

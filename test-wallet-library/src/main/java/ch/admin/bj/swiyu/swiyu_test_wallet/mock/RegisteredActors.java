@@ -34,11 +34,11 @@ final class RegisteredActors {
         return issuersByDid.values();
     }
 
-    /** Any registered issuer: the one the mock falls back on when it cannot tell which issuer a request is for. */
-    IssuerConfig anyIssuer() {
+    /** The issuer whose Business Entity id (SWIYU partner id) is {@code partnerId}, as the Credential Issuer sends it to the registry. */
+    Optional<IssuerConfig> issuerByPartnerId(final String partnerId) {
         return issuersByDid.values().stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No issuer config registered in MockServices"));
+                .filter(issuer -> partnerId != null && partnerId.equals(issuer.getSwiyuPartnerId()))
+                .findFirst();
     }
 
     TrustConfig trustConfig() {
