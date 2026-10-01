@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result;
 
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import lombok.experimental.UtilityClass;
 import org.springframework.http.ResponseEntity;
 
@@ -18,7 +18,7 @@ public class VerificationHttpStatusAssert {
 
     public static ManagementResponse assertWalletAndManagementRespondOk(
             final Supplier<ResponseEntity<String>> walletSubmission,
-            final VerifierManager verifierManager,
+            final BusinessVerifier verifierManager,
             final UUID verificationId
     ) {
         final ResponseEntity<String> walletResponse = walletSubmission.get();

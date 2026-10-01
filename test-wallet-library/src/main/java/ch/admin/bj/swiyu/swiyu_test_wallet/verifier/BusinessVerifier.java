@@ -18,17 +18,17 @@ import java.util.UUID;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class VerifierManager {
+public class BusinessVerifier {
 
     private VerifierManagementApiApi managementApi;
     private ManagementResponse managementResponse;
     private ActuatorApi actuatorApi;
-    private String issuerServiceUrl;
+    private String verifierServiceUrl;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
 
-    public VerifierManager(String issuerServiceUrl) {
-        this.issuerServiceUrl = issuerServiceUrl;
+    public BusinessVerifier(String verifierServiceUrl) {
+        this.verifierServiceUrl = verifierServiceUrl;
         configureApis();
     }
 
@@ -237,7 +237,7 @@ public class VerifierManager {
             builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
         }
         RestClient restClient = builder.build();
-        var apiClient = new ApiClient(restClient).setBasePath(issuerServiceUrl);
+        var apiClient = new ApiClient(restClient).setBasePath(verifierServiceUrl);
         applyStoredBearerToken(apiClient);
         managementApi = new VerifierManagementApiApi(apiClient);
         actuatorApi = new ActuatorApi(apiClient);

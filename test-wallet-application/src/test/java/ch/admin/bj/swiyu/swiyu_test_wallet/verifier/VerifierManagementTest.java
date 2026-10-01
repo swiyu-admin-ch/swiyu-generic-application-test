@@ -46,7 +46,7 @@ class VerifierManagementTest extends BaseTest {
 
         // GIVEN
         final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest()
                 .acceptedIssuerDid(acceptedIssuerDid)
                 .withUniversityDCQL();
@@ -140,7 +140,7 @@ class VerifierManagementTest extends BaseTest {
 
         // GIVEN
         final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid(acceptedIssuerDid)
                 .dcqlQuery(null);
@@ -175,7 +175,7 @@ class VerifierManagementTest extends BaseTest {
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
 
         // GIVEN – verifier initiates verification
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL();

@@ -15,7 +15,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
@@ -105,7 +105,7 @@ public class BaseTest {
     @Getter protected VerifierHandle currentVerifier;
     protected BusinessIssuer issuerManager;
     protected IssuanceService issuanceService;
-    protected VerifierManager verifierManager;
+    protected BusinessVerifier verifierManager;
     protected RestClient restClient;
     protected Statement stmt;
     protected PrivateKey jwtKey;

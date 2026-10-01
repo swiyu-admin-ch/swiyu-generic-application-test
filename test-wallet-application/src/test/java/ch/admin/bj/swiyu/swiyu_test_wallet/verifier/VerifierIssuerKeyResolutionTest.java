@@ -172,7 +172,7 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
             final TrustedIssuerConfiguration trustedIssuerConfiguration,
             final String trustedIssuerDid
     ) {
-        final VerifierManager.VerificationRequestBuilder requestBuilder = verifierManager.verificationRequest()
+        final BusinessVerifier.VerificationRequestBuilder requestBuilder = verifierManager.verificationRequest()
                 .withDCQL();
 
         switch (trustedIssuerConfiguration) {

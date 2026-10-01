@@ -104,7 +104,7 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
                 .queryParam("session_nonce", sessionNonce)
                 .build()
                 .toUri();
-        final VerifierManager.VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
+        final BusinessVerifier.VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL();
         if (withRedirectUri) {

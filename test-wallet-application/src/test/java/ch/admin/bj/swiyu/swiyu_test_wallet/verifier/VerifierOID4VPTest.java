@@ -65,7 +65,7 @@ class VerifierOID4VPTest extends BaseTest {
     void walletFetchesSignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid("did:swiyu:university")
                 .withUniversityDCQL()
@@ -156,7 +156,7 @@ class VerifierOID4VPTest extends BaseTest {
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(false)
                 .acceptedIssuerDid("did:swiyu:university")
                 .withUniversityDCQL()

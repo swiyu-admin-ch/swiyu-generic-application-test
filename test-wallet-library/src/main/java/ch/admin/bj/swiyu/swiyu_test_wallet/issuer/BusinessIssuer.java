@@ -19,9 +19,9 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
-import static io.netty.handler.codec.http.HttpHeaders.Values.APPLICATION_JSON;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.security.PrivateKey;
@@ -44,17 +44,14 @@ public class BusinessIssuer {
     private IssuerConfig issuerConfig;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
+    /** For the management calls authenticated by a signed JWT in the body: no default headers, same trace as the others. */
+    private RestClient signedJwtClient;
     private Consumer<StatusList> statusListCreatedListener = ignored -> { };
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
         configureApis();
     }
-
-    private void applyJwt(String jwt) {
-        useBearerToken(jwt);
-    }
-
     public void useBearerToken(String token) {
         bearerToken = token;
         configureApis();
@@ -101,7 +98,7 @@ public class BusinessIssuer {
     }
 
     public StatusList createStatusList(int size, int bits, String jwt) {
-        applyJwt(jwt);
+        useBearerToken(jwt);
 
         ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate statusListCreate = new ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate();
         statusListCreate.setMaxLength(size);
@@ -149,19 +146,20 @@ public class BusinessIssuer {
 
     public void updateState(UUID id,
                             ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
-        updateVcStatus(id, newState);
+        updateCredentialStatus(id, newState);
+    }
+
+    public UpdateStatusResponse updateCredentialStatus(
+            UUID id,
+            ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
+        return credentialApi.updateCredentialStatus(id, newState);
     }
 
     public CredentialManagementDto getCredentialById(UUID id) {
         return credentialApi.getCredentialInformation(id);
     }
-
     public CredentialInfoResponse getCredentialOfferById(UUID managementId, UUID offerId) {
         return credentialApi.getCredentialOfferInformation(managementId, offerId);
-    }
-
-    public StatusResponse getStatusById(UUID id) {
-        return credentialApi.getCredentialStatus(id);
     }
 
     public StatusResponse getCredentialOfferStatusById(UUID managementId, UUID offerId) {
@@ -172,6 +170,9 @@ public class BusinessIssuer {
         return statusListApi.getStatusListInformation(statusListId);
     }
 
+    public StatusResponse getStatusById(UUID id) {
+        return credentialApi.getCredentialStatus(id);
+    }
     public StatusList updateStatusListRegistryEntry(UUID statusListId, StatusListUpdate statusListUpdate) {
         return statusListApi.updateStatusListRegistryEntry(statusListId, statusListUpdate);
     }
@@ -184,18 +185,6 @@ public class BusinessIssuer {
     public UpdateStatusResponse updateCredentialForDeferredFlowRequestCreation(UUID id, Map<String, Object> body) {
         return credentialApi.updateCredentialForDeferredFlow(id, JsonConverter.toJsonString(body));
     }
-
-    public void updateVcStatus(UUID id,
-                               ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
-        updateCredentialStatus(id, newState);
-    }
-
-    public UpdateStatusResponse updateCredentialStatus(
-            UUID id,
-            ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType newState) {
-        return credentialApi.updateCredentialStatus(id, newState);
-    }
-
     public Map<String, Object> health() {
         return (Map<String, Object>) actuatorApi.health();
     }
@@ -218,21 +207,16 @@ public class BusinessIssuer {
             throw new IllegalStateException(e);
         }
 
-        final RestClient restClient = RestClient.builder().build();
+        final RestClient restClient = signedJwtClient;
         final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/status-list";
         final StatusList response = restClient.post()
                 .uri(url)
-                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(jwt)
                 .retrieve()
                 .body(StatusList.class);
         return rememberStatusList(response);
     }
-
-    public CredentialWithDeeplinkResponse createDeferredCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
-        return createCredentialWithSignedJwt(privateKey, keyId, supportedMetadataId, true);
-    }
-
     public CredentialWithDeeplinkResponse createCredentialWithSignedJwt(final PrivateKey privateKey, final String keyId, final String supportedMetadataId) {
         return createCredentialWithSignedJwt(privateKey, keyId, supportedMetadataId, false);
     }
@@ -245,11 +229,11 @@ public class BusinessIssuer {
             throw new IllegalStateException(e);
         }
 
-        final RestClient restClient = RestClient.builder().build();
+        final RestClient restClient = signedJwtClient;
         final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials";
         return restClient.post()
                 .uri(url)
-                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(jwt)
                 .retrieve()
                 .body(CredentialWithDeeplinkResponse.class);
@@ -264,12 +248,12 @@ public class BusinessIssuer {
             throw new IllegalStateException("Cannot sign JWT", e);
         }
 
-        final RestClient restClient = RestClient.builder().build();
+        final RestClient restClient = signedJwtClient;
         final String url = issuerConfig.getIssuerServiceUrl() + "/management/api/credentials/" + id +
                           "/status?credentialStatus=" + newState;
         restClient.patch()
                 .uri(url)
-                .header(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .body(jwt)
                 .retrieve()
                 .toBodilessEntity();
@@ -364,6 +348,11 @@ public class BusinessIssuer {
             builder = builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
         }
         RestClient restClient = builder.build();
+        final RestClient.Builder signedJwtBuilder = RestClient.builder();
+        if (traceInterceptor != null) {
+            signedJwtBuilder.requestInterceptor(traceInterceptor);
+        }
+        signedJwtClient = signedJwtBuilder.build();
         var apiClient = new ApiClient(restClient).setBasePath(issuerConfig.getIssuerServiceUrl());
         applyStoredBearerToken(apiClient);
         credentialApi = new CredentialApiApi(apiClient);

@@ -7,7 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -107,7 +107,7 @@ public final class VerifierRuntimeFactory {
             final StartRequest request,
             final GenericContainer<?> container,
             final ManagementAuthConfig managementAuthConfig) {
-        final VerifierManager manager = new VerifierManager(serviceUrl(container));
+        final BusinessVerifier manager = new BusinessVerifier(serviceUrl(container));
         final String managementAccessToken = configureManagementAccess(
                 request.variant(),
                 manager,
@@ -127,7 +127,7 @@ public final class VerifierRuntimeFactory {
 
     private String configureManagementAccess(
             final VerifierVariant variant,
-            final VerifierManager manager,
+            final BusinessVerifier manager,
             final ManagementAuthConfig managementAuthConfig) {
         if (!variant.requiresKeycloak()) {
             return null;

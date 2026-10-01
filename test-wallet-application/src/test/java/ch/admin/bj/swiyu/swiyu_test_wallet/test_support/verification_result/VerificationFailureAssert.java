@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result;
 import ch.admin.bj.swiyu.gen.verifier.model.CredentialEvaluation;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
@@ -38,7 +38,7 @@ public final class VerificationFailureAssert {
      */
     public static void assertRejected(
             final Runnable submission,
-            final VerifierManager verifierManager,
+            final BusinessVerifier verifierManager,
             final UUID verificationId,
             final Consumer<HttpClientErrorException> legacyErrorAssertions,
             final Consumer<CredentialEvaluation> evaluationAssertions
