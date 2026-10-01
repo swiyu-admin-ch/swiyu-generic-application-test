@@ -249,7 +249,7 @@ The following environment variables can be used to configure the test execution:
 | `ISSUER_IMAGE_TAG` | Docker image tag for the Issuer service | `dev` | `dev`, `stable`, `rc`, `staging` |
 | `VERIFIER_IMAGE_NAME` | Docker image name for the Verifier service | `ghcr.io/swiyu-admin-ch/swiyu-verifier` | `ghcr.io/swiyu-admin-ch/swiyu-verifier` |
 | `VERIFIER_IMAGE_TAG` | Docker image tag for the Verifier service | `dev` | `dev`, `stable`, `rc`, `staging` |
-| `TRACE_TEST_REQUESTS` | Enable stack trace logging for each test | `false` | `true`, `false` |
+| `TRACE_TEST_REQUESTS` | Write the HTTP requests and responses of each test (Wallet, Issuer Management API, Verifier Management API) to a Markdown trace | `false` | `true`, `false` |
 | `ISSUER_CONTAINER_LOGS` | Enable Issuer container logs | `true` | `true`, `false` |
 | `VERIFIER_CONTAINER_LOGS` | Enable Verifier container logs | `true` | `true`, `false` |
 | `DB_CONTAINER_LOGS` | Enable PostgreSQL container logs | `false` | `true`, `false` |
@@ -260,9 +260,9 @@ Container logs are controlled per service. Issuer and Verifier logs are enabled 
 
 ### Trace Output
 
-When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated during test execution. These traces are saved as Markdown files in the `target/traces/` directory, organized by test name. This feature is particularly useful for understanding the flow of happy path tests and debugging.
+When `TRACE_TEST_REQUESTS=true` is set, the HTTP requests and responses exchanged by the Wallet and by the Issuer and Verifier Management API clients are recorded during test execution. They are saved as Markdown files in `test-wallet-application/target/request-traces/`, one file per test (`<TestClass>/<method>.md`, with an index suffix for parameterized tests). This feature is particularly useful for understanding the flow of happy path tests and debugging.
 
-**Note**: Enabling tracing may cause some edge case tests to fail. It is recommended to use tracing primarily for analyzing happy path test flows.
+**Note**: Enabling tracing changes the HTTP client used by the Wallet, and some tests then fail. Observed on 2026-10-01 with the full suite: six DPoP tests that expect a `401` error body (`DPoPFlowTest` and `RenewalFlowTest`) fail with tracing enabled, because the recorded `401` response has an empty body, while they pass without tracing. It is recommended to use tracing primarily for analyzing happy path test flows.
 
 ## Version Regression Tests
 
