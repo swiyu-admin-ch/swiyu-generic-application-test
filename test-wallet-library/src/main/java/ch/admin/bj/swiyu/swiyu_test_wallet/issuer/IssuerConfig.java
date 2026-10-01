@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HsmExportedKeyLoader;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import lombok.Builder;
 import lombok.Data;
@@ -62,7 +62,7 @@ public class IssuerConfig {
                 .issuerRegistryEntry(identifierRegistryUrl.toString())
                 .issuerDid(issuerDid)
                 .issuerDidLog(didLog)
-                .mockServerUri(String.format("http://%s", MockServerClientConfig.MOCKSERVER_HOST))
+                .mockServerUri(String.format("http://%s", MockServices.MOCKSERVER_HOST))
                 .issuerAssertKeyId(issuerDid + "#assert-key-01")
                 .issuerAuthKeyId(issuerDid + "#auth-key-01")
                 .issuerAssertKeyPemString(assertKeyPem)

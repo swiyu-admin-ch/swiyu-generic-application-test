@@ -1,7 +1,10 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config;
+package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustRegistryMockServerConfigurer;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustRegistryMockServerConfigurer;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -43,7 +46,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 @Getter
 @Setter
 @Slf4j
-public class MockServerClientConfig {
+public class MockServices {
 
     @SuppressWarnings("java:S1075") // Constant URI is intentional: used only in test/support context
     public static final String ISSUER_CALLBACK_PATH = "/callbacks/issuer";
@@ -437,7 +440,7 @@ public class MockServerClientConfig {
     private IssuerConfig firstIssuerConfig() {
         return issuerConfigsByDid.values().stream()
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No issuer config registered in MockServerClientConfig"));
+                .orElseThrow(() -> new IllegalStateException("No issuer config registered in MockServices"));
     }
 
     private IssuerConfig issuerConfigForStatusList(final HttpRequest httpRequest) {

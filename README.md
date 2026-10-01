@@ -203,7 +203,7 @@ Add issuer configurations through `IssuerVariant`.
 2. Give it a unique `surname`; this becomes part of the container/schema identity.
 3. Set the variant flags, such as DPoP enforcement, signed metadata, JWT management auth, encryption enforcement, or HSM.
 4. Extend `IssuerImageConfig` and `IssuerContainerConfig` only if the new variant requires a new environment variable.
-5. Update `MockServerClientConfig` or `SwiyuEnvironmentRegistry` only if the variant needs new mocked external behavior.
+5. Update `MockServices` or `SwiyuEnvironmentRegistry` only if the variant needs new mocked external behavior.
 6. Use the variant from tests with `@UseIssuers(...)`.
 7. Run a targeted test first, then broaden to the full application suite if the change affects shared environment behavior.
 

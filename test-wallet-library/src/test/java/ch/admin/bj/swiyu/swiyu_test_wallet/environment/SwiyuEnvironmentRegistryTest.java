@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -76,7 +76,7 @@ class SwiyuEnvironmentRegistryTest {
                 mock(PostgreSQLContainer.class),
                 mock(MockServerContainer.class),
                 mock(MockServerClient.class),
-                mock(MockServerClientConfig.class),
+                mock(MockServices.class),
                 mock(TrustConfig.class),
                 mock(MockAttestationAuthority.class),
                 new IssuerImageConfig(),

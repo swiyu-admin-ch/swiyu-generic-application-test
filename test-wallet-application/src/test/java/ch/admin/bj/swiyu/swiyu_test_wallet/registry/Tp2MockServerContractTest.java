@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import tools.jackson.core.type.TypeReference;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -67,7 +67,7 @@ class Tp2MockServerContractTest extends BaseTest {
         }
 
         // When
-        mockServerClientConfig.registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
+        mockServices.registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
 
         // Then
         final String restoredStatusList = client.get().uri(statusListPath).retrieve().body(String.class);

@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass

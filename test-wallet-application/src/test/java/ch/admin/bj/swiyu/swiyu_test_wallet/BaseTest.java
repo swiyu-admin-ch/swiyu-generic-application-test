@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
@@ -46,8 +48,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.VERIFIER_CALLBACK_PATH;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
@@ -90,7 +92,7 @@ public class BaseTest {
     protected PostgreSQLContainer<?> dbTestContainer;
     protected MockServerContainer mockServerContainer;
     @Autowired
-    protected MockServerClientConfig mockServerClientConfig;
+    protected MockServices mockServices;
     protected MockAttestationAuthority mockAttestationAuthority;
     protected IssuerConfig issuerConfig;
     protected VerifierConfig verifierConfig;
@@ -116,16 +118,16 @@ public class BaseTest {
 
     @BeforeEach
     protected void resetIssuerCallbacks() {
-        mockServerClientConfig.clearIssuerCallbacks();
+        mockServices.clearIssuerCallbacks();
     }
 
     protected void cleanIssuerCallbacks() {
         awaitStableIssuerCallbacks();
-        mockServerClientConfig.clearIssuerCallbacks();
+        mockServices.clearIssuerCallbacks();
     }
 
     protected List<WebhookCallback> issuerCallbacks() {
-        return mockServerClientConfig.getIssuerCallbacks();
+        return mockServices.getIssuerCallbacks();
     }
 
     protected void setCurrentStatusList(StatusList currentStatusList) {
@@ -133,7 +135,7 @@ public class BaseTest {
             throw new IllegalArgumentException("currentStatusList cannot be null");
         }
         this.currentStatusList = currentStatusList;
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 issuerConfig.getIssuerDid(),
                 String.valueOf(currentStatusList.getStatusRegistryUrl())
         );
@@ -259,7 +261,7 @@ public class BaseTest {
         keyId = issuer.keyId();
         issuerManagementAccessToken = issuer.managementAccessToken();
         managementAuthConfig = issuer.managementAuthConfig();
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 issuerConfig.getIssuerDid(),
                 String.valueOf(currentStatusList.getStatusRegistryUrl())
         );

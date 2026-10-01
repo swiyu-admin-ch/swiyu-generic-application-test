@@ -33,7 +33,7 @@ class VerifierSignatureValidationTest extends BaseTest {
 
     @AfterEach
     void restoreValidStatusListSignature() {
-        mockServerClientConfig.disableCorruptStatusListSignature();
+        mockServices.disableCorruptStatusListSignature();
     }
 
     @ParameterizedTest(name = "[{index}] reject {0}")
@@ -106,7 +106,7 @@ class VerifierSignatureValidationTest extends BaseTest {
     ) {
         switch (signatureFailure) {
             case CREDENTIAL_SIGNATURE -> replaceCredentialWithCorruptedSignature(batchEntry);
-            case STATUS_LIST_SIGNATURE -> mockServerClientConfig.enableCorruptStatusListSignature();
+            case STATUS_LIST_SIGNATURE -> mockServices.enableCorruptStatusListSignature();
         }
     }
 

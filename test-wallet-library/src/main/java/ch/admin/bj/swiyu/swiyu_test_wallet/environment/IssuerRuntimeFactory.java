@@ -6,7 +6,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
@@ -38,7 +38,7 @@ public final class IssuerRuntimeFactory {
     private final Network network;
     private final PostgreSQLContainer<?> dbContainer;
     private final MockServerContainer mockServerContainer;
-    private final MockServerClientConfig mockServerClientConfig;
+    private final MockServices mockServices;
     private final ContainerLogConfig containerLogConfig;
     private final String tokenDirPath;
     private final MockAttestationAuthority mockAttestationAuthority;
@@ -48,7 +48,7 @@ public final class IssuerRuntimeFactory {
             final Network network,
             final PostgreSQLContainer<?> dbContainer,
             final MockServerContainer mockServerContainer,
-            final MockServerClientConfig mockServerClientConfig,
+            final MockServices mockServices,
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final MockAttestationAuthority mockAttestationAuthority,
@@ -56,7 +56,7 @@ public final class IssuerRuntimeFactory {
         this.network = network;
         this.dbContainer = dbContainer;
         this.mockServerContainer = mockServerContainer;
-        this.mockServerClientConfig = mockServerClientConfig;
+        this.mockServices = mockServices;
         this.containerLogConfig = containerLogConfig;
         this.tokenDirPath = tokenDirPath;
         this.mockAttestationAuthority = mockAttestationAuthority;
@@ -74,7 +74,7 @@ public final class IssuerRuntimeFactory {
         final IssuerVariant variant = request.variant();
         final ManagementAuthConfig managementAuthConfig = supportServices.managementAuth(variant.requiresKeycloak());
 
-        mockServerClientConfig.registerIssuer(request.config());
+        mockServices.registerIssuer(request.config());
         final GenericContainer<?> container = createContainer(request, managementAuthConfig);
 
         if (variant == IssuerVariant.RENEWAL_API_KEY || variant == IssuerVariant.RENEWAL_WEBHOOK_ONLY) {
@@ -148,7 +148,7 @@ public final class IssuerRuntimeFactory {
                 managementAuthConfig
         );
         final PrivateKey jwtKey = managementJwtKey(imageConfig);
-        manager.onStatusListCreated(statusList -> mockServerClientConfig.setCurrentStatusList(
+        manager.onStatusListCreated(statusList -> mockServices.setCurrentStatusList(
                 config.getIssuerDid(),
                 String.valueOf(statusList.getStatusRegistryUrl())
         ));

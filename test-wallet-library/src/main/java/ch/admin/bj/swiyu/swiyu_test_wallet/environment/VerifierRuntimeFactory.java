@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
@@ -27,20 +27,20 @@ public final class VerifierRuntimeFactory {
     private final Network network;
     private final PostgreSQLContainer<?> dbContainer;
     private final ContainerLogConfig containerLogConfig;
-    private final MockServerClientConfig mockServerClientConfig;
+    private final MockServices mockServices;
     private final String tokenDirPath;
     private final EnvironmentSupportServices supportServices;
 
     public VerifierRuntimeFactory(
             final Network network,
             final PostgreSQLContainer<?> dbContainer,
-            final MockServerClientConfig mockServerClientConfig,
+            final MockServices mockServices,
             final ContainerLogConfig containerLogConfig,
             final String tokenDirPath,
             final EnvironmentSupportServices supportServices) {
         this.network = network;
         this.dbContainer = dbContainer;
-        this.mockServerClientConfig = mockServerClientConfig;
+        this.mockServices = mockServices;
         this.containerLogConfig = containerLogConfig;
         this.tokenDirPath = tokenDirPath;
         this.supportServices = supportServices;
@@ -56,7 +56,7 @@ public final class VerifierRuntimeFactory {
         Objects.requireNonNull(request, "request");
         final VerifierVariant variant = request.variant();
         final ManagementAuthConfig managementAuthConfig = supportServices.managementAuth(variant.requiresKeycloak());
-        mockServerClientConfig.registerVerifier(request.config());
+        mockServices.registerVerifier(request.config());
 
         final GenericContainer<?> container = createContainer(request, managementAuthConfig);
 

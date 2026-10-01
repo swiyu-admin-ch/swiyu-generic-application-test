@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
+package ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import tools.jackson.core.JacksonException;

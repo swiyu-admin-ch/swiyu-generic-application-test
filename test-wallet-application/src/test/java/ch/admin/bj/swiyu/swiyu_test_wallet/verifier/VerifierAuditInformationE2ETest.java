@@ -6,7 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -99,7 +99,7 @@ class VerifierAuditInformationE2ETest extends BaseTest {
         } else {
             request.trustAnchor(new TrustAnchor()
                     .did(verifierConfig.getVerifierDid())
-                    .trustRegistryUri("https://" + MockServerClientConfig.MOCKSERVER_HOST + "/untrusted"));
+                    .trustRegistryUri("https://" + MockServices.MOCKSERVER_HOST + "/untrusted"));
         }
         request.getRequest().getDcqlQuery().getCredentials().getFirst().id(QUERY_ID);
         final var verification = request.createManagementResponse();

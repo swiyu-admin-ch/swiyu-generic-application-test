@@ -9,7 +9,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil;
@@ -266,7 +266,7 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     private Ed25519Issuer createEd25519Issuer() throws JOSEException {
         final URI registryEntry = URI.create(
                 "https://%s/api/v1/did/%s".formatted(
-                        MockServerClientConfig.MOCKSERVER_HOST,
+                        MockServices.MOCKSERVER_HOST,
                         UUID.randomUUID()
                 )
         );
@@ -275,7 +275,7 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
         final String didLog = DidLogUtil.createDidLog(authenticationKey, assertionKey, registryEntry);
         final String did = DidLogUtil.getDidFromDidLog(didLog);
 
-        mockServerClientConfig.replaceDidLog(did, didLog);
+        mockServices.replaceDidLog(did, didLog);
         return new Ed25519Issuer(did, did + "#assert-key-01", assertionKey);
     }
 

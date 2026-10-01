@@ -1,9 +1,9 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config;
+package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
 import org.junit.jupiter.api.Test;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.VERIFIER_CALLBACK_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * count the requests received on each path. If both used the same path, a Verifier callback would be counted as an
  * Issuer callback (and the other way round), and callback assertions could pass or fail for the wrong component.
  */
-class MockServerCallbackPathsTest {
+class MockServicesCallbackPathsTest {
 
     @Test
     void issuerAndVerifierCallbacksUseDistinctMockServerPaths() {

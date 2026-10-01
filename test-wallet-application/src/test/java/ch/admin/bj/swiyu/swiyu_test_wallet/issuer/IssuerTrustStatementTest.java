@@ -13,9 +13,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustConfigFactory;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementAlgorithm;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustConfigFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementAlgorithm;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -50,12 +50,12 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.IDENTITY;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.PROTECTED_ISSUANCE_AUTHORIZATION;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.IDENTITY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.PROTECTED_ISSUANCE_AUTHORIZATION;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -570,7 +570,7 @@ public class IssuerTrustStatementTest extends BaseTest {
             );
             final TrustConfig agileTrustConfig =
                     Tp2TrustConfigFactory.createEd25519TrustConfig(didRegistryEntry);
-            mockServerClientConfig.replaceDidLog(
+            mockServices.replaceDidLog(
                     agileTrustConfig.getTrustDid(),
                     agileTrustConfig.getTrustDidLog()
             );

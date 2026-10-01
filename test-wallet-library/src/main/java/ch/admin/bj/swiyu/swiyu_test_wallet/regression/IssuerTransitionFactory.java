@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.regression;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
@@ -53,7 +53,7 @@ final class IssuerTransitionFactory {
 
         final IssuerConfig logicalConfig = EnvironmentConfig.createIssuerConfig(
                 toUri("https://%s/api/v1/did/%s".formatted(
-                        MockServerClientConfig.MOCKSERVER_HOST,
+                        MockServices.MOCKSERVER_HOST,
                         UUID.randomUUID()
                 )),
                 false,

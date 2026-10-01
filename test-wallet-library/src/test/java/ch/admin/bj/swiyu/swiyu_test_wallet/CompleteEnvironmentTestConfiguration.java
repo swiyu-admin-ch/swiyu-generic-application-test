@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.EnvironmentSupportServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
@@ -38,7 +40,7 @@ public class CompleteEnvironmentTestConfiguration {
     private static PostgreSQLContainer<?> sharedDbTestContainer;
     private static TrustConfig sharedTrustConfig;
     private static MockAttestationAuthority sharedMockAttestationAuthority;
-    private static MockServerClientConfig sharedMockServerClientConfig;
+    private static MockServices sharedMockServerClientConfig;
     private static MockServerContainer sharedMockServer;
     private static MockServerClient sharedMockServerClient;
     private static SwiyuEnvironmentRegistry sharedEnvironmentRegistry;
@@ -86,7 +88,7 @@ public class CompleteEnvironmentTestConfiguration {
             Network network,
             PostgreSQLContainer<?> dbTestContainer,
             MockServerContainer mockServer,
-            MockServerClientConfig mockServerClientConfig,
+            MockServices mockServices,
             ContainerLogConfig containerLogConfig,
             String tokenDirPath,
             MockAttestationAuthority mockAttestationAuthority,
@@ -95,7 +97,7 @@ public class CompleteEnvironmentTestConfiguration {
                 network,
                 dbTestContainer,
                 mockServer,
-                mockServerClientConfig,
+                mockServices,
                 containerLogConfig,
                 tokenDirPath,
                 mockAttestationAuthority,
@@ -107,14 +109,14 @@ public class CompleteEnvironmentTestConfiguration {
     public VerifierRuntimeFactory verifierRuntimeFactory(
             Network network,
             PostgreSQLContainer<?> dbTestContainer,
-            MockServerClientConfig mockServerClientConfig,
+            MockServices mockServices,
             ContainerLogConfig containerLogConfig,
             String tokenDirPath,
             EnvironmentSupportServices environmentSupportServices) {
         return new VerifierRuntimeFactory(
                 network,
                 dbTestContainer,
-                mockServerClientConfig,
+                mockServices,
                 containerLogConfig,
                 tokenDirPath,
                 environmentSupportServices
@@ -148,7 +150,7 @@ public class CompleteEnvironmentTestConfiguration {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedTrustConfig == null) {
                 UUID id = UUID.randomUUID();
-                sharedTrustConfig = EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+                sharedTrustConfig = EnvironmentConfig.createTrustConfig(toUri(String.format("https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, id)));
             }
             return sharedTrustConfig;
         }
@@ -159,17 +161,17 @@ public class CompleteEnvironmentTestConfiguration {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedMockAttestationAuthority == null) {
                 UUID id = UUID.randomUUID();
-                sharedMockAttestationAuthority = new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, id)));
+                sharedMockAttestationAuthority = new MockAttestationAuthority(toUri(String.format("https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, id)));
             }
             return sharedMockAttestationAuthority;
         }
     }
 
     @Bean
-    public MockServerClientConfig mockServerClientConfig() {
+    public MockServices mockServices() {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedMockServerClientConfig == null) {
-                sharedMockServerClientConfig = new MockServerClientConfig();
+                sharedMockServerClientConfig = new MockServices();
             }
             return sharedMockServerClientConfig;
         }
@@ -194,11 +196,11 @@ public class CompleteEnvironmentTestConfiguration {
     public MockServerClient mockServerClient(
             MockServerContainer mockServer,
             TrustConfig trustConfig,
-            MockServerClientConfig mockServerClientConfig,
+            MockServices mockServices,
             MockAttestationAuthority mockAttestationAuthority) {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedMockServerClient == null || !mockServer.isRunning()) {
-                sharedMockServerClient = mockServerClientConfig.createMockServerClient(mockServer, trustConfig, mockAttestationAuthority);
+                sharedMockServerClient = mockServices.createMockServerClient(mockServer, trustConfig, mockAttestationAuthority);
             }
             return sharedMockServerClient;
         }
@@ -210,7 +212,7 @@ public class CompleteEnvironmentTestConfiguration {
             PostgreSQLContainer<?> dbTestContainer,
             MockServerContainer mockServer,
             MockServerClient mockServerClient,
-            MockServerClientConfig mockServerClientConfig,
+            MockServices mockServices,
             TrustConfig trustConfig,
             MockAttestationAuthority mockAttestationAuthority,
             IssuerImageConfig issuerImageConfig,
@@ -224,7 +226,7 @@ public class CompleteEnvironmentTestConfiguration {
                         dbTestContainer,
                         mockServer,
                         mockServerClient,
-                        mockServerClientConfig,
+                        mockServices,
                         trustConfig,
                         mockAttestationAuthority,
                         issuerImageConfig,

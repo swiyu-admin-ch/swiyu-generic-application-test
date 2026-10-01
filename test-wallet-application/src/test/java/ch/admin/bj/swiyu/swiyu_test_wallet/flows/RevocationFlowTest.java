@@ -340,14 +340,14 @@ public class RevocationFlowTest extends BaseTest {
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // Given
-        mockServerClientConfig.enableStatusListError();
+        mockServices.enableStatusListError();
 
         // When
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
             issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
         });
 
-        mockServerClientConfig.disableStatusListError();
+        mockServices.disableStatusListError();
 
         // Then - Update should contains error
         ApiErrorAssert.assertThat(ex)

@@ -8,7 +8,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -129,12 +129,12 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
     private AttackerIssuer createResolvableUntrustedIssuer() {
         final URI registryEntry = URI.create(
                 "https://%s/api/v1/did/%s".formatted(
-                        MockServerClientConfig.MOCKSERVER_HOST,
+                        MockServices.MOCKSERVER_HOST,
                         UUID.randomUUID()
                 )
         );
         final IssuerConfig attackerConfig = IssuerConfig.createIssuerConfig(registryEntry, false, null);
-        mockServerClientConfig.replaceDidLog(attackerConfig.getIssuerDid(), attackerConfig.getIssuerDidLog());
+        mockServices.replaceDidLog(attackerConfig.getIssuerDid(), attackerConfig.getIssuerDidLog());
         return new AttackerIssuer(attackerConfig, registryEntry.getPath() + "/did.jsonl");
     }
 
@@ -181,7 +181,7 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
                     new TrustAnchor()
                             .did(trustedIssuerDid)
                             .trustRegistryUri("https://%s/untrusted".formatted(
-                                    MockServerClientConfig.MOCKSERVER_HOST
+                                    MockServices.MOCKSERVER_HOST
                             ))
             );
         }

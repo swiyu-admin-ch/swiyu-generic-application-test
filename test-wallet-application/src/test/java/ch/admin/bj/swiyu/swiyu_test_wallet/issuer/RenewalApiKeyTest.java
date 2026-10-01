@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures.RENEWAL_HEADER;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures.RENEWAL_VALUE;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures.WEBHOOK_HEADER;

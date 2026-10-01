@@ -92,7 +92,7 @@ class MultipleSigningKeysE2ETest extends BaseTest {
                 .issuerDid(migrationIdentity.getIssuerDid())
                 .verificationMethod(migrationIdentity.getIssuerAuthKeyId());
         final StatusList migrationStatusList = issuerManager.createStatusList(100000, 2, statusListOverride);
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 migrationIdentity.getIssuerDid(),
                 migrationStatusList.getStatusRegistryUrl()
         );

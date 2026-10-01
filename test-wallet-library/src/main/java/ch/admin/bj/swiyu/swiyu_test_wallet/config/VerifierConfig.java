@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+
 import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,7 +38,7 @@ public class VerifierConfig {
         var verifierDid = getDidFromDidLog(didLog);
 
         return VerifierConfig.builder()
-                .mockServerUri(String.format("http://%s", MockServerClientConfig.MOCKSERVER_HOST))
+                .mockServerUri(String.format("http://%s", MockServices.MOCKSERVER_HOST))
                 .verifierDid(verifierDid)
                 .verifierDidLog(didLog)
                 .verifierAuthKeyId(verifierDid + "#auth-key-01")

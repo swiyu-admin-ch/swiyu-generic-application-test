@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2;
+package ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2;
 
 /**
  * Signature algorithms exposed by the TP2 Trust Registry test double.
