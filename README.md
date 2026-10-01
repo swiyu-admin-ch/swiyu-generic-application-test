@@ -118,6 +118,16 @@ This is a **multi-module Maven project** organized as follows:
 - **test-wallet-library**: Contains reusable components including utilities, fixtures, test data builders, assertion helpers, and container configuration
 - **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using the Spring Boot Test framework with environment annotations for component variants
 
+The main packages of `test-wallet-library`:
+
+| Package | Content |
+|---------|---------|
+| `wallet` (with `credential`, `artefact`, `crypto`) | The fake Wallet. `Wallet` holds the settings and keys, `CredentialIssuerClient` (OID4VCI) and `VerifierClient` (OID4VP) talk to the components, `HeldCredential` is a credential with its holder key, and `artefact` builds DPoP proofs, key binding JWTs and SD-JWT credentials, with named deviations for negative tests. |
+| `issuer`, `verifier` | The Business Systems: `BusinessIssuer` and `BusinessVerifier` call the Management APIs of the generic Issuer and Verifier. |
+| `mock` (with `tp2`) | The external services simulated by MockServer: Base Registry, Status Registry, OAuth token endpoint, webhook callbacks, renewal service, and the Trust Protocol 2.0 registry. |
+| `environment`, `config`, `regression` | Containers, Issuer and Verifier variants, image configuration, and the Previous-to-Candidate version regression. |
+| `fixture`, `test_support`, `identity`, `util` | Test data, asserters and protocol parsers, DID and key helpers, and generic infrastructure. |
+
 ## Test Environment Model
 
 E2E tests extend `BaseTest`, which acts as the environment provider for the test class. A test class declares the generic components it needs, and `BaseTest` ensures that the matching infrastructure and containers are running before the tests execute.
@@ -163,6 +173,22 @@ class SharedServiceContractTest extends BaseTest {
 ```
 
 Variants that require Keycloak or HSM start those shared services automatically.
+
+### Declaring The Wallet
+
+Before every test `BaseTest` creates a fresh `Wallet` from the profile the class declares. By default the wallet uses no DPoP
+and no payload encryption. Declare what the whole class needs with `@UseWallet`:
+
+```java
+@UseWallet(dpop = true, encryption = true)
+class SignedRenewalFlowTest extends BaseTest {
+    // every test starts with a wallet that sends DPoP proofs and encrypts its payloads
+}
+```
+
+A test that needs something else for itself changes its own wallet (`wallet.setUseDPoP(true)`); nothing leaks into the next
+test. For a deliberate protocol violation use the builders in `wallet.artefact` (`DpopProof`, `KeyBindingJwt`,
+`SdJwtCredential`) and name the violated requirement in the test.
 
 ### Using Components In Tests
 
