@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
@@ -119,11 +120,6 @@ public class Wallet {
     public WalletBatchEntry createWalletBatchEntry() {
         return new WalletBatchEntry(this);
     }
-
-    public void generateDPoPKey() {
-        initializeDPoPKey();
-    }
-
     private void initializeDPoPKey() {
         dpopKeyPair = ECCryptoSupport.generateECKeyPair();
         dpopPublicKey = new ECKey.Builder(
@@ -141,21 +137,6 @@ public class Wallet {
     public String getIssuerCredentialUri(WalletEntry walletEntry) {
         return walletEntry.getIssuerCredentialUri().toString();
     }
-
-    private static String getPresentationSubmissionPayload() {
-        return toJsonNode("""
-                {
-                        "id": "test_ldp_vc_presentation_definition",
-                        "definition_id": "test_ldp_vc",
-                        "descriptor_map": [{
-                            "id": "test_descriptor",
-                            "format": "dc+sd-jwt",
-                            "path": "$"
-                        }]
-                    }
-                """).toString();
-    }
-
     public WalletBatchEntry collectTransactionIdFromDeferredOffer(final URI issuerDeepLink) {
         final WalletBatchEntry walletBatchEntry = createWalletBatchEntry();
         return collectTransactionIdFromDeferredOffer(walletBatchEntry, issuerDeepLink);
@@ -428,7 +409,7 @@ public class Wallet {
 
         if (useEncryption) {
             JWESupport.assertIsJWE(responseBody);
-            responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey());
+            responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
         }
 
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
@@ -790,7 +771,7 @@ public class Wallet {
         if (useEncryption) {
             try {
                 JWESupport.assertIsJWE(responseBody);
-                responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey());
+                responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
             } catch (Exception e) {
                 throw new IllegalStateException("Error decrypting credential response", e);
             }
@@ -958,7 +939,7 @@ public class Wallet {
             }
             final String vpTokenPayload =
                     new ObjectMapper().writeValueAsString(responsePayload);
-            return JweUtil.encrypt(vpTokenPayload, verifierPublicKey);
+            return WalletJwe.encrypt(vpTokenPayload, verifierPublicKey);
         } catch (Exception e) {
             throw new WalletEncryptionException("Failed to build encrypted VP token response (JWE creation failed)", e);
         }

@@ -1,7 +1,5 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import ch.admin.bj.swiyu.dpop.DpopConstants;
-import ch.admin.bj.swiyu.dpop.DpopHashUtil;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -19,6 +17,9 @@ import java.util.UUID;
 
 @UtilityClass
 public class DPoPSupport {
+
+    /** RFC 9449 §4.2. Written here, not read from {@code swiyu-dpop-util}, which the Credential Issuer validates with. */
+    private static final String DPOP_JWT_TYP = "dpop+jwt";
 
     public static String createDpopProofForToken(
             String uri,
@@ -42,12 +43,8 @@ public class DPoPSupport {
             ECKey dpopPublicJwk,
             String token
     ) {
-        final JWSAlgorithm algorithm = JWSAlgorithm.parse(
-                DpopConstants.SUPPORTED_ALGORITHMS.get(0)
-        );
-
-        final JWSHeader header = new JWSHeader.Builder(algorithm)
-                .type(new JOSEObjectType(DpopConstants.DPOP_JWT_HEADER_TYP))
+        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                .type(new JOSEObjectType(DPOP_JWT_TYP))
                 .jwk(dpopPublicJwk)
                 .build();
 
@@ -59,7 +56,7 @@ public class DPoPSupport {
                 .issueTime(new Date());
 
         if (token != null) {
-            claimsBuilder.claim("ath", DpopHashUtil.sha256(token));
+            claimsBuilder.claim("ath", Sha256Base64Url.ofUsAscii(token));
         }
 
         try {

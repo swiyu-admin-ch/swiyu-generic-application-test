@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.Sha256Base64Url;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -34,42 +35,21 @@ public class WalletBatchEntry extends WalletEntry {
 
     private record SdJwtParts(String jwt, List<String> disclosures) {}
 
-    private record DisclosureMatch(boolean matchedPath, boolean matchedValue, Set<String> satisfiedClaimKeys) {}
-
     private final List<KeyPair> holderKeyPairs = new ArrayList<>();
     private final List<ECKey> holderPublicKeys = new ArrayList<>();
     private final List<JwtProof> proofs = new ArrayList<>();
     private final List<String> issuedCredentials = new ArrayList<>();
-    private final List<String> sdJwts = new ArrayList<>();
 
     public WalletBatchEntry(Wallet wallet) {
         super(wallet);
     }
 
+    /** The whole credential, every Disclosure included, followed by a Key Binding JWT (RFC 9901 §4.3). */
     public String createPresentationForSdJwtIndex(final int index, RequestObject requestObject) {
         final String issuerSdJwt = issuedCredentials.get(index);
         final KeyPair keyPair = holderKeyPairs.get(index);
         try {
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("kb+jwt"))
-                    .build();
-
-            String sdJwtHash = hashSdJwt(issuerSdJwt);
-            String audience = requestObject.getClientId();
-            String nonce = requestObject.getNonce();
-
-            JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .claim("sd_hash", sdJwtHash)
-                    .audience(audience)
-                    .claim("nonce", nonce)
-                    .issueTime(new Date())
-                    .build();
-
-            SignedJWT signedJWT = new SignedJWT(header, claimsSet);
-            signedJWT.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
-
-            String serializedJwt = signedJWT.serialize();
-            return issuerSdJwt + serializedJwt;
+            return issuerSdJwt + buildKeyBindingJwt(issuerSdJwt, requestObject, keyPair);
         } catch (JOSEException e) {
             throw new IllegalStateException(e);
         }
@@ -94,13 +74,7 @@ public class WalletBatchEntry extends WalletEntry {
             final List<String> selectedDisclosures = new ArrayList<>();
 
             for (String disclosure : parts.disclosures()) {
-                final DisclosureMatch match = matchDisclosureToRequestedClaims(
-                        disclosure,
-                        digestToPath,
-                        requestedClaims
-                );
-
-                if (match.matchedPath()) {
+                if (matchesAnyRequestedPath(disclosure, digestToPath, requestedClaims)) {
                     selectedDisclosures.add(disclosure);
                 }
             }
@@ -164,7 +138,7 @@ public class WalletBatchEntry extends WalletEntry {
                 .type(new JOSEObjectType("kb+jwt"))
                 .build();
 
-        final String sdJwtHash = hashAsciiSha256Base64Url(filteredSdJwt);
+        final String sdJwtHash = Sha256Base64Url.ofUsAscii(filteredSdJwt);
 
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .claim("sd_hash", sdJwtHash)
@@ -178,17 +152,6 @@ public class WalletBatchEntry extends WalletEntry {
 
         return signedJWT.serialize();
     }
-
-    private String hashAsciiSha256Base64Url(String input) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(input.getBytes(StandardCharsets.US_ASCII));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     private JsonNode extractPayload(String jwt) {
         try {
             String[] parts = jwt.split("\\.");
@@ -264,7 +227,7 @@ public class WalletBatchEntry extends WalletEntry {
                     continue;
                 }
 
-                final String digest = hashAsciiSha256Base64Url(disclosure);
+                final String digest = Sha256Base64Url.ofUsAscii(disclosure);
                 final List<Object> parentPath = digestToPath.get(digest);
                 if (parentPath == null) {
                     continue;
@@ -327,47 +290,21 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
-    private DisclosureMatch matchDisclosureToRequestedClaims(
+    private boolean matchesAnyRequestedPath(
             String disclosure,
             Map<String, List<Object>> digestToPath,
             List<DcqlClaimDto> requestedClaims
     ) {
-        List<Object> actualPath = resolveDisclosurePath(disclosure, digestToPath);
-
+        final List<Object> actualPath = resolveDisclosurePath(disclosure, digestToPath);
         if (actualPath.isEmpty()) {
-            return new DisclosureMatch(false, false, Set.of());
+            return false;
         }
 
-        Set<String> satisfied = new HashSet<>();
-        boolean anyPathMatch = false;
-
-        for (int i = 0; i < requestedClaims.size(); i++) {
-            DcqlClaimDto claim = requestedClaims.get(i);
-            List<Object> requestedPath = claim.getPath();
-
-            if (requestedPath == null || requestedPath.isEmpty()) {
-                continue;
-            }
-
-            boolean pathMatches = matchesRequestedPath(actualPath, requestedPath);
-            if (!pathMatches) {
-                continue;
-            }
-
-            anyPathMatch = true;
-            satisfied.add(claimKey(i, claim));
-        }
-
-        return new DisclosureMatch(anyPathMatch, false, satisfied);
-    }
-    private Object extractDisclosedValue(List<Object> disclosureParts) {
-        if (disclosureParts.size() == 3) {
-            return disclosureParts.get(2);
-        }
-        if (disclosureParts.size() == 2) {
-            return disclosureParts.get(1);
-        }
-        throw new IllegalStateException("Unexpected disclosure format: " + disclosureParts);
+        return requestedClaims.stream()
+                .map(DcqlClaimDto::getPath)
+                .anyMatch(requestedPath -> requestedPath != null
+                        && !requestedPath.isEmpty()
+                        && matchesRequestedPath(actualPath, requestedPath));
     }
 
     private boolean matchesRequestedPath(
@@ -423,33 +360,11 @@ public class WalletBatchEntry extends WalletEntry {
 
         return false;
     }
-
-    private boolean matchesRequestedValues(Object disclosedValue, List<Object> requestedValues) {
-        if (requestedValues == null || requestedValues.isEmpty()) {
-            return true;
-        }
-
-        for (Object requestedValue : requestedValues) {
-            if (Objects.equals(disclosedValue, requestedValue)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private String claimKey(int index, DcqlClaimDto claim) {
-        if (claim.getId() != null && !claim.getId().isBlank()) {
-            return claim.getId();
-        }
-        return "claim-" + index + "-" + claim.getPath();
-    }
-
     private List<Object> resolveDisclosurePath(
             String disclosure,
             Map<String, List<Object>> digestToPath
     ) {
-        String digest = hashAsciiSha256Base64Url(disclosure);
+        String digest = Sha256Base64Url.ofUsAscii(disclosure);
         List<Object> parentPath = digestToPath.get(digest);
 
         if (parentPath == null) {
@@ -477,92 +392,6 @@ public class WalletBatchEntry extends WalletEntry {
 
         throw new IllegalStateException("Unexpected disclosure format: " + parts);
     }
-
-    private List<String> matchArrayElements(
-            final List<String> arrayElementDisclosures,
-            final List<Object> requestPath,
-            final List<Object> allowedValues
-    ) {
-        final List<String> matchedElements = new ArrayList<>();
-
-        Integer targetIndex = null;
-        boolean includeAllIndices = true;
-
-        if (requestPath.size() == 2) {
-            Object indexComponent = requestPath.get(1);
-            if (indexComponent instanceof Integer) {
-                targetIndex = (Integer) indexComponent;
-                includeAllIndices = false;
-                log.info("    Array with specific index: {}", targetIndex);
-            } else if (indexComponent == null) {
-                includeAllIndices = true;
-                log.info("    Array with wildcard index (null): all elements");
-            }
-        } else {
-            includeAllIndices = true;
-            log.info("    Array without index specification: all elements");
-        }
-
-        int elementIndex = 0;
-        for (String disclosure : arrayElementDisclosures) {
-            try {
-                String decoded = new String(Base64.getUrlDecoder().decode(disclosure), StandardCharsets.UTF_8);
-                ObjectMapper mapper = new ObjectMapper();
-                List<?> parts_list = mapper.readValue(decoded, List.class);
-
-                if (parts_list.size() == 2) {
-                    Object arrayValue = parts_list.get(1);
-
-                    boolean indexMatches = includeAllIndices || (targetIndex != null && elementIndex == targetIndex);
-
-                    if (indexMatches) {
-                        if (allowedValues == null || allowedValues.isEmpty()) {
-                            matchedElements.add(disclosure);
-                            log.debug("      Element [{}] matched (no value filter): {}", elementIndex, arrayValue);
-                        } else {
-                            if (allowedValues.contains(arrayValue)) {
-                                matchedElements.add(disclosure);
-                                log.debug("      Element [{}] matched (value filter): {} in {}", elementIndex, arrayValue, allowedValues);
-                            } else {
-                                log.debug("      Element [{}] filtered out: {} not in {}", elementIndex, arrayValue, allowedValues);
-                            }
-                        }
-                    } else {
-                        log.debug("      Element [{}] skipped (index doesn't match): target={}", elementIndex, targetIndex);
-                    }
-
-                    elementIndex++;
-                }
-            } catch (Exception e) {
-                log.debug("    Error processing disclosure for array matching: {}", e.getMessage());
-            }
-        }
-
-        return matchedElements;
-    }
-
-
-    private String computeDisclosureDigest(String disclosure) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(disclosure.getBytes(StandardCharsets.US_ASCII));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-
-    private String hashSdJwt(String sdJwt) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(sdJwt.getBytes(StandardCharsets.US_ASCII));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
     public void generateHolderKeys() {
         final int count = getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         generateHolderKeys(count);
@@ -679,66 +508,4 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
-    /**
-     * Matches nested object fields for a given DCQL path.
-     *
-     * Handles DCQL path patterns for nested objects:
-     * - ["address", "street_address"] → The street_address field of address object
-     * - ["address", "locality"] → The locality field of address object
-     * - ["person", "address", "postal_code"] → Deep nesting
-     *
-     * For nested objects, the disclosure key should be the leaf field name.
-     * We match it by checking if the full path hierarchy exists in disclosures.
-     *
-     * @param disclosures all disclosure strings
-     * @param requestPath the full DCQL path (e.g., ["address", "street_address"])
-     * @param allowedValues optional list of values to filter by (null = all values)
-     * @return list of matching disclosure strings
-     */
-    private List<String> matchNestedObjectFields(
-            final List<String> disclosures,
-            final List<Object> requestPath,
-            final List<Object> allowedValues
-    ) {
-        final List<String> matchedFields = new ArrayList<>();
-
-        // The leaf field is the last component in the path
-        String leafField = (String) requestPath.get(requestPath.size() - 1);
-        log.info("    Nested object path: {}, looking for field: '{}'", requestPath, leafField);
-
-        for (String disclosure : disclosures) {
-            try {
-                String decoded = new String(Base64.getUrlDecoder().decode(disclosure), StandardCharsets.UTF_8);
-                ObjectMapper mapper = new ObjectMapper();
-                List<?> parts_list = mapper.readValue(decoded, List.class);
-
-                // Nested object fields have 3 parts: [salt, key, value]
-                if (parts_list.size() == 3) {
-                    Object keyComponent = parts_list.get(1);
-                    Object valueComponent = parts_list.get(2);
-
-                    // Check if this is the field we're looking for
-                    if (keyComponent instanceof String && leafField.equals(keyComponent)) {
-                        // Check value filter if present
-                        if (allowedValues == null || allowedValues.isEmpty()) {
-                            matchedFields.add(disclosure);
-                            log.debug("      Field '{}' matched (no value filter): {}", leafField, valueComponent);
-                        } else {
-                            // Apply value filter
-                            if (allowedValues.contains(valueComponent)) {
-                                matchedFields.add(disclosure);
-                                log.debug("      Field '{}' matched (value filter): {} in {}", leafField, valueComponent, allowedValues);
-                            } else {
-                                log.debug("      Field '{}' filtered out: {} not in {}", leafField, valueComponent, allowedValues);
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("    Error processing disclosure for nested object matching: {}", e.getMessage());
-            }
-        }
-
-        return matchedFields;
-    }
 }
