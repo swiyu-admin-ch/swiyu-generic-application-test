@@ -145,9 +145,14 @@ public class WalletBatchEntry extends WalletEntry {
         return new SdJwtParts(jwt, disclosures);
     }
 
+    /**
+     * RFC 9901 §4.3.1: {@code <Issuer-signed JWT>~<Disclosure 1>~...~<Disclosure N>~}. Every part, including the
+     * Issuer-signed JWT when no Disclosure is selected, is followed by a tilde, so that the Key Binding JWT appended
+     * afterwards is a separate part and {@code sd_hash} covers the text up to and including the last tilde.
+     */
     private String rebuildSdJwt(String jwt, List<String> selectedDisclosures) {
         if (selectedDisclosures.isEmpty()) {
-            return jwt;
+            return jwt + "~";
         }
         return jwt + "~" + String.join("~", selectedDisclosures) + "~";
     }

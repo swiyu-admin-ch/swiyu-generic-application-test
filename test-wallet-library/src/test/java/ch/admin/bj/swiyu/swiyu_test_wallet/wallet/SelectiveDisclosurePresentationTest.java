@@ -114,6 +114,21 @@ class SelectiveDisclosurePresentationTest {
                 .doesNotContainKey("street_address");
     }
 
+    @Test
+    void presentation_whenNoClaimIsRequested_thenSeparatesTheIssuerJwtAndTheKeyBindingJwtWithATilde() throws Exception {
+        final String presentation = entry.createSelectiveDisclosurePresentationForSdJwtIndex(0, request(List.of()));
+
+        assertThat(presentation)
+                .as("RFC 9901 §4.3: <Issuer-signed JWT>~<KB-JWT> when no Disclosure is selected")
+                .startsWith(credential.issuerSignedJwt() + "~");
+        final String keyBindingJwt = presentation.substring((credential.issuerSignedJwt() + "~").length());
+        assertThat(keyBindingJwt)
+                .doesNotContain("~");
+        assertThat(SdJwtLibReference.verifyAndResolveClaims(
+                presentation, credential.issuerPublicKey(), CLIENT_ID, NONCE))
+                .doesNotContainKeys("name", "annual_salary", "address", "nationalities");
+    }
+
     @SuppressWarnings("unchecked")
     private static Map<String, Object> addressOf(final Map<String, Object> claims) {
         return (Map<String, Object>) claims.get("address");
