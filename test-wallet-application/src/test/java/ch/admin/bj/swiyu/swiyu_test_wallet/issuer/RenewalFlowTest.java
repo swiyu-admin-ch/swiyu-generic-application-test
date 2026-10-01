@@ -429,16 +429,11 @@ class RenewalFlowTest extends BaseTest {
                 token.getAccessToken()
         );
 
-        final Wallet spyWallet = Mockito.spy(wallet);
-        doReturn(invalidDpopCrendetialEndpoint)
-                .when(spyWallet)
-                .generateDpopForCredentialEndpoint(any());
-
         log.info("Renew credentials using the wrong dpop");
         final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> spyWallet.postCredentialRequest(entry)
+                () -> wallet.postCredentialRequest(entry, invalidDpopCrendetialEndpoint)
         );
 
         assertThat(errorCode(ex))
@@ -496,19 +491,14 @@ class RenewalFlowTest extends BaseTest {
                 credentialNonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(), token.getAccessToken());
         log.info("Renew valid credentials using the refresh token");
 
-        final Wallet spyWallet = Mockito.spy(wallet);
-        doReturn(dpopCredential)
-                .when(spyWallet)
-                .generateDpopForCredentialEndpoint(any());
-
-        final var firstResponse = spyWallet.postCredentialRequest(entry);
+        final var firstResponse = wallet.postCredentialRequest(entry, dpopCredential);
 
         assertThat(firstResponse).isNotNull();
 
         log.info("Replay renew credentials using the same refresh token and dpop");
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
-                () -> spyWallet.postCredentialRequest(entry)
+                () -> wallet.postCredentialRequest(entry, dpopCredential)
         );
 
         assertThat(errorCode(ex))
