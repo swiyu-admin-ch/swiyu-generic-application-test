@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HsmExportedKeyLoader;
 import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import lombok.Builder;
 import lombok.Data;
 
@@ -12,9 +12,9 @@ import java.security.interfaces.ECPublicKey;
 import java.util.List;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256KeyPair;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.createDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.getDidFromDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.generateEC256KeyPair;
 
 @Builder
 @Data

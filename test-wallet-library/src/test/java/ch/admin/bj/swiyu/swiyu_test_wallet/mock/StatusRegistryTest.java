@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;

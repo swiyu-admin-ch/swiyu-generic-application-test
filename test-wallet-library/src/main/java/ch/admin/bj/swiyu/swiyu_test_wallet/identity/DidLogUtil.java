@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
+package ch.admin.bj.swiyu.swiyu_test_wallet.identity;
 
 import ch.admin.bj.swiyu.didtoolbox.context.DidLogCreatorContext;
 import ch.admin.bj.swiyu.didtoolbox.model.DidLogMetaPeekerException;

@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.support;
+package ch.admin.bj.swiyu.swiyu_test_wallet.fixture;
 
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;

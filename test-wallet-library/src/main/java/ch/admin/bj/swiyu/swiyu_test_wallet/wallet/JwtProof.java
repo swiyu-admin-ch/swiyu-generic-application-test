@@ -2,7 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.AttestationFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.AttestationFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.Ed25519Signer;

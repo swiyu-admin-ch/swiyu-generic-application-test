@@ -9,7 +9,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

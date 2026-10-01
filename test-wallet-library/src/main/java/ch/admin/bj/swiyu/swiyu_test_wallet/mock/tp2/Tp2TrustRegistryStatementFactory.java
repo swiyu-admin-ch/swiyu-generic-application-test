@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
 import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;

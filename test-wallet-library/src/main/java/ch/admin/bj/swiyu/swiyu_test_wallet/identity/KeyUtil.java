@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
+package ch.admin.bj.swiyu.swiyu_test_wallet.identity;
 
 import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import com.nimbusds.jose.jwk.Curve;

@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.Sha256Base64Url;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jose.jwk.Curve;

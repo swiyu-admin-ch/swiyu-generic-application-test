@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.OctetKeyPair;
@@ -13,9 +13,9 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.createJWKFromKeyPair;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.createDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.getDidFromDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.createJWKFromKeyPair;
 
 /** Builds an isolated Ed25519 Trust Registry DID for crypto-agility E2E scenarios. */
 public final class Tp2TrustConfigFactory {

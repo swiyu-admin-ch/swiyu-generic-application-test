@@ -34,7 +34,7 @@ import java.net.URI;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.VERIFIER_URL;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants.VERIFIER_URL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

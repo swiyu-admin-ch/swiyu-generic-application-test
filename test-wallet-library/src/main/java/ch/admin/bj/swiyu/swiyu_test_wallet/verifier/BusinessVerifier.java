@@ -4,7 +4,7 @@ import ch.admin.bj.swiyu.gen.verifier.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.verifier.api.VerifierManagementApiApi;
 import ch.admin.bj.swiyu.gen.verifier.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.verifier.model.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestPresentationDefinitions;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestPresentationDefinitions;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;

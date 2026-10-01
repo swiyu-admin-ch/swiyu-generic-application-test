@@ -13,7 +13,7 @@ import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.ISSUER_URL;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants.ISSUER_URL;
 
 @UtilityClass
 public class VerificationRequests {

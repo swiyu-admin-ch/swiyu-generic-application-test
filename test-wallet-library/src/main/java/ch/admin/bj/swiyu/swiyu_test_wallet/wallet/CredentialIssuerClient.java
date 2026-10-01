@@ -1,5 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
+
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;

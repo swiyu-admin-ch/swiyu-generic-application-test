@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.credential;
 
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.Sha256Base64Url;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 

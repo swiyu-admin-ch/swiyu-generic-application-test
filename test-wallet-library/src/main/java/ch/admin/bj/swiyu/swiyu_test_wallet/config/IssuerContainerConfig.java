@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.*;

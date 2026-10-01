@@ -3,7 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 import ch.admin.bj.swiyu.dpop.DpopConstants;
 import ch.admin.bj.swiyu.dpop.DpopJwtValidator;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.Sha256Base64Url;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.OctetKeyPair;

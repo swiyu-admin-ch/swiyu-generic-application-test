@@ -1,4 +1,4 @@
-package ch.admin.bj.swiyu.swiyu_test_wallet.util;
+package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
 import com.nimbusds.jose.CompressionAlgorithm;
 import com.nimbusds.jose.EncryptionMethod;
