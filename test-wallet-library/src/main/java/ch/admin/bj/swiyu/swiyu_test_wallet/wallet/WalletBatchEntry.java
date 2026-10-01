@@ -4,6 +4,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.Sha256Base64Url;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.KeyBindingJwt;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -48,11 +49,7 @@ public class WalletBatchEntry extends WalletEntry {
     public String createPresentationForSdJwtIndex(final int index, RequestObject requestObject) {
         final String issuerSdJwt = issuedCredentials.get(index);
         final KeyPair keyPair = holderKeyPairs.get(index);
-        try {
-            return issuerSdJwt + buildKeyBindingJwt(issuerSdJwt, requestObject, keyPair);
-        } catch (JOSEException e) {
-            throw new IllegalStateException(e);
-        }
+        return issuerSdJwt + buildKeyBindingJwt(issuerSdJwt, requestObject, keyPair);
     }
 
     public String createSelectiveDisclosurePresentationForSdJwtIndex(
@@ -129,28 +126,6 @@ public class WalletBatchEntry extends WalletEntry {
             return jwt + "~";
         }
         return jwt + "~" + String.join("~", selectedDisclosures) + "~";
-    }
-
-    private String buildKeyBindingJwt(String filteredSdJwt, RequestObject requestObject, KeyPair keyPair)
-            throws JOSEException {
-
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                .type(new JOSEObjectType("kb+jwt"))
-                .build();
-
-        final String sdJwtHash = Sha256Base64Url.ofUsAscii(filteredSdJwt);
-
-        final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .claim("sd_hash", sdJwtHash)
-                .audience(requestObject.getClientId())
-                .claim("nonce", requestObject.getNonce())
-                .issueTime(new Date())
-                .build();
-
-        final SignedJWT signedJWT = new SignedJWT(header, claimsSet);
-        signedJWT.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
-
-        return signedJWT.serialize();
     }
     private JsonNode extractPayload(String jwt) {
         try {
@@ -457,6 +432,18 @@ public class WalletBatchEntry extends WalletEntry {
         for (JwtProof p : proofs) {
             this.proofs.add(p);
         }
+    }
+
+    /** The Key Binding JWT for {@code presentedSdJwt}, for the Verifier that sent {@code requestObject} (RFC 9901 §4.3). */
+    private String buildKeyBindingJwt(String presentedSdJwt, RequestObject requestObject, KeyPair holderKey) {
+        return KeyBindingJwt.forPresentation(presentedSdJwt, requestObject.getClientId(), requestObject.getNonce())
+                .signedWith(holderKey)
+                .build();
+    }
+
+    /** Puts {@code credential} in place of the one at {@code index}, to present something other than what was issued. */
+    public void replaceIssuedCredential(final int index, final String credential) {
+        issuedCredentials.set(index, credential);
     }
 
     public void clearIssuedCredentials() {

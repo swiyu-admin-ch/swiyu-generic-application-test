@@ -12,6 +12,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
@@ -110,33 +111,10 @@ class VerifierSignatureValidationTest extends BaseTest {
     }
 
     private void replaceCredentialWithCorruptedSignature(final WalletBatchEntry batchEntry) {
-        final String issuedCredential = batchEntry.getVerifiableCredential(0);
-        final int disclosureSeparator = issuedCredential.indexOf('~');
-        assertThat(disclosureSeparator)
-                .as("The issued SD-JWT must contain disclosures")
-                .isPositive();
-
-        final String corruptedIssuerJwt = corruptJwtSignature(
-                issuedCredential.substring(0, disclosureSeparator)
+        batchEntry.replaceIssuedCredential(
+                0,
+                SdJwtCredential.parse(batchEntry.getVerifiableCredential(0)).withCorruptedIssuerSignature().serialize()
         );
-        batchEntry.clearIssuedCredentials();
-        batchEntry.addIssuedCredential(
-                corruptedIssuerJwt + issuedCredential.substring(disclosureSeparator)
-        );
-    }
-
-    private String corruptJwtSignature(final String jwt) {
-        final String[] parts = jwt.split("\\.", -1);
-        assertThat(parts)
-                .as("The issuer credential must be a compact JWS")
-                .hasSize(3);
-        assertThat(parts[2])
-                .as("The issuer credential JWS must have a signature")
-                .isNotEmpty();
-
-        final char replacement = parts[2].charAt(0) == 'A' ? 'B' : 'A';
-        parts[2] = replacement + parts[2].substring(1);
-        return String.join(".", parts);
     }
 
     private enum SignatureFailure {

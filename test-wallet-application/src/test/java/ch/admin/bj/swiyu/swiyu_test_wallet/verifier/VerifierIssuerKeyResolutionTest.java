@@ -13,12 +13,10 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
@@ -140,43 +138,34 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         return new AttackerIssuer(attackerConfig, registryEntry.getPath() + "/did.jsonl");
     }
 
+    /**
+     * Deviation by a malicious Credential Issuer: the credential is signed with the attacker's key and its {@code kid}, while
+     * {@code iss} names the trusted issuer. The Swiss anchor profile says {@code iss} is ignored and trust follows the DID of
+     * the {@code kid}, so a Verifier must treat this credential as issued by the attacker.
+     */
     private String resignWithAttackerKey(
             final String originalCredential,
             final String trustedIssuerDid,
             final IssuerConfig attackerConfig
-    ) throws ParseException, JOSEException {
-        final int disclosureSeparator = originalCredential.indexOf('~');
-        assertThat(disclosureSeparator)
-                .as("The issued SD-JWT must contain disclosures")
-                .isPositive();
-
-        final SignedJWT originalIssuerJwt = SignedJWT.parse(
-                originalCredential.substring(0, disclosureSeparator)
-        );
-        final JWSHeader attackerHeader = new JWSHeader.Builder(originalIssuerJwt.getHeader().getAlgorithm())
-                .type(originalIssuerJwt.getHeader().getType())
-                .keyID(attackerConfig.getIssuerAssertKeyId())
-                .build();
-        final JWTClaimsSet impersonatedClaims = new JWTClaimsSet.Builder(originalIssuerJwt.getJWTClaimsSet())
+    ) {
+        return SdJwtCredential.parse(originalCredential).resign()
+                .signedWith(attackerConfig.getKeyPair())
+                .keyId(attackerConfig.getIssuerAssertKeyId())
                 .issuer(trustedIssuerDid)
-                .claim("status", null)
-                .build();
-        final SignedJWT maliciousIssuerJwt = new SignedJWT(attackerHeader, impersonatedClaims);
-        maliciousIssuerJwt.sign(ECCryptoSupport.createECDSASigner(attackerConfig.getKeyPair().getPrivate()));
-
-        return maliciousIssuerJwt.serialize() + originalCredential.substring(disclosureSeparator);
+                .withoutStatus()
+                .build()
+                .serialize();
     }
 
     private void replaceIssuedCredential(
             final WalletBatchEntry batchEntry,
             final String maliciousCredential
     ) {
-        batchEntry.clearIssuedCredentials();
-        batchEntry.addIssuedCredential(maliciousCredential);
+        batchEntry.replaceIssuedCredential(0, maliciousCredential);
     }
 
     private SignedJWT issuerJwt(final String credential) throws ParseException {
-        return SignedJWT.parse(credential.substring(0, credential.indexOf('~')));
+        return SignedJWT.parse(SdJwtCredential.parse(credential).issuerSignedJwt());
     }
 
     private ManagementResponse createVerification(
