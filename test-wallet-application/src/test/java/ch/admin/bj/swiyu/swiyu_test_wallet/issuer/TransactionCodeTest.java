@@ -12,9 +12,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import org.junit.jupiter.api.BeforeAll;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -38,14 +38,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.DEFAULT)
+@UseWallet(dpop = true)
 class TransactionCodeTest extends BaseTest {
 
     private static final String ZERO_TRANSACTION_CODE = "000000";
-
-    @BeforeAll
-    void useDpopForTokenRequests() {
-        wallet.setUseDPoP(true);
-    }
 
     @Test
     @XrayTest(
