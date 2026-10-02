@@ -26,6 +26,7 @@ import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -189,6 +190,10 @@ class RenewalFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1301 is not available in these issuer images"
     )
+    @Disabled("Issuer defect: the image main answers 500 (NullPointerException in DemonstratingProofOfPossessionService."
+            + "requiresKeyAttestation, EIDOMNI-640) to a DPoP token request for a credential configuration without "
+            + "proof_types_supported. This configuration is unbound, so OID4VCI 1.0 12.2.4 requires proof_types_supported to be "
+            + "omitted. Re-enable when the issuer is fixed.")
     void credentialRefreshDisabled_whenWalletAttemptsRenewal_thenRejectedWithoutBusinessIssuerCall() {
         // Given
         final String credentialConfigurationId =
