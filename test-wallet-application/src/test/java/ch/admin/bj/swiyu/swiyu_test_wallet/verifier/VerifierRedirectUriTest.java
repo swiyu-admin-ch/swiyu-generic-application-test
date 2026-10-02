@@ -13,6 +13,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -32,7 +34,8 @@ class VerifierRedirectUriTest extends BaseTest {
 
     private static final String REDIRECT_BASE_URI = "https://business-verifier.example/callback";
 
-    @Test
+    @ParameterizedTest(name = "successful redirect with additional query: {0}")
+    @ValueSource(strings = {"", "&return_to=section%23details"})
     @XrayTest(
             key = "EIDOMNI-731",
             summary = "Holder is redirected to the Business Verifier after a successful presentation",
@@ -40,14 +43,15 @@ class VerifierRedirectUriTest extends BaseTest {
                     This test validates the complete session-fixation mitigation flow. The Business Verifier
                     provides a redirect_uri with a session nonce, the fake Wallet submits a valid presentation,
                     receives HTTP 200 application/json, reads the returned redirect_uri and uses its response_code
-                    to retrieve the successful verification result.
+                    to retrieve the successful verification result. An encoded number sign (%23) in the query
+                    remains data rather than a fragment and must survive the redirect unchanged (EIDOMNI-1352).
                     """
     )
     @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.HAPPY_PATH)
-    void successfulPresentation_withRedirectUri_thenHolderCanRetrieveResultWithResponseCode() {
+    void successfulPresentation_withRedirectUri_thenHolderCanRetrieveResultWithResponseCode(String additionalQuery) {
         // Given – credential issued to the fake Wallet
         final CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -55,7 +59,7 @@ class VerifierRedirectUriTest extends BaseTest {
 
         // Given – Business Verifier binds its browser session to the verification
         final String sessionNonce = UUID.randomUUID().toString();
-        final URI requestedRedirectUri = redirectUri(sessionNonce);
+        final URI requestedRedirectUri = URI.create(redirectUri(sessionNonce) + additionalQuery);
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL()
@@ -71,7 +75,18 @@ class VerifierRedirectUriTest extends BaseTest {
         final UUID responseCode = responseCodeFrom(holderRedirectUri);
 
         // Then – the original callback and session binding are preserved
-        assertRedirectUri(holderRedirectUri, requestedRedirectUri, sessionNonce);
+        assertThat(holderRedirectUri.isAbsolute())
+                .isTrue();
+        assertThat(holderRedirectUri.getRawFragment())
+                .isNull();
+        assertThat(holderRedirectUri.getScheme())
+                .isEqualTo(requestedRedirectUri.getScheme());
+        assertThat(holderRedirectUri.getRawAuthority())
+                .isEqualTo(requestedRedirectUri.getRawAuthority());
+        assertThat(holderRedirectUri.getRawPath())
+                .isEqualTo(requestedRedirectUri.getRawPath());
+        assertThat(UriComponentsBuilder.fromUri(holderRedirectUri).build().getQueryParams())
+                .containsAllEntriesOf(UriComponentsBuilder.fromUri(requestedRedirectUri).build().getQueryParams());
         assertThat(responseCode.version())
                 .as("response_code must be a cryptographically generated UUID v4")
                 .isEqualTo(4);
@@ -79,7 +94,8 @@ class VerifierRedirectUriTest extends BaseTest {
         // Then – Business Verifier presents response_code to retrieve the matching terminal result
         final ManagementResponse result =
                 verifierManager.getVerificationById(verification.getId(), responseCode);
-        assertThat(result.getState()).isEqualTo(VerificationStatus.SUCCESS);
+        assertThat(result.getState())
+                .isEqualTo(VerificationStatus.SUCCESS);
     }
 
     @Test
@@ -89,8 +105,7 @@ class VerifierRedirectUriTest extends BaseTest {
             description = """
                     These security edge cases validate that every response_code is fresh, required for a
                     redirect-enabled verification and bound to exactly one verification. Omitting the code or reusing
-                    the response_code from another browser session must be rejected. A relative redirect_uri must also
-                    be rejected during verification creation.
+                    the response_code from another browser session must be rejected.
                     """
     )
     @Tag(ReportingTags.UCV_O2)
@@ -137,18 +152,44 @@ class VerifierRedirectUriTest extends BaseTest {
         final ManagementResponse legitimateResult =
                 verifierManager.getVerificationById(firstVerification.getId(), firstResponseCode);
         assertThat(legitimateResult.getState()).isEqualTo(VerificationStatus.SUCCESS);
+    }
 
-        // When – a Business Verifier provides a relative callback URI
-        final URI relativeRedirectUri = URI.create("/callback?session_nonce=" + UUID.randomUUID());
+    @ParameterizedTest(name = "reject redirect_uri at initialization: {0}")
+    @ValueSource(strings = {
+            "/callback?session_nonce=valid-nonce",
+            "//business-verifier.example/callback?session_nonce=valid-nonce",
+            "https://business-verifier.example/callback?session_nonce=valid-nonce#section",
+            "https://business-verifier.example/callback?session_nonce=valid-nonce#"
+    })
+    @XrayTest(
+            key = "EIDOMNI-XXX",
+            summary = "Reject relative redirect URIs and fragments during verification initialization (EIDOMNI-1352)",
+            description = """
+                    Given an otherwise valid Business Verifier request with a non-empty session_nonce,
+                    when redirect_uri is relative, lacks a scheme, or contains a non-empty or empty fragment,
+                    then the management API rejects initialization with HTTP 400 and identifies redirectURI
+                    as the invalid field. No Wallet presentation is needed to trigger validation.
+                    """
+    )
+    @Tag(ReportingTags.UCV_M1)
+    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.EDGE_CASE)
+    void initializeVerification_withRelativeOrFragmentRedirectUri_thenRejectAtManagementBoundary(String redirectUri) {
+        // Given – only the redirect target violates the initialization contract
+        final URI invalidRedirectUri = URI.create(redirectUri);
+
+        // When – the Business Verifier initializes the verification
         final HttpClientErrorException invalidRedirectException = assertThrows(HttpClientErrorException.class, () ->
                 verifierManager.verificationRequest()
                         .acceptedIssuerDid(issuerConfig.getIssuerDid())
                         .withUniversityDCQL()
-                        .redirectUri(relativeRedirectUri)
+                        .redirectUri(invalidRedirectUri)
                         .createManagementResponse());
 
         // Then – the invalid redirect target is rejected at the management boundary
-        ApiErrorAssert.assertThat(invalidRedirectException).hasStatus(400);
+        ApiErrorAssert.assertThat(invalidRedirectException)
+                .hasStatus(400)
+                .hasErrorDescription("redirectURI: must be an absolute URI and contain a session_nonce parameter");
     }
 
     @Test

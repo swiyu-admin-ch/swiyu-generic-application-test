@@ -54,7 +54,7 @@ class VerifierAuditInformationE2ETest extends BaseTest {
     @ParameterizedTest(name = "{0}: credential with {1}")
     @MethodSource("businessOutcomes")
     @XrayTest(
-            key = "EIDOMNI-1321",
+            key = "EIDOMNI-1383",
             summary = "Audit flags filter management JSON without changing credential status or trust decisions",
             description = """
                     Given an issued credential and a DCQL query, with production defaults,
@@ -185,7 +185,7 @@ class VerifierAuditInformationE2ETest extends BaseTest {
     @ParameterizedTest(name = "{0}: invalid issuer signature")
     @EnumSource(AuditMode.class)
     @XrayTest(
-            key = "EIDOMNI-1321",
+            key = "EIDOMNI-1384",
             summary = "Audit configuration never exposes unverified subject data after an invalid signature",
             description = """
                     Given an issued credential whose issuer signature is deliberately corrupted by the wallet.
