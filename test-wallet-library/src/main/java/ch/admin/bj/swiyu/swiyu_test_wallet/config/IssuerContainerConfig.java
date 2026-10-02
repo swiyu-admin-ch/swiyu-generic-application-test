@@ -1,10 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.*;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MockServerContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
@@ -14,7 +17,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass

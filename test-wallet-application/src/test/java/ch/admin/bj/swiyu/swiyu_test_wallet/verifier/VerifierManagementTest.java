@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,7 +45,7 @@ class VerifierManagementTest extends BaseTest {
 
         // GIVEN
         final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest()
                 .acceptedIssuerDid(acceptedIssuerDid)
                 .withUniversityDCQL();
@@ -140,7 +139,7 @@ class VerifierManagementTest extends BaseTest {
 
         // GIVEN
         final String acceptedIssuerDid = "did:example:" + UUID.randomUUID();
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid(acceptedIssuerDid)
                 .dcqlQuery(null);
@@ -175,7 +174,7 @@ class VerifierManagementTest extends BaseTest {
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
 
         // GIVEN – verifier initiates verification
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL();

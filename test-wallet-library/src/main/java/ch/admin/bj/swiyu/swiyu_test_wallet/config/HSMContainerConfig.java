@@ -11,8 +11,8 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 
-import java.util.Arrays;
 import java.time.Duration;
+import java.util.Arrays;
 
 
 @UtilityClass

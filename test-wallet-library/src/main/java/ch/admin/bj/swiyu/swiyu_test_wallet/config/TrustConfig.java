@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,10 +10,10 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.interfaces.ECPublicKey;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.createJWKFromKeyPair;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256KeyPair;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.createDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.getDidFromDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.createJWKFromKeyPair;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.generateEC256KeyPair;
 
 @Getter
 @Builder

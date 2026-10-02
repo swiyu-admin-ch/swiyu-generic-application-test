@@ -3,19 +3,16 @@ package ch.admin.bj.swiyu.swiyu_test_wallet;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentSelection;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
@@ -23,8 +20,6 @@ import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.client.BufferingClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
@@ -47,8 +42,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.ISSUER_CALLBACK_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.ISSUER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.VERIFIER_CALLBACK_PATH;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
@@ -91,7 +86,7 @@ public class BaseTest {
     protected PostgreSQLContainer<?> dbTestContainer;
     protected MockServerContainer mockServerContainer;
     @Autowired
-    protected MockServerClientConfig mockServerClientConfig;
+    protected MockServices mockServices;
     protected MockAttestationAuthority mockAttestationAuthority;
     protected IssuerConfig issuerConfig;
     protected VerifierConfig verifierConfig;
@@ -104,7 +99,7 @@ public class BaseTest {
     @Getter protected VerifierHandle currentVerifier;
     protected BusinessIssuer issuerManager;
     protected IssuanceService issuanceService;
-    protected VerifierManager verifierManager;
+    protected BusinessVerifier verifierManager;
     protected RestClient restClient;
     protected Statement stmt;
     protected PrivateKey jwtKey;
@@ -115,18 +110,24 @@ public class BaseTest {
     private File traceFile;
     private final Map<String, AtomicInteger> invocationCounters = new HashMap<>();
 
+    /** A fault one test injects into a simulated service (a failing status registry) must not outlive that test. */
+    @AfterEach
+    void resetMockServiceFaults() {
+        mockServices.resetFaults();
+    }
+
     @BeforeEach
     protected void resetIssuerCallbacks() {
-        mockServerClientConfig.clearIssuerCallbacks();
+        mockServices.clearIssuerCallbacks();
     }
 
     protected void cleanIssuerCallbacks() {
         awaitStableIssuerCallbacks();
-        mockServerClientConfig.clearIssuerCallbacks();
+        mockServices.clearIssuerCallbacks();
     }
 
     protected List<WebhookCallback> issuerCallbacks() {
-        return mockServerClientConfig.getIssuerCallbacks();
+        return mockServices.getIssuerCallbacks();
     }
 
     protected void setCurrentStatusList(StatusList currentStatusList) {
@@ -134,7 +135,7 @@ public class BaseTest {
             throw new IllegalArgumentException("currentStatusList cannot be null");
         }
         this.currentStatusList = currentStatusList;
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 issuerConfig.getIssuerDid(),
                 String.valueOf(currentStatusList.getStatusRegistryUrl())
         );
@@ -228,6 +229,7 @@ public class BaseTest {
         final VerifierHandle primaryVerifier = verifier(selection.primaryVerifier());
         wallet = new Wallet(restClient, primaryIssuer.serviceLocation(), primaryVerifier.serviceLocation());
         wallet.setTrustConfig(trustConfig);
+        wallet.setProfile(WalletProfile.declaredBy(getClass()));
         useComponents(primaryIssuer, primaryVerifier);
 
         connection = DriverManager.getConnection(
@@ -259,7 +261,7 @@ public class BaseTest {
         keyId = issuer.keyId();
         issuerManagementAccessToken = issuer.managementAccessToken();
         managementAuthConfig = issuer.managementAuthConfig();
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 issuerConfig.getIssuerDid(),
                 String.valueOf(currentStatusList.getStatusRegistryUrl())
         );
@@ -298,12 +300,38 @@ public class BaseTest {
         );
     }
 
+    /**
+     * Every test starts with a fresh {@link Wallet}, built from the profile its class declares with {@link UseWallet}, so no
+     * test inherits a setting (DPoP, encryption, key attestation) from another. A test that needs something else changes its
+     * own wallet.
+     *
+     * <p>The wallet uses the same HTTP client whether tracing is enabled or not: the trace is an interceptor on that client.
+     * Replacing the client when tracing is enabled used to make error responses lose their body.
+     */
     @BeforeEach
-    void setupTrace(TestInfo testInfo) throws Exception {
-        if (!applicationTestConfig.isTrace()) {
-            return;
-        }
+    void setupWalletAndTracing(TestInfo testInfo) throws Exception {
+        final File traceFile = applicationTestConfig.isTrace() ? createTraceFile(testInfo) : null;
 
+        restClient = traceFile == null
+                ? RestClient.builder().build()
+                : RestClient.builder().requestInterceptor(new HttpTraceInterceptor(traceFile, "Wallet")).build();
+        wallet = newWallet();
+
+        if (traceFile != null) {
+            issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
+            verifierManager.intercept(new HttpTraceInterceptor(traceFile, "Verifier Management"));
+        }
+    }
+
+    /** A wallet talking to the current Credential Issuer and Verifier, with the profile the test class declares. */
+    protected Wallet newWallet() {
+        final Wallet fresh = new Wallet(restClient, currentIssuer.serviceLocation(), currentVerifier.serviceLocation());
+        fresh.setTrustConfig(trustConfig);
+        fresh.setProfile(WalletProfile.declaredBy(getClass()));
+        return fresh;
+    }
+
+    private File createTraceFile(TestInfo testInfo) throws Exception {
         final String className = testInfo.getTestClass()
                 .map(Class::getSimpleName)
                 .orElse("UnknownClass");
@@ -333,36 +361,7 @@ public class BaseTest {
         Files.createFile(traceFile.toPath());
 
         log.info("HTTP tracing enabled → {}", traceFile.getAbsolutePath());
-
-        RestClient.Builder builder = RestClient.builder();
-
-        builder = builder.requestFactory(
-                        new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()))
-                .requestInterceptor(new HttpTraceInterceptor(traceFile, "Wallet"));
-
-        restClient = builder.build();
-
-        final ServiceLocationContext issuerContext = wallet.getIssuerContext();
-        final ServiceLocationContext verifierContext = wallet.getVerifierContext();
-        final boolean useEncryption = wallet.isUseEncryption();
-        final boolean useDPoP = wallet.isUseDPoP();
-        final boolean signedMetadataPreferred = wallet.isSignedMetadataPreferred();
-        final String credentialRequestEncryptionEnc = wallet.getCredentialRequestEncryptionEnc();
-        final String credentialResponseEncryptionEnc = wallet.getCredentialResponseEncryptionEnc();
-        final MockAttestationAuthority activeMockAttestationAuthority = wallet.getMockAttestationAuthority();
-        final TrustConfig activeTrustConfig = wallet.getTrustConfig();
-
-        wallet = new Wallet(restClient, issuerContext, verifierContext);
-        wallet.setUseEncryption(useEncryption);
-        wallet.setUseDPoP(useDPoP);
-        wallet.setSignedMetadataPreferred(signedMetadataPreferred);
-        wallet.setCredentialRequestEncryptionEnc(credentialRequestEncryptionEnc);
-        wallet.setCredentialResponseEncryptionEnc(credentialResponseEncryptionEnc);
-        wallet.setMockAttestationAuthority(activeMockAttestationAuthority);
-        wallet.setTrustConfig(activeTrustConfig);
-
-        issuerManager.intercept(new HttpTraceInterceptor(traceFile, "Issuer Management"));
-        verifierManager.intercept(new HttpTraceInterceptor(traceFile, "Verifier Management"));
+        return traceFile;
     }
 
     @AfterAll

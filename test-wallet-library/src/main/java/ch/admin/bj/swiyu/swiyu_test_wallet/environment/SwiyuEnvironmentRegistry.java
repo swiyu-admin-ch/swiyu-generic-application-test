@@ -3,16 +3,13 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import org.mockserver.client.MockServerClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 
@@ -29,7 +26,7 @@ public class SwiyuEnvironmentRegistry {
     private final PostgreSQLContainer<?> dbContainer;
     private final MockServerContainer mockServerContainer;
     private final MockServerClient mockServerClient;
-    private final MockServerClientConfig mockServerClientConfig;
+    private final MockServices mockServices;
     private final TrustConfig trustConfig;
     private final MockAttestationAuthority mockAttestationAuthority;
     private final IssuerImageConfig issuerImageTemplate;
@@ -45,7 +42,7 @@ public class SwiyuEnvironmentRegistry {
             final PostgreSQLContainer<?> dbContainer,
             final MockServerContainer mockServerContainer,
             final MockServerClient mockServerClient,
-            final MockServerClientConfig mockServerClientConfig,
+            final MockServices mockServices,
             final TrustConfig trustConfig,
             final MockAttestationAuthority mockAttestationAuthority,
             final IssuerImageConfig issuerImageTemplate,
@@ -56,7 +53,7 @@ public class SwiyuEnvironmentRegistry {
         this.dbContainer = dbContainer;
         this.mockServerContainer = mockServerContainer;
         this.mockServerClient = mockServerClient;
-        this.mockServerClientConfig = mockServerClientConfig;
+        this.mockServices = mockServices;
         this.trustConfig = trustConfig;
         this.mockAttestationAuthority = mockAttestationAuthority;
         this.issuerImageTemplate = issuerImageTemplate;
@@ -177,7 +174,7 @@ public class SwiyuEnvironmentRegistry {
             supportServices.softHsm();
         }
         final IssuerConfig config = EnvironmentConfig.createIssuerConfig(
-                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, UUID.randomUUID())),
+                toUri(String.format("https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, UUID.randomUUID())),
                 imageConfig.isEnableHsm(),
                 imageConfig.isEnableHsm() ? supportServices.tokenDirPath() : null
         );
@@ -185,7 +182,7 @@ public class SwiyuEnvironmentRegistry {
             config.setAdditionalSigningIdentities(List.of(EnvironmentConfig.createIssuerConfig(
                     toUri(String.format(
                             "https://%s/api/v1/did/%s",
-                            MockServerClientConfig.MOCKSERVER_HOST,
+                            MockServices.MOCKSERVER_HOST,
                             UUID.randomUUID()
                     )),
                     false,
@@ -208,13 +205,13 @@ public class SwiyuEnvironmentRegistry {
         final VerifierImageConfig imageConfig = variant.imageConfig(verifierImageTemplate);
         final String imageName = imageConfig.getBaseImage() + ":" + imageConfig.getImageTag();
         final VerifierConfig config = EnvironmentConfig.createVerifierConfig(
-                toUri(String.format("https://%s/api/v1/did/%s", MockServerClientConfig.MOCKSERVER_HOST, UUID.randomUUID()))
+                toUri(String.format("https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, UUID.randomUUID()))
         );
         if (imageConfig.isMultipleSigningKeys()) {
             config.setAdditionalSigningIdentities(List.of(EnvironmentConfig.createVerifierConfig(
                     toUri(String.format(
                             "https://%s/api/v1/did/%s",
-                            MockServerClientConfig.MOCKSERVER_HOST,
+                            MockServices.MOCKSERVER_HOST,
                             UUID.randomUUID()
                     ))
             )));
@@ -229,7 +226,7 @@ public class SwiyuEnvironmentRegistry {
     }
 
     private void registerTp2Routes(final IssuerVariant issuerVariant, final VerifierVariant verifierVariant) {
-        mockServerClientConfig.registerTp2Routes(
+        mockServices.registerTp2Routes(
                 mockServerClient,
                 issuer(issuerVariant).config(),
                 verifier(verifierVariant).config(),

@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -15,14 +16,14 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig.VERIFIER_CALLBACK_PATH;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResourcePath;
 
 @UtilityClass
 public class VerifierContainerConfig {
 
-    private static final String MOCKSERVER_HTTPS_URL = "https://" + MockServerClientConfig.MOCKSERVER_HOST;
-    private static final String MOCKSERVER_HTTP_URL = "http://" + MockServerClientConfig.MOCKSERVER_HOST;
+    private static final String MOCKSERVER_HTTPS_URL = "https://" + MockServices.MOCKSERVER_HOST;
+    private static final String MOCKSERVER_HTTP_URL = "http://" + MockServices.MOCKSERVER_HOST;
     private static final String MOCKSERVER_URL_REWRITE_MAPPING =
             "{\"%s\":\"%s\"}".formatted(MOCKSERVER_HTTPS_URL, MOCKSERVER_HTTP_URL);
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);

@@ -6,8 +6,8 @@ import org.assertj.core.api.Assertions;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.List;
 
 @Slf4j
 public final class WebhookCallbackAssert {

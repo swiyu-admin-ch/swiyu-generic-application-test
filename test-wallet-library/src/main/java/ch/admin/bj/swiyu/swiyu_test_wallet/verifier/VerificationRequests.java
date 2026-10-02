@@ -1,19 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
-import ch.admin.bj.swiyu.gen.verifier.model.CreateVerificationManagement;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlCredentialDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlCredentialMetaDto;
-import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
-import ch.admin.bj.swiyu.gen.verifier.model.ResponseModeType;
-
+import ch.admin.bj.swiyu.gen.verifier.model.*;
+import lombok.experimental.UtilityClass;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
-import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants.ISSUER_URL;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants.ISSUER_URL;
 
 @UtilityClass
 public class VerificationRequests {

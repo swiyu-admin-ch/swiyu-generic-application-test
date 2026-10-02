@@ -1,34 +1,23 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.ConfigurationOverride;
-import ch.admin.bj.swiyu.gen.issuer.model.CreateCredentialOfferRequest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreate;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusListCreateConfig;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustConfigFactory;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementAlgorithm;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustConfigFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementAlgorithm;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -39,6 +28,8 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.text.ParseException;
@@ -50,15 +41,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IDENTITY_TRUST_STATEMENT_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_ISSUANCE_AUTHORIZATION_PATH;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.IDENTITY;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.PROTECTED_ISSUANCE_AUTHORIZATION;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.IDENTITY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.IssuerTrustStatementTarget.PROTECTED_ISSUANCE_AUTHORIZATION;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -570,7 +559,7 @@ public class IssuerTrustStatementTest extends BaseTest {
             );
             final TrustConfig agileTrustConfig =
                     Tp2TrustConfigFactory.createEd25519TrustConfig(didRegistryEntry);
-            mockServerClientConfig.replaceDidLog(
+            mockServices.replaceDidLog(
                     agileTrustConfig.getTrustDid(),
                     agileTrustConfig.getTrustDidLog()
             );

@@ -1,10 +1,10 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerifierManager;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import org.testcontainers.containers.GenericContainer;
 
 public record VerifierHandle(
@@ -12,7 +12,7 @@ public record VerifierHandle(
         VerifierConfig config,
         VerifierImageConfig imageConfig,
         GenericContainer<?> container,
-        VerifierManager manager,
+        BusinessVerifier manager,
         ServiceLocationContext serviceLocation,
         ManagementAuthConfig managementAuthConfig,
         String managementAccessToken

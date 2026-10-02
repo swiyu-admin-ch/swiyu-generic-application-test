@@ -11,7 +11,6 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -23,12 +22,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -38,9 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.REVOKED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.SUSPENDED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.VALID;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.*;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementRespondOk;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
@@ -340,14 +332,14 @@ public class RevocationFlowTest extends BaseTest {
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // Given
-        mockServerClientConfig.enableStatusListError();
+        mockServices.enableStatusListError();
 
         // When
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
             issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.REVOKED);
         });
 
-        mockServerClientConfig.disableStatusListError();
+        mockServices.disableStatusListError();
 
         // Then - Update should contains error
         ApiErrorAssert.assertThat(ex)

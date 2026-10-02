@@ -9,24 +9,21 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.KeyBindingJwt;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -41,14 +38,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.JsonNode;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
-import java.util.Base64;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -275,7 +266,7 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     private Ed25519Issuer createEd25519Issuer() throws JOSEException {
         final URI registryEntry = URI.create(
                 "https://%s/api/v1/did/%s".formatted(
-                        MockServerClientConfig.MOCKSERVER_HOST,
+                        MockServices.MOCKSERVER_HOST,
                         UUID.randomUUID()
                 )
         );
@@ -284,7 +275,7 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
         final String didLog = DidLogUtil.createDidLog(authenticationKey, assertionKey, registryEntry);
         final String did = DidLogUtil.getDidFromDidLog(didLog);
 
-        mockServerClientConfig.replaceDidLog(did, didLog);
+        mockServices.replaceDidLog(did, didLog);
         return new Ed25519Issuer(did, did + "#assert-key-01", assertionKey);
     }
 
@@ -296,118 +287,68 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                 .generate();
     }
 
+    /** Deviation: the Issuer-signed JWT is signed with an Ed25519 key and its DID, not with the ES256 key of the Credential Issuer. */
     private String resignCredentialWithEd25519Issuer(
             final String originalCredential,
             final Ed25519Issuer edIssuer
-    ) throws ParseException, JOSEException {
-        final CredentialParts parts = credentialParts(originalCredential);
-        final SignedJWT originalJwt = SignedJWT.parse(parts.jwt());
-        final JWTClaimsSet claims = new JWTClaimsSet.Builder(originalJwt.getJWTClaimsSet())
+    ) {
+        return SdJwtCredential.parse(originalCredential).resign()
+                .signedWithEd25519(edIssuer.signingKey())
+                .keyId(edIssuer.keyId())
                 .issuer(edIssuer.did())
-                .claim("status", null)
-                .build();
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.Ed25519)
-                .type(originalJwt.getHeader().getType())
-                .keyID(edIssuer.keyId())
-                .build();
-        final SignedJWT ed25519Jwt = new SignedJWT(header, claims);
-        ed25519Jwt.sign(new Ed25519Signer(edIssuer.signingKey()));
-        return ed25519Jwt.serialize() + parts.disclosures();
+                .withoutStatus()
+                .build()
+                .serialize();
     }
 
+    /** Deviation: the credential is bound to an Ed25519 holder key, and the Credential Issuer's own key signs it again. */
     private String replaceHolderKey(
             final String originalCredential,
             final OctetKeyPair holderKey
-    ) throws ParseException, JOSEException {
-        final CredentialParts parts = credentialParts(originalCredential);
-        final SignedJWT originalJwt = SignedJWT.parse(parts.jwt());
-        final JWTClaimsSet claims = new JWTClaimsSet.Builder(originalJwt.getJWTClaimsSet())
-                .claim("cnf", Map.of("jwk", holderKey.toPublicJWK().toJSONObject()))
-                .claim("status", null)
-                .build();
-        final SignedJWT issuerJwt = new SignedJWT(originalJwt.getHeader(), claims);
-        issuerJwt.sign(ECCryptoSupport.createECDSASigner(issuerConfig.getKeyPair().getPrivate()));
-        return issuerJwt.serialize() + parts.disclosures();
+    ) {
+        return SdJwtCredential.parse(originalCredential).resign()
+                .signedWith(issuerConfig.getKeyPair())
+                .holderKey(holderKey)
+                .withoutStatus()
+                .build()
+                .serialize();
     }
 
+    /** Deviation: the Key Binding JWT is signed with an Ed25519 holder key. */
     private String createEd25519Presentation(
             final String credential,
             final RequestObject requestObject,
             final OctetKeyPair holderKey
-    ) throws JOSEException {
-        final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.Ed25519)
-                .type(new JOSEObjectType("kb+jwt"))
-                .build();
-        final JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                .claim("sd_hash", sha256Base64Url(credential))
-                .audience(requestObject.getClientId())
-                .claim("nonce", requestObject.getNonce())
-                .issueTime(new Date())
-                .build();
-        final SignedJWT keyBindingJwt = new SignedJWT(header, claims);
-        keyBindingJwt.sign(new Ed25519Signer(holderKey));
-        return credential + keyBindingJwt.serialize();
+    ) {
+        final SdJwtCredential presented = SdJwtCredential.parse(credential);
+        return presented.presentedWith(
+                KeyBindingJwt.forPresentation(presented.withoutKeyBinding(), requestObject.getClientId(), requestObject.getNonce())
+                        .signedWithEd25519(holderKey)
+                        .build()
+        ).serialize();
     }
 
     private String corruptIssuerSignature(final String credential) {
-        final CredentialParts parts = credentialParts(credential);
-        return corruptCompactJwsSignature(parts.jwt()) + parts.disclosures();
+        return SdJwtCredential.parse(credential).withCorruptedIssuerSignature().serialize();
     }
 
     private String corruptKeyBindingSignature(final String presentation) {
-        final int lastDisclosureSeparator = presentation.lastIndexOf('~');
-        assertThat(lastDisclosureSeparator)
-                .as("A holder-bound SD-JWT presentation must separate the KB-JWT with '~'")
-                .isPositive();
-        return presentation.substring(0, lastDisclosureSeparator + 1)
-                + corruptCompactJwsSignature(presentation.substring(lastDisclosureSeparator + 1));
-    }
-
-    private String corruptCompactJwsSignature(final String jwt) {
-        final String[] parts = jwt.split("\\.", -1);
-        assertThat(parts).hasSize(3);
-        assertThat(parts[2]).isNotEmpty();
-        final char replacement = parts[2].charAt(0) == 'A' ? 'B' : 'A';
-        parts[2] = replacement + parts[2].substring(1);
-        return String.join(".", parts);
-    }
-
-    private CredentialParts credentialParts(final String credential) {
-        final int disclosureSeparator = credential.indexOf('~');
-        assertThat(disclosureSeparator)
-                .as("The issued SD-JWT must contain disclosures")
-                .isPositive();
-        return new CredentialParts(
-                credential.substring(0, disclosureSeparator),
-                credential.substring(disclosureSeparator)
-        );
+        return SdJwtCredential.parse(presentation).withCorruptedKeyBindingSignature().serialize();
     }
 
     private SignedJWT issuerJwt(final String credential) throws ParseException {
-        return SignedJWT.parse(credentialParts(credential).jwt());
+        return SignedJWT.parse(SdJwtCredential.parse(credential).issuerSignedJwt());
     }
 
     private SignedJWT keyBindingJwt(final String presentation) throws ParseException {
-        return SignedJWT.parse(presentation.substring(presentation.lastIndexOf('~') + 1));
-    }
-
-    private String sha256Base64Url(final String value) {
-        try {
-            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString(digest.digest(value.getBytes(StandardCharsets.US_ASCII)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+        return SignedJWT.parse(SdJwtCredential.parse(presentation).keyBindingJwt().orElseThrow());
     }
 
     private void replaceIssuedCredential(
             final WalletBatchEntry batchEntry,
             final String credential
     ) {
-        batchEntry.clearIssuedCredentials();
-        batchEntry.addIssuedCredential(credential);
+        batchEntry.replaceIssuedCredential(0, credential);
     }
 
     private void assertAlgorithms(final JsonNode metadata, final String propertyName) {
@@ -461,9 +402,6 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     }
 
     private record Ed25519Issuer(String did, String keyId, OctetKeyPair signingKey) {
-    }
-
-    private record CredentialParts(String jwt, String disclosures) {
     }
 
     private record InvalidPresentationScenario(

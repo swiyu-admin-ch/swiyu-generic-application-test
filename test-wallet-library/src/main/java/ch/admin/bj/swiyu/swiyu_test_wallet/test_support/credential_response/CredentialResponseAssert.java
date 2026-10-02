@@ -1,6 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.JWESupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
 import com.google.gson.JsonObject;
 import com.nimbusds.jose.JWEObject;
 import lombok.extern.slf4j.Slf4j;

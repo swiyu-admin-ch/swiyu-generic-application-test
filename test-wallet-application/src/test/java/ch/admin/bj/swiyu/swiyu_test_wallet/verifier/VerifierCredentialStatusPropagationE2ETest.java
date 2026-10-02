@@ -21,7 +21,6 @@ import com.google.gson.JsonParser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -104,7 +103,7 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
                 .queryParam("session_nonce", sessionNonce)
                 .build()
                 .toUri();
-        final VerifierManager.VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
+        final BusinessVerifier.VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL();
         if (withRedirectUri) {

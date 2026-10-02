@@ -5,7 +5,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerifierInfoEntryDto;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;

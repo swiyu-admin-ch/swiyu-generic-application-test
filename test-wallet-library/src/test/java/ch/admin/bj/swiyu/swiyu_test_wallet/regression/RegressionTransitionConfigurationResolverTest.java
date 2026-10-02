@@ -4,9 +4,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.RegressionProperties;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 class RegressionTransitionConfigurationResolverTest {
 

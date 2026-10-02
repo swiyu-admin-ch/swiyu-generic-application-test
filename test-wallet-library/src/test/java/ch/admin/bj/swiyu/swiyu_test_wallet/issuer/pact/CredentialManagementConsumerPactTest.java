@@ -17,19 +17,7 @@ import org.springframework.web.client.RestClientResponseException;
 import java.util.List;
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.CONSUMER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.JSON_CONTENT_TYPE_REGEX;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.MANAGEMENT_ID;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.OFFER_ID;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.PROVIDER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.buildBusinessIssuer;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.credentialCreationRequestBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.credentialCreationResponseBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.credentialManagementResponseBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.credentialOfferRequest;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.credentialOfferResponseBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.statusResponseBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.updateStatusResponseBody;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

@@ -2,17 +2,18 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.verifier.model.*;
+import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
+import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
+import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -31,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TrustAnchorVerificationTest extends BaseTest {
 
     @Autowired
-    private MockServerClientConfig mockServerClientConfig;
+    private MockServices mockServices;
     @Autowired
     private IssuerImageConfig issuerImageConfig;
 
@@ -57,7 +58,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         // When
         final TrustAnchor anchor = new TrustAnchor()
                 .did(trustConfig.getTrustDid())
-                .trustRegistryUri(String.format("https://%s/trusted", MockServerClientConfig.MOCKSERVER_HOST));
+                .trustRegistryUri(String.format("https://%s/trusted", MockServices.MOCKSERVER_HOST));
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .trustAnchor(anchor)
                 .withDCQL()
@@ -94,7 +95,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         // TP2 uses the configured registry, not the legacy /untrusted URL; the anchor must not sign the issuer's statements.
         final TrustAnchor anchor = new TrustAnchor()
                 .did(verifierConfig.getVerifierDid())
-                .trustRegistryUri(String.format("https://%s/untrusted", MockServerClientConfig.MOCKSERVER_HOST));
+                .trustRegistryUri(String.format("https://%s/untrusted", MockServices.MOCKSERVER_HOST));
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .trustAnchor(anchor)
                 .withDCQL()

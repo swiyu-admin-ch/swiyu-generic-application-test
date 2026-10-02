@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
@@ -19,32 +18,20 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.DPoPSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import com.nimbusds.jose.jwk.Curve;
-import com.nimbusds.jose.jwk.ECKey;
-import com.nimbusds.jose.jwk.KeyUse;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.security.KeyPair;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.REVOKED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.SUSPENDED;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.VALID;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.*;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationHttpStatusAssert.assertWalletAndManagementRespondOk;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
@@ -57,12 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
 @UseVerifiers(VerifierVariant.DEFAULT)
+@UseWallet(dpop = true)
 public class RenewalFlowStateTransitionTest extends BaseTest {
-
-    @BeforeAll
-    void setUp() {
-        wallet.setUseDPoP(true);
-    }
 
     @BeforeEach
     void useDefaultVerifier() {

@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,9 +11,9 @@ import java.security.KeyPair;
 import java.security.interfaces.ECPublicKey;
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.createDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.DidLogUtil.getDidFromDidLog;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil.generateEC256KeyPair;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.createDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil.getDidFromDidLog;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.generateEC256KeyPair;
 
 @Getter
 @Builder
@@ -36,7 +37,7 @@ public class VerifierConfig {
         var verifierDid = getDidFromDidLog(didLog);
 
         return VerifierConfig.builder()
-                .mockServerUri(String.format("http://%s", MockServerClientConfig.MOCKSERVER_HOST))
+                .mockServerUri(String.format("http://%s", MockServices.MOCKSERVER_HOST))
                 .verifierDid(verifierDid)
                 .verifierDidLog(didLog)
                 .verifierAuthKeyId(verifierDid + "#auth-key-01")

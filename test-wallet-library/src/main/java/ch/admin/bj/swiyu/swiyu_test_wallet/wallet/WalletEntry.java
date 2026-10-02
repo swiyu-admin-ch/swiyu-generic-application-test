@@ -1,33 +1,26 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.*;
-import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
-import com.nimbusds.jose.*;
+import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLDecoder;
 import java.security.KeyPair;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.util.Base64;
-import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -100,72 +93,6 @@ public class WalletEntry {
         assertThat(credentialOffer.getCredentialIssuerUriAsString()).isNotNull();
         assertThat(credentialOffer.getPreAuthorizedCode()).isNotNull();
     }
-
-    public String createPresentationForSdJwt(String issuerSdJwt, RequestObject requestObject) {
-        try {
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("kb+jwt"))
-                    .build();
-
-            String sdJwtHash = hashSdJwt(issuerSdJwt);
-            String audience = requestObject.getClientId();
-            String nonce = requestObject.getNonce();
-
-            JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .claim("sd_hash", sdJwtHash)
-                    .audience(audience)
-                    .claim("nonce", nonce)
-                    .issueTime(new Date())
-                    .build();
-
-            SignedJWT signedJWT = new SignedJWT(header, claimsSet);
-            signedJWT.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
-
-            String serializedJwt = signedJWT.serialize();
-            return issuerSdJwt + serializedJwt;
-        } catch (JOSEException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public JwtProof createProof() {
-        if (credentialOffer == null) {
-            throw new IllegalStateException(CREDENTIAL_OFFER_NOT_SET);
-        }
-        if (getIssuerMetadata() == null) {
-            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
-        }
-
-        String audience = getIssuerMetadata().getCredentialIssuer();
-        return new JwtProof(audience, getCNonce(), proofPublicJwk, keyPair, null);
-    }
-
-    private static String hashSdJwt(String credentialsSdJwt) {
-        assertThat(credentialsSdJwt).isNotNull();
-
-        try {
-            MessageDigest digest = MessageDigest.getInstance("sha-256");
-            byte[] hashBytes = digest.digest(credentialsSdJwt.getBytes());
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public boolean isEncryptionEnabled() {
-        final IssuerCredentialRequestEncryption req = issuerMetadata.getCredentialRequestEncryption();
-
-        return (req != null && req.getEncryptionRequired()) || wallet.isUseEncryption();
-    }
-
-    public RestClient getRestClient() {
-        if (wallet == null) {
-            throw new IllegalStateException("wallet not set.");
-        }
-
-        return wallet.getRestClient();
-    }
-
     public URI getIssuerTokenUri() {
         if (issuerWellKnownConfiguration == null) {
             throw new IllegalStateException("issuer well known configuration not set.");
@@ -189,19 +116,6 @@ public class WalletEntry {
 
         return credentialOffer.getCredentialIssuerUri();
     }
-
-    public String getIssuerDid() {
-        final String sdJwt = getVerifiableCredential();
-        final String jwt = sdJwt.split("~")[0];
-
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(jwt);
-            return signedJWT.getJWTClaimsSet().getIssuer();
-        } catch (ParseException e) {
-            throw new IllegalStateException("Invalid JWT", e);
-        }
-    }
-
     public URI getIssuerCredentialUri() {
         if (issuerMetadata == null) {
             throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
@@ -233,29 +147,6 @@ public class WalletEntry {
 
         return issuerSdJwt;
     }
-
-    public URI getVctUri() {
-        var vct = getVct();
-        try {
-            return toUri(vct);
-        } catch (RuntimeException e) {
-            var issuerURI = getIssuerMetadata().getCredentialIssuer();
-            return toUri(issuerURI + "/oid4vci/vct/" + vct);
-        }
-    }
-
-    public String getVct() {
-        final String sdJwt = getVerifiableCredential();
-        final String jwt = sdJwt.split("~")[0];
-
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(jwt);
-            return signedJWT.getJWTClaimsSet().getStringClaim("vct");
-        } catch (Exception e) {
-            throw new IllegalStateException("Invalid JWT", e);
-        }
-    }
-
     public void generateEphemeralEncryptionKey() {
         try {
             final ECKey key = new ECKeyGenerator(Curve.P_256)
@@ -267,26 +158,4 @@ public class WalletEntry {
             throw new IllegalStateException("Error during ephemeral encryption key", e);
         }
     }
-
-    public CredentialResponseEncryption createCredentialResponseEncryption() {
-        if (issuerMetadata == null) {
-            throw new IllegalStateException(ISSUER_METADATA_NOT_SET);
-        }
-
-        if (ephemeralEncryptionKey == null) {
-            generateEphemeralEncryptionKey();
-        }
-
-        var encryptionMetadata = issuerMetadata.getCredentialResponseEncryption();
-        if (encryptionMetadata == null) {
-            throw new IllegalStateException("credential_response_encryption not available");
-        }
-
-        var responseEncryption = new CredentialResponseEncryption();
-        responseEncryption.setEnc(wallet.resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()));
-        responseEncryption.setJwk(ephemeralEncryptionKey.toPublicJWK().toJSONObject());
-
-        return responseEncryption;
-    }
-
 }

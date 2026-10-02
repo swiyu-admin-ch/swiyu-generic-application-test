@@ -1,12 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.flows;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.issuer.model.ConfigurationOverride;
-import ch.admin.bj.swiyu.gen.issuer.model.CreateCredentialOfferRequest;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
-import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
-import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
+import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.ConfigurationOverrideDto;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
@@ -21,15 +16,14 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -92,7 +86,7 @@ class MultipleSigningKeysE2ETest extends BaseTest {
                 .issuerDid(migrationIdentity.getIssuerDid())
                 .verificationMethod(migrationIdentity.getIssuerAuthKeyId());
         final StatusList migrationStatusList = issuerManager.createStatusList(100000, 2, statusListOverride);
-        mockServerClientConfig.setCurrentStatusList(
+        mockServices.setCurrentStatusList(
                 migrationIdentity.getIssuerDid(),
                 migrationStatusList.getStatusRegistryUrl()
         );

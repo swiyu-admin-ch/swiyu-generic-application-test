@@ -4,7 +4,6 @@ import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.Arrays;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)

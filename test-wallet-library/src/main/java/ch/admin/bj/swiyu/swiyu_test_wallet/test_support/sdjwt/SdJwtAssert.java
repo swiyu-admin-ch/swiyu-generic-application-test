@@ -1,9 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt;
 
 import com.jayway.jsonpath.JsonPath;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.assertj.core.api.Assertions;
 
 import java.util.List;

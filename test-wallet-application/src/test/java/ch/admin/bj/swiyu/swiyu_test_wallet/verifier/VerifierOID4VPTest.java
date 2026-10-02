@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
@@ -18,10 +17,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.request_object.RequestOb
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletEntry;
-import tools.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -29,6 +25,7 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import tools.jackson.databind.JsonNode;
 
 import java.util.Map;
 
@@ -65,7 +62,7 @@ class VerifierOID4VPTest extends BaseTest {
     void walletFetchesSignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(true)
                 .acceptedIssuerDid("did:swiyu:university")
                 .withUniversityDCQL()
@@ -156,7 +153,7 @@ class VerifierOID4VPTest extends BaseTest {
     void walletFetchesUnsignedRequestObject_thenSuccess() {
 
         // GIVEN – verifier initiates verification (UCV_M1)
-        final VerifierManager.VerificationRequestBuilder verifierManagerRequest = verifierManager
+        final BusinessVerifier.VerificationRequestBuilder verifierManagerRequest = verifierManager
                 .verificationRequest(false)
                 .acceptedIssuerDid("did:swiyu:university")
                 .withUniversityDCQL()

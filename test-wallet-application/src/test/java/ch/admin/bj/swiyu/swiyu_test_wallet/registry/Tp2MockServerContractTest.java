@@ -3,11 +3,9 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.registry;
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.support.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,6 +15,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.text.ParseException;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.PROTECTED_VCT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -67,7 +67,7 @@ class Tp2MockServerContractTest extends BaseTest {
         }
 
         // When
-        mockServerClientConfig.registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
+        mockServices.registerTp2Routes(mockServerClient, issuerConfig, verifierConfig, trustConfig);
 
         // Then
         final String restoredStatusList = client.get().uri(statusListPath).retrieve().body(String.class);

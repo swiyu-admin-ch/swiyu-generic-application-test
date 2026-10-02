@@ -9,12 +9,12 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
-import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.time.Instant;

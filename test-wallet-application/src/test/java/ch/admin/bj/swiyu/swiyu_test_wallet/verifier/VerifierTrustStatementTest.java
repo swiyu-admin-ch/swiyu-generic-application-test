@@ -1,32 +1,23 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
-import ch.admin.bj.swiyu.gen.verifier.model.ConfigurationOverrideDto;
-import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
-import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.gen.verifier.model.VerificationPurpose;
-import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
+import ch.admin.bj.swiyu.gen.verifier.model.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustConfigFactory;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementAlgorithm;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustConfigFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementAlgorithm;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jwt.SignedJWT;
@@ -39,22 +30,21 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.config.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSupport.TP2_PROFILE_VERSION;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -770,7 +760,7 @@ class VerifierTrustStatementTest extends BaseTest {
             );
             final TrustConfig agileTrustConfig =
                     Tp2TrustConfigFactory.createEd25519TrustConfig(didRegistryEntry);
-            mockServerClientConfig.replaceDidLog(
+            mockServices.replaceDidLog(
                     agileTrustConfig.getTrustDid(),
                     agileTrustConfig.getTrustDidLog()
             );

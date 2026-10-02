@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.ToString;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLDecoder;

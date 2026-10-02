@@ -14,18 +14,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.CONSUMER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.JSON_CONTENT_TYPE_REGEX;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.PROVIDER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.RESPONSE_CODE;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.VERIFICATION_ID;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.WRONG_RESPONSE_CODE;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.buildVerifierManager;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.invalidVerificationRequestBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.validVerificationRequest;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.validVerificationRequestBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.verificationResponseBody;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.verificationStateParameters;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.pact.VerifierManagementConsumerPactSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

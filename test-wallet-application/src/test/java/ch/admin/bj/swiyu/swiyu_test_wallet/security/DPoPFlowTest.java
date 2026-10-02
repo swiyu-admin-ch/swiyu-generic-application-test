@@ -5,38 +5,34 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import tools.jackson.core.JacksonException;
-import com.nimbusds.jose.JOSEObjectType;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.DpopProof;
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
+import tools.jackson.core.JacksonException;
 
 import java.net.URI;
 import java.security.KeyPair;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,12 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
+@UseWallet(dpop = true)
 class DPoPFlowTest extends BaseTest {
-    @BeforeAll
-    void setUp() {
-        wallet.setUseDPoP(true);
-    }
-
     @Test
     @XrayTest(
             key = "EIDOMNI-1241",
@@ -82,7 +74,14 @@ class DPoPFlowTest extends BaseTest {
 
         String nonce = wallet.collectDPoPNonce(batchEntry);
         URI tokenUri = batchEntry.getIssuerTokenUri();
-        String ed25519DpopProof = createEd25519DpopProof(tokenUri.toString(), nonce);
+        final OctetKeyPair ed25519Key = new OctetKeyPairGenerator(Curve.Ed25519)
+                .keyUse(KeyUse.SIGNATURE)
+                .algorithm(JWSAlgorithm.Ed25519)
+                .generate();
+        String ed25519DpopProof = DpopProof.forRequest("POST", tokenUri.toString())
+                .nonce(nonce)
+                .signedWithEd25519(ed25519Key)
+                .build();
         SignedJWT parsedProof = SignedJWT.parse(ed25519DpopProof);
         assertThat(parsedProof.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.Ed25519);
         assertThat(parsedProof.getHeader().getJWK().getKeyType().getValue()).isEqualTo("OKP");
@@ -592,7 +591,10 @@ class DPoPFlowTest extends BaseTest {
         String refreshNonce = wallet.collectDPoPNonce(batchEntry);
         assertThat(refreshNonce).isNotBlank();
 
-        String secondDpopProofDifferentKey = createDpopProofForTokenWithKey(otherKeyPair, otherPub, tokenUri.toString(), "POST", refreshNonce);
+        String secondDpopProofDifferentKey = DpopProof.forRequest("POST", tokenUri.toString())
+                .nonce(refreshNonce)
+                .signedWith(otherKeyPair, otherPub)
+                .build();
 
         // The refresh token request using a different key should be rejected by the issuer
         assertThatThrownBy(() -> wallet.refreshTokenWithDPoP(batchEntry, secondDpopProofDifferentKey))
@@ -600,34 +602,6 @@ class DPoPFlowTest extends BaseTest {
                 .isInstanceOf(HttpClientErrorException.class)
                 .hasMessageContaining("401");
     }
-
-    private String createDpopProofForTokenWithKey(KeyPair keyPair, ECKey pubKey, String uri, String method, String nonce) {
-        try {
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(pubKey)
-                    .build();
-
-            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .claim("htm", method)
-                    .claim("htu", uri)
-                    .issueTime(new Date())
-                    .jwtID(UUID.randomUUID().toString());
-
-            if (nonce != null) {
-                claimsBuilder.claim("nonce", nonce);
-            }
-
-            JWTClaimsSet claims = claimsBuilder.build();
-
-            SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(ECCryptoSupport.createECDSASigner(keyPair.getPrivate()));
-            return jwt.serialize();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create DPoP proof for token request with custom key", e);
-        }
-    }
-
     @Test
     @XrayTest(
             key = "EIDOMNI-486",
@@ -690,7 +664,13 @@ class DPoPFlowTest extends BaseTest {
         log.info("Attacker intercepts request and creates DPoP proof bound to attacker-url");
         URI attackerCredentialUri = URI.create("http://attacker-url:8080/oid4vci/api/credential");
         String credentialNonce = wallet.collectDPoPNonce(batchEntry);
-        String attackerDpopProof = createDpopProofForCredentialRequest(attackerCredentialUri, credentialNonce);
+        // Deviation: only the htu differs. The proof is otherwise what the Wallet would send to the real endpoint.
+        String attackerDpopProof = DpopProof.forRequest("POST", realCredentialUri.toString())
+                .nonce(credentialNonce)
+                .accessToken(token.getAccessToken())
+                .signedWith(wallet.getDpopKeyPair(), wallet.getDpopPublicKey())
+                .withHtu(attackerCredentialUri.toString())
+                .build();
 
         log.info("Attacker forwards request to real issuer with attacker's DPoP proof");
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -706,92 +686,6 @@ class DPoPFlowTest extends BaseTest {
                 .containsEntry("error_description", "URL mismatch between DPoP and request");
         log.info("MITM attack prevented - DPoP URI binding working correctly");
     }
-
-    private String createDpopProofForCredentialRequest(URI uri, String nonce) {
-        try {
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(wallet.getDpopPublicKey())
-                    .build();
-
-            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .claim("htm", "POST")
-                    .claim("htu", uri.toString())
-                    .issueTime(new Date())
-                    .jwtID(UUID.randomUUID().toString());
-
-            if (nonce != null) {
-                claimsBuilder.claim("nonce", nonce);
-            }
-
-            JWTClaimsSet claims = claimsBuilder.build();
-
-            SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(ECCryptoSupport.createECDSASigner(wallet.getDpopKeyPair().getPrivate()));
-            return jwt.serialize();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create DPoP proof for credential request", e);
-        }
-    }
-
-    private String createDpopProofForToken(String uri, String method, String nonce) {
-        return createDpopProofForToken(uri, method, nonce, null);
-    }
-
-    private String createEd25519DpopProof(String uri, String nonce) {
-        try {
-            OctetKeyPair key = new OctetKeyPairGenerator(Curve.Ed25519)
-                    .keyUse(KeyUse.SIGNATURE)
-                    .algorithm(JWSAlgorithm.Ed25519)
-                    .generate();
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.Ed25519)
-                    .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(key.toPublicJWK())
-                    .build();
-            JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                    .claim("htm", "POST")
-                    .claim("htu", uri)
-                    .claim("nonce", nonce)
-                    .issueTime(new Date())
-                    .jwtID(UUID.randomUUID().toString())
-                    .build();
-
-            SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(new Ed25519Signer(key));
-            return jwt.serialize();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create Ed25519 DPoP proof", e);
-        }
-    }
-
-    private String createDpopProofForToken(String uri, String method, String nonce, String audience) {
-        try {
-            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
-                    .type(new JOSEObjectType("dpop+jwt"))
-                    .jwk(wallet.getDpopPublicKey())
-                    .build();
-
-            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .audience(audience)
-                    .claim("htm", method)
-                    .claim("htu", uri)
-                    .issueTime(new Date())
-                    .jwtID(UUID.randomUUID().toString());
-
-            if (nonce != null) {
-                claimsBuilder.claim("nonce", nonce);
-            }
-
-            JWTClaimsSet claims = claimsBuilder.build();
-
-            SignedJWT jwt = new SignedJWT(header, claims);
-            jwt.sign(ECCryptoSupport.createECDSASigner(wallet.getDpopKeyPair().getPrivate()));
-            return jwt.serialize();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create DPoP proof for token request", e);
-        }
-    }
-
     @Test
     @XrayTest(
             key = "EIDOMNI-480",
@@ -897,5 +791,13 @@ class DPoPFlowTest extends BaseTest {
             .hasStatus(400)
             .hasError("invalid_nonce")
             .hasErrorDescription("Presented nonce was reused!");
+    }
+
+    /** A conformant proof for a request to {@code uri}, signed with the Wallet's DPoP key. */
+    private String createDpopProofForToken(String uri, String method, String nonce) {
+        return DpopProof.forRequest(method, uri)
+                .nonce(nonce)
+                .signedWith(wallet.getDpopKeyPair(), wallet.getDpopPublicKey())
+                .build();
     }
 }

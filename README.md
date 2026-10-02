@@ -118,6 +118,16 @@ This is a **multi-module Maven project** organized as follows:
 - **test-wallet-library**: Contains reusable components including utilities, fixtures, test data builders, assertion helpers, and container configuration
 - **test-wallet-application**: Contains the actual test classes and Spring Boot configurations. Tests are executed from this module using the Spring Boot Test framework with environment annotations for component variants
 
+The main packages of `test-wallet-library`:
+
+| Package | Content |
+|---------|---------|
+| `wallet` (with `credential`, `artefact`, `crypto`) | The fake Wallet. `Wallet` holds the settings and keys, `CredentialIssuerClient` (OID4VCI) and `VerifierClient` (OID4VP) talk to the components, `HeldCredential` is a credential with its holder key, and `artefact` builds DPoP proofs, key binding JWTs and SD-JWT credentials, with named deviations for negative tests. |
+| `issuer`, `verifier` | The Business Systems: `BusinessIssuer` and `BusinessVerifier` call the Management APIs of the generic Issuer and Verifier. |
+| `mock` (with `tp2`) | The external services simulated by MockServer: Base Registry, Status Registry, OAuth token endpoint, webhook callbacks, renewal service, and the Trust Protocol 2.0 registry. |
+| `environment`, `config`, `regression` | Containers, Issuer and Verifier variants, image configuration, and the Previous-to-Candidate version regression. |
+| `fixture`, `test_support`, `identity`, `util` | Test data, asserters and protocol parsers, DID and key helpers, and generic infrastructure. |
+
 ## Test Environment Model
 
 E2E tests extend `BaseTest`, which acts as the environment provider for the test class. A test class declares the generic components it needs, and `BaseTest` ensures that the matching infrastructure and containers are running before the tests execute.
@@ -164,6 +174,22 @@ class SharedServiceContractTest extends BaseTest {
 
 Variants that require Keycloak or HSM start those shared services automatically.
 
+### Declaring The Wallet
+
+Before every test `BaseTest` creates a fresh `Wallet` from the profile the class declares. By default the wallet uses no DPoP
+and no payload encryption. Declare what the whole class needs with `@UseWallet`:
+
+```java
+@UseWallet(dpop = true, encryption = true)
+class SignedRenewalFlowTest extends BaseTest {
+    // every test starts with a wallet that sends DPoP proofs and encrypts its payloads
+}
+```
+
+A test that needs something else for itself changes its own wallet (`wallet.setUseDPoP(true)`); nothing leaks into the next
+test. For a deliberate protocol violation use the builders in `wallet.artefact` (`DpopProof`, `KeyBindingJwt`,
+`SdJwtCredential`) and name the violated requirement in the test.
+
 ### Using Components In Tests
 
 `BaseTest` exposes named component handles:
@@ -203,7 +229,7 @@ Add issuer configurations through `IssuerVariant`.
 2. Give it a unique `surname`; this becomes part of the container/schema identity.
 3. Set the variant flags, such as DPoP enforcement, signed metadata, JWT management auth, encryption enforcement, or HSM.
 4. Extend `IssuerImageConfig` and `IssuerContainerConfig` only if the new variant requires a new environment variable.
-5. Update `MockServerClientConfig` or `SwiyuEnvironmentRegistry` only if the variant needs new mocked external behavior.
+5. Update `MockServices` or `SwiyuEnvironmentRegistry` only if the variant needs new mocked external behavior.
 6. Use the variant from tests with `@UseIssuers(...)`.
 7. Run a targeted test first, then broaden to the full application suite if the change affects shared environment behavior.
 
@@ -249,7 +275,7 @@ The following environment variables can be used to configure the test execution:
 | `ISSUER_IMAGE_TAG` | Docker image tag for the Issuer service | `dev` | `dev`, `stable`, `rc`, `staging` |
 | `VERIFIER_IMAGE_NAME` | Docker image name for the Verifier service | `ghcr.io/swiyu-admin-ch/swiyu-verifier` | `ghcr.io/swiyu-admin-ch/swiyu-verifier` |
 | `VERIFIER_IMAGE_TAG` | Docker image tag for the Verifier service | `dev` | `dev`, `stable`, `rc`, `staging` |
-| `TRACE_TEST_REQUESTS` | Enable stack trace logging for each test | `false` | `true`, `false` |
+| `TRACE_TEST_REQUESTS` | Write the HTTP requests and responses of each test (Wallet, Issuer Management API, Verifier Management API) to a Markdown trace | `false` | `true`, `false` |
 | `ISSUER_CONTAINER_LOGS` | Enable Issuer container logs | `true` | `true`, `false` |
 | `VERIFIER_CONTAINER_LOGS` | Enable Verifier container logs | `true` | `true`, `false` |
 | `DB_CONTAINER_LOGS` | Enable PostgreSQL container logs | `false` | `true`, `false` |
@@ -260,9 +286,9 @@ Container logs are controlled per service. Issuer and Verifier logs are enabled 
 
 ### Trace Output
 
-When `TRACE_TEST_REQUESTS=true` is set, detailed stack traces are generated during test execution. These traces are saved as Markdown files in the `target/traces/` directory, organized by test name. This feature is particularly useful for understanding the flow of happy path tests and debugging.
+When `TRACE_TEST_REQUESTS=true` is set, the HTTP requests and responses exchanged by the Wallet and by the Issuer and Verifier Management API clients are recorded during test execution. They are saved as Markdown files in `test-wallet-application/target/request-traces/`, one file per test (`<TestClass>/<method>.md`, with an index suffix for parameterized tests). This feature is particularly useful for understanding the flow of happy path tests and debugging.
 
-**Note**: Enabling tracing may cause some edge case tests to fail. It is recommended to use tracing primarily for analyzing happy path test flows.
+**Note**: Enabling tracing changes the HTTP client used by the Wallet, and some tests then fail. Observed on 2026-10-01 with the full suite: six DPoP tests that expect a `401` error body (`DPoPFlowTest` and `RenewalFlowTest`) fail with tracing enabled, because the recorded `401` response has an empty body, while they pass without tracing. It is recommended to use tracing primarily for analyzing happy path test flows.
 
 ## Version Regression Tests
 

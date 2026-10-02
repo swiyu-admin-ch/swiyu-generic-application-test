@@ -9,18 +9,17 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockServerClientConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseVerifiers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
-import ch.admin.bj.swiyu.swiyu_test_wallet.registry.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -94,7 +93,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     .isGreaterThan(didRequestsBefore);
 
             // When
-            mockServerClientConfig.replaceDidLog(issuerConfig.getIssuerDid(), didLogWithTamperedAssertionKey());
+            mockServices.replaceDidLog(issuerConfig.getIssuerDid(), didLogWithTamperedAssertionKey());
             awaitResolverCacheTtlBoundary();
             final RejectedVerification rejectedVerification = presentCredentialWithAcceptedIssuerExpectingHttpError(
                     batchEntry
@@ -118,7 +117,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     .as("Issuer DID document should be resolved again after JWK_CACHE TTL expiry")
                     .isGreaterThan(didRequestsAfterFirstVerification);
         } finally {
-            mockServerClientConfig.replaceDidLog(issuerConfig.getIssuerDid(), issuerConfig.getIssuerDidLog());
+            mockServices.replaceDidLog(issuerConfig.getIssuerDid(), issuerConfig.getIssuerDidLog());
         }
     }
 
@@ -241,7 +240,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
         final String routePrefix = "/trusted-cache-" + UUID.randomUUID();
         final String routePath = routePrefix + "/api/v1/truststatements/issuance";
         final String trustedResponse = "[\"%s\"]".formatted(
-                mockServerClientConfig.createLegacyIssuanceTrustStatement(DEFAULT_VCT, issuerConfig)
+                mockServices.createLegacyIssuanceTrustStatement(DEFAULT_VCT, issuerConfig)
         );
         final AtomicInteger registryFetches = new AtomicInteger();
 
@@ -259,7 +258,7 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                                 : "[]"));
 
         return new LegacyTrustRoute(
-                "https://%s%s".formatted(MockServerClientConfig.MOCKSERVER_HOST, routePrefix),
+                "https://%s%s".formatted(MockServices.MOCKSERVER_HOST, routePrefix),
                 routePath
         );
     }
