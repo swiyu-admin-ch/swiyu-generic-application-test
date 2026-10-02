@@ -10,10 +10,15 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
 import org.mockserver.model.HttpStatusCode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.text.ParseException;
+import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,12 +33,21 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
  * (PUT), and serves them as Status List Tokens ({@code application/statuslist+jwt}, Token Status List draft 20 §5, Swiss VC
  * profile). The mock signs the served token itself with the key of the issuer the list belongs to.
  *
+ * <p>It serves both update endpoints of the Status Registry: v1 (deprecated, no conformity check) and v2 (Swiss profile
+ * conformity enforced, see {@link SwissStatusListConformity}). Creating an entry and reading a list exist in v1 only. A
+ * Credential Issuer uses the v2 update from the image {@code main} on and the v1 one before.
+ *
  * <p>It can be told to fail updates or to serve a token with a corrupted signature, for the tests that need a faulty
  * registry.
  */
 @Slf4j
 final class StatusRegistry {
 
+    private static final String UPDATE_PATH_V1 =
+            "/api/v1/status/business-entities/{businessId}/status-list-entries/{statusListId}";
+    private static final String UPDATE_PATH_V2 =
+            "/api/v2/status/business-entities/{businessId}/status-list-entries/{statusListId}";
+    private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
     private static final String STATUSLIST_URI_PATTERN = "https://" + MockServices.MOCKSERVER_HOST + "/api/v1/statuslist/%s.jwt";
     private static final String DEFAULT_COMPRESSED_STATUSES = "eNrtwQEBAAAAgiD_r25IQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHwYYagAAQ";
 
@@ -183,30 +197,59 @@ final class StatusRegistry {
                             .withHeader(CONTENT_TYPE, "application/json")
                             .withBody(payload);
                 });
-        mockServerClient.when(request().withMethod("PUT").withPath(
-                "/api/v1/status/business-entities/{businessId}/status-list-entries/{statusListId}")
+        mockServerClient.when(request().withMethod("PUT").withPath(UPDATE_PATH_V1)
                 .withPathParameter("businessId", ".*").withPathParameter("statusListId", ".*"))
-                .respond(httpRequest -> {
-                    log.info("Entered PUT expectation for status list update with path: {}", httpRequest.getPath().getValue());
+                .respond(httpRequest -> updateResponse(httpRequest, false));
+        mockServerClient.when(request().withMethod("PUT").withPath(UPDATE_PATH_V2)
+                .withPathParameter("businessId", ".*").withPathParameter("statusListId", ".*"))
+                .respond(httpRequest -> updateResponse(httpRequest, true));
+    }
 
-                    if (throwStatusListError) {
-                        log.debug("Status list error mode enabled - returning 500 error");
-                        return response()
-                                .withStatusCode(500)
-                                .withHeader(CONTENT_TYPE, "application/json")
-                                .withBody("{\"error\": \"Internal server error - status list update failed\"}");
-                    }
+    /**
+     * The answer to the upload of a Status List Token. v1 accepts it with a {@code 202}, as it always did. v2 rejects a token
+     * that is not conformant to the Swiss profile with a {@code 400} and an {@code ApiError} listing the violations, and
+     * accepts it with a {@code 200} (operation {@code updateStatusListEntry} of {@code SWIYU_Core_Business_status.yaml}).
+     */
+    private HttpResponse updateResponse(final HttpRequest httpRequest, final boolean enforceSwissProfile) {
+        log.info("Entered PUT expectation (Swiss profile enforced: {}) for status list update with path: {}",
+                enforceSwissProfile, httpRequest.getPath().getValue());
 
-                    try {
-                        final String path = httpRequest.getPath().getValue();
-                        final String statusListId = extractStatusListIdFromPath(path);
+        if (throwStatusListError) {
+            log.debug("Status list error mode enabled - returning 500 error");
+            return response()
+                    .withStatusCode(500)
+                    .withHeader(CONTENT_TYPE, "application/json")
+                    .withBody("{\"error\": \"Internal server error - status list update failed\"}");
+        }
 
-                        onStatusListPublished(statusListId, httpRequest.getBodyAsString());
-                    } catch (Exception e) {
-                        return response().withStatusCode(500);
-                    }
-                    return response().withStatusCode(202);
-                });
+        if (enforceSwissProfile) {
+            final List<String> violations = SwissStatusListConformity.violations(compactJwt(httpRequest.getBodyAsString()));
+            if (!violations.isEmpty()) {
+                log.warn("Status list token rejected, it violates the Swiss profile: {}", violations);
+                return response()
+                        .withStatusCode(400)
+                        .withHeader(CONTENT_TYPE, "application/json")
+                        .withBody(apiError(violations));
+            }
+        }
+
+        try {
+            final String path = httpRequest.getPath().getValue();
+            final String statusListId = extractStatusListIdFromPath(path);
+
+            onStatusListPublished(statusListId, httpRequest.getBodyAsString());
+        } catch (Exception e) {
+            return response().withStatusCode(500);
+        }
+        return response().withStatusCode(enforceSwissProfile ? 200 : 202);
+    }
+
+    /** The {@code ApiError} of the Status Registry: {@code data_invalid} is "the given data was invalid in syntax or semantic". */
+    private static String apiError(final List<String> violations) {
+        return OBJECT_MAPPER.writeValueAsString(Map.of(
+                "errorCode", "data_invalid",
+                "message", "The status list token does not conform to the Swiss profile",
+                "additionalDetails", violations));
     }
 
     private String signedStatusListToken(final String statusListId, final IssuerConfig issuerConfig) {
@@ -281,15 +324,7 @@ final class StatusRegistry {
                 return null;
             }
 
-            String decodedBody;
-            try {
-                byte[] decoded = java.util.Base64.getDecoder().decode(jwtBody);
-                decodedBody = new String(decoded);
-            } catch (IllegalArgumentException e) {
-                decodedBody = jwtBody;
-            }
-
-            final SignedJWT jwt = SignedJWT.parse(decodedBody);
+            final SignedJWT jwt = SignedJWT.parse(compactJwt(jwtBody));
             final Map<String, Object> claims = jwt.getJWTClaimsSet().getClaims();
 
             if (claims.get("status_list") instanceof Map<?, ?> statusListClaim && statusListClaim.get("lst") instanceof String lst) {
@@ -300,6 +335,18 @@ final class StatusRegistry {
             return null;
         }
         return null;
+    }
+
+    /** The upload body is the Status List Token itself or its base64 encoding. */
+    private static String compactJwt(final String body) {
+        if (body == null) {
+            return null;
+        }
+        try {
+            return new String(Base64.getDecoder().decode(body));
+        } catch (IllegalArgumentException e) {
+            return body;
+        }
     }
 
     /** {@code .../business-entities/<businessId>/status-list-entries/...}: the Business Entity of the request. */
