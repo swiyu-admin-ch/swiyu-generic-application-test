@@ -4,7 +4,6 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
@@ -41,7 +40,7 @@ import static org.mockserver.model.HttpRequest.request;
 @Import(CompleteEnvironmentTestConfiguration.class)
 class VerifierIssuerKeyResolutionTest extends BaseTest {
 
-    @ParameterizedTest(name = "[{index}] trusted issuer configured through {0}")
+    @ParameterizedTest(name = "[{index}] {0}")
     @EnumSource(TrustedIssuerConfiguration.class)
     @XrayTest(
             key = "EIDOMNI-1195",
@@ -104,12 +103,15 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
                 () -> wallet.respondToVerification(requestObject, presentation),
                 verifierManager,
                 verification.getId(),
+                // With an accepted issuer list the Verifier sends it as a `trusted_authorities` of type `did` in the DCQL query
+                // (Swiss verification profile 6.1.1) and, since EIDOMNI-1177, rejects a credential whose kid DID is not in it.
+                // Without a list there is no HTTP error: the evaluation below marks the issuer untrusted.
                 ex -> ApiErrorAssert.assertThat(ex)
                         .hasStatus(400)
                         .hasError("invalid_transaction_data")
-                        .hasDetail("issuer_not_accepted")
-                        .hasErrorCode("issuer_not_accepted")
-                        .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor"),
+                        .hasDetail("invalid_presentation_submission")
+                        .hasErrorCode("invalid_presentation_submission")
+                        .hasErrorDescription("No matching SD-JWT for requested credential id VerifiableCredential"),
                 evaluation -> assertIssuerUntrusted(evaluation)
         );
 
@@ -175,15 +177,8 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         final BusinessVerifier.VerificationRequestBuilder requestBuilder = verifierManager.verificationRequest()
                 .withDCQL();
 
-        switch (trustedIssuerConfiguration) {
-            case ACCEPTED_ISSUER_ALLOW_LIST -> requestBuilder.acceptedIssuerDid(trustedIssuerDid);
-            case DIRECT_TRUST_ANCHOR -> requestBuilder.trustAnchor(
-                    new TrustAnchor()
-                            .did(trustedIssuerDid)
-                            .trustRegistryUri("https://%s/untrusted".formatted(
-                                    MockServices.MOCKSERVER_HOST
-                            ))
-            );
+        if (trustedIssuerConfiguration == TrustedIssuerConfiguration.ACCEPTED_ISSUER_ALLOW_LIST) {
+            requestBuilder.acceptedIssuerDid(trustedIssuerDid);
         }
 
         return requestBuilder.createManagementResponse();
@@ -197,9 +192,14 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         ).length;
     }
 
+    /**
+     * How the Verifier is told which issuer it trusts. A trust anchor can no longer be sent in a verification request since
+     * Trust Protocol 1.0 was removed (EIDOMNI-1319): without an accepted issuer list, trust comes only from the trust anchor of the
+     * Verifier environment (Trust Protocol 2.0).
+     */
     private enum TrustedIssuerConfiguration {
         ACCEPTED_ISSUER_ALLOW_LIST,
-        DIRECT_TRUST_ANCHOR
+        NO_ACCEPTED_ISSUER_LIST
     }
 
     private record AttackerIssuer(IssuerConfig config, String didDocumentPath) {
