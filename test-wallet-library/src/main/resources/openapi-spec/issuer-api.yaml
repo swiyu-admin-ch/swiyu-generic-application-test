@@ -1570,6 +1570,9 @@ components:
           $ref: "#/components/schemas/ConfigurationOverride"
           description: "Optional Parameter to override configured parameters, such\
             \ as the DID used or the HSM key used in singing the request object"
+        tx_code_config:
+          $ref: "#/components/schemas/TransactionCodeConfig"
+          description: Optional parameter to enable and configure a transaction code as a second factor.
       required:
       - metadata_credential_supported_id
     CreateCredentialRequest:
@@ -1824,6 +1827,11 @@ components:
           format: uuid
         offer_deeplink:
           type: string
+        tx_code:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: Transaction code required to redeem the pre-authorized credential offer, when enabled.
+          example: "123456"
     DeferredCredentialEndpointRequest:
       type: object
       description: Request to the deferred credential endpoint.
@@ -2176,6 +2184,9 @@ components:
           minLength: 1
         pre-authorized_code:
           type: string
+        tx_code:
+          type: string
+          description: Transaction code required when the credential offer contained a tx_code object.
         refresh_token:
           type: string
       required:
@@ -2358,6 +2369,22 @@ components:
             pattern: ^ES256|Ed25519$
         key_attestations_required:
           $ref: "#/components/schemas/KeyAttestationRequirement"
+    TransactionCodeConfig:
+      type: object
+      description: Configuration for the transaction code.
+      properties:
+        use_tx_code:
+          type: boolean
+          default: false
+          description: Flag indicating whether a transaction code should be used. Disabled by default.
+        description:
+          type: string
+          description: Guidance for the Holder on how to obtain the Transaction Code.
+        length:
+          type: integer
+          format: int32
+          default: 6
+          description: Length of the Transaction Code.
     UpdateCredentialStatusRequestType:
       type: string
       description: |2

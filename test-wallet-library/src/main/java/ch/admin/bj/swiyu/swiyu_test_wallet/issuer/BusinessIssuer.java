@@ -111,6 +111,17 @@ public class BusinessIssuer {
         return createCredentialOffer(supportedMetadataId, CredentialOffer.defaultSubjectData(), false);
     }
 
+    public CredentialWithDeeplinkResponse createCredentialOfferWithTransactionCode(String supportedMetadataId) {
+        final var credentialMetadata = new CredentialOfferMetadataDto().deferred(false);
+        final var offer = createCredentialOfferRequest(
+                supportedMetadataId, credentialMetadata, CredentialOffer.defaultSubjectData());
+        offer.setTxCodeConfig(new TransactionCodeConfig()
+                .useTxCode(true)
+                .length(6));
+
+        return createCredential(offer);
+    }
+
     public CredentialWithDeeplinkResponse createCredentialOffer(String supportedMetadataId, Map<String, Object> subjectClaims) {
         return createCredentialOffer(supportedMetadataId, subjectClaims, false);
     }

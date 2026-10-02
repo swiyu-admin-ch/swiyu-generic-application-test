@@ -2,7 +2,6 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
-import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
@@ -11,7 +10,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -96,11 +94,9 @@ class VerifierAuditInformationE2ETest extends BaseTest {
         final var request = verifierManager.verificationRequest();
         if (trusted) {
             request.acceptedIssuerDid(issuerConfig.getIssuerDid());
-        } else {
-            request.trustAnchor(new TrustAnchor()
-                    .did(verifierConfig.getVerifierDid())
-                    .trustRegistryUri("https://" + MockServices.MOCKSERVER_HOST + "/untrusted"));
         }
+        // Untrusted: the issuer is not in the accepted issuer list and no Trust Protocol 2.0 statement vouches for it. The
+        // Verifier no longer takes a trust anchor in the request (EIDOMNI-1319), it marks the credential evaluation instead.
         request.getRequest().getDcqlQuery().getCredentials().getFirst().id(QUERY_ID);
         final var verification = request.createManagementResponse();
         final var requestObject = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());

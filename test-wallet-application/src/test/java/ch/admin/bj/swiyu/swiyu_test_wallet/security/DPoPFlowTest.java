@@ -331,11 +331,21 @@ class DPoPFlowTest extends BaseTest {
         assertThat(firstToken.getAccessToken()).isNotBlank();
         log.info("Token issued successfully, nonce should now be invalidated");
 
-        log.info("Attacker attempts to reuse same nonce for replay attack");
+        CredentialWithDeeplinkResponse secondOffer =
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
+        URI secondDeeplink = wallet.getIssuerContext()
+                .getContextualizedUri(toUri(secondOffer.getOfferDeeplink()));
+        WalletBatchEntry secondBatchEntry = new WalletBatchEntry(wallet);
+        secondBatchEntry.receiveDeepLinkAndValidateIt(secondDeeplink);
+        secondBatchEntry.setIssuerWellKnownConfiguration(wallet.getIssuerWellKnownConfiguration(secondBatchEntry));
+        secondBatchEntry.setIssuerMetadata(wallet.getIssuerWellKnownMetadata(secondBatchEntry));
+        secondBatchEntry.setCredentialConfigurationSupported();
+
+        log.info("Attacker attempts to reuse same nonce with a valid, unused pre-authorized code");
         String replayDpopProof = createDpopProofForToken(tokenUri.toString(), "POST", firstNonce);
 
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.collectTokenWithDPoP(batchEntry, replayDpopProof);
+            wallet.collectTokenWithDPoP(secondBatchEntry, replayDpopProof);
         });
 
         assertThat(errorCode(ex))

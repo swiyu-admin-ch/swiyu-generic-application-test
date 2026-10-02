@@ -7,6 +7,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Map;
@@ -25,8 +27,6 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -215,11 +215,11 @@ class IssuerTest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-930",
-            summary = "Repeated token request after issued credential returns generic rejection",
+            summary = "Repeated token request after issued credential returns invalid_grant",
             description = """
                     This test validates that the token endpoint rejects a repeated
-                    pre-authorized_code exchange after the related credential was already issued
-                    and no detailed internal error message is exposed.
+                    pre-authorized_code exchange after the related credential was already issued.
+                    The OAuth error code is normative; the human-readable error description may vary.
                     """)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
@@ -245,22 +245,16 @@ class IssuerTest extends BaseTest {
                 () -> wallet.collectToken(batchEntry)
         );
 
-        final WalletBatchEntry invalidCodeEntry = spy(batchEntry);
-
-        doReturn("unknown-pre-authorized-code")
-                .when(invalidCodeEntry)
-                .getPreAuthorizedCode();
-
-        final HttpClientErrorException unknownCodeException = assertThrows(
-                HttpClientErrorException.class,
-                () -> wallet.collectToken(invalidCodeEntry)
-        );
-
-        assertThat(reusedCodeException.getStatusCode())
-                .isEqualTo(unknownCodeException.getStatusCode());
-
-        assertThat(reusedCodeException.getResponseBodyAsString())
-                .isEqualTo(unknownCodeException.getResponseBodyAsString());
+        ApiErrorAssert.assertThat(reusedCodeException)
+                .hasStatus(400)
+                .hasError("invalid_grant");
+        assertThat(reusedCodeException.getResponseHeaders())
+                .isNotNull();
+        assertThat(reusedCodeException.getResponseHeaders().getContentType())
+                .isNotNull()
+                .satisfies(contentType ->
+                        assertThat(MediaType.APPLICATION_JSON.isCompatibleWith(contentType))
+                                .isTrue());
     }
 
     @Test

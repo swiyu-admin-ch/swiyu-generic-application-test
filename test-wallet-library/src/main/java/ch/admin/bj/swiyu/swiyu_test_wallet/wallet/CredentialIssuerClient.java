@@ -175,6 +175,9 @@ final class CredentialIssuerClient {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code");
         params.add("pre-authorized_code", preAuthorizedCode);
+        if (walletEntry.getTransactionCode() != null) {
+            params.add(TRANSACTION_CODE, walletEntry.getTransactionCode());
+        }
 
         return wallet.getRestClient().post()
                 .uri(tokenUri)
@@ -554,6 +557,9 @@ final class CredentialIssuerClient {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add(GRANT_TYPE, "urn:ietf:params:oauth:grant-type:pre-authorized_code");
         params.add("pre-authorized_code", preAuthorizedCode);
+        if (walletEntry.getTransactionCode() != null) {
+            params.add(TRANSACTION_CODE, walletEntry.getTransactionCode());
+        }
 
         final ResponseEntity<OAuthToken> response = wallet.getRestClient().post()
                 .uri(tokenUri)
