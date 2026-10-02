@@ -36,8 +36,8 @@ import java.util.Base64;
 import java.util.Map;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest

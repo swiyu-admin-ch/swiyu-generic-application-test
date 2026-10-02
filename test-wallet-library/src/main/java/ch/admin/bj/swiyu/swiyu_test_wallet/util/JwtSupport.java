@@ -1,12 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import tools.jackson.databind.JsonNode;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.crypto.ECDSAVerifier;
-import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
+import tools.jackson.databind.JsonNode;
 
 import java.text.ParseException;
 import java.util.Base64;

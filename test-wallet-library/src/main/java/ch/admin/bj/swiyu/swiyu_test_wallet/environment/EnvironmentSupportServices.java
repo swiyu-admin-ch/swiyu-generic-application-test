@@ -1,10 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.HSMConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.HSMContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.KeycloakContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;

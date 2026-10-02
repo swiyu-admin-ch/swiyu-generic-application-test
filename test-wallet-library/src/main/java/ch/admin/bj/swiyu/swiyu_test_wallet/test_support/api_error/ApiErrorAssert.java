@@ -1,12 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error;
 
-import java.util.List;
-import java.util.Map;
-
 import org.assertj.core.api.Assertions;
 import org.springframework.web.client.HttpClientErrorException;
-
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
+import java.util.Map;
 
 public final class ApiErrorAssert {
 

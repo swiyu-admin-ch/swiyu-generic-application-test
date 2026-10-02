@@ -1,12 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;

@@ -1,7 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuance_deeplink;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.deeplink.DeeplinkParser;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.deeplink.DeeplinkParser;
 import lombok.experimental.UtilityClass;
 
 import java.net.URI;

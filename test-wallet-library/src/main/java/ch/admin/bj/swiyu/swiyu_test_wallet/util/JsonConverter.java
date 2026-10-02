@@ -1,12 +1,12 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import lombok.experimental.UtilityClass;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
-import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;

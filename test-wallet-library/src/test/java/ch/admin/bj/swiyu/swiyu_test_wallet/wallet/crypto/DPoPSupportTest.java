@@ -1,9 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
 import ch.admin.bj.swiyu.dpop.DpopConstants;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.dpop.DpopHashUtil;
 import ch.admin.bj.swiyu.dpop.DpopJwtValidator;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jwt.JWTClaimsSet;

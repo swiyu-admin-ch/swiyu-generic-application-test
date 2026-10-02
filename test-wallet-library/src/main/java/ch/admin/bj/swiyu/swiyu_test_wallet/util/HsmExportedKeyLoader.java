@@ -1,7 +1,5 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
-import ch.admin.bj.swiyu.jwssignatureservice.dto.SignatureConfigurationDto;
-import ch.admin.bj.swiyu.jwssignatureservice.factory.strategy.KeyStrategy;
 import com.nimbusds.jose.jwk.JWK;
 import lombok.extern.slf4j.Slf4j;
 

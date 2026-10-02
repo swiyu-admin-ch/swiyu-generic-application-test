@@ -1,12 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
-import com.nimbusds.jose.CompressionAlgorithm;
-import com.nimbusds.jose.EncryptionMethod;
-import com.nimbusds.jose.JWEAlgorithm;
-import com.nimbusds.jose.JWEHeader;
-import com.nimbusds.jose.JWEObject;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.experimental.UtilityClass;

@@ -1,8 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,8 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.HsmExportedKeyLoader;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.HsmExportedKeyLoader;
 import lombok.Builder;
 import lombok.Data;
 

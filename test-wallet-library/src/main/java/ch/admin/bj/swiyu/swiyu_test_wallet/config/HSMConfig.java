@@ -1,9 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.UtilityClass;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

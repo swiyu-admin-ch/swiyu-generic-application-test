@@ -1,12 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 import lombok.experimental.UtilityClass;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
 
 @UtilityClass
 public class ContainerUtil {

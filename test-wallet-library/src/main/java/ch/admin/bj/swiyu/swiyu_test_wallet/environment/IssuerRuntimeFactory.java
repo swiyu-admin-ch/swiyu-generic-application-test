@@ -1,17 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.environment;
 
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerContainerConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.ManagementAuthConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.RenewalApiKeyFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;

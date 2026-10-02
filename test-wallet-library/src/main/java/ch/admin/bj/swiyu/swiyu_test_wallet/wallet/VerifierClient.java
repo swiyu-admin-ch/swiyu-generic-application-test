@@ -1,35 +1,32 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.WalletJwe;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
-
-import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.JsonWebKey;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import com.google.gson.*;
-import com.nimbusds.jose.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.WalletJwe;
+import com.google.gson.Gson;
 import com.nimbusds.jose.jwk.ECKey;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.net.URI;
 import java.util.*;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * What the Wallet says to a Verifier (OID4VP 1.0): fetching the Request Object, resolving its DCQL query, and sending the

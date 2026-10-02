@@ -5,9 +5,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 
 import java.util.List;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.IMAGE_MANDATORY_CLAIM_KEY;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.NUMBER_MANDATORY_CLAIM_KEY;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.TEXT_MANDATORY_CLAIM_KEY;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures.*;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.dcqlClaim;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.defaultDcqlQuery;
 

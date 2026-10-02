@@ -1,19 +1,13 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentSelection;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.BusinessIssuer;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuanceService;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.HttpTraceInterceptor;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;

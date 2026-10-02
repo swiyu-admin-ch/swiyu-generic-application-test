@@ -1,11 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.regression;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierRuntimeFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.PostgreSQLContainer;
 

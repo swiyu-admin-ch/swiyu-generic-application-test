@@ -4,8 +4,8 @@ import au.com.dius.pact.consumer.MockServer;
 import au.com.dius.pact.consumer.dsl.DslPart;
 import au.com.dius.pact.consumer.dsl.LambdaDsl;
 import ch.admin.bj.swiyu.gen.verifier.model.CreateVerificationManagement;
-import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.BusinessVerifier;
+import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 

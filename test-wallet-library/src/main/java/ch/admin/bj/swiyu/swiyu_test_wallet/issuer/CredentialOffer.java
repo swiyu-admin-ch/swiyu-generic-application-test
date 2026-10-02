@@ -2,13 +2,11 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @NoArgsConstructor
 @Getter

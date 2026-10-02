@@ -1,12 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.EnvironmentSupportServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.SwiyuEnvironmentRegistry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierRuntimeFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.springframework.beans.factory.DisposableBean;

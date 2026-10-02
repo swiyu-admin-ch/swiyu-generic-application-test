@@ -1,17 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.regression;
 
 import ch.admin.bj.swiyu.gen.issuer.model.StatusList;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.EnvironmentConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.RegressionProperties;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierImageConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierRuntimeFactory;
-import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,17 +19,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /** Verifies the cross-component contract of the public regression-environment façade. */
 @SuppressWarnings({"PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})

@@ -4,7 +4,6 @@ import ch.admin.bj.swiyu.gen.issuer.invoker.ApiClient;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter;
-
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 

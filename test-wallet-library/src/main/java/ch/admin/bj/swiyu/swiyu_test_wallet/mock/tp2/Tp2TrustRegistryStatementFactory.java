@@ -2,19 +2,11 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.TestSupportException;
-import ch.admin.bj.swiyu.tsbuilder.IdTsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.NcTlsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.PiTlsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.PiaTsBuilder;
-import ch.admin.bj.swiyu.tsbuilder.PvaTsBuilder;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
+import ch.admin.bj.swiyu.tsbuilder.*;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.Curve;
@@ -28,17 +20,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 final class Tp2TrustRegistryStatementFactory {
 

@@ -13,13 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.CONSUMER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.JSON_CONTENT_TYPE_REGEX;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.PROVIDER;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.STATUS_LIST_ID;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.STATUS_REGISTRY_URL;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.URL_REGEX;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.buildBusinessIssuer;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.issuer.pact.IssuerManagementConsumerPactSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @PactConsumerTest

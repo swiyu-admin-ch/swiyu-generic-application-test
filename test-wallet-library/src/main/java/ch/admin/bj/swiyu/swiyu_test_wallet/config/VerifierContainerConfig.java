@@ -1,8 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
-
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
+import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;

@@ -1,21 +1,17 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
-
 import ch.admin.bj.swiyu.gen.issuer.model.*;
 import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.cfg.DateTimeFeature;
-import tools.jackson.databind.json.JsonMapper;
-import com.google.gson.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.ECDHEncrypter;
 import com.nimbusds.jose.jwk.JWK;
@@ -26,12 +22,21 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.net.URI;
-import java.util.*;
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.wallet.Wallet.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * What the Wallet says to a Credential Issuer (OID4VCI 1.0): Credential Offer collection, Credential Issuer Metadata, Token

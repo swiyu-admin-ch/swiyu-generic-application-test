@@ -12,9 +12,10 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.security.KeyPair;
-import java.util.*;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Getter

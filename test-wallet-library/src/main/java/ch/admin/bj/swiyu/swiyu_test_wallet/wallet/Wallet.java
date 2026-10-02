@@ -1,6 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
-import ch.admin.bj.swiyu.gen.issuer.model.*;
+import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.NonceResponse;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
+import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlQueryDto;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.MockAttestationAuthority;
@@ -9,10 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierHandle;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.CredentialResponse;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.*;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
-import com.google.gson.*;
-import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.KeyUse;
@@ -24,10 +25,9 @@ import org.springframework.web.client.RestClient;
 
 import java.net.URI;
 import java.security.KeyPair;
-import java.util.*;
-
-import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * The fake Wallet of the Holder: it follows the specification as its {@link WalletProfile} says and can be made to deviate
