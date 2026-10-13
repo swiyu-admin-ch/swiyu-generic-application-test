@@ -53,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class IssuerPayloadEncryptionTest extends BaseTest {
 
     private static final String ECDH_ES = "ECDH-ES";
-    private static final String A128_GCM = "A128GCM";
     private static final String A256_GCM = "A256GCM";
     private static final String UNSUPPORTED_ENC = "A192GCM";
     private static final String DEF = "DEF";
@@ -114,8 +113,8 @@ class IssuerPayloadEncryptionTest extends BaseTest {
 
         // Then
         IssuerMetadataAssert.assertThat(batchEntry.getIssuerMetadata())
-                .supportsCredentialRequestEncryption(List.of(A128_GCM, A256_GCM), List.of(DEF))
-                .supportsCredentialResponseEncryption(List.of(ECDH_ES), List.of(A128_GCM, A256_GCM), List.of(DEF))
+                .supportsCredentialRequestEncryption(List.of(A256_GCM), List.of(DEF))
+                .supportsCredentialResponseEncryption(List.of(ECDH_ES), List.of(A256_GCM), List.of(DEF))
                 .requiresCredentialRequestEncryption()
                 .requiresCredentialResponseEncryption();
 
