@@ -41,11 +41,11 @@ class WalletProfileTest {
     void with_whenChangingOneSetting_thenReturnsANewProfileAndLeavesTheOriginalUntouched() {
         final WalletProfile original = WalletProfile.unprotected();
 
-        final WalletProfile changed = original.withDpop(true).withCredentialResponseEncryptionEnc("A128GCM");
+        final WalletProfile changed = original.withDpop(true).withCredentialResponseEncryptionEnc("A256GCM");
 
         assertThat(original).isEqualTo(WalletProfile.unprotected());
         assertThat(changed.dpop()).isTrue();
-        assertThat(changed.credentialResponseEncryptionEnc()).isEqualTo("A128GCM");
+        assertThat(changed.credentialResponseEncryptionEnc()).isEqualTo("A256GCM");
         assertThat(changed.encryption()).isFalse();
     }
 

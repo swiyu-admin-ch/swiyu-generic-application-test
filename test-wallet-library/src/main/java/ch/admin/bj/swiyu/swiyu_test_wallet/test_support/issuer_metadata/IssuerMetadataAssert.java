@@ -74,13 +74,8 @@ public final class IssuerMetadataAssert {
         Assertions.assertThat(enc.getEncValuesSupported())
                 .as("credential_request_encryption.enc_values_supported must be present")
                 .isNotNull()
-                .isNotEmpty();
-
-        expectedEncValues.forEach(expected ->
-                Assertions.assertThat(enc.getEncValuesSupported())
-                        .as("enc_values_supported must contain %s", expected)
-                        .contains(expected)
-        );
+                .isNotEmpty()
+                .containsExactlyInAnyOrderElementsOf(expectedEncValues);
 
         if (expectedZipValues != null && !expectedZipValues.isEmpty()) {
             Assertions.assertThat(enc.getZipValuesSupported())
@@ -123,13 +118,8 @@ public final class IssuerMetadataAssert {
         Assertions.assertThat(enc.getEncValuesSupported())
                 .as("credential_response_encryption.enc_values_supported must be present")
                 .isNotNull()
-                .isNotEmpty();
-
-        expectedEncValues.forEach(expected ->
-                Assertions.assertThat(enc.getEncValuesSupported())
-                        .as("enc_values_supported must contain %s", expected)
-                        .contains(expected)
-        );
+                .isNotEmpty()
+                .containsExactlyInAnyOrderElementsOf(expectedEncValues);
 
         if (expectedZipValues != null && !expectedZipValues.isEmpty()) {
             Assertions.assertThat(enc.getZipValuesSupported())
