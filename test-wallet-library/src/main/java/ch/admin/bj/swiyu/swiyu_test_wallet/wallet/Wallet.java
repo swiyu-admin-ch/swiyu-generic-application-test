@@ -222,6 +222,11 @@ public class Wallet {
         return credentialIssuer.collectOffer(entry, offerDeepLink, count);
     }
 
+    /** Prepare issuance through the Token Request, leaving the Credential Request to the scenario. */
+    public WalletBatchEntry receiveOfferAndCollectToken(final URI offerDeepLink, final Integer count) {
+        return credentialIssuer.receiveOfferAndCollectToken(createWalletBatchEntry(), offerDeepLink, count);
+    }
+
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry, final String dpopProofOverride) {
         return credentialIssuer.postCredentialRequest(walletEntry, dpopProofOverride);
     }

@@ -408,7 +408,7 @@ final class CredentialIssuerClient {
         return collectOffer(entry, offerDeepLink, null);
     }
     public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
-        prepareOffer(entry, offerDeepLink, count);
+        receiveOfferAndCollectToken(entry, offerDeepLink, count);
         getVerifiableCredentialFromIssuerWithFreshProofs(entry);
         return entry;
     }
@@ -420,17 +420,18 @@ final class CredentialIssuerClient {
      */
     public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
         final WalletBatchEntry entry = wallet.createWalletBatchEntry();
-        prepareOffer(entry, offerDeepLink, null);
+        receiveOfferAndCollectToken(entry, offerDeepLink, null);
         entry.setCNonce(collectCNonce(entry));
         entry.createProofs();
         return entry;
     }
 
-    private void prepareOffer(
-            final WalletBatchEntry entry,
-            final URI offerDeepLink,
-            final Integer count
-    ) {
+    /**
+     * The steps of the OID4VCI flow before the Credential Request: reads the Credential Offer and the Issuer metadata,
+     * exchanges the Pre-Authorized Code for an access token (Token Request) and generates the holder keys. The entry is
+     * ready for a Credential Request, which the caller sends, for a test that needs to send it its own way or repeat it.
+     */
+    public WalletBatchEntry receiveOfferAndCollectToken(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
         entry.receiveDeepLinkAndValidateIt(wallet.getIssuerContext().getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
@@ -449,6 +450,8 @@ final class CredentialIssuerClient {
                 ? count
                 : entry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         entry.generateHolderKeys(effectiveCount);
+
+        return entry;
     }
 
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry) {
