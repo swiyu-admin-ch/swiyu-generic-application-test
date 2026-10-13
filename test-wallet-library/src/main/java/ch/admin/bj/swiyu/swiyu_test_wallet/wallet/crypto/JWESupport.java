@@ -23,9 +23,13 @@ public class JWESupport {
     private static final String RANDOM_JSON_CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_~!@#$%^&*()[]{}:;,.?/";
 
-    public static final int ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES = 20 * MEBIBYTE;
-    public static final int VERIFIER_AUTHORIZATION_RESPONSE_LIMIT_BYTES = 21 * MEBIBYTE;
-    public static final int HTTP_CONTENT_LIMIT_BYTES = 25 * MEBIBYTE;
+    // Technical defaults of the issuer/verifier containers, separate from Swiss Wallet interoperability capacities.
+    public static final int DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES = 20 * MEBIBYTE;
+    public static final int DEFAULT_JWE_COMPRESSED_CIPHER_TEXT_LIMIT_CHARACTERS = 20 * MEBIBYTE;
+    // Swiss verification profile §13, Authorization Response Size: MB is expressed in decimal bytes here.
+    public static final int SWISS_AUTHORIZATION_RESPONSE_SIZE_BYTES = 21_000_000;
+    // A lower bound for the oversized-body fixture; this is not an asserted HTTP server configuration.
+    private static final int OVERSIZED_BODY_FIXTURE_THRESHOLD_BYTES = 25 * MEBIBYTE;
 
     public static ECKey toECKey(final JsonWebKey jsonWebKey) {
         return new ECKey.Builder(
@@ -60,7 +64,7 @@ public class JWESupport {
         return createJsonPayload(baseJson, targetBytes, encoding, false);
     }
 
-    public static String createHttpOversizedJsonPayload(final String baseJson) {
+    public static String createOversizedJsonPayload(final String baseJson) {
         return createJsonPayload(
                 baseJson,
                 OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES,
@@ -112,32 +116,32 @@ public class JWESupport {
     ) {
         final JWEObject jweObject = parseAndAssertDeflatedJwe(compactJwe);
 
-        final int compressedCipherTextBytes = jweObject.getCipherText().decode().length;
+        final int compressedCipherTextCharacters = jweObject.getCipherText().toString().length();
         assertThat(utf8Length(plaintext))
                 .as("Decompressed JWE payload boundary")
                 .isEqualTo(expectedDecompressedBytes);
         assertThat(utf8Length(compactJwe))
-                .as("A compressed boundary payload must stay below the HTTP content limit")
-                .isLessThan(HTTP_CONTENT_LIMIT_BYTES);
-        assertThat(compressedCipherTextBytes)
-                .as("A decompressed-size test must stay below the compressed-ciphertext limit")
-                .isLessThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+                .as("A boundary payload must remain smaller than the oversized-body fixture")
+                .isLessThan(OVERSIZED_BODY_FIXTURE_THRESHOLD_BYTES);
+        assertThat(compressedCipherTextCharacters)
+                .as("A decompressed-size test must respect the ciphertext limit in Base64URL characters")
+                .isLessThanOrEqualTo(DEFAULT_JWE_COMPRESSED_CIPHER_TEXT_LIMIT_CHARACTERS);
     }
 
-    public static void assertHttpOversizedEncryptedPayload(
+    public static void assertOversizedEncryptedPayload(
             final String plaintext,
             final String compactJwe
     ) {
         final JWEObject jweObject = parseAndAssertDeflatedJwe(compactJwe);
         assertThat(utf8Length(plaintext))
-                .as("HTTP-limit scenario plaintext size")
+                .as("Oversized-body scenario plaintext size")
                 .isEqualTo(OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES);
         assertThat(utf8Length(compactJwe))
-                .as("HTTP compact JWE content size")
-                .isGreaterThan(HTTP_CONTENT_LIMIT_BYTES);
-        assertThat(jweObject.getCipherText().decode().length)
-                .as("HTTP-limit scenario compressed ciphertext size")
-                .isGreaterThan(ISSUER_DECOMPRESSED_PAYLOAD_LIMIT_BYTES);
+                .as("Oversized compact JWE content size")
+                .isGreaterThan(OVERSIZED_BODY_FIXTURE_THRESHOLD_BYTES);
+        assertThat(jweObject.getCipherText().toString().length())
+                .as("Oversized-body scenario ciphertext length in Base64URL characters")
+                .isGreaterThan(DEFAULT_JWE_COMPRESSED_CIPHER_TEXT_LIMIT_CHARACTERS);
     }
 
     private static JWEObject parseAndAssertDeflatedJwe(final String compactJwe) {
