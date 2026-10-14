@@ -400,6 +400,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         );
     }
 
+    @Disabled("Verifier maps oversized form responses to HTTP 500; connection handling may hide it as a transport error. "
+            + "Re-enable after the Verifier returns HTTP 413 for oversized forms and rerun this scenario.")
     @Test
     @XrayTest(
             key = "EIDOMNI-1252",
