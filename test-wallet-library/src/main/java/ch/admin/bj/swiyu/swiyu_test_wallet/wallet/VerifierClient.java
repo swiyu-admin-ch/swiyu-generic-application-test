@@ -10,7 +10,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.WalletJwe;
 import com.google.gson.Gson;
-import com.nimbusds.jose.jwk.ECKey;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -136,6 +135,44 @@ final class VerifierClient {
             }
         }
 
+        return postVerificationResponse(requestObject, formData);
+    }
+
+    /**
+     * Encrypts and posts a caller-supplied direct_post.jwt payload using the response key and algorithms
+     * advertised by the Verifier. Intended for negative protocol tests that require a deliberately malformed
+     * or oversized plaintext while preserving normal Wallet encryption behavior.
+     */
+    public ResponseEntity<String> respondToVerificationWithEncryptedPayload(
+            final RequestObject requestObject,
+            final String payload
+    ) {
+        return postEncryptedVerificationResponse(
+                requestObject,
+                encryptVerificationResponsePayload(requestObject, payload)
+        );
+    }
+
+    /**
+     * Posts an already encrypted direct_post.jwt response through the normal Wallet transport path.
+     */
+    public ResponseEntity<String> postEncryptedVerificationResponse(
+            final RequestObject requestObject,
+            final String encryptedPayload
+    ) {
+        if (!wallet.getProfile().encryption()) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        final MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+        formData.add("response", encryptedPayload);
+        return postVerificationResponse(requestObject, formData);
+    }
+
+    private ResponseEntity<String> postVerificationResponse(
+            final RequestObject requestObject,
+            final MultiValueMap<String, Object> formData
+    ) {
         return wallet.getRestClient().post()
                 .uri(wallet.getVerifierContext().getContextualizedUri(PathSupport.toUri(requestObject.getResponseUri())))
                 .headers(headers -> {
@@ -146,6 +183,31 @@ final class VerifierClient {
                 .retrieve()
                 .toEntity(String.class);
     }
+
+    /**
+     * Creates the JSON representation of a direct_post.jwt error response, including the request state.
+     */
+    public String createVerificationErrorPayload(
+            final RequestObject requestObject,
+            final String error,
+            final String errorDescription
+    ) {
+        final Map<String, Object> responsePayload = new LinkedHashMap<>();
+        responsePayload.put("error", error);
+        if (errorDescription != null) {
+            responsePayload.put("error_description", errorDescription);
+        }
+        if (requestObject.getState() != null) {
+            responsePayload.put(STATE, requestObject.getState());
+        }
+
+        try {
+            return objectMapper.writeValueAsString(responsePayload);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Failed to serialize verification error payload", ex);
+        }
+    }
+
     DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
         return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, wallet.getTrustConfig());
     }
@@ -218,11 +280,6 @@ final class VerifierClient {
     }
     private String buildEncryptedResponse(final RequestObject requestObject, final Map<String, Object> payload) {
         try {
-            final JsonWebKey jsonWebKey = requestObject.getClientMetadata()
-                    .getJwks()
-                    .getKeys()
-                    .getFirst();
-            final ECKey verifierPublicKey = JWESupport.toECKey(jsonWebKey);
             final Map<String, Object> responsePayload = new LinkedHashMap<>();
             responsePayload.put(VP_TOKEN, payload);
             if (requestObject.getState() != null) {
@@ -230,9 +287,26 @@ final class VerifierClient {
             }
             final String vpTokenPayload =
                     new ObjectMapper().writeValueAsString(responsePayload);
-            return WalletJwe.encrypt(vpTokenPayload, verifierPublicKey);
+            return encryptVerificationResponsePayload(requestObject, vpTokenPayload);
         } catch (Exception e) {
             throw new WalletEncryptionException("Failed to build encrypted VP token response (JWE creation failed)", e);
         }
     }
+
+    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+        if (!wallet.getProfile().encryption()) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        try {
+            final JsonWebKey jsonWebKey = requestObject.getClientMetadata()
+                    .getJwks()
+                    .getKeys()
+                    .getFirst();
+            return WalletJwe.encrypt(payload, JWESupport.toECKey(jsonWebKey));
+        } catch (Exception e) {
+            throw new WalletEncryptionException("Failed to encrypt VP token response (JWE creation failed)", e);
+        }
+    }
+
 }
