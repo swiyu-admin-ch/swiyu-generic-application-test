@@ -1,9 +1,10 @@
-# Advanced variant of run-e2e-tests-branch.yml.
+# Advanced branch-build variant of run-e2e-tests.yml.
 # Same flow (build issuer and verifier from a branch, then run the E2E suite against the
 # locally built images), plus one generic-java-lib version override per component, so an
 # issuer branch and a verifier branch can be tested against a chosen library version
 # instead of the one their pom declares.
-# Use run-e2e-tests-branch.yml when the pom-declared library versions are what you want.
+# Use run-e2e-tests.yml with issuer-mode=branch and verifier-mode=branch when the
+# pom-declared library versions are what you want.
 name: Run E2E Tests (Branches, Advanced)
 run-name: >-
   E2E advanced application-tests=${{ github.ref_name }}

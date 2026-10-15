@@ -1,124 +1,130 @@
 name: Run E2E Tests
 run-name: >-
-  ${{ inputs['test-suite'] }} issuer=${{ inputs['issuer-image-tag'] }}
+  E2E application-tests=${{ github.ref_name }}
+  issuer=${{ inputs['issuer-mode'] }}:${{ inputs['issuer-ref'] }}
+  verifier=${{ inputs['verifier-mode'] }}:${{ inputs['verifier-ref'] }}
 
 on:
   workflow_dispatch:
     inputs:
-      test-suite:
-        description: 'Test suite to run'
+      issuer-mode:
+        description: 'Issuer source mode'
         required: true
-        default: 'standard'
+        default: image
         type: choice
         options:
-          - standard
-          - version-regression
-      issuer-image-tag:
-        description: 'Issuer image tag (standard or regression Candidate)'
+          - image
+          - branch
+          - commit
+      issuer-ref:
+        description: 'Issuer: image tag, branch name, or full commit SHA'
         required: true
-        default: 'stable'
+        default: stable
         type: string
-      verifier-image-tag:
-        description: 'Verifier image tag (standard or future regression Candidate)'
+      verifier-mode:
+        description: 'Verifier source mode'
         required: true
-        default: 'stable'
+        default: image
+        type: choice
+        options:
+          - image
+          - branch
+          - commit
+      verifier-ref:
+        description: 'Verifier: image tag, branch name, or full commit SHA'
+        required: true
+        default: stable
         type: string
-      previous-issuer-image-tag:
-        description: 'Previous Issuer image tag (required for version-regression)'
-        required: false
-        type: string
-      previous-verifier-image-tag:
-        description: 'Previous Verifier image tag (optional until Verifier regressions are implemented)'
-        required: false
-        type: string
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  e2e-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
     permissions:
       contents: read
       checks: write
-      pull-requests: write
-    env:
-      TEST_SUITE: ${{ inputs['test-suite'] }}
-      ISSUER_IMAGE_TAG: ${{ inputs['issuer-image-tag'] }}
-      VERIFIER_IMAGE_TAG: ${{ inputs['verifier-image-tag'] }}
-      REGRESSION_ISSUER_PREVIOUS_VERSION: ${{ inputs['previous-issuer-image-tag'] }}
-      REGRESSION_ISSUER_CANDIDATE_VERSION: ${{ inputs['issuer-image-tag'] }}
-      REGRESSION_VERIFIER_PREVIOUS_VERSION: ${{ inputs['previous-verifier-image-tag'] }}
-      REGRESSION_VERIFIER_CANDIDATE_VERSION: ${{ inputs['verifier-image-tag'] }}
+      packages: read
     steps:
-      - name: Checkout repository
+      - name: Checkout application tests
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Set up Java
         uses: actions/setup-java@v6
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
-          cache: 'maven'
+          cache: maven
+
+      - name: Summarize test selection
+        shell: bash
+        run: |
+          {
+            echo '## Standard E2E sources and images'
+            echo
+            printf 'Application tests: `%s` (`%s`)\n\n' "$GITHUB_REF_NAME" "$GITHUB_SHA"
+            echo '| Component | Phase | Mode | Requested reference | Source SHA | Image | Image ID | Registry digest |'
+            echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs['issuer-mode'] == 'image' || inputs['verifier-mode'] == 'image' }}
+        shell: bash
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+
+      - name: Prepare issuer
+        id: issuer
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: issuer
+          mode: ${{ inputs['issuer-mode'] }}
+          ref: ${{ inputs['issuer-ref'] }}
+
+      - name: Prepare verifier
+        id: verifier
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: verifier
+          mode: ${{ inputs['verifier-mode'] }}
+          ref: ${{ inputs['verifier-ref'] }}
+
       - name: Configure Docker Java client API version
         run: echo "api.version=1.44" > ~/.docker-java.properties
 
-      - name: Validate and summarize test selection
+      - name: Build and verify standard E2E tests with Maven
         shell: bash
+        env:
+          ISSUER_IMAGE_NAME: ${{ steps.issuer.outputs.image-name }}
+          ISSUER_IMAGE_TAG: ${{ steps.issuer.outputs.image-tag }}
+          VERIFIER_IMAGE_NAME: ${{ steps.verifier.outputs.image-name }}
+          VERIFIER_IMAGE_TAG: ${{ steps.verifier.outputs.image-tag }}
         run: |
           set -euo pipefail
-
-          if [[ "$TEST_SUITE" == "version-regression" ]]; then
-            if [[ -z "$REGRESSION_ISSUER_PREVIOUS_VERSION" ]]; then
-              echo "previous-issuer-image-tag is required for version-regression." >&2
-              exit 1
-            fi
-            if [[ "$REGRESSION_ISSUER_PREVIOUS_VERSION" == "$REGRESSION_ISSUER_CANDIDATE_VERSION" ]]; then
-              echo "Previous and Candidate Issuer image tags must be different." >&2
-              exit 1
-            fi
-            if [[ -n "$REGRESSION_VERIFIER_PREVIOUS_VERSION" ]] \
-              && [[ "$REGRESSION_VERIFIER_PREVIOUS_VERSION" == "$REGRESSION_VERIFIER_CANDIDATE_VERSION" ]]; then
-              echo "Previous and Candidate Verifier image tags must be different." >&2
-              exit 1
-            fi
-          fi
-
-          {
-            echo "## E2E test selection"
-            echo
-            echo "- Suite: \`$TEST_SUITE\`"
-            if [[ "$TEST_SUITE" == "version-regression" ]]; then
-              echo "- Previous Issuer: \`$REGRESSION_ISSUER_PREVIOUS_VERSION\`"
-              echo "- Candidate Issuer: \`$REGRESSION_ISSUER_CANDIDATE_VERSION\`"
-              if [[ -n "$REGRESSION_VERIFIER_PREVIOUS_VERSION" ]]; then
-                echo "- Previous Verifier: \`$REGRESSION_VERIFIER_PREVIOUS_VERSION\`"
-                echo "- Candidate Verifier: \`$REGRESSION_VERIFIER_CANDIDATE_VERSION\`"
-              fi
-            else
-              echo "- Issuer: \`$ISSUER_IMAGE_TAG\`"
-              echo "- Verifier: \`$VERIFIER_IMAGE_TAG\`"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Build and verify standard E2E tests with Maven
-        if: ${{ inputs['test-suite'] == 'standard' }}
-        run: mvn --batch-mode verify
-
-      - name: Build and verify version regression tests with Maven
-        if: ${{ inputs['test-suite'] == 'version-regression' }}
-        run: mvn --batch-mode -Pversion-regression clean verify
+          ./mvnw --batch-mode --no-transfer-progress clean verify \
+            2>&1 | tee "$RUNNER_TEMP/standard-e2e-maven.log"
 
       - name: Publish Test Report
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: Maven Test Results
-          path: '**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml'
+          name: Standard Maven Test Results
+          path: 'test-wallet-*/target/surefire-reports/TEST-*.xml,test-wallet-*/target/failsafe-reports/TEST-*.xml'
           reporter: java-junit
           fail-on-error: false
-      - name: Upload test reports
+
+      - name: Upload test reports and Maven log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs['test-suite'] }}-test-reports
+          name: standard-test-reports
           path: |
-            **/target/surefire-reports/*.xml
-            **/target/failsafe-reports/*.xml
-            **/target/TEST-junit-jupiter.xml
+            test-wallet-*/target/surefire-reports/**
+            test-wallet-*/target/failsafe-reports/**
+            test-wallet-*/target/TEST-junit-jupiter.xml
+            ${{ runner.temp }}/standard-e2e-maven.log
+          if-no-files-found: warn
           retention-days: 30

@@ -1,0 +1,249 @@
+name: Run E2E Tests Regression
+run-name: >-
+  Regression application-tests=${{ github.ref_name }}
+  issuer=${{ inputs['issuer-mode'] }}:${{ inputs['issuer-ref-previous'] }}->${{ inputs['issuer-ref'] }}
+  verifier=${{ inputs['verifier-mode'] }}:${{ inputs['verifier-ref-previous'] }}->${{ inputs['verifier-ref'] }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      issuer-mode:
+        description: 'Issuer source mode for Previous and Candidate'
+        required: true
+        default: image
+        type: choice
+        options:
+          - image
+          - branch
+          - commit
+      issuer-ref:
+        description: 'Candidate Issuer: image tag, branch name, or full commit SHA'
+        required: true
+        type: string
+      issuer-ref-previous:
+        description: 'Previous Issuer: image tag, branch name, or full commit SHA'
+        required: true
+        type: string
+      verifier-mode:
+        description: 'Verifier source mode for Previous and Candidate'
+        required: true
+        default: image
+        type: choice
+        options:
+          - image
+          - branch
+          - commit
+      verifier-ref:
+        description: 'Candidate Verifier: image tag, branch name, or full commit SHA'
+        required: true
+        type: string
+      verifier-ref-previous:
+        description: 'Previous Verifier: image tag, branch name, or full commit SHA'
+        required: true
+        type: string
+
+jobs:
+  regression-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      checks: write
+      packages: read
+    steps:
+      - name: Checkout application tests
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate regression selection
+        shell: bash
+        env:
+          ISSUER_MODE: ${{ inputs['issuer-mode'] }}
+          ISSUER_REFERENCE: ${{ inputs['issuer-ref'] }}
+          ISSUER_REFERENCE_PREVIOUS: ${{ inputs['issuer-ref-previous'] }}
+          VERIFIER_MODE: ${{ inputs['verifier-mode'] }}
+          VERIFIER_REFERENCE: ${{ inputs['verifier-ref'] }}
+          VERIFIER_REFERENCE_PREVIOUS: ${{ inputs['verifier-ref-previous'] }}
+        run: |
+          set -euo pipefail
+
+          validate_transition() {
+            local component="$1" mode="$2" previous="$3" candidate="$4"
+            if [[ -z "$previous" || -z "$candidate" ]]; then
+              echo "::error::${component}: Previous and Candidate references are required."
+              return 1
+            fi
+            if [[ "$mode" == commit ]]; then
+              previous="$(printf '%s' "$previous" | tr 'A-F' 'a-f')"
+              candidate="$(printf '%s' "$candidate" | tr 'A-F' 'a-f')"
+            fi
+            if [[ "$previous" == "$candidate" ]]; then
+              echo "::error::${component}: Previous and Candidate references must be different."
+              return 1
+            fi
+          }
+
+          validate_transition issuer "$ISSUER_MODE" "$ISSUER_REFERENCE_PREVIOUS" "$ISSUER_REFERENCE"
+          validate_transition verifier "$VERIFIER_MODE" "$VERIFIER_REFERENCE_PREVIOUS" "$VERIFIER_REFERENCE"
+
+          {
+            echo '## Regression E2E sources and images'
+            echo
+            printf 'Application tests: `%s` (`%s`)\n\n' "$GITHUB_REF_NAME" "$GITHUB_SHA"
+            echo '| Component | Phase | Mode | Requested reference | Source SHA | Image | Image ID | Registry digest |'
+            echo '| --- | --- | --- | --- | --- | --- | --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs['issuer-mode'] == 'image' || inputs['verifier-mode'] == 'image' }}
+        shell: bash
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+
+      - name: Prepare Previous issuer
+        id: issuer-previous
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: issuer
+          mode: ${{ inputs['issuer-mode'] }}
+          ref: ${{ inputs['issuer-ref-previous'] }}
+          phase: previous
+
+      - name: Prepare Candidate issuer
+        id: issuer-candidate
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: issuer
+          mode: ${{ inputs['issuer-mode'] }}
+          ref: ${{ inputs['issuer-ref'] }}
+
+      - name: Prepare Previous verifier
+        id: verifier-previous
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: verifier
+          mode: ${{ inputs['verifier-mode'] }}
+          ref: ${{ inputs['verifier-ref-previous'] }}
+          phase: previous
+
+      - name: Prepare Candidate verifier
+        id: verifier-candidate
+        uses: ./.github/actions/prepare-e2e-component
+        with:
+          component: verifier
+          mode: ${{ inputs['verifier-mode'] }}
+          ref: ${{ inputs['verifier-ref'] }}
+
+      - name: Check that Previous and Candidate differ
+        shell: bash
+        env:
+          ISSUER_PREVIOUS_ID: ${{ steps.issuer-previous.outputs.image-id }}
+          ISSUER_CANDIDATE_ID: ${{ steps.issuer-candidate.outputs.image-id }}
+          ISSUER_PREVIOUS_SHA: ${{ steps.issuer-previous.outputs.source-sha }}
+          ISSUER_CANDIDATE_SHA: ${{ steps.issuer-candidate.outputs.source-sha }}
+          VERIFIER_PREVIOUS_ID: ${{ steps.verifier-previous.outputs.image-id }}
+          VERIFIER_CANDIDATE_ID: ${{ steps.verifier-candidate.outputs.image-id }}
+          VERIFIER_PREVIOUS_SHA: ${{ steps.verifier-previous.outputs.source-sha }}
+          VERIFIER_CANDIDATE_SHA: ${{ steps.verifier-candidate.outputs.source-sha }}
+        run: |
+          set -euo pipefail
+
+          check_transition() {
+            local component="$1" previous_id="$2" candidate_id="$3" previous_sha="$4" candidate_sha="$5"
+            if [[ "$previous_id" == "$candidate_id" ]]; then
+              echo "::error::${component}: Previous and Candidate resolve to the same Docker image."
+              return 1
+            fi
+            if [[ -n "$previous_sha" && "$previous_sha" == "$candidate_sha" ]]; then
+              echo "::error::${component}: Previous and Candidate resolve to the same source commit."
+              return 1
+            fi
+          }
+
+          check_transition issuer "$ISSUER_PREVIOUS_ID" "$ISSUER_CANDIDATE_ID" "$ISSUER_PREVIOUS_SHA" "$ISSUER_CANDIDATE_SHA"
+          check_transition verifier "$VERIFIER_PREVIOUS_ID" "$VERIFIER_CANDIDATE_ID" "$VERIFIER_PREVIOUS_SHA" "$VERIFIER_CANDIDATE_SHA"
+
+      - name: Configure Docker Java client API version
+        run: echo "api.version=1.44" > ~/.docker-java.properties
+
+      - name: Build and verify version regression tests with Maven
+        id: regression-tests
+        shell: bash
+        env:
+          ISSUER_IMAGE_NAME: ${{ steps.issuer-candidate.outputs.image-name }}
+          ISSUER_IMAGE_TAG: ${{ steps.issuer-candidate.outputs.image-tag }}
+          VERIFIER_IMAGE_NAME: ${{ steps.verifier-candidate.outputs.image-name }}
+          VERIFIER_IMAGE_TAG: ${{ steps.verifier-candidate.outputs.image-tag }}
+          REGRESSION_ISSUER_PREVIOUS_VERSION: ${{ steps.issuer-previous.outputs.image-tag }}
+          REGRESSION_ISSUER_CANDIDATE_VERSION: ${{ steps.issuer-candidate.outputs.image-tag }}
+          REGRESSION_VERIFIER_PREVIOUS_VERSION: ${{ steps.verifier-previous.outputs.image-tag }}
+          REGRESSION_VERIFIER_CANDIDATE_VERSION: ${{ steps.verifier-candidate.outputs.image-tag }}
+        run: |
+          set -euo pipefail
+          ./mvnw --batch-mode --no-transfer-progress -Pversion-regression clean verify \
+            2>&1 | tee "$RUNNER_TEMP/regression-e2e-maven.log"
+
+      - name: Check that issuer and verifier regression tests ran
+        if: ${{ !cancelled() && steps.regression-tests.outcome != 'skipped' }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          expected = {
+              "ch.admin.bj.swiyu.swiyu_test_wallet.regression.IssuerOfferVersionRegressionTest",
+              "ch.admin.bj.swiyu.swiyu_test_wallet.regression.VerifierVerificationVersionRegressionTest",
+          }
+          report_dir = Path("test-wallet-application/target/surefire-reports")
+          reports = {path.stem.removeprefix("TEST-"): path for path in report_dir.glob("TEST-*.xml")}
+          errors = []
+          for name in sorted(expected):
+              if name not in reports:
+                  errors.append(f"Missing regression test report: {name}")
+                  continue
+              suite = ET.parse(reports[name]).getroot()
+              tests, skipped, failures, test_errors = (
+                  int(suite.get(attribute, "0"))
+                  for attribute in ("tests", "skipped", "failures", "errors")
+              )
+              if tests - skipped <= 0 or skipped or failures or test_errors:
+                  errors.append(f"{name}: regression tests must run successfully with no skipped tests")
+          for name in sorted(reports.keys() - expected):
+              errors.append(f"Unexpected test class in the regression suite: {name}")
+          for error in errors:
+              print(f"::error::{error}")
+          raise SystemExit(bool(errors))
+          PY
+
+      - name: Publish Test Report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Regression Maven Test Results
+          path: 'test-wallet-*/target/surefire-reports/TEST-*.xml,test-wallet-*/target/failsafe-reports/TEST-*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload test reports and Maven log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-regression-test-reports
+          path: |
+            test-wallet-*/target/surefire-reports/**
+            test-wallet-*/target/failsafe-reports/**
+            test-wallet-*/target/TEST-junit-jupiter.xml
+            ${{ runner.temp }}/regression-e2e-maven.log
+          if-no-files-found: warn
+          retention-days: 30

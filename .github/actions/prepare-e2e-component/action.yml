@@ -1,0 +1,189 @@
+name: Prepare E2E component
+description: Pull a component image or build it from a branch or commit on the current runner.
+
+inputs:
+  component:
+    description: 'Component: issuer or verifier'
+    required: true
+  mode:
+    description: 'Source mode: image, branch, or commit'
+    required: true
+  ref:
+    description: 'Image tag, branch name, or full commit SHA'
+    required: true
+  phase:
+    description: 'Image phase: candidate or previous'
+    required: false
+    default: candidate
+
+outputs:
+  image-name:
+    description: 'Docker image repository without tag'
+    value: ${{ steps.selection.outputs.image-name }}
+  image-tag:
+    description: 'Docker image tag'
+    value: ${{ steps.selection.outputs.image-tag }}
+  source-sha:
+    description: 'Resolved source commit for branch and commit modes'
+    value: ${{ steps.source.outputs.sha }}
+  image-id:
+    description: 'Resolved Docker image ID'
+    value: ${{ steps.image.outputs.id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate reference and select image
+      id: selection
+      shell: bash
+      env:
+        COMPONENT: ${{ inputs.component }}
+        MODE: ${{ inputs.mode }}
+        REFERENCE: ${{ inputs.ref }}
+        PHASE: ${{ inputs.phase }}
+      run: |
+        set -euo pipefail
+
+        case "$COMPONENT" in
+          issuer|verifier) ;;
+          *) echo '::error::Component must be issuer or verifier.'; exit 1 ;;
+        esac
+        case "$PHASE" in
+          candidate|previous) ;;
+          *) echo '::error::Phase must be candidate or previous.'; exit 1 ;;
+        esac
+
+        image_name="swiyu-${COMPONENT}"
+        image_tag="local-${PHASE}"
+        checkout_ref=''
+        case "$MODE" in
+          image)
+            if [[ ! "$REFERENCE" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
+              echo "::error::${COMPONENT} ${PHASE}: image mode requires a Docker tag, without the image repository."
+              exit 1
+            fi
+            image_name="ghcr.io/swiyu-admin-ch/swiyu-${COMPONENT}"
+            image_tag="$REFERENCE"
+            ;;
+          branch)
+            checkout_ref="refs/heads/${REFERENCE}"
+            if ! git check-ref-format "$checkout_ref" || [[ "$REFERENCE" == -* ]]; then
+              echo "::error::${COMPONENT} ${PHASE}: branch mode requires a valid branch name."
+              exit 1
+            fi
+            ;;
+          commit)
+            if [[ ! "$REFERENCE" =~ ^[a-fA-F0-9]{40}$ ]]; then
+              echo "::error::${COMPONENT} ${PHASE}: commit mode requires a full 40-character commit SHA."
+              exit 1
+            fi
+            checkout_ref="$(printf '%s' "$REFERENCE" | tr 'A-F' 'a-f')"
+            ;;
+          *)
+            echo "::error::${COMPONENT} ${PHASE}: mode must be image, branch, or commit."
+            exit 1
+            ;;
+        esac
+
+        {
+          printf 'image-name=%s\nimage-tag=%s\n' "$image_name" "$image_tag"
+          printf 'checkout-ref=%s\n' "$checkout_ref"
+          printf 'source-path=.component-sources/swiyu-%s-%s\n' "$COMPONENT" "$PHASE"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Checkout component
+      if: ${{ inputs.mode != 'image' }}
+      uses: actions/checkout@v4
+      with:
+        repository: swiyu-admin-ch/swiyu-${{ inputs.component }}
+        ref: ${{ steps.selection.outputs.checkout-ref }}
+        path: ${{ steps.selection.outputs.source-path }}
+        persist-credentials: false
+
+    - name: Verify selected source commit
+      if: ${{ inputs.mode != 'image' }}
+      id: source
+      shell: bash
+      working-directory: ${{ steps.selection.outputs.source-path }}
+      env:
+        MODE: ${{ inputs.mode }}
+        REFERENCE: ${{ inputs.ref }}
+      run: |
+        set -euo pipefail
+
+        actual_sha="$(git rev-parse HEAD)"
+        if [[ "$MODE" == commit ]]; then
+          requested_sha="$(printf '%s' "$REFERENCE" | tr 'A-F' 'a-f')"
+          if [[ "$actual_sha" != "$requested_sha" ]]; then
+            echo '::error::Checked-out commit does not match the requested SHA.'
+            exit 1
+          fi
+        fi
+        printf 'sha=%s\n' "$actual_sha" >> "$GITHUB_OUTPUT"
+
+    - name: Build component application
+      if: ${{ inputs.mode != 'image' }}
+      shell: bash
+      working-directory: ${{ steps.selection.outputs.source-path }}
+      run: ./mvnw --batch-mode --no-transfer-progress clean package -DskipTests
+
+    - name: Build component image
+      if: ${{ inputs.mode != 'image' }}
+      shell: bash
+      working-directory: ${{ steps.selection.outputs.source-path }}
+      env:
+        IMAGE_NAME: ${{ steps.selection.outputs.image-name }}
+        IMAGE_TAG: ${{ steps.selection.outputs.image-tag }}
+      run: |
+        docker build --pull --platform linux/amd64 \
+          --build-arg SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal \
+          --tag "${IMAGE_NAME}:${IMAGE_TAG}" \
+          .
+
+    - name: Pull component image
+      if: ${{ inputs.mode == 'image' }}
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ steps.selection.outputs.image-name }}
+        IMAGE_TAG: ${{ steps.selection.outputs.image-tag }}
+      run: docker pull --platform linux/amd64 "${IMAGE_NAME}:${IMAGE_TAG}"
+
+    - name: Inspect image and summarize source
+      id: image
+      shell: bash
+      env:
+        COMPONENT: ${{ inputs.component }}
+        MODE: ${{ inputs.mode }}
+        REFERENCE: ${{ inputs.ref }}
+        PHASE: ${{ inputs.phase }}
+        SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        IMAGE_NAME: ${{ steps.selection.outputs.image-name }}
+        IMAGE_TAG: ${{ steps.selection.outputs.image-tag }}
+      run: |
+        set -euo pipefail
+
+        image="${IMAGE_NAME}:${IMAGE_TAG}"
+        inspect_help="$(docker image inspect --help)"
+        inspect_image() {
+          if [[ "$inspect_help" == *--platform* ]]; then
+            docker image inspect --platform linux/amd64 "$@"
+          else
+            docker image inspect "$@"
+          fi
+        }
+
+        platform="$(inspect_image --format '{{.Os}}/{{.Architecture}}' "$image")"
+        if [[ "$platform" != linux/amd64 ]]; then
+          echo "::error::${COMPONENT} ${PHASE}: expected linux/amd64; found ${platform}."
+          exit 1
+        fi
+        image_id="$(inspect_image --format '{{.Id}}' "$image")"
+        if [[ -z "$image_id" ]]; then
+          echo "::error::Docker did not return an image ID for ${image}."
+          exit 1
+        fi
+        digest="$(inspect_image --format '{{join .RepoDigests ", "}}' "$image")"
+        printf 'id=%s\n' "$image_id" >> "$GITHUB_OUTPUT"
+        printf '| %s | %s | %s | `%s` | `%s` | `%s` | `%s` | `%s` |\n' \
+          "$COMPONENT" "$PHASE" "$MODE" "$REFERENCE" "${SOURCE_SHA:-n/a}" \
+          "$image" "$image_id" "${digest:-n/a}" >> "$GITHUB_STEP_SUMMARY"
