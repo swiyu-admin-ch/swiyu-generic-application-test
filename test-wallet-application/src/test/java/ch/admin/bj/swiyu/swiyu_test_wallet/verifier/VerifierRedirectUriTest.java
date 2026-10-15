@@ -162,7 +162,7 @@ class VerifierRedirectUriTest extends BaseTest {
             "https://business-verifier.example/callback?session_nonce=valid-nonce#"
     })
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1413",
             summary = "Reject relative redirect URIs and fragments during verification initialization (EIDOMNI-1352)",
             description = """
                     Given an otherwise valid Business Verifier request with a non-empty session_nonce,

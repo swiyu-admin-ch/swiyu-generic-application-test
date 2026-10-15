@@ -40,7 +40,7 @@ class Tp2MockServerContractTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1414",
             summary = "TP2 route replacement preserves credential status lists",
             description = "Replacing and restoring TP2 scenario routes must not remove the credential status list route.")
     void tp2Routes_whenReplacedAndRestored_thenCredentialStatusListRemainsResolvable() throws Exception {
