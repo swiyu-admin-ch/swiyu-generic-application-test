@@ -510,7 +510,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         final JweUtilException ex = assertThrows(JweUtilException.class,
                 () -> JweUtil.decrypt(batchEntry.getCredentialResponse().getRawBody(), wrongKey));
         assertThat(ex)
-                .hasMessageContaining("Error during JWE decryption");
+                .hasMessageContaining("AES/GCM/NoPadding decryption failed: Tag mismatch");
         assertThat(ex.getCause())
                 .isInstanceOf(com.nimbusds.jose.JOSEException.class);
 
