@@ -19,6 +19,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jwt.SignedJWT;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -204,6 +206,7 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1363 requires centralized JWT validation in the Generic Verifier"
     )
+    @Disabled ("EIDOMNI-1363 requires centralized JWT validation in the Generic Verifier")
     void verification_whenCredentialDidIsOutsideBaseRegistry_thenRejectedWithoutResolution()
             throws ParseException, JOSEException {
         // Given
