@@ -17,7 +17,7 @@ on:
           - branch
           - commit
       issuer-ref:
-        description: 'Issuer: unhardened GHCR image tag, branch name, or full commit SHA'
+        description: 'Issuer: image tag, branch name, or full commit SHA'
         required: true
         type: string
       verifier-mode:
@@ -30,7 +30,7 @@ on:
           - branch
           - commit
       verifier-ref:
-        description: 'Verifier: unhardened GHCR image tag, branch name, or full commit SHA'
+        description: 'Verifier: image tag, branch name, or full commit SHA'
         required: true
         type: string
 
