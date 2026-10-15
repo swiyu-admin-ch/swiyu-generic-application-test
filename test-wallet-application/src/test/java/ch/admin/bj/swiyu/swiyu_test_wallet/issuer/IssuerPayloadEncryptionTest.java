@@ -20,6 +20,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response.Cred
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.issuer_metadata.IssuerMetadataAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.jwk.ECKey;
@@ -29,11 +30,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 
 import java.text.ParseException;
 import java.util.List;
@@ -129,6 +133,259 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                 .areUnique()
                 .allHaveExactlyInAnyOrderDisclosures(finalSubjectClaims);
         issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+    }
+
+    @ParameterizedTest(name = "[{index}] recover after excessive decompressed bytes: {0}")
+    @EnumSource(JWESupport.PayloadEncoding.class)
+    @XrayTest(key = "EIDOMNI-1274", summary = "Issuer rejects excess decompressed bytes and permits a valid retry",
+            description = """
+                    A malicious wallet sends a DEF-compressed Credential Request expanding to 20 MiB plus one byte.
+                    ASCII and multibyte UTF-8 payloads must fail at the JWE boundary without state changes or callbacks.
+                    The same offer then accepts an encrypted request above Nimbus's default one million bytes,
+                    verifying that the configured decompression limit reaches the decrypter.
+                    """)
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    void credentialRequestPayloadEncryption_whenDecompressionLimitExceeded_thenAllowsValidRetry(
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        // Given: only the decompressed limit is exceeded; ciphertext and HTTP body remain small.
+        final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT);
+        final var walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        final var stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
+        final int callbacksBefore = awaitStableIssuerCallbacks();
+        final String request = wallet.createCredentialRequestPayload(walletEntry);
+        final int oversizedBytes = JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES + 1;
+        final String oversized = JWESupport.createDecompressedJsonPayloadAtSize(request, oversizedBytes, encoding);
+        final String encrypted = wallet.encryptCredentialRequestPayload(walletEntry, oversized);
+        JWESupport.assertDecompressedPayloadAtSize(oversized, encrypted, oversizedBytes);
+
+        // When
+        final var exception = assertThrows(HttpClientErrorException.class,
+                () -> wallet.postCredentialRequestWithEncryptedPayload(walletEntry, encrypted));
+
+        // Then: rejection must preserve the offer and token for a legitimate retry.
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("invalid_encryption_parameters")
+                .hasErrorDescription("JWE Object could not be decrypted");
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .isEqualTo(stateBefore);
+        awaitNoneIssuerCallback(callbacksBefore);
+
+        // When: retry the same offer above Nimbus's default but below the configured limit.
+        final int validBytes = 1_000_001;
+        final String valid = JWESupport.createDecompressedJsonPayloadAtSize(request, validBytes, encoding);
+        final String validEncrypted = wallet.encryptCredentialRequestPayload(walletEntry, valid);
+        JWESupport.assertDecompressedPayloadAtSize(valid, validEncrypted, validBytes);
+        final var response = wallet.postCredentialRequestWithEncryptedPayload(walletEntry, validEncrypted);
+
+        // Then
+        assertThat(response.getStatusCode().value())
+                .isEqualTo(200);
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+        // Successful issuance changes both the offer and the credential management status.
+        awaitNIssuerCallback(callbacksBefore, 2);
+    }
+
+    @ParameterizedTest(name = "[{index}] accept decompressed payload below 20 MiB: {0}")
+    @EnumSource(JWESupport.PayloadEncoding.class)
+    @XrayTest(
+            key = "EIDOMNI-1251",
+            summary = "Issuer accepts an encrypted Credential Request below the configured 20 MiB limit",
+            description = """
+                    The Wallet sends a valid encrypted OID4VCI Credential Request whose decompressed UTF-8 payload is
+                    exactly 20 MiB minus one byte. Both ASCII and multibyte payloads must be accepted, proving that the
+                    configured payload limit is measured in bytes. This tests incoming requests, independently of the
+                    Wallet response capacity.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "JWE decompressed-payload limits are not available on these issuer tags"
+    )
+    void credentialRequestPayloadEncryption_whenPayloadIsBelowConfiguredLimit_thenAccepted(
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        // Given
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+        );
+        final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
+        final int targetBytes = JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES - 1;
+        final String payload = JWESupport.createDecompressedJsonPayloadAtSize(
+                validCredentialRequest,
+                targetBytes,
+                encoding
+        );
+        final String encryptedPayload = wallet.encryptCredentialRequestPayload(walletEntry, payload);
+        JWESupport.assertDecompressedPayloadAtSize(payload, encryptedPayload, targetBytes);
+
+        // When
+        final var response = wallet.postCredentialRequestWithEncryptedPayload(walletEntry, encryptedPayload);
+
+        // Then
+        assertThat(response.getStatusCode().is2xxSuccessful())
+                .isTrue();
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+    }
+
+    @ParameterizedTest(name = "[{index}] accept decompressed payload at 20 MiB: {0}")
+    @EnumSource(JWESupport.PayloadEncoding.class)
+    @XrayTest(
+            key = "EIDOMNI-1251",
+            summary = "Issuer accepts an encrypted Credential Request at the configured 20 MiB limit",
+            description = """
+                    The Wallet sends a valid encrypted OID4VCI Credential Request whose decompressed UTF-8 payload is
+                    exactly 20 MiB, the configured inclusive JWE decompression limit. Both ASCII and multibyte
+                    payloads must be accepted. The Swiss Wallet's 20 MB response capacity is a separate boundary.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "JWE decompressed-payload limits are not available on these issuer tags"
+    )
+    void credentialRequestPayloadEncryption_whenPayloadIsAtConfiguredLimit_thenAccepted(
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        // Given
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+        );
+        final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
+        final int targetBytes = JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES;
+        final String payload = JWESupport.createDecompressedJsonPayloadAtSize(
+                validCredentialRequest,
+                targetBytes,
+                encoding
+        );
+        final String encryptedPayload = wallet.encryptCredentialRequestPayload(walletEntry, payload);
+        JWESupport.assertDecompressedPayloadAtSize(payload, encryptedPayload, targetBytes);
+
+        // When
+        final var response = wallet.postCredentialRequestWithEncryptedPayload(walletEntry, encryptedPayload);
+
+        // Then
+        assertThat(response.getStatusCode().is2xxSuccessful())
+                .isTrue();
+        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
+    }
+
+    @ParameterizedTest(name = "[{index}] reject decompressed payload above 20 MiB: {0}")
+    @EnumSource(JWESupport.PayloadEncoding.class)
+    @XrayTest(
+            key = "EIDOMNI-1251",
+            summary = "Issuer rejects an encrypted Credential Request above the 20 MiB limit",
+            description = """
+                    The Wallet sends a valid encrypted OID4VCI Credential Request whose decompressed UTF-8 payload is
+                    20 MiB plus one byte. Both ASCII and multibyte payloads must be rejected without state mutation or
+                    a callback, while the compressed ciphertext remains below its separate length limit.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "JWE decompressed-payload limits are not available on these issuer tags"
+    )
+    void credentialRequestPayloadEncryption_whenPayloadIsAboveLimit_thenRejectedWithoutSideEffects(
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        assertIssuerRejectsDecompressedPayloadAtSize(
+                JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES + 1,
+                encoding
+        );
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1251",
+            summary = "Issuer rejects an oversized encrypted Credential Request",
+            description = """
+                    The Wallet sends a high-entropy compact JWE whose ciphertext exceeds the configured length.
+                    The request must be rejected by the transport or JWE layer without changing issuance state or
+                    firing a callback. This scenario does not assert a particular HTTP server body-size limit.
+                    """
+    )
+    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @DisableIfImageTag(
+            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
+            reason = "JWE and HTTP payload limits are not available on these issuer tags"
+    )
+    void credentialRequestPayloadEncryption_whenEncryptedBodyIsOversized_thenRejectedWithoutSideEffects() {
+        // Given
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+        );
+        final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        final CredentialStatusType stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
+        final int callbacksBefore = awaitStableIssuerCallbacks();
+        final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
+        final String payload = JWESupport.createOversizedJsonPayload(validCredentialRequest);
+        final String encryptedPayload = wallet.encryptCredentialRequestPayload(walletEntry, payload);
+        JWESupport.assertOversizedEncryptedPayload(payload, encryptedPayload);
+
+        // When
+        final RestClientException exception = assertThrows(
+                RestClientException.class,
+                () -> wallet.postCredentialRequestWithEncryptedPayload(walletEntry, encryptedPayload)
+        );
+
+        // Then
+        assertThat(exception)
+                .as("An oversized HTTP/JWE request must be rejected by the transport or JWE layer")
+                .isInstanceOfAny(HttpClientErrorException.class, ResourceAccessException.class);
+        if (exception instanceof HttpClientErrorException httpException) {
+            assertThat(httpException.getStatusCode().value()).isIn(400, 413);
+        }
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .as("An oversized encrypted request must not mutate the issuance state")
+                .isEqualTo(stateBefore);
+        awaitNoneIssuerCallback(callbacksBefore);
+    }
+
+    private void assertIssuerRejectsDecompressedPayloadAtSize(
+            final int targetBytes,
+            final JWESupport.PayloadEncoding encoding
+    ) {
+        // Given
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+        );
+        final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        final CredentialStatusType stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
+        final int callbacksBefore = awaitStableIssuerCallbacks();
+        final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
+        final String payload = JWESupport.createDecompressedJsonPayloadAtSize(
+                validCredentialRequest,
+                targetBytes,
+                encoding
+        );
+        final String encryptedPayload = wallet.encryptCredentialRequestPayload(walletEntry, payload);
+        JWESupport.assertDecompressedPayloadAtSize(payload, encryptedPayload, targetBytes);
+
+        // When
+        final HttpClientErrorException exception = assertThrows(
+                HttpClientErrorException.class,
+                () -> wallet.postCredentialRequestWithEncryptedPayload(walletEntry, encryptedPayload)
+        );
+
+        // Then
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("invalid_encryption_parameters")
+                .hasErrorDescription("JWE Object could not be decrypted");
+        assertThat(issuerManager.getStatusById(offer.getManagementId()).getStatus())
+                .as("A rejected encrypted request must not mutate the issuance state")
+                .isEqualTo(stateBefore);
+        awaitNoneIssuerCallback(callbacksBefore);
     }
 
     @Test

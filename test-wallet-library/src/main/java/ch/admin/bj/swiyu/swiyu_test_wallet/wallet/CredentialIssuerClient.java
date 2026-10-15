@@ -273,7 +273,7 @@ final class CredentialIssuerClient {
         }
 
         final String finalPayload = wallet.getProfile().encryption()
-                ? encryptCredentialRequest(walletEntry, requestPayload)
+                ? encryptCredentialRequestPayload(walletEntry, requestPayload)
                 : requestPayload;
 
         String bearerToken = token.getAccessToken();
@@ -339,7 +339,11 @@ final class CredentialIssuerClient {
 
         return completeCredentialResponse;
     }
-    private String encryptCredentialRequest(WalletEntry walletEntry, String requestJson) {
+    public String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
+        if (!wallet.getProfile().encryption()) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
         try {
             var metadata = walletEntry.getIssuerMetadata();
             var requestEncryptionMetadata = metadata.getCredentialRequestEncryption();
@@ -404,6 +408,29 @@ final class CredentialIssuerClient {
         return collectOffer(entry, offerDeepLink, null);
     }
     public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
+        prepareOffer(entry, offerDeepLink, count);
+        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
+        return entry;
+    }
+
+    /**
+     * Prepares the Wallet state for a Credential Request without sending that request. This keeps offer parsing,
+     * metadata discovery, token collection, holder-key generation, nonce retrieval and proof creation identical for
+     * custom negative request tests.
+     */
+    public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
+        final WalletBatchEntry entry = wallet.createWalletBatchEntry();
+        prepareOffer(entry, offerDeepLink, null);
+        entry.setCNonce(collectCNonce(entry));
+        entry.createProofs();
+        return entry;
+    }
+
+    private void prepareOffer(
+            final WalletBatchEntry entry,
+            final URI offerDeepLink,
+            final Integer count
+    ) {
         entry.receiveDeepLinkAndValidateIt(wallet.getIssuerContext().getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
@@ -422,11 +449,8 @@ final class CredentialIssuerClient {
                 ? count
                 : entry.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize();
         entry.generateHolderKeys(effectiveCount);
-
-        getVerifiableCredentialFromIssuerWithFreshProofs(entry);
-
-        return entry;
     }
+
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry) {
         return postCredentialRequest(walletEntry, null);
     }
@@ -439,55 +463,12 @@ final class CredentialIssuerClient {
      */
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry, final String dpopProofOverride) {
         final URI credentialUri = walletEntry.getIssuerCredentialUri();
-        final OAuthToken token = walletEntry.getToken();
-        final String bearerToken = token.getAccessToken();
-
-        var proofsDto = new ProofsDto();
-        proofsDto.setJwt(walletEntry.getProofsAsJwt());
-
-        var metadata = walletEntry.getIssuerMetadata();
-        var requestDto = new CreateCredentialRequest()
-                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
-                .proofs(proofsDto);
-        if (wallet.getProfile().encryption()) {
-            walletEntry.generateEphemeralEncryptionKey();
-
-            final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
-            var encryptionMetadata = metadata.getCredentialResponseEncryption();
-            var responseEncryption = new CredentialResponseEncryption()
-                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
-                    .jwk(jwk);
-
-            requestDto.credentialResponseEncryption(responseEncryption);
-        }
-
-        final String requestPayload;
-        try {
-            requestPayload = new ObjectMapper().writeValueAsString(requestDto);
-        } catch (JacksonException ex) {
-            throw new IllegalStateException("Failed to serialize credential request payload", ex);
-        }
-
+        final String requestPayload = createCredentialRequestPayload(walletEntry);
         final String finalPayload = wallet.getProfile().encryption()
-                ? encryptCredentialRequest(walletEntry, requestPayload)
+                ? encryptCredentialRequestPayload(walletEntry, requestPayload)
                 : requestPayload;
-
-        var requestBuilder = wallet.getRestClient().post()
-                .uri(wallet.getIssuerContext().getContextualizedUri(credentialUri))
-                .header(HttpHeaders.CONTENT_TYPE, wallet.getProfile().encryption() ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + bearerToken)
-                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
-
-        if (dpopProofOverride != null) {
-            requestBuilder = requestBuilder.header(DPOP, dpopProofOverride);
-        } else if (wallet.getProfile().dpop()) {
-            requestBuilder = requestBuilder.header(DPOP, generateDpopForCredentialEndpoint(walletEntry));
-        }
-
-        final ResponseEntity<String> response = requestBuilder
-                .body(finalPayload)
-                .retrieve()
-                .toEntity(String.class);
+        final ResponseEntity<String> response = postCredentialRequestPayload(
+                walletEntry, credentialUri, walletEntry.getToken(), finalPayload, dpopProofOverride);
 
         int responseCode = response.getStatusCode().value();
         String rawResponse = response.getBody();
@@ -528,6 +509,101 @@ final class CredentialIssuerClient {
 
         return completeCredentialResponse;
     }
+    /**
+     * Creates the same Credential Request plaintext as the regular Wallet flow without posting it. Negative protocol
+     * tests can add one deliberate mutation while retaining valid proofs and response-encryption parameters.
+     */
+    public String createCredentialRequestPayload(final WalletBatchEntry walletEntry) {
+
+        var proofsDto = new ProofsDto();
+        proofsDto.setJwt(walletEntry.getProofsAsJwt());
+
+        var metadata = walletEntry.getIssuerMetadata();
+        var requestDto = new CreateCredentialRequest()
+                .credentialConfigurationId(walletEntry.getCredentialOffer().getCredentialConfiguraionId())
+                .proofs(proofsDto);
+        if (wallet.getProfile().encryption()) {
+            walletEntry.generateEphemeralEncryptionKey();
+
+            final Map<String, Object> jwk = walletEntry.getEphemeralEncryptionKey().toPublicJWK().toJSONObject();
+            var encryptionMetadata = metadata.getCredentialResponseEncryption();
+            var responseEncryption = new CredentialResponseEncryption()
+                    .enc(resolveCredentialResponseEncryptionEnc(encryptionMetadata.getEncValuesSupported()))
+                    .jwk(jwk);
+
+            requestDto.credentialResponseEncryption(responseEncryption);
+        }
+
+        try {
+            return new ObjectMapper().writeValueAsString(requestDto);
+        } catch (JacksonException ex) {
+            throw new IllegalStateException("Failed to serialize credential request payload", ex);
+        }
+    }
+
+    /**
+     * Posts a caller-supplied Credential Request plaintext using the Wallet's configured encryption, authorization
+     * and DPoP behavior. Intended for negative protocol tests that cannot use the generated request DTO.
+     */
+    public ResponseEntity<String> postCredentialRequestWithCustomPayload(
+            final WalletBatchEntry walletEntry,
+            final String requestPayload
+    ) {
+        final URI credentialUri = walletEntry.getIssuerCredentialUri();
+        final OAuthToken token = walletEntry.getToken();
+        final String finalPayload = wallet.getProfile().encryption()
+                ? encryptCredentialRequestPayload(walletEntry, requestPayload)
+                : requestPayload;
+
+        return postCredentialRequestPayload(walletEntry, credentialUri, token, finalPayload, null);
+    }
+
+    /**
+     * Posts an already encrypted Credential Request through the normal Wallet authorization and DPoP transport path.
+     */
+    public ResponseEntity<String> postCredentialRequestWithEncryptedPayload(
+            final WalletBatchEntry walletEntry,
+            final String encryptedPayload
+    ) {
+        if (!wallet.getProfile().encryption()) {
+            throw new IllegalStateException("Wallet payload encryption must be enabled");
+        }
+
+        return postCredentialRequestPayload(
+                walletEntry,
+                walletEntry.getIssuerCredentialUri(),
+                walletEntry.getToken(),
+                encryptedPayload,
+                null
+        );
+    }
+
+    private ResponseEntity<String> postCredentialRequestPayload(
+            final WalletBatchEntry walletEntry,
+            final URI credentialUri,
+            final OAuthToken token,
+            final String finalPayload,
+            final String dpopProofOverride
+    ) {
+
+        var requestBuilder = wallet.getRestClient().post()
+                .uri(wallet.getIssuerContext().getContextualizedUri(credentialUri))
+                .header(HttpHeaders.CONTENT_TYPE, wallet.getProfile().encryption() ? APPLICATION_JWT : MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.AUTHORIZATION, BEARER_PREFIX + token.getAccessToken())
+                .header(SWIYU_API_VERSION_HEADER, SwiyuApiVersionConfig.V1.getValue());
+
+        if (dpopProofOverride != null) {
+            requestBuilder = requestBuilder.header(DPOP, dpopProofOverride);
+        } else if (wallet.getProfile().dpop()) {
+            requestBuilder = requestBuilder.header(DPOP, generateDpopForCredentialEndpoint(walletEntry));
+        }
+
+        return requestBuilder
+                .body(finalPayload)
+                .retrieve()
+                .toEntity(String.class);
+    }
+
     String resolveCredentialResponseEncryptionEnc(final List<String> supportedEncValues) {
         return resolveEncryptionEnc(supportedEncValues, wallet.getProfile().credentialResponseEncryptionEnc());
     }
