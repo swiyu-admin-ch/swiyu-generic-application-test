@@ -206,7 +206,6 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1363 requires centralized JWT validation in the Generic Verifier"
     )
-    @Disabled ("EIDOMNI-1363 requires centralized JWT validation in the Generic Verifier")
     void verification_whenCredentialDidIsOutsideBaseRegistry_thenRejectedWithoutResolution()
             throws ParseException, JOSEException {
         // Given

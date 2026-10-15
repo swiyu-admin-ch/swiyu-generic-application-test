@@ -71,7 +71,6 @@ class IssuerWebhookFloodTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled ("The issuer currently accepts repeated wallet requests after a rejected key proof, which is a bug. See EIDOMNI-1400.")
     void credentialRequest_whenWalletRepeatsInvalidProofAndCallbackIsUnavailable_thenQueueStaysBounded() {
         // Given: freeze the proof, while the Wallet still creates fresh DPoP and encrypted request envelopes.
         final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);

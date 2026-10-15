@@ -185,10 +185,6 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .isEqualTo(errorDescription);
         awaitOneVerifierCallback(callbacksBefore);
     }
-
-    @Disabled("EIDOMNI-1397: the verifier defaults to a 20 MiB decompression limit. "
-            + "Re-enable and rerun both payload encodings once the tested verifier image includes the fix "
-            + "and supports 21 MB (21,000,000 bytes). https://jira.bit.admin.ch/browse/EIDOMNI-1397")
     @ParameterizedTest(name = "[{index}] support the Swiss authorization response capacity of 21 MB: {0}")
     @EnumSource(JWESupport.PayloadEncoding.class)
     @XrayTest(
@@ -207,6 +203,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
     )
+    @Disabled("Bug ticket : EIDOMNI-1397")
     void directPostJwtPayloadEncryption_whenPayloadMatchesSwissProfileCapacity_thenAccepted(
             final JWESupport.PayloadEncoding encoding
     ) {
@@ -400,8 +397,6 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         );
     }
 
-    @Disabled("Verifier maps oversized form responses to HTTP 500; connection handling may hide it as a transport error. "
-            + "Re-enable after the Verifier returns HTTP 413 for oversized forms and rerun this scenario.")
     @Test
     @XrayTest(
             key = "EIDOMNI-1252",

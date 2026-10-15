@@ -30,9 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@Disabled("EIDOMNI-1319: Trust Protocol 1.0 was removed from the Verifier, so a trust anchor can no longer be sent in a "
-        + "verification request (the Verifier ignores the field). The issuer trust of Trust Protocol 2.0 is configured in the "
-        + "Verifier environment and only marks the credential evaluation, so neither test below describes the product any more.")
 class TrustAnchorVerificationTest extends BaseTest {
 
     @Autowired

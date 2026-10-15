@@ -38,7 +38,6 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
                     """
     )
     @Tag(ReportingTags.UCV_O2)
-    @Disabled
     void credentialWinithStatusList_whenPresentedToVerifier_thenFailsBecauseCachePropertiesBeanIsMissing() {
 
         // Given

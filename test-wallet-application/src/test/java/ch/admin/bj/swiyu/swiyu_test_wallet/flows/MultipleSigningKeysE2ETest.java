@@ -155,7 +155,6 @@ class MultipleSigningKeysE2ETest extends BaseTest {
     )
     @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
-    @Disabled("Waiting on the EIDOMNI-1236 for the verifier to be merged")
     void verifierWithTwoSigningIdentities_whenRequestsCompleted_thenEachUsesItsBoundDidAndKey() throws Exception {
         // Given
         assertThat(verifierConfig.getAdditionalSigningIdentities())

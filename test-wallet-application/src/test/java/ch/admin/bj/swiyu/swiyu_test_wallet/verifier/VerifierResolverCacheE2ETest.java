@@ -54,7 +54,6 @@ import static org.mockserver.model.HttpResponse.response;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.CACHED)
 @UseVerifiers(VerifierVariant.CACHED)
-@Disabled("Disable until the EIDOMNI-1222 is fixed")
 class VerifierResolverCacheE2ETest extends BaseTest {
 
     private static final Duration VERIFIER_RESOLVER_CACHE_WAIT = Duration.ofSeconds(10);
@@ -131,8 +130,6 @@ class VerifierResolverCacheE2ETest extends BaseTest {
                     When the cache eviction interval has elapsed and another verification is performed.
                     Then the verifier re-queries the trust registry and rejects the now-untrusted issuer.
                     """)
-    @Disabled("EIDOMNI-1319: the test drives the Trust Protocol 1.0 registry through a trust anchor sent in the verification "
-            + "request. Trust Protocol 1.0 was removed from the Verifier. The cache of Trust Protocol 2.0 statements needs a new test.")
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This fix is not available yet"
