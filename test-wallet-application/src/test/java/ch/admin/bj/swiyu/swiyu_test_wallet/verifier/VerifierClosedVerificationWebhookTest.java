@@ -56,7 +56,7 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
     @ParameterizedTest(name = "presentations after {0}")
     @EnumSource(value = VerificationStatus.class, names = {"SUCCESS", "FAILED"})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1411",
             summary = "Verifier rejects repeated presentations to a closed verification without further callbacks",
             description = """
                     Given a verification completed as SUCCESS or FAILED and its single business callback delivered.
@@ -118,7 +118,7 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
     @ParameterizedTest(name = "wallet errors after {0}")
     @EnumSource(value = VerificationStatus.class, names = {"SUCCESS", "FAILED"})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1412",
             summary = "Verifier rejects repeated wallet errors to a closed verification without further callbacks",
             description = """
                     Given a verification completed by a valid presentation as SUCCESS or by an access_denied response as FAILED, with its single callback delivered.

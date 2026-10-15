@@ -59,7 +59,7 @@ class IssuerWebhookFloodTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1408",
             summary = "Credential Issuer bounds queued error callbacks for a repeated invalid key proof",
             description = """
                     Given a bound Credential Offer, an access token and a Business Issuer answering error callbacks with HTTP 503.
@@ -132,7 +132,7 @@ class IssuerWebhookFloodTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1409",
             summary = "Credential Issuer issues a credential after repeated invalid key proofs are rejected",
             description = """
                     Given a bound Credential Offer and its access token.

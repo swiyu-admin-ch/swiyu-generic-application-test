@@ -209,7 +209,7 @@ class TransactionCodeTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1410",
             summary = "Consume a transaction-code-protected pre-authorized code only once under concurrent requests",
             description = """
                     Verifies that two concurrent DPoP-protected token requests using the same pre-authorized_code and
