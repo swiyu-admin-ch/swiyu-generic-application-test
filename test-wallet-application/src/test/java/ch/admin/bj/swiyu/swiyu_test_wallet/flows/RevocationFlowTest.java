@@ -227,7 +227,6 @@ public class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled ("Bug ticket : EIDOMNI-830")
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
         // Given
         cleanIssuerCallbacks();
