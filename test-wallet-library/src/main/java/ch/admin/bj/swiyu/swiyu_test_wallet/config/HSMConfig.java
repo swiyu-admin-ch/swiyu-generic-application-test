@@ -26,7 +26,7 @@ public class HSMConfig {
     private String hsmUserPin = "1234";
     private String hsmKeyId = "01";
     private String hsmKeyPin = "1234";
-    private String hsmStatusKeyId = "01";
+    private String hsmStatusKeyId = "02";
     private String hsmStatusKeyPin = "1234";
 
     public static final List<Object[]> FILES = List.of(

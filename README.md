@@ -321,6 +321,64 @@ The standard `./mvnw clean verify` excludes the `version_regression` tag and doe
 
 This test framework includes HSM integration using **SoftHSM** to simulate a real Hardware Security Module in a containerized test environment. This allows for realistic testing of HSM integration in generic components without requiring physical HSM hardware.
 
+Run the HSM scenarios with Java 25, Docker and OpenSSL, using unhardened AMD64 issuer and verifier images:
+
+```bash
+./mvnw -pl test-wallet-application -am clean verify \
+  -Dhsm=true -Dtest=IssuerHSMTest,VerifierHSMTest \
+  -Dsurefire.failIfNoSpecifiedTests=false -DskipITs=true
+```
+
+The manual workflows `Run E2E Tests HSM` and `Run E2E Tests HSM (Branches)` run this selection. The first takes
+published image names and tags; the second builds the selected issuer and verifier branches.
+
+The HSM profile generates fresh P-256 test keys and certificates, packages them as PKCS#12, then imports them through
+SunPKCS11 with `CKA_SENSITIVE=false` and `CKA_EXTRACTABLE=true`. Library 3.2.0 accepts the resulting `ECPrivateKey`.
+Signing still uses the PKCS#11 provider. These fixtures exercise credential issuance, status-list signing and verifier
+Request Object signing, including key overrides. They do not verify private-key non-exportability or hardware protection.
+The existing library rejects SoftHSM's opaque `P11ECPrivateKeyInternal` keys; changing their PEM encoding does not fix it.
+Use these import attributes only for generated test keys.
+
+### HSM E2E coverage audit
+
+The HSM workflows select both complete test classes, including parameterized cases. The suite covers these risks:
+
+| Boundary | Risk / invariant | Cases |
+| --- | --- | ---: |
+| OID4VCI issuance | Default HSM key signs every batch entry; presentations reach SUCCESS | 1 |
+| OID4VCI issuance | Alternate key and matching `kid`; missing, empty and supplied `key_pin` | 3 |
+| OID4VCI issuance | An override does not change another offer's default key | 1 |
+| Signed issuer metadata | Default and overridden tenant keys match the metadata signature, `kid` and subject | 2 |
+| Deferred issuance | The stored override survives DEFERRED → READY → ISSUED | 1 |
+| OID4VCI issuance | An unknown key never falls back to the default or produces a Credential | 1 |
+| Status Registry v2 | Default creation, override creation and rotation use the selected HSM key | 3 |
+| Status Registry v2 | Absent, empty and partial overrides preserve stored fields | 3 |
+| Status Registry v2 | An unknown key sends no PUT and does not persist an invalid override | 1 |
+| Status Registry v2 | Rotating one list does not change another list's key | 1 |
+| OID4VP Request Object | Default and override identities complete encrypted presentations; optional PIN variants | 4 |
+| OID4VP Request Object | The existing key-id override regression works without `key_pin` | 1 |
+| OID4VP signer cache | Interleaved retrievals retain each request's key, `kid` and `client_id` | 1 |
+| OID4VP signer cache | An unknown key cannot reuse a cached default signer or poison subsequent requests | 1 |
+
+Signatures are verified independently with Nimbus and both test public keys, including a negative check against the
+unselected key. Status Registry captures are scoped to the list's registry ID. The HSM Verifier publishes the token's
+keys in its DID and receives no software signing key through `SIGNING_KEY`.
+The HSM Issuer enables tenant-specific signed metadata. Its default Credential key is `01` (`assert-key-01`), its
+default status-list key is `02` (`auth-key-01`), and the Verifier's default Request Object key is `01` (`auth-key-01`
+in the Verifier DID). Override cases select the other key so falling back to a static signer cannot pass the assertions.
+
+Protocol references are OID4VCI 1.0 sections 8.3, 9 and 12.2.3; OID4VP 1.0 sections 5.9.3 and 8.6; the Swiss issuance
+profile section 12.2.3, verification profile section 5, VC profile Token Status List section 5.1, and the anchor profile's
+"JWT Validation with cryptographic keys from DIDs". The management API owns override scope and partial-field merge;
+OpenID does not define `configuration_override`. The exact HTTP mapping for a missing HSM key is Unknown, so negative
+scenarios assert failure and protected side effects rather than prescribing a protocol error code.
+
+SoftHSM PKCS#11 login uses the configured token `userPin`; library 3.2.0's PKCS11 strategy does not consume `key_pin`.
+The optional-field cases do not prove enforcement of a per-key PIN. PIN enforcement for other HSM providers belongs in
+provider integration tests. Non-exportable keys remain blocked by the library issue described above. Hardware
+protection, token outages, concurrent provider sessions and renewal-specific override handling need separate fixtures
+or component integration coverage. These scenarios are not claimed as covered by this suite.
+
 ## Local Development and Testing
 
 When making modifications to the [Issuer](https://github.com/swiyu-admin-ch/swiyu-issuer) or [Verifier](https://github.com/swiyu-admin-ch/swiyu-verifier) services, you can build and test these development versions locally without relying on pre-built registry images. This allows you to run full end-to-end tests against your own development builds.

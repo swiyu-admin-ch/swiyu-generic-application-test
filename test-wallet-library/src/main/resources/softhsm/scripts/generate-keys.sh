@@ -20,6 +20,7 @@ generate_key() {
     KEY_PEM="${OUT_DIR}/${NAME}-key.pem"
     KEY_PK8="${OUT_DIR}/${NAME}-key.pk8.pem"
     CERT_PEM="${OUT_DIR}/${NAME}-cert.pem"
+    KEYSTORE_P12="${OUT_DIR}/${NAME}.p12"
 
     # Generate EC private key (secp256r1)
     echo "→ Generating EC private key"
@@ -47,6 +48,16 @@ generate_key() {
         -out "${CERT_PEM}" \
         -days 3650 \
         -subj "/CN=${NAME}"
+
+    # keytool imports through SunPKCS11 so pkcs11.cfg attributes apply to the key.
+    # The password protects generated test fixtures only.
+    openssl pkcs12 \
+        -export \
+        -inkey "${KEY_PK8}" \
+        -in "${CERT_PEM}" \
+        -name "${NAME}" \
+        -out "${KEYSTORE_P12}" \
+        -passout pass:changeit
 
     echo "Files generated in: ${OUT_DIR}"
     ls -l "${OUT_DIR}"

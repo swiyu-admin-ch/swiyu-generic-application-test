@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.HsmExportedKeyLoader;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,8 +31,19 @@ public class VerifierConfig {
     private List<VerifierConfig> additionalSigningIdentities = List.of();
 
     public static VerifierConfig createVerifierConfig(final URI identifierRegistryUrl) {
-        KeyPair authKeys = generateEC256KeyPair();
-        KeyPair assertKeys = generateEC256KeyPair();
+        return createVerifierConfig(identifierRegistryUrl, generateEC256KeyPair(), generateEC256KeyPair());
+    }
+
+    /** Publishes the default SoftHSM signing key and the alternate test key in the Verifier DID. */
+    public static VerifierConfig createHsmVerifierConfig(final URI identifierRegistryUrl) {
+        return createVerifierConfig(identifierRegistryUrl,
+                HsmExportedKeyLoader.loadHsmResourceKeyPair("01"),
+                HsmExportedKeyLoader.loadHsmResourceKeyPair("02"));
+    }
+
+    private static VerifierConfig createVerifierConfig(final URI identifierRegistryUrl,
+                                                       final KeyPair authKeys,
+                                                       final KeyPair assertKeys) {
 
         var didLog = createDidLog((ECPublicKey) authKeys.getPublic(), (ECPublicKey) assertKeys.getPublic(), identifierRegistryUrl);
         var verifierDid = getDidFromDidLog(didLog);
