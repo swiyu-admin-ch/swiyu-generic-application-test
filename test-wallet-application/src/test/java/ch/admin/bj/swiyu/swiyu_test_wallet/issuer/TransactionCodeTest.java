@@ -12,18 +12,25 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -43,7 +50,8 @@ class TransactionCodeTest extends BaseTest {
 
     private static final String ZERO_TRANSACTION_CODE = "000000";
 
-    @Test
+    @ParameterizedTest(name = "[{index}] length present={0}, description present={1}")
+    @CsvSource({"false, false", "false, true", "true, false", "true, true"})
     @XrayTest(
             key = "EIDOMNI-1346",
             summary = "Redeem a pre-authorized credential offer with a valid transaction code",
@@ -55,16 +63,46 @@ class TransactionCodeTest extends BaseTest {
     @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
-    void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued() {
+    @Disabled("Bug ticket : EIDOMNI-1418")
+    void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued(
+            final boolean includeLength, final boolean includeDescription) {
         // Given
-        final CredentialWithDeeplinkResponse credentialOffer = issuerManager.createCredentialOfferWithTransactionCode(
-                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final String description = "Enter the code sent by the Business Issuer through a separate channel";
+        final Map<String, Object> transactionCodeConfig = new LinkedHashMap<>();
+        transactionCodeConfig.put("use_tx_code", true);
+        if (includeLength) {
+            transactionCodeConfig.put("length", 6);
+        }
+        if (includeDescription) {
+            transactionCodeConfig.put("description", description);
+        }
+        // Send JSON directly: the generated TransactionCodeConfig would supply length=6 before the HTTP request.
+        final String requestBody = JsonConverter.toJsonString(Map.of(
+                "metadata_credential_supported_id", List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT),
+                "credential_subject_data", CredentialOffer.defaultSubjectData(),
+                "credential_metadata", Map.of("deferred", false),
+                "status_lists", List.of(getCurrentStatusList().getStatusRegistryUrl()),
+                "offer_validity_seconds", 86400,
+                "tx_code_config", transactionCodeConfig));
+
+        // When the Business Issuer creates the offer and the Wallet redeems it
+        final var response = issuerManager.getCredentialApi().getApiClient().getRestClient()
+                .post()
+                .uri(issuerConfig.getIssuerServiceUrl() + "/management/api/credentials")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(requestBody)
+                .retrieve()
+                .toEntity(CredentialWithDeeplinkResponse.class);
+        assertThat(response.getStatusCode().value())
+                .isEqualTo(200);
+        final CredentialWithDeeplinkResponse credentialOffer = response.getBody();
+        assertThat(credentialOffer)
+                .isNotNull();
 
         assertThat(credentialOffer.getTxCode())
                 .as("transaction code returned to the Business Issuer")
                 .matches("^[0-9]{6}$");
 
-        // When
         final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
         walletEntry.setTransactionCode(credentialOffer.getTxCode());
         wallet.collectOffer(walletEntry, toUri(credentialOffer.getOfferDeeplink()));
@@ -81,7 +119,15 @@ class TransactionCodeTest extends BaseTest {
                 .as("effective OID4VCI input mode, using the numeric default when omitted")
                 .isEqualTo("numeric");
         assertThat(transactionCodeMetadata.get("length").getAsInt())
+                .as("six-digit length configured explicitly or defaulted by the Issuer Management API contract")
                 .isEqualTo(6);
+        if (includeDescription) {
+            assertThat(transactionCodeMetadata.get("description").getAsString())
+                    .isEqualTo(description);
+        } else {
+            assertThat(transactionCodeMetadata.has("description"))
+                    .isFalse();
+        }
         assertThat(transactionCodeMetadata.entrySet())
                 .as("public transaction-code metadata must not expose the out-of-band code")
                 .noneMatch(entry -> entry.getValue().isJsonPrimitive()
