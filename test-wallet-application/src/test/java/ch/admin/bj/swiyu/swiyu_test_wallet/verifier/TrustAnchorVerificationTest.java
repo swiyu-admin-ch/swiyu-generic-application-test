@@ -5,11 +5,16 @@ import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
+import ch.admin.bj.swiyu.gen.verifier.model.TrustMethod;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
 import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
@@ -21,10 +26,14 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.testcontainers.containers.GenericContainer;
+
+import java.util.UUID;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertIssuerUntrusted;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.VerificationFailureAssert.assertRejected;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -36,6 +45,8 @@ class TrustAnchorVerificationTest extends BaseTest {
     private MockServices mockServices;
     @Autowired
     private IssuerImageConfig issuerImageConfig;
+    @Autowired
+    private ContainerLogConfig containerLogConfig;
 
     @Test
     @XrayTest(
@@ -56,21 +67,56 @@ class TrustAnchorVerificationTest extends BaseTest {
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
         assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
-        // When
-        final TrustAnchor anchor = new TrustAnchor()
-                .did(trustConfig.getTrustDid())
-                .trustRegistryUri(String.format("https://%s/trusted", MockServices.MOCKSERVER_HOST));
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .trustAnchor(anchor)
-                .withDCQL()
-                .createManagementResponse();
+        // TP2 takes its trust anchor from the Verifier environment, not from the management request.
+        try (final GenericContainer<?> trustedVerifierContainer = createVerifierTrustingMockAnchor()) {
+            trustedVerifierContainer.start();
+            final BusinessVerifier trustedVerifier = new BusinessVerifier("http://%s:%d".formatted(
+                    trustedVerifierContainer.getHost(), trustedVerifierContainer.getMappedPort(8080)));
+            wallet.useVerifier(new ServiceLocationContext(
+                    trustedVerifierContainer.getHost(), trustedVerifierContainer.getMappedPort(8080).toString()));
+            wallet.setUseEncryption(true);
 
-        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
-        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        wallet.respondToVerification(verificationDetails, presentation);
+            // When
+            final ManagementResponse verification = trustedVerifier.verificationRequest()
+                    .withDCQL()
+                    .encrypted()
+                    .createManagementResponse();
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+            final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
+            wallet.respondToVerification(verificationDetails, presentation);
 
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            // Then
+            final ManagementResponse result = trustedVerifier.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            assertThat(result.getCredentialEvaluation())
+                    .containsOnlyKeys(DEFAULT_CREDENTIAL_ID);
+            assertThat(result.getCredentialEvaluation().get(DEFAULT_CREDENTIAL_ID))
+                    .singleElement()
+                    .satisfies(evaluation -> {
+                        assertThat(evaluation.getTrustMarkers())
+                                .isNotNull();
+                        assertThat(evaluation.getTrustMarkers().getIsTrusted())
+                                .isTrue();
+                        assertThat(evaluation.getTrustMarkers().getTrustMethod())
+                                .isEqualTo(TrustMethod.TRUST_PROTOCOL_2_0);
+                    });
+        } finally {
+            wallet.useVerifier(currentVerifier);
+        }
+    }
+
+    private GenericContainer<?> createVerifierTrustingMockAnchor() {
+        final var imageConfig = VerifierVariant.DEFAULT.imageConfig(verifierImageConfig);
+        imageConfig.setSurname("trust_anchor_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16));
+        return VerifierContainerConfig.createVerifierContainer(
+                verifierContainer.getNetwork(),
+                dbTestContainer,
+                verifierConfig,
+                verifierContainer.getDockerImageName(),
+                imageConfig,
+                managementAuthConfig,
+                null,
+                containerLogConfig
+        ).withEnv("SWIYU_TRUST_ISSUER_DID", trustConfig.getTrustDid());
     }
 
     @Test
