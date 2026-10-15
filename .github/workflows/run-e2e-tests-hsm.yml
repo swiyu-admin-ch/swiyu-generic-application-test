@@ -1,43 +1,54 @@
 name: Run E2E Tests HSM
 run-name: >-
-  HSM issuer=${{ inputs['issuer-image-tag'] }}
-  verifier=${{ inputs['verifier-image-tag'] }}
+  HSM application-tests=${{ github.ref_name }}
+  issuer=${{ inputs['issuer-mode'] }}:${{ inputs['issuer-ref'] }}
+  verifier=${{ inputs['verifier-mode'] }}:${{ inputs['verifier-ref'] }}
 
 on:
   workflow_dispatch:
     inputs:
-      issuer-image-name:
-        description: 'Unhardened linux/amd64 Issuer image repository (without tag)'
+      issuer-mode:
+        description: 'Issuer source mode'
         required: true
-        default: 'ghcr.io/swiyu-admin-ch/swiyu-issuer'
-        type: string
-      issuer-image-tag:
-        description: 'Unhardened Issuer image tag'
+        default: image
+        type: choice
+        options:
+          - image
+          - branch
+          - commit
+      issuer-ref:
+        description: 'Issuer: unhardened GHCR image tag, branch name, or full commit SHA'
         required: true
         type: string
-      verifier-image-name:
-        description: 'Unhardened linux/amd64 Verifier image repository (without tag)'
+      verifier-mode:
+        description: 'Verifier source mode'
         required: true
-        default: 'ghcr.io/swiyu-admin-ch/swiyu-verifier'
-        type: string
-      verifier-image-tag:
-        description: 'Unhardened Verifier image tag'
+        default: image
+        type: choice
+        options:
+          - image
+          - branch
+          - commit
+      verifier-ref:
+        description: 'Verifier: unhardened GHCR image tag, branch name, or full commit SHA'
         required: true
         type: string
 
 jobs:
   hsm-tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
       checks: write
       packages: read
     env:
-      ISSUER_IMAGE_NAME: ${{ inputs['issuer-image-name'] }}
-      ISSUER_IMAGE_TAG: ${{ inputs['issuer-image-tag'] }}
-      VERIFIER_IMAGE_NAME: ${{ inputs['verifier-image-name'] }}
-      VERIFIER_IMAGE_TAG: ${{ inputs['verifier-image-tag'] }}
+      ISSUER_MODE: ${{ inputs['issuer-mode'] }}
+      ISSUER_REFERENCE: ${{ inputs['issuer-ref'] }}
+      VERIFIER_MODE: ${{ inputs['verifier-mode'] }}
+      VERIFIER_REFERENCE: ${{ inputs['verifier-ref'] }}
+      ISSUER_SOURCE_SHA: n/a
+      VERIFIER_SOURCE_SHA: n/a
       SOFTHSM_CONTAINER_LOGS: 'true'
     steps:
       - name: Checkout repository
@@ -45,33 +56,158 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate image inputs
+      - name: Validate references and select images
+        id: selection
         shell: bash
         run: |
           set -euo pipefail
 
-          validate_image() {
-            local component="$1" image_name="$2" image_tag="$3"
-            if [[ ! "$image_name" =~ ^[a-z0-9][a-z0-9./:_-]*$ ]] \
-              || [[ "${image_name##*/}" == *:* ]] \
-              || [[ ! "$image_tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
-              echo "::error::${component}: provide an image repository and a separate, non-empty Docker tag."
-              return 1
-            fi
+          select_image() {
+            local component="$1" prefix="$2" mode="$3" reference="$4"
+            local image_name="swiyu-${component}" image_tag=local checkout_ref
+
+            case "$mode" in
+              image)
+                if [[ ! "$reference" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
+                  echo "::error::${component}: image mode requires a Docker tag, without the image repository."
+                  return 1
+                fi
+                image_name="ghcr.io/swiyu-admin-ch/swiyu-${component}"
+                image_tag="$reference"
+                ;;
+              branch)
+                checkout_ref="refs/heads/${reference}"
+                if ! git check-ref-format "$checkout_ref"; then
+                  echo "::error::${component}: branch mode requires a valid branch name."
+                  return 1
+                fi
+                printf '%s-checkout-ref=%s\n' "$component" "$checkout_ref" >> "$GITHUB_OUTPUT"
+                ;;
+              commit)
+                if [[ ! "$reference" =~ ^[a-fA-F0-9]{40}$ ]]; then
+                  echo "::error::${component}: commit mode requires a full 40-character commit SHA."
+                  return 1
+                fi
+                checkout_ref="$(printf '%s' "$reference" | tr 'A-F' 'a-f')"
+                printf '%s-checkout-ref=%s\n' "$component" "$checkout_ref" >> "$GITHUB_OUTPUT"
+                ;;
+              *)
+                echo "::error::${component}: mode must be image, branch, or commit."
+                return 1
+                ;;
+            esac
+
+            printf '%s_IMAGE_NAME=%s\n%s_IMAGE_TAG=%s\n' \
+              "$prefix" "$image_name" "$prefix" "$image_tag" >> "$GITHUB_ENV"
           }
 
-          validate_image Issuer "$ISSUER_IMAGE_NAME" "$ISSUER_IMAGE_TAG"
-          validate_image Verifier "$VERIFIER_IMAGE_NAME" "$VERIFIER_IMAGE_TAG"
+          select_image issuer ISSUER "$ISSUER_MODE" "$ISSUER_REFERENCE"
+          select_image verifier VERIFIER "$VERIFIER_MODE" "$VERIFIER_REFERENCE"
+
+      - name: Checkout issuer
+        if: ${{ inputs['issuer-mode'] != 'image' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiyu-admin-ch/swiyu-issuer
+          ref: ${{ steps.selection.outputs.issuer-checkout-ref }}
+          path: .component-sources/swiyu-issuer
+          persist-credentials: false
+
+      - name: Checkout verifier
+        if: ${{ inputs['verifier-mode'] != 'image' }}
+        uses: actions/checkout@v4
+        with:
+          repository: swiyu-admin-ch/swiyu-verifier
+          ref: ${{ steps.selection.outputs.verifier-checkout-ref }}
+          path: .component-sources/swiyu-verifier
+          persist-credentials: false
+
+      - name: Verify selected source commits
+        if: ${{ inputs['issuer-mode'] != 'image' || inputs['verifier-mode'] != 'image' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_source() {
+            local component="$1" prefix="$2" mode="$3" reference="$4"
+            local actual_sha requested_sha
+
+            if [[ "$mode" == image ]]; then
+              return 0
+            fi
+
+            actual_sha="$(git -C ".component-sources/swiyu-${component}" rev-parse HEAD)"
+            if [[ "$mode" == commit ]]; then
+              requested_sha="$(printf '%s' "$reference" | tr 'A-F' 'a-f')"
+              if [[ "$actual_sha" != "$requested_sha" ]]; then
+                echo "::error::${component}: checked-out commit does not match the requested SHA."
+                return 1
+              fi
+            fi
+            printf '%s_SOURCE_SHA=%s\n' "$prefix" "$actual_sha" >> "$GITHUB_ENV"
+          }
+
+          verify_source issuer ISSUER "$ISSUER_MODE" "$ISSUER_REFERENCE"
+          verify_source verifier VERIFIER "$VERIFIER_MODE" "$VERIFIER_REFERENCE"
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Build issuer application
+        if: ${{ inputs['issuer-mode'] != 'image' }}
+        working-directory: .component-sources/swiyu-issuer
+        run: ./mvnw --batch-mode --no-transfer-progress clean package -DskipTests
+
+      - name: Build issuer Docker image
+        if: ${{ inputs['issuer-mode'] != 'image' }}
+        working-directory: .component-sources/swiyu-issuer
+        run: |
+          docker build --pull --platform linux/amd64 \
+            --build-arg SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal \
+            --tag "${ISSUER_IMAGE_NAME}:${ISSUER_IMAGE_TAG}" \
+            .
+
+      - name: Build verifier application
+        if: ${{ inputs['verifier-mode'] != 'image' }}
+        working-directory: .component-sources/swiyu-verifier
+        run: ./mvnw --batch-mode --no-transfer-progress clean package -DskipTests
+
+      - name: Build verifier Docker image
+        if: ${{ inputs['verifier-mode'] != 'image' }}
+        working-directory: .component-sources/swiyu-verifier
+        run: |
+          docker build --pull --platform linux/amd64 \
+            --build-arg SOURCE_IMAGE=eclipse-temurin:25-jre-ubi10-minimal \
+            --tag "${VERIFIER_IMAGE_NAME}:${VERIFIER_IMAGE_TAG}" \
+            .
 
       - name: Log in to GitHub Container Registry
-        if: ${{ startsWith(inputs['issuer-image-name'], 'ghcr.io/') || startsWith(inputs['verifier-image-name'], 'ghcr.io/') }}
+        if: ${{ inputs['issuer-mode'] == 'image' || inputs['verifier-mode'] == 'image' }}
         shell: bash
         env:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
 
-      - name: Pull images and check SoftHSM compatibility
+      - name: Pull selected registry images
+        if: ${{ inputs['issuer-mode'] == 'image' || inputs['verifier-mode'] == 'image' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$ISSUER_MODE" == image ]]; then
+            docker pull --platform linux/amd64 "${ISSUER_IMAGE_NAME}:${ISSUER_IMAGE_TAG}"
+          fi
+          if [[ "$VERIFIER_MODE" == image ]]; then
+            docker pull --platform linux/amd64 "${VERIFIER_IMAGE_NAME}:${VERIFIER_IMAGE_TAG}"
+          fi
+
+      - name: Summarize selected sources and check SoftHSM compatibility
         shell: bash
         run: |
           set -euo pipefail
@@ -88,27 +224,30 @@ jobs:
           }
 
           {
-            echo '## HSM E2E images'
+            echo '## HSM E2E sources and images'
             echo
-            echo '| Component | Image | Digest |'
-            echo '| --- | --- | --- |'
+            printf 'Application tests: `%s` (`%s`)\n\n' "$GITHUB_REF_NAME" "$GITHUB_SHA"
+            echo '| Component | Mode | Requested reference | Source SHA | Image | Image ID | Registry digest |'
+            echo '| --- | --- | --- | --- | --- | --- | --- |'
           } >> "$GITHUB_STEP_SUMMARY"
 
           check_image() {
-            local component="$1" image="$2:$3"
-            local platform digest
+            local component="$1" mode="$2" reference="$3" source_sha="$4" image="$5:$6"
+            local platform image_id digest
 
-            docker pull --platform linux/amd64 "$image"
             platform="$(inspect_image --format '{{.Os}}/{{.Architecture}}' "$image")"
             if [[ "$platform" != 'linux/amd64' ]]; then
               echo "::error::${component}: SoftHSM requires linux/amd64; found ${platform}."
               return 1
             fi
 
+            image_id="$(inspect_image --format '{{.Id}}' "$image")"
             digest="$(inspect_image --format '{{join .RepoDigests ", "}}' "$image")"
-            printf '| %s | `%s` | `%s` |\n' "$component" "$image" "$digest" >> "$GITHUB_STEP_SUMMARY"
+            printf '| %s | %s | `%s` | `%s` | `%s` | `%s` | `%s` |\n' \
+              "$component" "$mode" "$reference" "$source_sha" "$image" "$image_id" "${digest:-n/a}" \
+              >> "$GITHUB_STEP_SUMMARY"
 
-            if ! docker run --rm --platform linux/amd64 \
+            if ! docker run --rm --pull=never --platform linux/amd64 \
               --mount "type=bind,source=${GITHUB_WORKSPACE}/test-wallet-library/src/main/resources/softhsm/libs,target=/tmp/softhsm-preflight,readonly" \
               --entrypoint /bin/sh "$image" -ec '
                 command -v ldd >/dev/null 2>&1 || {
@@ -132,15 +271,8 @@ jobs:
             fi
           }
 
-          check_image Issuer "$ISSUER_IMAGE_NAME" "$ISSUER_IMAGE_TAG"
-          check_image Verifier "$VERIFIER_IMAGE_NAME" "$VERIFIER_IMAGE_TAG"
-
-      - name: Set up Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '25'
-          cache: 'maven'
+          check_image Issuer "$ISSUER_MODE" "$ISSUER_REFERENCE" "$ISSUER_SOURCE_SHA" "$ISSUER_IMAGE_NAME" "$ISSUER_IMAGE_TAG"
+          check_image Verifier "$VERIFIER_MODE" "$VERIFIER_REFERENCE" "$VERIFIER_SOURCE_SHA" "$VERIFIER_IMAGE_NAME" "$VERIFIER_IMAGE_TAG"
 
       - name: Configure Docker Java client API version
         run: echo "api.version=1.44" > ~/.docker-java.properties
