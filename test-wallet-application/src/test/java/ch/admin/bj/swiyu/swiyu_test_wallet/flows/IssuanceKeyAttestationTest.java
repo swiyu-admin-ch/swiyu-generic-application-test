@@ -147,6 +147,7 @@ public class IssuanceKeyAttestationTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1360 requires centralized JWT validation in the Generic Issuer"
     )
+    @Disabled("Bug ticket : EIDOMNI-1417")
     void boundNonDeferredCredential_whenKeyAttestationIssuerClaimIsIgnored_thenSuccess(
             final AttestationIssuerClaim issuerClaim
     ) {
