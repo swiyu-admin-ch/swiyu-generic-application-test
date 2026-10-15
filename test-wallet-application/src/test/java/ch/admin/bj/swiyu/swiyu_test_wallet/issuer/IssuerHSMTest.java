@@ -53,7 +53,7 @@ import static org.mockserver.model.HttpRequest.request;
 public class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
-            "/api/v1/status/business-entities/.*/status-list-entries/.*";
+            "/api/v2/status/business-entities/.*/status-list-entries/.*";
     private static final String INITIAL_HSM_KEY_ID = "01";
     private static final String ROTATED_HSM_KEY_ID = "02";
     private static final String HSM_KEY_PIN = "1234";
