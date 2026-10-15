@@ -130,7 +130,7 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled ("The verifier currently accepts repeated wallet errors after closure, which is a bug. See EIDOMNI-1386.")
+    @Disabled("Bug ticket : EIDOMNI-1386")
     void walletError_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {

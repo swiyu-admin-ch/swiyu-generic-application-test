@@ -4,23 +4,29 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
+import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.HttpClientErrorException;
 
+import java.net.URI;
+import java.util.List;
+
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.CredentialEvaluationAssert.assertEvaluation;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.test_support.verification_result.TokenStatusListValues.VALID;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
+import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.DEFAULT_CREDENTIAL_ID;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockserver.model.HttpRequest.request;
 
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,8 +44,7 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
                     """
     )
     @Tag(ReportingTags.UCV_O2)
-    @Disabled
-    void credentialWinithStatusList_whenPresentedToVerifier_thenFailsBecauseCachePropertiesBeanIsMissing() {
+    void credentialWithStatusList_whenPresentedToVerifier_thenStatusIsResolvedAndVerificationSucceeds() {
 
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
@@ -48,27 +53,35 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
         );
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         final String verifiableCredential = batchEntry.getVerifiableCredential(0);
+        final String statusListUri = JwtSupport.decodePayloadToJsonNode(verifiableCredential.split("~", 2)[0])
+                .path("status").path("status_list").path("uri").asString();
+        assertThat(statusListUri)
+                .as("The issued credential must reference a status list")
+                .isNotBlank();
+        final var statusListRequest = request()
+                .withMethod("GET")
+                .withPath(URI.create(statusListUri).getPath());
+        final int statusListRequestsBefore = mockServerClient.retrieveRecordedRequests(statusListRequest).length;
 
+        wallet.setUseEncryption(true);
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL(false)
+                .encrypted()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
 
         // When
-        final HttpClientErrorException.BadRequest ex = assertThrows(
-                HttpClientErrorException.BadRequest.class,
-                () -> wallet.respondToVerification(verificationDetails, verifiableCredential)
-        );
+        final var walletResponse = wallet.respondToVerificationWithVpTokens(
+                verificationDetails, List.of(verifiableCredential));
 
         // Then
-        assertThat(ex.getResponseBodyAsString())
-                .contains("unresolvable_status_list")
-                .contains("Could not retrieve status list vc");
-
-        assertThat(verifierContainer.getLogs())
-                .contains("Could not retrieve status list vc.")
-                .contains("SpelEvaluationException")
-                .contains("No bean named 'cacheProperties' available");
+        assertThat(walletResponse.getStatusCode().value())
+                .isEqualTo(200);
+        final ManagementResponse result = verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+        assertEvaluation(result, DEFAULT_CREDENTIAL_ID, true, VALID);
+        assertThat(mockServerClient.retrieveRecordedRequests(statusListRequest))
+                .as("The Verifier must fetch the status list referenced by the presented credential")
+                .hasSizeGreaterThan(statusListRequestsBefore);
     }
 }

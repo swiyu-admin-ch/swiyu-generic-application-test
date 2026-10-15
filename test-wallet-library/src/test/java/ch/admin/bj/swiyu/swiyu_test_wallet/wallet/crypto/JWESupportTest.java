@@ -6,6 +6,8 @@ import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWEHeader;
 import com.nimbusds.jose.JWEObject;
+import com.nimbusds.jose.jwk.Curve;
+import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -16,6 +18,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JWESupportTest {
+
+    @Test
+    void createIncompressibleJsonPayloadAtSize_whenEncrypted_thenPreservesClaimsAndExceedsCiphertextLimit()
+            throws Exception {
+        final String baseJson = "{\"state\":\"nonce-€\",\"error\":\"access_denied\"}";
+        final int targetBytes = 100 * 1_024;
+
+        final String payload = JWESupport.createIncompressibleJsonPayloadAtSize(baseJson, targetBytes);
+
+        assertThat(payload.getBytes(StandardCharsets.UTF_8))
+                .hasSize(targetBytes);
+        final var json = JsonParser.parseString(payload).getAsJsonObject();
+        assertThat(json.get("state").getAsString())
+                .isEqualTo("nonce-€");
+        assertThat(json.get("error").getAsString())
+                .isEqualTo("access_denied");
+        final var key = new ECKeyGenerator(Curve.P_256).generate();
+        final String encrypted = WalletJwe.encrypt(payload, key.toPublicJWK());
+        assertThat(JWEObject.parse(encrypted).getCipherText().toString().length())
+                .as("The random padding must survive compression to exercise the ciphertext limit")
+                .isGreaterThan(65_536);
+    }
 
     @ParameterizedTest
     @EnumSource(JWESupport.PayloadEncoding.class)

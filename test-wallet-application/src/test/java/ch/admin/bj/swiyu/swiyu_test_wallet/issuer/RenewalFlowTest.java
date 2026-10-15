@@ -190,10 +190,7 @@ class RenewalFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1301 is not available in these issuer images"
     )
-    @Disabled("Issuer defect: the image main answers 500 (NullPointerException in DemonstratingProofOfPossessionService."
-            + "requiresKeyAttestation, EIDOMNI-640) to a DPoP token request for a credential configuration without "
-            + "proof_types_supported. This configuration is unbound, so OID4VCI 1.0 12.2.4 requires proof_types_supported to be "
-            + "omitted. Re-enable when the issuer is fixed.")
+    @Disabled("Open MR : https://github.com/swiyu-admin-ch/swiyu-issuer/pull/528")
     void credentialRefreshDisabled_whenWalletAttemptsRenewal_thenRejectedWithoutBusinessIssuerCall() {
         // Given
         final String credentialConfigurationId =
