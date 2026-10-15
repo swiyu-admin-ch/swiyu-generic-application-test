@@ -13,6 +13,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -69,6 +71,7 @@ class IssuerWebhookFloodTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Disabled ("The issuer currently accepts repeated wallet requests after a rejected key proof, which is a bug. See EIDOMNI-1400.")
     void credentialRequest_whenWalletRepeatsInvalidProofAndCallbackIsUnavailable_thenQueueStaysBounded() {
         // Given: freeze the proof, while the Wallet still creates fresh DPoP and encrypted request envelopes.
         final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);

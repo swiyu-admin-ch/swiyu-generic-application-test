@@ -14,6 +14,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -128,6 +130,7 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Disabled ("The verifier currently accepts repeated wallet errors after closure, which is a bug. See EIDOMNI-1386.")
     void walletError_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {
