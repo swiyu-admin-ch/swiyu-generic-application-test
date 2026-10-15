@@ -73,6 +73,10 @@ public class JWESupport {
         );
     }
 
+    public static String createIncompressibleJsonPayloadAtSize(final String baseJson, final int targetBytes) {
+        return createJsonPayload(baseJson, targetBytes, PayloadEncoding.ASCII, true);
+    }
+
     private static String createJsonPayload(
             final String baseJson,
             final int targetBytes,
