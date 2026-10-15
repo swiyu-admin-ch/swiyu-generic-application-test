@@ -100,6 +100,10 @@ public final class IssuerRuntimeFactory {
     private GenericContainer<?> createContainer(
             final StartRequest request,
             final ManagementAuthConfig managementAuthConfig) {
+        final MockAttestationAuthority trustedAttestationAuthority =
+                request.trustedAttestationAuthority() == null
+                        ? mockAttestationAuthority
+                        : request.trustedAttestationAuthority();
         if (request.metadata() == null) {
             return IssuerContainerConfig.createIssuerContainer(
                     network,
@@ -111,7 +115,7 @@ public final class IssuerRuntimeFactory {
                     managementAuthConfig,
                     containerLogConfig,
                     tokenDirPath,
-                    mockAttestationAuthority
+                    trustedAttestationAuthority
             );
         }
         return IssuerContainerConfig.createIssuerContainer(
@@ -124,7 +128,7 @@ public final class IssuerRuntimeFactory {
                 managementAuthConfig,
                 containerLogConfig,
                 tokenDirPath,
-                mockAttestationAuthority,
+                trustedAttestationAuthority,
                 request.metadata()
         );
     }
@@ -232,6 +236,8 @@ public final class IssuerRuntimeFactory {
      * @param imageName exact Docker image name selected for startup
      * @param metadata explicit metadata mount, or {@code null} to use the standard Application Tests fixture
      * @param existingStatusList persisted status list to rebind after an upgrade, or {@code null} to create a new list
+     * @param trustedAttestationAuthority attestation authority trusted by this runtime, or {@code null} for the
+     *                                    environment default
      */
     public record StartRequest(
             IssuerVariant variant,
@@ -239,8 +245,19 @@ public final class IssuerRuntimeFactory {
             IssuerImageConfig imageConfig,
             String imageName,
             MountableFile metadata,
-            StatusList existingStatusList
+            StatusList existingStatusList,
+            MockAttestationAuthority trustedAttestationAuthority
     ) {
+
+        public StartRequest(
+                final IssuerVariant variant,
+                final IssuerConfig config,
+                final IssuerImageConfig imageConfig,
+                final String imageName,
+                final MountableFile metadata,
+                final StatusList existingStatusList) {
+            this(variant, config, imageConfig, imageName, metadata, existingStatusList, null);
+        }
 
         public StartRequest {
             Objects.requireNonNull(variant, "variant");

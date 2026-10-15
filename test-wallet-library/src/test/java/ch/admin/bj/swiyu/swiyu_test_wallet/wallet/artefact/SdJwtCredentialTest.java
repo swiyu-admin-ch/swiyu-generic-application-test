@@ -136,6 +136,26 @@ class SdJwtCredentialTest {
     }
 
     @Test
+    void resign_whenWithoutIssuer_thenTheIssClaimIsAbsentAndTheRestIsKeptAndSigned() throws Exception {
+        final SdJwtCredential resigned = credential.resign().signedWith(issuerKeyPair).withoutIssuer().build();
+
+        final SignedJWT jwt = SignedJWT.parse(resigned.issuerSignedJwt());
+        assertThat(jwt.getJWTClaimsSet().getClaims()).as("iss").doesNotContainKey("iss");
+        assertThat(jwt.getJWTClaimsSet().getClaim("vct")).as("the other claims are kept").isEqualTo("https://example.com/vct");
+        assertThat(jwt.getHeader().getCustomParam("profile_version")).as("the header is kept").isEqualTo("swiss-profile-vc:1.0.0");
+        assertThat(jwt.verify(new ECDSAVerifier(issuerPublicKey))).as("signature").isTrue();
+        assertThat(resigned.disclosures()).isEqualTo(credential.disclosures());
+    }
+
+    @Test
+    void resign_whenAnIssuerIsGivenAndDropped_thenFailsInsteadOfPickingOne() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> credential.resign().signedWith(issuerKeyPair).issuer("did:example:a").withoutIssuer().build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("contradict");
+    }
+
+    @Test
     void resign_whenEd25519_thenTheAlgorithmHeaderIsEd25519() throws Exception {
         final OctetKeyPair edKey = new OctetKeyPairGenerator(com.nimbusds.jose.jwk.Curve.Ed25519).generate();
 
