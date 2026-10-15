@@ -77,6 +77,16 @@ jobs:
           set -euo pipefail
           command -v openssl
 
+          inspect_help="$(docker image inspect --help)"
+          inspect_image() {
+            # Older runner clients do not support platform selection for image inspect.
+            if [[ "$inspect_help" == *--platform* ]]; then
+              docker image inspect --platform linux/amd64 "$@"
+            else
+              docker image inspect "$@"
+            fi
+          }
+
           {
             echo '## HSM E2E images'
             echo
@@ -89,13 +99,13 @@ jobs:
             local platform digest
 
             docker pull --platform linux/amd64 "$image"
-            platform="$(docker image inspect --platform linux/amd64 --format '{{.Os}}/{{.Architecture}}' "$image")"
+            platform="$(inspect_image --format '{{.Os}}/{{.Architecture}}' "$image")"
             if [[ "$platform" != 'linux/amd64' ]]; then
               echo "::error::${component}: SoftHSM requires linux/amd64; found ${platform}."
               return 1
             fi
 
-            digest="$(docker image inspect --platform linux/amd64 --format '{{join .RepoDigests ", "}}' "$image")"
+            digest="$(inspect_image --format '{{join .RepoDigests ", "}}' "$image")"
             printf '| %s | `%s` | `%s` |\n' "$component" "$image" "$digest" >> "$GITHUB_STEP_SUMMARY"
 
             if ! docker run --rm --platform linux/amd64 \
