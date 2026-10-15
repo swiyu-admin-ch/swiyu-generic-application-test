@@ -130,7 +130,6 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Bug ticket : EIDOMNI-1386")
     void walletError_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {
