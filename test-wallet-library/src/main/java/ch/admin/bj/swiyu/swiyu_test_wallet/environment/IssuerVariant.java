@@ -12,7 +12,7 @@ public enum IssuerVariant {
     CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
-    HSM("hsm", true, null, null, null, null),
+    HSM("hsm", true, null, true, null, null),
     MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null),
     MULTI_SIGNING_KEYS("multi_signing_keys", false, null, null, null, null),
     CRYPTO_AGILITY("crypto_agility", false, null, null, null, null);

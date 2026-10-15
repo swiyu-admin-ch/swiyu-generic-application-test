@@ -204,9 +204,14 @@ public class SwiyuEnvironmentRegistry {
     private VerifierHandle startVerifier(final VerifierVariant variant) {
         final VerifierImageConfig imageConfig = variant.imageConfig(verifierImageTemplate);
         final String imageName = imageConfig.getBaseImage() + ":" + imageConfig.getImageTag();
-        final VerifierConfig config = EnvironmentConfig.createVerifierConfig(
-                toUri(String.format("https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, UUID.randomUUID()))
-        );
+        final var identifierRegistryUrl = toUri(String.format(
+                "https://%s/api/v1/did/%s", MockServices.MOCKSERVER_HOST, UUID.randomUUID()));
+        if (imageConfig.isEnableHsm()) {
+            supportServices.softHsm();
+        }
+        final VerifierConfig config = imageConfig.isEnableHsm()
+                ? VerifierConfig.createHsmVerifierConfig(identifierRegistryUrl)
+                : EnvironmentConfig.createVerifierConfig(identifierRegistryUrl);
         if (imageConfig.isMultipleSigningKeys()) {
             config.setAdditionalSigningIdentities(List.of(EnvironmentConfig.createVerifierConfig(
                     toUri(String.format(

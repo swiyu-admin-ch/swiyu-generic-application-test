@@ -62,6 +62,35 @@ class SwiyuEnvironmentRegistryTest {
         }
     }
 
+    @Test
+    void verifier_whenHsmVariantIsRequestedDirectly_thenStartsSoftHsmBeforeCreatingIdentity() {
+        // Given
+        final EnvironmentSupportServices supportServices = mock(EnvironmentSupportServices.class);
+        final AtomicBoolean softHsmStarted = new AtomicBoolean();
+        when(supportServices.softHsm()).thenAnswer(invocation -> {
+            softHsmStarted.set(true);
+            return mock(GenericContainer.class);
+        });
+        final SwiyuEnvironmentRegistry registry = registry(mock(IssuerRuntimeFactory.class), supportServices);
+        final VerifierConfig config = mock(VerifierConfig.class);
+
+        try (MockedStatic<VerifierConfig> identities = mockStatic(VerifierConfig.class)) {
+            identities.when(() -> VerifierConfig.createHsmVerifierConfig(any(URI.class))).thenAnswer(invocation -> {
+                assertThat(softHsmStarted)
+                        .as("SoftHSM must be initialized before publishing its Verifier keys")
+                        .isTrue();
+                return config;
+            });
+
+            // When
+            registry.verifier(VerifierVariant.HSM);
+
+            // Then
+            identities.verify(() -> VerifierConfig.createHsmVerifierConfig(any(URI.class)));
+            verify(supportServices).softHsm();
+        }
+    }
+
     private static SwiyuEnvironmentRegistry registry(
             final IssuerRuntimeFactory issuerRuntime,
             final EnvironmentSupportServices supportServices) {

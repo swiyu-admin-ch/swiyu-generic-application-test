@@ -180,6 +180,7 @@ public class VerifierContainerConfig {
 
             if (verifierImageConfig.isEnableHsm()) {
                 container
+                        .withEnv("SIGNING_KEY", "")
                         .withEnv("SIGNING_KEY_MANAGEMENT_METHOD", HSMConfig.SIGNING_KEY_METHOD)
                         .withEnv("HSM_USER", verifierImageConfig.getHsmUser())
                         .withEnv("HSM_PASSWORD", verifierImageConfig.getHsmPassword())

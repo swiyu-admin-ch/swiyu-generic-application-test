@@ -29,45 +29,24 @@ create_token() {
 import_key() {
     local token="$1"
     local alias="$2"
-    local key_file="${KEYS_DIR}${alias}-key.pk8.pem"
-    local certificate_file="${KEYS_DIR}${alias}-cert.pem"
+    local keystore_file="${KEYS_DIR}${alias}.p12"
 
-    echo "Importing keypair from mounted files ${token}:${alias} (key: ${key_file}, cert: ${certificate_file})"
+    echo "Importing test keypair ${token}:${alias} from ${keystore_file}"
 
-    softhsm2-util \
-        --module "${HSM_LIBRARY}" \
-        --token "${token}" \
-        --label "${alias}" \
-        --id "${alias}" \
-        --import "${key_file}" \
-        --pin "${HSM_USER_PIN}"
-
-    pkcs11-tool \
-        --module "${HSM_LIBRARY}" \
-        --login \
-        --pin "${HSM_USER_PIN}" \
-        --token-label "${token}" \
-        --write-object "${certificate_file}" \
-        --type cert \
-        --label "${alias}" \
-        --id "${alias}"
-}
-
-export_key() {
-    local token="$1"
-    local alias="$2"
-    local outfile="${EXPORT_DIR}/${alias}_key_pub.der"
-
-    echo "Exporting public key for alias: ${alias} -> ${outfile}"
-    pkcs11-tool \
-        --module "${HSM_LIBRARY}" \
-        --token-label "${token}" \
-        --login \
-        --pin "${HSM_USER_PIN}" \
-        --label "${alias}" \
-        --type pubkey \
-        --read-object \
-        -o "${outfile}" || true
+    # Unlike softhsm2-util, this import applies the attributes in HSM_CONFIG_PATH.
+    keytool \
+        -importkeystore \
+        -srckeystore "${keystore_file}" \
+        -srcstoretype PKCS12 \
+        -srcstorepass changeit \
+        -srcalias "${alias}" \
+        -destkeystore NONE \
+        -deststoretype PKCS11 \
+        -deststorepass "${HSM_USER_PIN}" \
+        -destalias "${alias}" \
+        -providerClass sun.security.pkcs11.SunPKCS11 \
+        -providerArg "${HSM_CONFIG_PATH}" \
+        -noprompt
 }
 
 export_cert() {
@@ -85,7 +64,7 @@ export_cert() {
         -exportcert \
         -rfc \
         -alias "${alias}" \
-        -file "${outfile}" 2>/dev/null || true
+        -file "${outfile}"
 }
 
 ISSUER_TOKEN="issuer-token"
@@ -97,11 +76,7 @@ echo "Importing keypair from mounted host files"
 import_key "${ISSUER_TOKEN}" "01"
 import_key "${ISSUER_TOKEN}" "02"
 
-echo "Exporting public keys to shared volume"
-export_key "${ISSUER_TOKEN}" "01"
-export_key "${ISSUER_TOKEN}" "02"
-
-echo "Exporting certificates"
+echo "Exporting certificates with the public keys to the shared volume"
 export_cert "01"
 export_cert "02"
 
