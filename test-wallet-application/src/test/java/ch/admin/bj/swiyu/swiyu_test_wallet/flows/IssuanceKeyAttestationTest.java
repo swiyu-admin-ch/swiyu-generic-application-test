@@ -187,7 +187,6 @@ public class IssuanceKeyAttestationTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1361 requires centralized JWT validation in the Generic Issuer"
     )
-    @Disabled("Bug ticket : EIDOMNI-1416")
     void boundNonDeferredCredential_whenAttestationDidIsOutsideBaseRegistry_thenRejectedWithoutResolution() {
         // Given
         final URI registryEntry = URI.create(
