@@ -63,7 +63,6 @@ class TransactionCodeTest extends BaseTest {
     @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
-    @Disabled("Bug ticket : EIDOMNI-1418")
     void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued(
             final boolean includeLength, final boolean includeDescription) {
         // Given
