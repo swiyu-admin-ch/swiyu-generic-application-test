@@ -138,7 +138,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
 
     @ParameterizedTest(name = "[{index}] recover after excessive decompressed bytes: {0}")
     @EnumSource(JWESupport.PayloadEncoding.class)
-    @XrayTest(key = "EIDOMNI-1274", summary = "Verifier rejects excess decompressed bytes and permits a valid retry",
+    @XrayTest(key = "EIDOMNI-1451", summary = "Verifier rejects excess decompressed bytes and permits a valid retry",
             description = """
                     A malicious wallet sends a DEF-compressed direct_post.jwt response expanding to 20 MiB plus
                     one byte, exceeding the service's configured decompression limit. ASCII and multibyte UTF-8

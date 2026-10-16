@@ -137,7 +137,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
 
     @ParameterizedTest(name = "[{index}] recover after excessive decompressed bytes: {0}")
     @EnumSource(JWESupport.PayloadEncoding.class)
-    @XrayTest(key = "EIDOMNI-1274", summary = "Issuer rejects excess decompressed bytes and permits a valid retry",
+    @XrayTest(key = "EIDOMNI-1450", summary = "Issuer rejects excess decompressed bytes and permits a valid retry",
             description = """
                     A malicious wallet sends a DEF-compressed Credential Request expanding to 20 MiB plus one byte.
                     ASCII and multibyte UTF-8 payloads must fail at the JWE boundary without state changes or callbacks.
