@@ -583,7 +583,7 @@ class VerifierTrustStatementTest extends BaseTest {
     @ParameterizedTest(name = "vqPS override with {0}")
     @EnumSource(value = VerifierVariant.class, names = {"DEFAULT", "NO_STATIC_DID"})
     @XrayTest(
-            key = "EIDOMNI-1338",
+            key = "EIDOMNI-1448",
             summary = "vqPS submission uses the request DID with or without a static verifier DID",
             description = """
                     Given a verifier with or without a static DID and a per-request verifier_did override.
@@ -661,7 +661,7 @@ class VerifierTrustStatementTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1338",
+            key = "EIDOMNI-1449",
             summary = "vqPS cache remains isolated between verifier DID overrides",
             description = """
                     Given identical purpose metadata and DCQL for two verifier DID overrides.

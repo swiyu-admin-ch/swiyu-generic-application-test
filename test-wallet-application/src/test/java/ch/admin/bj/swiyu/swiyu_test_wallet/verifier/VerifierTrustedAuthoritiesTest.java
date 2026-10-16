@@ -38,7 +38,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1441",
             summary = "Request Object carries the accepted issuer DIDs as did trusted authorities",
             description = """
                     Given a verification request with one accepted issuer DID.
@@ -70,7 +70,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1442",
             summary = "Request Object lists every accepted issuer DID in one did trusted authority",
             description = """
                     Given a verification request with two accepted issuer DIDs.
@@ -103,7 +103,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1443",
             summary = "Request Object has no trusted authorities when no issuer is listed",
             description = """
                     Given a verification request without accepted issuer DIDs.

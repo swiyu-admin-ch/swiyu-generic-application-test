@@ -77,7 +77,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1419",
             summary = "Credential Issuer signs a batch with its default HSM key and the Verifier accepts every presentation",
             description = """
                     Given a Credential Issuer using the default SoftHSM key.
@@ -131,7 +131,7 @@ public class IssuerHSMTest extends BaseTest {
     @NullAndEmptySource
     @ValueSource(strings = HSM_KEY_PIN)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1420",
             summary = "Credential Issuer signs every Credential with the override HSM key with an optional key PIN",
             description = """
                     Given a Credential Offer with an alternate HSM key and its matching verification method.
@@ -180,7 +180,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1421",
             summary = "Credential Issuer keeps its default HSM key after issuing with an override",
             description = """
                     Given a default offer and a separate offer selecting the alternate HSM key.
@@ -232,7 +232,7 @@ public class IssuerHSMTest extends BaseTest {
     @ParameterizedTest(name = "override={0}")
     @ValueSource(booleans = {false, true})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1422",
             summary = "Credential Issuer signs tenant metadata with the selected HSM key",
             description = """
                     Given a default Credential Offer or one selecting the alternate HSM key.
@@ -286,7 +286,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1423",
             summary = "Credential Issuer retains the HSM key override throughout deferred issuance",
             description = """
                     Given a deferred Credential Offer selecting the alternate HSM key.
@@ -339,7 +339,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1424",
             summary = "Credential Issuer rejects an unknown override HSM key without issuing with its default key",
             description = """
                     Given a valid Credential Offer whose management override selects a nonexistent HSM key.
@@ -427,7 +427,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1425",
             summary = "Credential Issuer signs a default status list with the HSM key advertised by its kid",
             description = """
                     Given a Credential Issuer with separate default HSM keys for Credentials and status lists.
@@ -458,7 +458,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1426",
             summary = "Credential Issuer publishes a new status list with its override HSM key without a key PIN",
             description = """
                     Given a status-list creation request selecting the alternate HSM key and matching verification method.
@@ -497,7 +497,7 @@ public class IssuerHSMTest extends BaseTest {
     @ParameterizedTest(name = "empty configuration_override={0}")
     @ValueSource(booleans = {false, true})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1427",
             summary = "Credential Issuer preserves a stored HSM status-list override when an update supplies no replacement",
             description = """
                     Given a status list created with the alternate HSM key and matching verification method.
@@ -533,7 +533,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1428",
             summary = "Credential Issuer retains the stored status-list key and verification method during a partial HSM override",
             description = """
                     Given a status list selecting the alternate HSM key.
@@ -568,7 +568,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1429",
             summary = "Credential Issuer rejects an unknown status-list HSM key and preserves the last valid override",
             description = """
                     Given a status list successfully published with the alternate HSM key.
@@ -614,7 +614,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1430",
             summary = "Credential Issuer isolates HSM key rotation between status lists",
             description = """
                     Given two status lists created with the initial HSM key.

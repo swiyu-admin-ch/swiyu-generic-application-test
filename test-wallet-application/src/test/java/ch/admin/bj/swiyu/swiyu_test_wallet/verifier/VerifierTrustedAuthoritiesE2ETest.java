@@ -69,7 +69,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1435",
             summary = "Verifier preserves explicit authorities and fills only unconstrained credential queries",
             description = """
                     Given three credential queries, two with different explicit did authorities and one without authorities.
@@ -118,7 +118,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
     @ParameterizedTest(name = "accepted_issuer_dids empty: {0}")
     @ValueSource(booleans = {false, true})
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1436",
             summary = "Verifier preserves explicit authorities without inventing empty fallback authorities",
             description = """
                     Given one explicitly constrained query and one query without authorities, with accepted_issuer_dids omitted or empty.
@@ -158,7 +158,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"single", "later value", "later authority", "overlapping authorities"})
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1437",
             summary = "Verifier accepts a credential matching any explicit did authority value",
             description = """
                     Given a valid issuer credential and an explicit did constraint whose matching DID is alone, later in values, later in authorities, or repeated across authorities.
@@ -215,7 +215,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1438",
             summary = "Verifier accepts two credential queries when each issuer satisfies its own authority constraint",
             description = """
                     Given a valid credential and two required credential queries, one explicitly constrained and one populated from accepted_issuer_dids.
@@ -272,7 +272,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
     @ParameterizedTest(name = "restricted query at index {0}")
     @ValueSource(ints = {0, 1})
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1439",
             summary = "Verifier rejects a globally accepted issuer that violates one credential query authority",
             description = """
                     Given two required credential queries and a globally accepted issuer excluded by one query's explicit did authority.
@@ -330,7 +330,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
     @ParameterizedTest(name = "query accepts signing DID: {0}")
     @ValueSource(booleans = {true, false})
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1440",
             summary = "Verifier applies explicit did authorities to the signing kid and ignores conflicting iss",
             description = """
                     Given a valid credential whose signed iss names another DID while kid identifies its actual issuer, and both DIDs are globally accepted.

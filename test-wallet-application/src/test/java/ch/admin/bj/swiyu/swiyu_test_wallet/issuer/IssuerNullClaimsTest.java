@@ -44,7 +44,7 @@ class IssuerNullClaimsTest extends BaseTest {
     @ParameterizedTest(name = "Null claim: {0}")
     @ValueSource(strings = {"job_title", "years_of_experience", "profile_picture"})
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1444",
             summary = "Credential Issuer preserves explicit null claims in every issued SD-JWT VC",
             description = """
                     Given a Credential Offer with an explicit null claim and other populated claims.
@@ -109,7 +109,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1445",
             summary = "Credential Issuer preserves null properties in nested subject objects",
             description = """
                     Given a Credential Offer whose address contains a null street address, a populated locality, and no postal code.
@@ -181,7 +181,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1446",
             summary = "Credential Issuer preserves null array elements and their positions",
             description = """
                     Given a Credential Offer whose nationalities array contains CH, null, and FR in that order.
@@ -251,7 +251,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1447",
             summary = "Credential Issuer preserves null claims supplied by a deferred subject update",
             description = """
                     Given a deferred Credential Offer with a populated job title and no issued Credentials.

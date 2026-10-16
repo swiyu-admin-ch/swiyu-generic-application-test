@@ -100,7 +100,7 @@ class IssuerTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-179",
+            key = "EIDOMNI-1434",
             summary = "Issuer metadata exposes only the dc+sd-jwt credential format",
             description = """
                     This test verifies that every configured OID4VCI credential uses the current dc+sd-jwt format

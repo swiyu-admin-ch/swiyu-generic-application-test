@@ -104,7 +104,7 @@ class VerifierHSMTest extends BaseTest {
     @ParameterizedTest(name = "override={0}, key_pin={1}")
     @CsvSource({"false,", "true,", "true,''", "true,1234"})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1431",
             summary = "Verifier completes a verification with its selected HSM key and matching client identity",
             description = """
                     Given an HSM Verifier using its default identity or a per-verification override with an optional key_pin.
@@ -170,7 +170,7 @@ class VerifierHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1432",
             summary = "Verifier isolates default and override HSM signers across interleaved Request Object retrievals",
             description = """
                     Given default and override-key verification requests in one Verifier runtime.
@@ -216,7 +216,7 @@ class VerifierHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1433",
             summary = "Verifier rejects an unknown override HSM key even after its default signer is cached",
             description = """
                     Given a Verifier that already served a valid default-key Request Object.
