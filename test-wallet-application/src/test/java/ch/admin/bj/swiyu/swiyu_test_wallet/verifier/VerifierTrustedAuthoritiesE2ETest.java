@@ -70,7 +70,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
     @Test
     @XrayTest(
             key = "EIDOMNI-1435",
-            summary = " ",
+            summary = "Verifier preserves explicit authorities and fills only unconstrained credential queries",
             description = """
                     Given three credential queries, two with different explicit did authorities and one without authorities.
                     When the Business Verifier creates a verification with a broader accepted issuer list and the Wallet fetches its signed Request Object.
