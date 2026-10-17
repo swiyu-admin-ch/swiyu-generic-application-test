@@ -192,7 +192,6 @@ class IssuerNullClaimsTest extends BaseTest {
                     """)
     @Tag(ReportingTags.UCI_C1A)
     @Tag(ReportingTags.UCI_I1)
-    @Disabled ("Issue : https://github.com/swiyu-admin-ch/swiyu-issuer/issues/527")
     void credentialIssuance_whenSubjectArrayContainsNull_thenPreservesNullPosition() throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialClaimsFixtures.createBaseProfile();
