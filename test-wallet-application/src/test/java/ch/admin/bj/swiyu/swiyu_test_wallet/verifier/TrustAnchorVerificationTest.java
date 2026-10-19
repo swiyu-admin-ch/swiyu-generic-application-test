@@ -4,22 +4,18 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
-import ch.admin.bj.swiyu.gen.verifier.model.TrustAnchor;
 import ch.admin.bj.swiyu.gen.verifier.model.TrustMethod;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.ServiceLocationContext;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -41,10 +37,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(CompleteEnvironmentTestConfiguration.class)
 class TrustAnchorVerificationTest extends BaseTest {
 
-    @Autowired
-    private MockServices mockServices;
-    @Autowired
-    private IssuerImageConfig issuerImageConfig;
     @Autowired
     private ContainerLogConfig containerLogConfig;
 
@@ -68,7 +60,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
         // TP2 takes its trust anchor from the Verifier environment, not from the management request.
-        try (final GenericContainer<?> trustedVerifierContainer = createVerifierTrustingMockAnchor()) {
+        try (final GenericContainer<?> trustedVerifierContainer = createVerifierWithTrustAnchor(trustConfig.getTrustDid())) {
             trustedVerifierContainer.start();
             final BusinessVerifier trustedVerifier = new BusinessVerifier("http://%s:%d".formatted(
                     trustedVerifierContainer.getHost(), trustedVerifierContainer.getMappedPort(8080)));
@@ -104,7 +96,7 @@ class TrustAnchorVerificationTest extends BaseTest {
         }
     }
 
-    private GenericContainer<?> createVerifierTrustingMockAnchor() {
+    private GenericContainer<?> createVerifierWithTrustAnchor(final String trustIssuerDid) {
         final var imageConfig = VerifierVariant.DEFAULT.imageConfig(verifierImageConfig);
         imageConfig.setSurname("trust_anchor_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16));
         return VerifierContainerConfig.createVerifierContainer(
@@ -116,7 +108,7 @@ class TrustAnchorVerificationTest extends BaseTest {
                 managementAuthConfig,
                 null,
                 containerLogConfig
-        ).withEnv("SWIYU_TRUST_ISSUER_DID", trustConfig.getTrustDid());
+        ).withEnv("SWIYU_TRUST_ISSUER_DID", trustIssuerDid);
     }
 
     @Test
@@ -138,30 +130,37 @@ class TrustAnchorVerificationTest extends BaseTest {
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(response.getOfferDeeplink()));
         assertThat(batchEntry.getCredentialOffer()).isNotNull();
 
-        // When
-        // TP2 uses the configured registry, not the legacy /untrusted URL; the anchor must not sign the issuer's statements.
-        final TrustAnchor anchor = new TrustAnchor()
-                .did(verifierConfig.getVerifierDid())
-                .trustRegistryUri(String.format("https://%s/untrusted", MockServices.MOCKSERVER_HOST));
-        final ManagementResponse verification = verifierManager.verificationRequest()
-                .trustAnchor(anchor)
-                .withDCQL()
-                .createManagementResponse();
+        // The configured anchor differs from the signer of the issuer's Trust Statements.
+        try (final GenericContainer<?> untrustedVerifierContainer = createVerifierWithTrustAnchor(verifierConfig.getVerifierDid())) {
+            untrustedVerifierContainer.start();
+            final BusinessVerifier untrustedVerifier = new BusinessVerifier("http://%s:%d".formatted(
+                    untrustedVerifierContainer.getHost(), untrustedVerifierContainer.getMappedPort(8080)));
+            wallet.useVerifier(new ServiceLocationContext(
+                    untrustedVerifierContainer.getHost(), untrustedVerifierContainer.getMappedPort(8080).toString()));
+            wallet.setUseEncryption(true);
 
-        final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
-        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
+            // When
+            final ManagementResponse verification = untrustedVerifier.verificationRequest()
+                    .withDCQL()
+                    .encrypted()
+                    .createManagementResponse();
+            final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+            final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
-        // Then
-        assertRejected(
-                () -> wallet.respondToVerification(verificationDetails, presentation),
-                verifierManager,
-                verification.getId(),
-                ex -> ApiErrorAssert.assertThat(ex)
-                        .hasStatus(400)
-                        .hasError("invalid_transaction_data")
-                        .hasDetail("issuer_not_accepted")
-                        .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor"),
-                evaluation -> assertIssuerUntrusted(evaluation)
-        );
+            // Then
+            assertRejected(
+                    () -> wallet.respondToVerification(verificationDetails, presentation),
+                    untrustedVerifier,
+                    verification.getId(),
+                    ex -> ApiErrorAssert.assertThat(ex)
+                            .hasStatus(400)
+                            .hasError("invalid_transaction_data")
+                            .hasDetail("issuer_not_accepted")
+                            .hasErrorDescription("Issuer not in list of accepted issuers or connected to trust anchor"),
+                    evaluation -> assertIssuerUntrusted(evaluation)
+            );
+        } finally {
+            wallet.useVerifier(currentVerifier);
+        }
     }
 }

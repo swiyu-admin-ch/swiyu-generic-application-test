@@ -67,18 +67,8 @@ public class BusinessVerifier {
             return this;
         }
 
-        public VerificationRequestBuilder trustAnchors(List<TrustAnchor> trustAnchors) {
-            request.trustAnchors(trustAnchors);
-            return this;
-        }
-
         public VerificationRequestBuilder acceptedIssuerDid(final String did) {
             request.addAcceptedIssuerDidsItem(did);
-            return this;
-        }
-
-        public VerificationRequestBuilder trustAnchor(TrustAnchor trustAnchor) {
-            request.addTrustAnchorsItem(trustAnchor);
             return this;
         }
 
