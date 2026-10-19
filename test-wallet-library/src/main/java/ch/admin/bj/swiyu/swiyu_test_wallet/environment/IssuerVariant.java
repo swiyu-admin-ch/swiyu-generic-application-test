@@ -8,6 +8,9 @@ public enum IssuerVariant {
     RENEWAL_API_KEY("renewal_api_key", false, true, false, true, false),
     RENEWAL_WEBHOOK_ONLY("renewal_webhook_only", false, true, false, true, false),
     NO_REFRESH_TOKEN_ROTATION("no_refresh_token_rotation", false, true, false, false, false),
+    RENEWAL_DEFAULT("renewal_default", false, true, true, false, true),
+    RENEWAL_STRICT("renewal_strict", false, true, true, false, true),
+    RENEWAL_PERMISSIVE_EXPERIMENTAL("renewal_permissive", false, true, true, false, true),
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
@@ -82,6 +85,13 @@ public enum IssuerVariant {
         if (this == NO_REFRESH_TOKEN_ROTATION) {
             config.setAllowRefreshTokenRotation(false);
         }
+        if (this == RENEWAL_DEFAULT) {
+            config.setEnableSuspendedRenewal(null);
+        } else if (this == RENEWAL_STRICT) {
+            config.setEnableSuspendedRenewal(false);
+        } else if (this == RENEWAL_PERMISSIVE_EXPERIMENTAL) {
+            config.setEnableSuspendedRenewal(true);
+        }
         return config;
     }
 
@@ -97,6 +107,7 @@ public enum IssuerVariant {
         target.setEnableHsm(source.isEnableHsm());
         target.setMultipleSigningKeys(source.isMultipleSigningKeys());
         target.setAllowRefreshTokenRotation(source.isAllowRefreshTokenRotation());
+        target.setEnableSuspendedRenewal(source.getEnableSuspendedRenewal());
         target.setTrustRegistryMaxCacheSize(source.getTrustRegistryMaxCacheSize());
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setTrustRegistryClockSkewBufferSeconds(source.getTrustRegistryClockSkewBufferSeconds());
