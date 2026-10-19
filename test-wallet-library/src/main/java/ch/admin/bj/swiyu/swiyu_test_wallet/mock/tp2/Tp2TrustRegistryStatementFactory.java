@@ -598,9 +598,9 @@ final class Tp2TrustRegistryStatementFactory {
             agileStatement.sign(trustSigner());
             return agileStatement.serialize();
         } catch (JOSEException e) {
-            throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage(), e);
         } catch (java.text.ParseException e) {
-            throw new TestSupportException("Cannot read TP2 trust-registry statement claims: " + e.getMessage());
+            throw new TestSupportException("Cannot read TP2 trust-registry statement claims: " + e.getMessage(), e);
         }
     }
 
@@ -611,7 +611,7 @@ final class Tp2TrustRegistryStatementFactory {
             forged.sign(untrustedSigner());
             return forged.serialize();
         } catch (JOSEException | java.text.ParseException e) {
-            throw new TestSupportException("Cannot forge TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot forge TP2 trust-registry statement: " + e.getMessage(), e);
         }
     }
 
@@ -628,7 +628,7 @@ final class Tp2TrustRegistryStatementFactory {
             statement.sign(trustSigner());
             return statement.serialize();
         } catch (JOSEException e) {
-            throw new TestSupportException("Cannot build TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot build TP2 trust-registry statement: " + e.getMessage(), e);
         }
     }
 

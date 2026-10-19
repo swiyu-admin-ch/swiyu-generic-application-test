@@ -5,4 +5,8 @@ public class TestSupportException extends RuntimeException {
     public TestSupportException(final String message) {
         super(message);
     }
+
+    public TestSupportException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

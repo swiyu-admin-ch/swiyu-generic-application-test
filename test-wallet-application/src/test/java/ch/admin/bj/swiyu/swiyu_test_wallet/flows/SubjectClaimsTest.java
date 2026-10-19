@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
-public class SubjectClaimsTest extends BaseTest {
+class SubjectClaimsTest extends BaseTest {
 
     static Stream<Arguments> sdJwtSelectiveDisclosureScenariosSuccessful() {
         return Stream.of(

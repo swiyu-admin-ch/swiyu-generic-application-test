@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
 
-public class IssuanceKeyAttestationTest extends BaseTest {
+class IssuanceKeyAttestationTest extends BaseTest {
 
     @Autowired
     private IssuerRuntimeFactory issuerRuntimeFactory;

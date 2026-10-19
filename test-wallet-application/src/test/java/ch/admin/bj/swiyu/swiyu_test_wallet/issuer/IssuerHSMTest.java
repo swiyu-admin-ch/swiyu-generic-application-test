@@ -67,7 +67,7 @@ import static org.mockserver.model.HttpRequest.request;
         matches = "true",
         disabledReason = "HSM tests require -Dhsm=true so SoftHSM is injected only when explicitly requested."
 )
-public class IssuerHSMTest extends BaseTest {
+class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
             "/api/v2/status/business-entities/[^/]+/status-list-entries/";

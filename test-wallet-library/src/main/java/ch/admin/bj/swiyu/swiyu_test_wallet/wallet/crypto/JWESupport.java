@@ -52,7 +52,7 @@ public class JWESupport {
         try {
             JWEObject.parse(jwe);
         } catch (Exception ex) {
-            throw new AssertionError("Expected payload to be a valid encrypted JWE, but parsing failed: " + ex.getMessage());
+            throw new AssertionError("Expected payload to be a valid encrypted JWE, but parsing failed: " + ex.getMessage(), ex);
         }
     }
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
@@ -177,7 +178,7 @@ class SwissStatusListConformityTest {
 
     @Test
     void violations_whenLstIsNotAZlibStream_thenOnlyLstIsReported() {
-        final String notZlib = Base64.getUrlEncoder().withoutPadding().encodeToString("plain text".getBytes());
+        final String notZlib = Base64.getUrlEncoder().withoutPadding().encodeToString("plain text".getBytes(StandardCharsets.UTF_8));
 
         assertThat(SwissStatusListConformity.violations(conformantToken().withLst(notZlib).build()))
                 .singleElement().asString().contains("ZLIB");

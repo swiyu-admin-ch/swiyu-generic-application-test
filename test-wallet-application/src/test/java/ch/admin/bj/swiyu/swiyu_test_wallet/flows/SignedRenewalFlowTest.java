@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.COMPLETE)
 @UseWallet(dpop = true, encryption = true)
-public class SignedRenewalFlowTest extends BaseTest {
+class SignedRenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(

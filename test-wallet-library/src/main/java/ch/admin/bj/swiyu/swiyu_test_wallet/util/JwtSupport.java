@@ -4,6 +4,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
 import tools.jackson.databind.JsonNode;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 
@@ -21,7 +22,7 @@ public class JwtSupport {
     }
 
     public static String decodePayload(String jwt) {
-        return new String(Base64.getUrlDecoder().decode(payload(jwt)));
+        return new String(Base64.getUrlDecoder().decode(payload(jwt)), StandardCharsets.UTF_8);
     }
 
     public static JsonNode decodePayloadToJsonNode(String jwt) {

@@ -15,6 +15,7 @@ import org.mockserver.model.HttpStatusCode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -343,7 +344,7 @@ final class StatusRegistry {
             return null;
         }
         try {
-            return new String(Base64.getDecoder().decode(body));
+            return new String(Base64.getDecoder().decode(body), StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             return body;
         }

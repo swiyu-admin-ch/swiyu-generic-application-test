@@ -38,7 +38,7 @@ import static org.mockito.Mockito.spy;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
-public class IssuerCallbacksTest extends BaseTest {
+class IssuerCallbacksTest extends BaseTest {
 
     @Test
     @XrayTest(
@@ -54,7 +54,7 @@ public class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The new callbacks are not available yet."
     )
-    public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
+    void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
         wallet.setUseDPoP(true);
         final CredentialWithDeeplinkResponse offer1 =

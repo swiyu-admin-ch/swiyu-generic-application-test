@@ -164,8 +164,8 @@ public final class SdJwtBatchAssert {
                 .as("SD-JWT batch must not be empty")
                 .isNotEmpty();
 
-        for (int i = 0; i < sdJwts.size(); i++) {
-            SdJwtAssert.assertThat(sdJwts.get(i))
+        for (final String sdJwt : sdJwts) {
+            SdJwtAssert.assertThat(sdJwt)
                     .hasExactlyInAnyOrderDisclosures(expectedDisclosures);
         }
 

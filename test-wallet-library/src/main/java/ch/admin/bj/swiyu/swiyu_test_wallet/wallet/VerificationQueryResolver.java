@@ -84,7 +84,7 @@ final class VerificationQueryResolver {
         try {
             dcqlQuery = objectMapper.convertValue(query, DcqlQueryDto.class);
         } catch (final IllegalArgumentException exception) {
-            throw invalidRequest("vqPS request.query is not valid DCQL");
+            throw invalidRequest("vqPS request.query is not valid DCQL", exception);
         }
 
         if (dcqlQuery.getCredentials() == null || dcqlQuery.getCredentials().isEmpty()) {
@@ -121,7 +121,7 @@ final class VerificationQueryResolver {
         try {
             return SignedJWT.parse(statement);
         } catch (final ParseException exception) {
-            throw invalidRequest("verifier_info contains an invalid compact JWT");
+            throw invalidRequest("verifier_info contains an invalid compact JWT", exception);
         }
     }
 
@@ -148,7 +148,7 @@ final class VerificationQueryResolver {
                 throw invalidRequest("vqPS signature is invalid");
             }
         } catch (final JOSEException | ParseException exception) {
-            throw invalidRequest("vqPS signature cannot be validated");
+            throw invalidRequest("vqPS signature cannot be validated", exception);
         }
     }
 
@@ -156,7 +156,7 @@ final class VerificationQueryResolver {
         try {
             return vqPs.getJWTClaimsSet();
         } catch (final ParseException exception) {
-            throw invalidRequest("vqPS claims cannot be parsed");
+            throw invalidRequest("vqPS claims cannot be parsed", exception);
         }
     }
 
@@ -189,7 +189,7 @@ final class VerificationQueryResolver {
             }
             return value;
         } catch (final ParseException exception) {
-            throw invalidRequest("vqPS " + claimName + " claim must be a JSON object");
+            throw invalidRequest("vqPS " + claimName + " claim must be a JSON object", exception);
         }
     }
 
@@ -210,5 +210,9 @@ final class VerificationQueryResolver {
 
     private TestSupportException invalidRequest(final String message) {
         return new TestSupportException(message);
+    }
+
+    private TestSupportException invalidRequest(final String message, final Throwable cause) {
+        return new TestSupportException(message, cause);
     }
 }

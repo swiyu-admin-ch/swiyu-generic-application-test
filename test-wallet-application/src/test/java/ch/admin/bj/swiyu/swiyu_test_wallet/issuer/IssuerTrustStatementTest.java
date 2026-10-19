@@ -53,7 +53,7 @@ import static org.awaitility.Awaitility.await;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.CACHED)
-public class IssuerTrustStatementTest extends BaseTest {
+class IssuerTrustStatementTest extends BaseTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration CACHED_TRUST_STATEMENT_LIFETIME = Duration.ofMinutes(4);
