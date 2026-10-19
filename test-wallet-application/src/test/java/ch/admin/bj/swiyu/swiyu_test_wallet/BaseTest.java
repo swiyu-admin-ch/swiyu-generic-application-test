@@ -55,16 +55,12 @@ import static org.mockserver.model.HttpRequest.request;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @Slf4j
+// Shared lifecycle wiring belongs in this base; test methods live in its subclasses.
 @SuppressWarnings({
-        // This class is a shared test infrastructure base:
-        // it intentionally centralizes setup, wiring, and utilities for integration tests.
-        // Design-related PMD rules (size, coupling, imports, generic exceptions) are not relevant here
-        // and would reduce readability and reuse if strictly enforced.
         "PMD.SignatureDeclareThrowsException",
-        "PMD.TooManyFields",
         "PMD.TestClassWithoutTestCases",
         "PMD.CouplingBetweenObjects",
-        "java:S2187" // Base class for tests - does not contain test methods itself
+        "java:S2187"
 })
 public class BaseTest {
 

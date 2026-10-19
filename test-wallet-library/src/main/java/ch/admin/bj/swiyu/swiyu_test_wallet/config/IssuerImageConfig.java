@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 @Setter
 @ConfigurationProperties("application.issuer")
 // Each field maps to an independently configured issuer or verifier image property.
-@SuppressWarnings("PMD.TooManyFields")
 public class IssuerImageConfig {
 
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-issuer";

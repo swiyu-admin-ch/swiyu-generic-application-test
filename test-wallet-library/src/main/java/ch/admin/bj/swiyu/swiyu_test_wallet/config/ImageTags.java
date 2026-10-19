@@ -4,7 +4,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 // A constants namespace intentionally exposes fixture values without instance behavior.
-@SuppressWarnings("PMD.DataClass")
 public class ImageTags {
     public final static String STABLE = "stable";
     public final static String RC = "rc";

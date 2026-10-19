@@ -41,7 +41,6 @@ public class SwiyuEnvironmentRegistry {
     private final Map<VerifierVariant, VerifierHandle> verifiers = new EnumMap<>(VerifierVariant.class);
 
     // Explicit assembly dependencies retain container ownership and startup order.
-    @SuppressWarnings("PMD.ExcessiveParameterList")
     public SwiyuEnvironmentRegistry(
             final PostgreSQLContainer<?> sharedDatabase,
             final MockServerContainer sharedMockServer,

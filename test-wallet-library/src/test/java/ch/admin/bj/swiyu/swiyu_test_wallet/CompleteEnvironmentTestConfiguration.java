@@ -211,7 +211,6 @@ public class CompleteEnvironmentTestConfiguration {
 
     @Bean
     // Explicit assembly dependencies retain container ownership and startup order.
-    @SuppressWarnings("PMD.ExcessiveParameterList")
     public SwiyuEnvironmentRegistry swiyuEnvironmentRegistry(
             PostgreSQLContainer<?> dbTestContainer,
             MockServerContainer mockServer,

@@ -33,7 +33,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Setter
 @Slf4j
 // One issuance context retains the protocol artifacts needed across its successive requests.
-@SuppressWarnings("PMD.TooManyFields")
 public class WalletEntry {
     public static final String CREDENTIAL_OFFER_KEY_AND_EQUAL = "credential_offer=";
     public static final String ISSUER_METADATA_NOT_SET = "issuer metadata is not set.";

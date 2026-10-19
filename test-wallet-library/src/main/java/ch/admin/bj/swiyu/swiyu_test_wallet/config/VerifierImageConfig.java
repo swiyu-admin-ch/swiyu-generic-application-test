@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Setter
 @ConfigurationProperties("application.verifier")
 // Each field maps to an independently configured issuer or verifier image property.
-@SuppressWarnings("PMD.TooManyFields")
 public class VerifierImageConfig {
 
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-verifier";
