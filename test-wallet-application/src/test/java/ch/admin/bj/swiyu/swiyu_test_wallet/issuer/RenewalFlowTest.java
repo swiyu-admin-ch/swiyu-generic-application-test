@@ -347,10 +347,7 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(entry);
-        final String dpopCrendetialEndpoint = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                token.getAccessToken());
+        wallet.collectDPoPNonce(entry);
 
         log.info("Provide wrong access token to simulate missmatch refresh token");
         final OAuthToken modifiedToken = Mockito.spy(token);
@@ -428,7 +425,6 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the wrong dpop");
-        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequest(entry, invalidDpopCrendetialEndpoint)
@@ -544,10 +540,7 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(entry);
-        final String dpopCrendetialEndpoint = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                token.getAccessToken());
+        wallet.collectDPoPNonce(entry);
 
         log.info("The management revokes the credential");
         issuerManager.updateStateWithSignedJwt(
@@ -557,7 +550,6 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the refresh token");
-        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequest(entry)

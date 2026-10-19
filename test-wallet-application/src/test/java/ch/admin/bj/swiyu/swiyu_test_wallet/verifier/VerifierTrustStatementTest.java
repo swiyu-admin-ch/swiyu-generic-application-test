@@ -683,14 +683,17 @@ class VerifierTrustStatementTest extends BaseTest {
         final String scope = "ch.swiyu.tp2.isolation." + UUID.randomUUID();
         final VerificationPurpose purpose = verificationPurpose(scope, "Tenant proof", "Isolated verifier identities");
         final Map<String, String> statementsByDid = new HashMap<>();
+        final ConfigurationOverrideDto firstIdentity = new ConfigurationOverrideDto().verifierDid(firstDid);
+        final ConfigurationOverrideDto secondIdentity = new ConfigurationOverrideDto().verifierDid(secondDid);
 
         try {
-            for (String verifierDid : List.of(firstDid, secondDid, firstDid)) {
+            for (final ConfigurationOverrideDto identity : List.of(firstIdentity, secondIdentity, firstIdentity)) {
+                final String verifierDid = identity.getVerifierDid();
                 // When
                 final ManagementResponse managementResponse = verifierManager.verificationRequest()
                         .withUniversityDCQL()
                         .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                        .configurationOverride(new ConfigurationOverrideDto().verifierDid(verifierDid))
+                        .configurationOverride(identity)
                         .verificationPurpose(purpose)
                         .jwtSecure()
                         .createManagementResponse();

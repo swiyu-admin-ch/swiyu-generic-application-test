@@ -25,7 +25,10 @@
     </rule>
 
     <!-- Error prone rules -->
-    <rule ref="category/java/errorprone.xml"/>
+    <rule ref="category/java/errorprone.xml">
+        <!-- Repeated literals are intentional in test scenarios. -->
+        <exclude name="AvoidDuplicateLiterals"/>
+    </rule>
 
     <!-- Performance rules -->
     <rule ref="category/java/performance.xml"/>

@@ -99,6 +99,8 @@ public final class DisclosureSelector {
         }
     }
 
+    // Stored paths must be independent snapshots; sharing a mutable list would mix sibling paths.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static Map<String, List<Object>> buildDigestPathMap(JsonNode node, List<Object> currentPath) {
         Map<String, List<Object>> result = new HashMap<>();
 
@@ -140,6 +142,8 @@ public final class DisclosureSelector {
         return result;
     }
 
+    // Every nested digest retains its own path while later Disclosures extend other paths.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static void augmentDigestMapFromDisclosures(List<String> disclosures, Map<String, List<Object>> digestToPath) {
         boolean changed = true;
         while (changed) {

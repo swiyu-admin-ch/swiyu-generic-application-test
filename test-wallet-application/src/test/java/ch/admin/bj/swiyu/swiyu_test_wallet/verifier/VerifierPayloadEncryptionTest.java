@@ -7,7 +7,6 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ContainerLogConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierContainerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -632,7 +631,6 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
         // Given
-        final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
         final boolean holderBindingRequired =
@@ -691,7 +689,6 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     )
     void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
         // Given
-        final SwiyuApiVersionConfig swiyuApiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
         final boolean holderBindingRequired =

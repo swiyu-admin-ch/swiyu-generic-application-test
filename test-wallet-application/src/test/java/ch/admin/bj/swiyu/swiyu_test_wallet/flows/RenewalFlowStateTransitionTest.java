@@ -142,10 +142,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         final var credentialResponse = wallet.postCredentialRequest(renewedEntry);
 
@@ -388,10 +385,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -450,10 +444,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {

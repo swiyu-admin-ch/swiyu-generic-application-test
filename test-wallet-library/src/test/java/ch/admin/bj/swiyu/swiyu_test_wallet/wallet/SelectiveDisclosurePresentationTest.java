@@ -83,7 +83,7 @@ class SelectiveDisclosurePresentationTest {
                 .as("the Issuer-signed JWT is presented unchanged")
                 .isEqualTo(credential.issuerSignedJwt());
         assertThat(new LinkedHashSet<>(parts.subList(1, parts.size() - 1)))
-                .as("the presented Disclosures: only what the query needs (OID4VP §15.4.2)")
+                .as("%s: the presented Disclosures contain only what the query needs (OID4VP §15.4.2)", description)
                 .isEqualTo(expected.apply(credential));
 
         final Map<String, Object> claims = SdJwtLibReference.verifyAndResolveClaims(

@@ -46,7 +46,7 @@ public class BusinessIssuer {
     private HttpTraceInterceptor traceInterceptor;
     /** For the management calls authenticated by a signed JWT in the body: no default headers, same trace as the others. */
     private RestClient signedJwtClient;
-    private Consumer<StatusList> statusListCreatedListener = ignored -> { };
+    private Consumer<StatusList> statusListCreatedListener = _ -> { };
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
@@ -58,7 +58,7 @@ public class BusinessIssuer {
     }
 
     public void onStatusListCreated(final Consumer<StatusList> listener) {
-        statusListCreatedListener = listener == null ? ignored -> { } : listener;
+        statusListCreatedListener = listener == null ? _ -> { } : listener;
     }
 
     /**

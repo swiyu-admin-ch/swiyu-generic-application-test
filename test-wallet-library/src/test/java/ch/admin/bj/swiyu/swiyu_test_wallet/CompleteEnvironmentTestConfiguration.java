@@ -207,7 +207,6 @@ public class CompleteEnvironmentTestConfiguration {
 
     @Bean
     public SwiyuEnvironmentRegistry swiyuEnvironmentRegistry(
-            Network network,
             PostgreSQLContainer<?> dbTestContainer,
             MockServerContainer mockServer,
             MockServerClient mockServerClient,

@@ -69,14 +69,16 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualClaims = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualClaims.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
             final Map<String, JsonNode> disclosures = decodeDisclosures(sdJwt);
-            final Map<String, Object> actualClaims = new HashMap<>();
             for (final var disclosure : disclosures.entrySet()) {
                 final JsonNode parts = disclosure.getValue();
                 assertThat(parts.size())
@@ -136,9 +138,12 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualAddress = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualAddress.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
@@ -156,7 +161,6 @@ class IssuerNullClaimsTest extends BaseTest {
             assertThat(childDigests)
                     .as("Only the two supplied address properties are disclosed")
                     .hasSize(2);
-            final Map<String, Object> actualAddress = new HashMap<>();
             for (final String digest : childDigests) {
                 assertThat(disclosures)
                         .containsKey(digest);
@@ -207,9 +211,10 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
         for (final String sdJwt : entry.getIssuedCredentials()) {
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
@@ -286,13 +291,15 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualClaims = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualClaims.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
-            final Map<String, Object> actualClaims = new HashMap<>();
             for (final var disclosure : decodeDisclosures(sdJwt).entrySet()) {
                 final JsonNode parts = disclosure.getValue();
                 assertThat(parts.size())
@@ -317,6 +324,8 @@ class IssuerNullClaimsTest extends BaseTest {
                 .isEqualTo(CredentialStatusType.ISSUED);
     }
 
+    // Each Disclosure contains different UTF-8 bytes and therefore needs its own decoded String.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static Map<String, JsonNode> decodeDisclosures(final String sdJwt) {
         final Map<String, JsonNode> disclosures = new HashMap<>();
         for (final String raw : SdJwtParser.rawDisclosures(sdJwt)) {

@@ -172,6 +172,8 @@ public class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The fix is not available yet"
     )
+    // This deliberate deviation needs a distinct proof and signing key for each extra batch entry.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {
 
         wallet.setUseDPoP(true);

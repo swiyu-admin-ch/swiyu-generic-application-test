@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -171,7 +170,6 @@ class DeferredFlowTest extends BaseTest {
     )
     void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() {
         // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
@@ -330,7 +328,6 @@ class DeferredFlowTest extends BaseTest {
         cleanIssuerCallbacks();
 
         // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.ID2;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 

@@ -69,6 +69,8 @@ public class WalletBatchEntry extends WalletEntry {
         generateHolderKeys(count);
     }
 
+    // Each holder needs an independent key and a builder bound to that key.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public void generateHolderKeys(int count) {
         holderKeyPairs.clear();
         holderPublicKeys.clear();
@@ -84,6 +86,8 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
+    // Each credential needs its own proof carrying its holder key.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public void createProofs() {
         if (getCredentialOffer() == null) {
             throw new IllegalStateException("Offer or token missing for proof generation");
@@ -103,6 +107,8 @@ public class WalletBatchEntry extends WalletEntry {
         }
     }
 
+    // The nonce is shared, but every proof must retain its own holder key.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public void createProofs(final String uniqueNonce) {
         if (getCredentialOffer() == null) {
             throw new IllegalStateException("Offer or token missing for proof generation");
