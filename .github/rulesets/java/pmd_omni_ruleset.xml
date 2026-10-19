@@ -19,14 +19,8 @@
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
         <exclude name="UnitTestContainsTooManyAsserts"/>
+        <!-- Wildcard imports are permitted throughout this E2E test project. -->
         <exclude name="OnDemandImport"/>
-    </rule>
-
-    <!-- JUnit test and lifecycle annotations may use wildcard imports; other packages stay explicit. -->
-    <rule ref="category/java/bestpractices.xml/OnDemandImport">
-        <properties>
-            <property name="allowTypeImportsFrom" value="org.junit.jupiter.api"/>
-        </properties>
     </rule>
 
     <!-- Design rules -->
