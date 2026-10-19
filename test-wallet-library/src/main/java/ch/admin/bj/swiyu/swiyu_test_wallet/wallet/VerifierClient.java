@@ -296,7 +296,7 @@ final class VerifierClient {
 
     // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
     @SuppressWarnings("PMD.AvoidCatchingGenericException")
-    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+    String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
         if (!wallet.getProfile().encryption()) {
             throw new IllegalStateException("Wallet payload encryption must be enabled");
         }

@@ -19,6 +19,14 @@
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
         <exclude name="UnitTestContainsTooManyAsserts"/>
+        <exclude name="OnDemandImport"/>
+    </rule>
+
+    <!-- JUnit test and lifecycle annotations may use wildcard imports; other packages stay explicit. -->
+    <rule ref="category/java/bestpractices.xml/OnDemandImport">
+        <properties>
+            <property name="allowTypeImportsFrom" value="org.junit.jupiter.api"/>
+        </properties>
     </rule>
 
     <!-- Design rules -->
