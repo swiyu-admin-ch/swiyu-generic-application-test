@@ -62,10 +62,8 @@ import static org.mockserver.model.HttpRequest.request;
         // and would reduce readability and reuse if strictly enforced.
         "PMD.SignatureDeclareThrowsException",
         "PMD.TooManyFields",
-        "PMD.TooManyMethods",
         "PMD.TestClassWithoutTestCases",
         "PMD.CouplingBetweenObjects",
-        "PMD.ExcessiveImports",
         "java:S2187" // Base class for tests - does not contain test methods itself
 })
 public class BaseTest {

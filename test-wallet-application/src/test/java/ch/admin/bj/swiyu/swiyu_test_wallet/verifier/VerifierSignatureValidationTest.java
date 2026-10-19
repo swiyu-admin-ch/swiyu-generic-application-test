@@ -115,14 +115,14 @@ class VerifierSignatureValidationTest extends BaseTest {
         CREDENTIAL_SIGNATURE(VerificationErrorResponseCode.MALFORMED_CREDENTIAL),
         STATUS_LIST_SIGNATURE(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
 
-        private final VerificationErrorResponseCode errorCode;
+        private final VerificationErrorResponseCode expectedErrorCode;
 
-        SignatureFailure(final VerificationErrorResponseCode errorCode) {
-            this.errorCode = errorCode;
+        SignatureFailure(final VerificationErrorResponseCode expectedErrorCode) {
+            this.expectedErrorCode = expectedErrorCode;
         }
 
         VerificationErrorResponseCode errorCode() {
-            return errorCode;
+            return expectedErrorCode;
         }
     }
 }

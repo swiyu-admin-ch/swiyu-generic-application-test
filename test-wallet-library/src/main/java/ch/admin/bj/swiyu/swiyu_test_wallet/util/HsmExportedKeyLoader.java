@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import com.nimbusds.jose.JOSEException;
+import java.io.IOException;
 import com.nimbusds.jose.jwk.JWK;
 import lombok.extern.slf4j.Slf4j;
 
@@ -13,7 +15,10 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 @Slf4j
-public class HsmExportedKeyLoader {
+public final class HsmExportedKeyLoader {
+
+    private HsmExportedKeyLoader() {
+    }
 
     /**
      * Load public key from X.509 certificate file
@@ -24,8 +29,8 @@ public class HsmExportedKeyLoader {
             final JWK jwk = JWK.parseFromPEMEncodedX509Cert(pemCert);
 
             return jwk.toECKey().toPublicKey();
-        } catch (Exception e) {
-            log.error("Failed to load public key from certificate", e);
+        } catch (IOException | JOSEException | IllegalArgumentException | ClassCastException e) {
+            log.atError().setCause(e).log("Failed to load public key from certificate");
             return null;
         }
     }
@@ -35,10 +40,9 @@ public class HsmExportedKeyLoader {
      */
     public static PublicKey loadPublicKeyFromResourceCertificate(final String keyId) {
         try {
-            final ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
             final String relativeResourcePath = String.format("softhsm/keys/%s-cert.pem", keyId);
 
-            try (final InputStream inputStream = classLoader.getResourceAsStream(relativeResourcePath)) {
+            try (final InputStream inputStream = HsmExportedKeyLoader.class.getResourceAsStream("/" + relativeResourcePath)) {
                 if (inputStream == null) {
                     log.error("Certificate file not found in resources: {}", relativeResourcePath);
                     return null;
@@ -49,8 +53,8 @@ public class HsmExportedKeyLoader {
 
                 return jwk.toECKey().toPublicKey();
             }
-        } catch (Exception e) {
-            log.error("Failed to load public key from certificate resources", e);
+        } catch (IOException | JOSEException | ClassCastException e) {
+            log.atError().setCause(e).log("Failed to load public key from certificate resources");
             return null;
         }
     }
@@ -60,10 +64,9 @@ public class HsmExportedKeyLoader {
      */
     public static PrivateKey loadPrivateKeyFromResources(final String keyId) {
         try {
-            final ClassLoader classLoader = HsmExportedKeyLoader.class.getClassLoader();
             final String relativeResourcePath = String.format("softhsm/keys/%s-key.pem", keyId);
 
-            try (final InputStream inputStream = classLoader.getResourceAsStream(relativeResourcePath)) {
+            try (final InputStream inputStream = HsmExportedKeyLoader.class.getResourceAsStream("/" + relativeResourcePath)) {
 
                 if (inputStream == null) {
                     log.error("Private key file not found in resources: {}", relativeResourcePath);
@@ -79,8 +82,8 @@ public class HsmExportedKeyLoader {
                 return privateKey;
             }
 
-        } catch (Exception e) {
-            log.error("Failed to load private key from PEM resources", e);
+        } catch (IOException | JOSEException | ClassCastException e) {
+            log.atError().setCause(e).log("Failed to load private key from PEM resources");
             return null;
         }
     }
@@ -116,7 +119,7 @@ public class HsmExportedKeyLoader {
 
             return new KeyPair(pubKey, privKey);
 
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | SecurityException e) {
             log.error("Failed to load HSM exported key pair: {}", keyId, e);
             return null;
         }

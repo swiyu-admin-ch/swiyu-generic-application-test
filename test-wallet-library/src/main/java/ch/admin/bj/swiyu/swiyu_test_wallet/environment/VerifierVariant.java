@@ -42,35 +42,37 @@ public enum VerifierVariant {
         final VerifierImageConfig config = copy(template);
         config.setSurname(surname);
         config.setEnableHsm(hsm);
-        if (this == AUDIT_DEFAULTS) {
-            config.setAuditVpTokenEnabled(null);
-            config.setAuditCredentialSubjectDataEnabled(null);
-            config.setAuditCredentialEvaluationEnabled(null);
-        }
-        if (this == AUDIT_DISABLED || this == AUDIT_VP_TOKEN_ONLY || this == AUDIT_EVALUATION_ONLY) {
-            config.setAuditVpTokenEnabled(this == AUDIT_VP_TOKEN_ONLY);
-            config.setAuditCredentialSubjectDataEnabled(false);
-            config.setAuditCredentialEvaluationEnabled(this == AUDIT_EVALUATION_ONLY);
-        }
-        if (this == NO_STATIC_DID) {
-            config.setOmitStaticVerifierDid(true);
-        }
-        if (this == CACHED) {
-            config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
-            config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
-            config.setJwkCacheTtlMillis(CACHED_JWK_CACHE_TTL_MILLIS);
-            config.setTrustStatementCacheTtlMillis(CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS);
-        }
-        if (this == SHORT_LIVED_REQUEST_OBJECT) {
-            config.setRequestObjectTtlSeconds(SHORT_LIVED_REQUEST_OBJECT_TTL_SECONDS);
-        }
-        if (this == REJECT_SUSPENDED) {
-            config.setRejectSuspendedCredentials(true);
-        }
-        if (this == MULTI_SIGNING_KEYS) {
-            config.setMultipleSigningKeys(true);
+        configureAuditInformation(config);
+        switch (this) {
+            case NO_STATIC_DID -> config.setOmitStaticVerifierDid(true);
+            case CACHED -> {
+                config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
+                config.setTrustRegistryMaxCacheTtlSeconds(CACHED_TRUST_REGISTRY_MAX_CACHE_TTL_SECONDS);
+                config.setJwkCacheTtlMillis(CACHED_JWK_CACHE_TTL_MILLIS);
+                config.setTrustStatementCacheTtlMillis(CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS);
+            }
+            case SHORT_LIVED_REQUEST_OBJECT -> config.setRequestObjectTtlSeconds(SHORT_LIVED_REQUEST_OBJECT_TTL_SECONDS);
+            case REJECT_SUSPENDED -> config.setRejectSuspendedCredentials(true);
+            case MULTI_SIGNING_KEYS -> config.setMultipleSigningKeys(true);
+            default -> { }
         }
         return config;
+    }
+
+    private void configureAuditInformation(final VerifierImageConfig config) {
+        switch (this) {
+            case AUDIT_DEFAULTS -> {
+                config.setAuditVpTokenEnabled(null);
+                config.setAuditCredentialSubjectDataEnabled(null);
+                config.setAuditCredentialEvaluationEnabled(null);
+            }
+            case AUDIT_DISABLED, AUDIT_VP_TOKEN_ONLY, AUDIT_EVALUATION_ONLY -> {
+                config.setAuditVpTokenEnabled(this == AUDIT_VP_TOKEN_ONLY);
+                config.setAuditCredentialSubjectDataEnabled(false);
+                config.setAuditCredentialEvaluationEnabled(this == AUDIT_EVALUATION_ONLY);
+            }
+            default -> { }
+        }
     }
 
     private static VerifierImageConfig copy(final VerifierImageConfig source) {

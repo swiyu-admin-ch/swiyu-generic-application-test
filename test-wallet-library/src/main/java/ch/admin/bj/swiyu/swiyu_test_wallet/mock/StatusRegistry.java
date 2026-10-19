@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
+import java.time.Instant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import com.nimbusds.jose.*;
@@ -211,6 +212,8 @@ final class StatusRegistry {
      * that is not conformant to the Swiss profile with a {@code 400} and an {@code ApiError} listing the violations, and
      * accepts it with a {@code 200} (operation {@code updateStatusListEntry} of {@code SWIYU_Core_Business_status.yaml}).
      */
+    // The mock HTTP boundary preserves its 500 response for any fixture-processing failure.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private HttpResponse updateResponse(final HttpRequest httpRequest, final boolean enforceSwissProfile) {
         log.info("Entered PUT expectation (Swiss profile enforced: {}) for status list update with path: {}",
                 enforceSwissProfile, httpRequest.getPath().getValue());
@@ -259,16 +262,16 @@ final class StatusRegistry {
             final JWSSigner signer = new ECDSASigner(jwk.toECKey());
 
             final PublishedStatusList published = publishedStatusLists.getOrDefault(statusListId, EMPTY_LIST);
-            final Date issuedAt = new Date();
+            final Instant issuedAt = Instant.now();
 
             final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))
                     .issuer(issuerConfig.getIssuerDid())
-                    .issueTime(issuedAt)
+                    .issueTime(Date.from(issuedAt))
                     .claim("status_list", Map.of(
                             "bits", published.bits(),
                             "lst", published.compressedStatuses()))
-                    .expirationTime(new Date(issuedAt.getTime() + 60 * 1000))
+                    .expirationTime(Date.from(issuedAt.plusSeconds(60)))
                     .build();
 
             final SignedJWT signedJWT = new SignedJWT(

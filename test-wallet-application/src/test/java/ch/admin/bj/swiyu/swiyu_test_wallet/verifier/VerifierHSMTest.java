@@ -14,6 +14,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.ECKey;
@@ -30,8 +31,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -266,7 +269,7 @@ class VerifierHSMTest extends BaseTest {
                 .isFalse();
     }
 
-    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws Exception {
+    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws ParseException {
         final var methods = JsonParser.parseString(didLog).getAsJsonObject()
                 .getAsJsonObject("state").getAsJsonArray("verificationMethod");
         for (var method : methods) {
@@ -278,9 +281,9 @@ class VerifierHSMTest extends BaseTest {
         throw new IllegalArgumentException("No public verification method published for " + keyId);
     }
 
-    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws Exception {
+    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws IOException, JOSEException {
         final String certificateResourcePath = "softhsm/keys/%s-cert.pem".formatted(keyId);
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(certificateResourcePath)) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/" + certificateResourcePath)) {
             assertThat(inputStream)
                     .as("HSM public certificate should be available: %s", certificateResourcePath)
                     .isNotNull();

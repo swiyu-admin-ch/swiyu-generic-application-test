@@ -22,6 +22,12 @@
     <!-- Design rules -->
     <rule ref="category/java/design.xml">
         <exclude name="LawOfDemeter"/>
+        <!-- Size-based design limits are disabled for this test application. -->
+        <exclude name="ExcessiveImports"/>
+        <exclude name="GodClass"/>
+        <exclude name="TooManyMethods"/>
+        <!-- No package-dependency whitelist is defined; the rule otherwise fails configuration. -->
+        <exclude name="LoosePackageCoupling"/>
     </rule>
 
     <!-- Error prone rules -->

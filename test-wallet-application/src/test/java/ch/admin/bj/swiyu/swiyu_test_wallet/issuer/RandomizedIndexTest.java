@@ -110,22 +110,23 @@ class RandomizedIndexTest extends BaseTest {
 
         issuerManager.createStatusList(statusListLength, 2);
 
-        ExecutorService pool = Executors.newFixedThreadPool(batchCount);
-        Callable<Void> batchJob = () -> {
-            CredentialWithDeeplinkResponse response =
-                    issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOffer(toUri(response.getOfferDeeplink()));
-            return null;
-        };
+        try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
+            Callable<Void> batchJob = () -> {
+                CredentialWithDeeplinkResponse response =
+                        issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                wallet.collectOffer(toUri(response.getOfferDeeplink()));
+                return null;
+            };
 
-        List<Callable<Void>> jobs = new ArrayList<>();
-        for (int i = 0; i < batchCount; i++) {
-            jobs.add(batchJob);
+            List<Callable<Void>> jobs = new ArrayList<>();
+            for (int i = 0; i < batchCount; i++) {
+                jobs.add(batchJob);
+            }
+
+            pool.invokeAll(jobs);
+            pool.shutdown();
+            pool.awaitTermination(60, TimeUnit.SECONDS);
         }
-
-        pool.invokeAll(jobs);
-        pool.shutdown();
-        pool.awaitTermination(60, TimeUnit.SECONDS);
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
@@ -165,22 +166,23 @@ class RandomizedIndexTest extends BaseTest {
 
         issuerManager.createStatusList(statusListLength, 2);
 
-        ExecutorService pool = Executors.newFixedThreadPool(batchCount);
-        Callable<Void> batchJob = () -> {
-            CredentialWithDeeplinkResponse response =
-                    issuerManager.createCredentialOffer("unbound_example_sd_jwt");
-            wallet.collectOffer(toUri(response.getOfferDeeplink()));
-            return null;
-        };
+        try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
+            Callable<Void> batchJob = () -> {
+                CredentialWithDeeplinkResponse response =
+                        issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                wallet.collectOffer(toUri(response.getOfferDeeplink()));
+                return null;
+            };
 
-        List<Callable<Void>> jobs = new ArrayList<>();
-        for (int i = 0; i < batchCount; i++) {
-            jobs.add(batchJob);
+            List<Callable<Void>> jobs = new ArrayList<>();
+            for (int i = 0; i < batchCount; i++) {
+                jobs.add(batchJob);
+            }
+
+            pool.invokeAll(jobs);
+            pool.shutdown();
+            pool.awaitTermination(60, TimeUnit.SECONDS);
         }
-
-        pool.invokeAll(jobs);
-        pool.shutdown();
-        pool.awaitTermination(60, TimeUnit.SECONDS);
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
@@ -203,10 +205,12 @@ class RandomizedIndexTest extends BaseTest {
     }
 
     private boolean areSequential(List<Integer> indexes) {
-        if (indexes.size() < 2) return false;
+        final int minimumSequentialCount = 2;
+        final int consecutiveStep = 1;
+        if (indexes.size() < minimumSequentialCount) return false;
         List<Integer> sorted = indexes.stream().sorted().collect(Collectors.toList());
         for (int i = 1; i < sorted.size(); i++) {
-            if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
+            if (sorted.get(i) - sorted.get(i - 1) != consecutiveStep) return false;
         }
         return true;
     }

@@ -270,7 +270,7 @@ class DeferredFlowTest extends BaseTest {
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
                 CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
         final var entry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-        if ("READY".equals(initialState)) {
+        if (UpdateCredentialStatusRequestType.READY.name().equals(initialState)) {
             issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
         }
 

@@ -68,6 +68,8 @@ class VerifierAuditInformationE2ETest extends BaseTest {
     )
     @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    // Independent scenario invariants are checked together; extracting assertions would hide the oracle.
+    @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
     void businessResult_whenAuditConfigurationChanges_thenOnlyConfiguredFieldsAreReturned(
             final AuditMode mode,
             final String outcome

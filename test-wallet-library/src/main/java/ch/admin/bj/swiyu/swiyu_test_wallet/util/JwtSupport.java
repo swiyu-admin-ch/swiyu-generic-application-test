@@ -13,6 +13,8 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 @UtilityClass
 public class JwtSupport {
 
+    private static final int COMPACT_JWT_PART_COUNT = 3;
+
     public static String header(String jwt) {
         return parts(jwt)[0];
     }
@@ -31,7 +33,7 @@ public class JwtSupport {
 
     public static String[] parts(String jwt) {
         String[] split = jwt.split("\\.");
-        if (split.length != 3) {
+        if (split.length != COMPACT_JWT_PART_COUNT) {
             throw new IllegalArgumentException("Invalid JWT format");
         }
         return split;

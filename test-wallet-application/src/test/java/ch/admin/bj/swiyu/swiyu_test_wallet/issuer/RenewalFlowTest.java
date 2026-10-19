@@ -1009,7 +1009,7 @@ class RenewalFlowTest extends BaseTest {
         entry.createProofs(nonce);
 
         nonce = wallet.collectDPoPNonce(entry);
-        dpop = DPoPSupport.createDpopProofForToken(
+        DPoPSupport.createDpopProofForToken(
                 entry.getIssuerCredentialUri().toString(),
                 nonce,
                 wallet.getDpopKeyPair(),

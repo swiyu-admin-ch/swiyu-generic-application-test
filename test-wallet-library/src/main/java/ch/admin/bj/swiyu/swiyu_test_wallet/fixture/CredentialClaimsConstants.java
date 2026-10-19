@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 
 @UtilityClass
+// A constants namespace intentionally exposes fixture values without instance behavior.
+@SuppressWarnings("PMD.DataClass")
 public class CredentialClaimsConstants {
 
     public static final String KEY_NAME = "name";

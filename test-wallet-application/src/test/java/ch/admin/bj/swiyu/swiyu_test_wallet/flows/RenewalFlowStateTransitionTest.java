@@ -23,6 +23,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -45,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @UseIssuers(IssuerVariant.STRICT)
 @UseVerifiers(VerifierVariant.DEFAULT)
 @UseWallet(dpop = true)
-public class RenewalFlowStateTransitionTest extends BaseTest {
+class RenewalFlowStateTransitionTest extends BaseTest {
 
     @BeforeEach
     void useDefaultVerifier() {

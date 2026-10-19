@@ -43,6 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Request, Nonce Request, Credential Request, Deferred Credential Request, refresh, and the DPoP proofs that go with them.
  * It reads the wallet's current settings (profile, DPoP key, service location) on every call.
  */
+// This protocol boundary coordinates typed metadata, tokens, request artifacts and credential responses.
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.CyclomaticComplexity"})
 final class CredentialIssuerClient {
 
     private final Wallet wallet;
@@ -123,7 +125,7 @@ final class CredentialIssuerClient {
 
             return mapper.treeToValue(rawMetadata, OAuthAuthorizationServerMetadata.class);
 
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse issuer well-known configuration", e);
         }
     }
@@ -164,7 +166,7 @@ final class CredentialIssuerClient {
 
             return mapper.treeToValue(rawMetadata, IssuerMetadata.class);
 
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse issuer metadata", e);
         }
     }
@@ -278,16 +280,7 @@ final class CredentialIssuerClient {
 
         String bearerToken = token.getAccessToken();
 
-        String doPProofForCredentialRequest = null;
-        if (DPOP.equals(token.getTokenType())) {
-            doPProofForCredentialRequest = DPoPSupport.createDpopProofForToken(
-                    deferredCredentialUri.toString(),
-                    collectDPoPNonce(walletEntry),
-                    wallet.getDpopKeyPair(),
-                    wallet.getDpopPublicKey(),
-                    token.getAccessToken()
-            );
-        }
+        final String doPProofForCredentialRequest = deferredDpopProof(walletEntry, deferredCredentialUri, token);
 
         var requestBuilder = wallet.getRestClient().post()
                 .uri(wallet.getIssuerContext().getContextualizedUri(deferredCredentialUri))
@@ -317,6 +310,24 @@ final class CredentialIssuerClient {
             responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
         }
 
+        return rememberDeferredResponse(walletEntry, responseCode, responseBody, rawResponse);
+    }
+
+    private String deferredDpopProof(final WalletBatchEntry walletEntry, final URI deferredCredentialUri, final OAuthToken token) {
+        if (!DPOP.equals(token.getTokenType())) {
+            return null;
+        }
+        return DPoPSupport.createDpopProofForToken(
+                deferredCredentialUri.toString(),
+                collectDPoPNonce(walletEntry),
+                wallet.getDpopKeyPair(),
+                wallet.getDpopPublicKey(),
+                token.getAccessToken()
+        );
+    }
+
+    private CredentialResponse rememberDeferredResponse(
+            final WalletBatchEntry walletEntry, final int responseCode, final String responseBody, final String rawResponse) {
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
         if (credentialResponse.has(CREDENTIALS)) {
@@ -339,6 +350,8 @@ final class CredentialIssuerClient {
 
         return completeCredentialResponse;
     }
+    // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     public String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
         if (!wallet.getProfile().encryption()) {
             throw new IllegalStateException("Wallet payload encryption must be enabled");
@@ -348,19 +361,7 @@ final class CredentialIssuerClient {
             var metadata = walletEntry.getIssuerMetadata();
             var requestEncryptionMetadata = metadata.getCredentialRequestEncryption();
 
-            Object jwksObject = requestEncryptionMetadata.getJwks();
-            Map<String, Object> issuerKeyMap;
-
-            if (jwksObject instanceof List<?> jwksList && !jwksList.isEmpty()) {
-                issuerKeyMap = (Map<String, Object>) jwksList.get(0);
-            } else if (jwksObject instanceof Map<?, ?> jwksMap && jwksMap.containsKey("keys")) {
-                var keys = (List<?>) jwksMap.get("keys");
-                issuerKeyMap = (Map<String, Object>) keys.get(0);
-            } else if (jwksObject instanceof Map<?, ?> singleKey) {
-                issuerKeyMap = (Map<String, Object>) singleKey;
-            } else {
-                throw new IllegalStateException("Unexpected JWKS format in issuer metadata: " + jwksObject);
-            }
+            final Map<String, Object> issuerKeyMap = issuerEncryptionKey(requestEncryptionMetadata.getJwks());
 
             var issuerKey = JWK.parse(issuerKeyMap);
 
@@ -386,6 +387,22 @@ final class CredentialIssuerClient {
             throw new IllegalStateException("Error during encryption", e);
         }
     }
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> issuerEncryptionKey(final Object jwksObject) {
+        final Map<String, Object> issuerKeyMap;
+        if (jwksObject instanceof List<?> jwksList && !jwksList.isEmpty()) {
+            issuerKeyMap = (Map<String, Object>) jwksList.get(0);
+        } else if (jwksObject instanceof Map<?, ?> jwksMap && jwksMap.containsKey("keys")) {
+            var keys = (List<?>) jwksMap.get("keys");
+            issuerKeyMap = (Map<String, Object>) keys.get(0);
+        } else if (jwksObject instanceof Map<?, ?> singleKey) {
+            issuerKeyMap = (Map<String, Object>) singleKey;
+        } else {
+            throw new IllegalStateException("Unexpected JWKS format in issuer metadata: " + jwksObject);
+        }
+        return issuerKeyMap;
+    }
+
     public CredentialResponse getCredentialFromTransactionId(WalletBatchEntry walletBatchEntry) {
         return postDeferredCredentialRequest(walletBatchEntry);
     }
@@ -464,6 +481,8 @@ final class CredentialIssuerClient {
      * @param dpopProofOverride the DPoP proof to send, for a test that deliberately sends a wrong one (see
      *                          {@code DpopProof}); {@code null} sends the conformant proof when the profile uses DPoP
      */
+    // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry, final String dpopProofOverride) {
         final URI credentialUri = walletEntry.getIssuerCredentialUri();
         final String requestPayload = createCredentialRequestPayload(walletEntry);

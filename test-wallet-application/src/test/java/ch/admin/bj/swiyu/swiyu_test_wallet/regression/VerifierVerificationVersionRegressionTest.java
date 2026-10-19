@@ -63,6 +63,8 @@ class VerifierVerificationVersionRegressionTest {
                     schema. Candidate completes the pending requests and preserves the terminal states without allowing
                     an old wallet response to reopen them.
                     """)
+    // Independent scenario invariants are checked together; extracting assertions would hide the oracle.
+    @SuppressWarnings("PMD.NcssCount")
     void verificationsPreparedByPrevious_whenVerifierUpgradesOnce_thenCandidateCompletesLifecycleMatrix() {
         final IssuerHandle issuer = environmentRegistry.issuer(IssuerVariant.DEFAULT);
 

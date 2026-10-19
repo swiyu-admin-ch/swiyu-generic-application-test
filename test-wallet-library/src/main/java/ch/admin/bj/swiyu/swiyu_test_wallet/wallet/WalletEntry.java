@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
+import com.nimbusds.jose.JOSEException;
+import tools.jackson.core.JacksonException;
 import ch.admin.bj.swiyu.gen.issuer.model.IssuerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthAuthorizationServerMetadata;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
@@ -30,6 +32,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 @Getter
 @Setter
 @Slf4j
+// One issuance context retains the protocol artifacts needed across its successive requests.
+@SuppressWarnings("PMD.TooManyFields")
 public class WalletEntry {
     public static final String CREDENTIAL_OFFER_KEY_AND_EQUAL = "credential_offer=";
     public static final String ISSUER_METADATA_NOT_SET = "issuer metadata is not set.";
@@ -74,7 +78,7 @@ public class WalletEntry {
             ObjectMapper mapper = new ObjectMapper();
             var jsonString = mapper.writeValueAsString(config);
             credentialConfigurationSupported = com.google.gson.JsonParser.parseString(jsonString).getAsJsonObject();
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalStateException e) {
             throw new IllegalStateException("Failed to convert credential configuration to JsonObject", e);
         }
     }
@@ -155,7 +159,7 @@ public class WalletEntry {
                     .keyUse(KeyUse.ENCRYPTION)
                     .generate();
             this.setEphemeralEncryptionKey(key);
-        } catch (Exception e) {
+        } catch (JOSEException e) {
             throw new IllegalStateException("Error during ephemeral encryption key", e);
         }
     }

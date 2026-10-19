@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
+import java.time.Instant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import com.nimbusds.jose.*;
@@ -42,6 +43,8 @@ final class LegacyTrustStatements {
         this.actors = actors;
     }
 
+    // The mock HTTP boundary preserves its 500 response for any fixture-processing failure.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     void registerRoutes(final MockServerClient mockServerClient) {
         mockServerClient.when(
                         request()
@@ -106,8 +109,8 @@ final class LegacyTrustStatements {
                 .subject(issuerDid)
                 .claim("vct", "TrustStatementIssuanceV1")
                 .claim("canIssue", vct)
-                .issueTime(new Date())
-                .expirationTime(new Date(System.currentTimeMillis() + 3600_000))
+                .issueTime(Date.from(Instant.now()))
+                .expirationTime(Date.from(Instant.now().plusSeconds(3600)))
                 .build();
 
         final SignedJWT signedJWT = new SignedJWT(

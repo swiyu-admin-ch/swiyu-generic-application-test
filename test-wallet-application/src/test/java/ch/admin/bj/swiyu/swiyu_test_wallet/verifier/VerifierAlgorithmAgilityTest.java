@@ -218,7 +218,7 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
 
     private InvalidPresentationScenario invalidPresentation(
             final Ed25519SignatureTarget signatureTarget
-    ) throws Exception {
+    ) throws JOSEException {
         final WalletBatchEntry batchEntry = issueBoundCredential();
 
         if (signatureTarget == Ed25519SignatureTarget.ISSUER_SD_JWT) {
@@ -381,23 +381,23 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                 "Holder Binding provided does not match the one in the credential"
         );
 
-        private final VerificationErrorResponseCode errorCode;
-        private final String signatureFailureMessage;
+        private final VerificationErrorResponseCode expectedErrorCode;
+        private final String expectedSignatureFailureMessage;
 
         Ed25519SignatureTarget(
-                final VerificationErrorResponseCode errorCode,
-                final String signatureFailureMessage
+                final VerificationErrorResponseCode expectedErrorCode,
+                final String expectedSignatureFailureMessage
         ) {
-            this.errorCode = errorCode;
-            this.signatureFailureMessage = signatureFailureMessage;
+            this.expectedErrorCode = expectedErrorCode;
+            this.expectedSignatureFailureMessage = expectedSignatureFailureMessage;
         }
 
         VerificationErrorResponseCode errorCode() {
-            return errorCode;
+            return expectedErrorCode;
         }
 
         String signatureFailureMessage() {
-            return signatureFailureMessage;
+            return expectedSignatureFailureMessage;
         }
     }
 

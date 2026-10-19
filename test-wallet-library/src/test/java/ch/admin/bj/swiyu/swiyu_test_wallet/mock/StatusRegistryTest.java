@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -28,14 +30,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class StatusRegistryTest {
 
-    private RegisteredActors actors;
     private StatusRegistry registry;
     private IssuerConfig issuer;
     private IssuerConfig otherIssuer;
 
     @BeforeEach
     void setUp() {
-        actors = new RegisteredActors();
+        final RegisteredActors actors = new RegisteredActors();
         registry = new StatusRegistry(actors);
         issuer = newIssuer();
         otherIssuer = newIssuer();
@@ -52,13 +53,13 @@ class StatusRegistryTest {
         return UUID.randomUUID().toString();
     }
 
-    private static boolean verifies(final String token, final IssuerConfig signer) throws Exception {
+    private static boolean verifies(final String token, final IssuerConfig signer) throws ParseException, JOSEException {
         return SignedJWT.parse(token).verify(
                 new ECDSAVerifier(KeyUtil.createJWKFromKeyPair(signer.getKeyPair()).toECKey()));
     }
 
     /** What a Credential Issuer PUTs: a Status List Token with its own {@code bits} and {@code lst}. */
-    private static String publishedToken(final IssuerConfig publisher, final int bits, final String lst) throws Exception {
+    private static String publishedToken(final IssuerConfig publisher, final int bits, final String lst) throws JOSEException {
         final SignedJWT jwt = new SignedJWT(
                 new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("statuslist+jwt")).keyID("k").build(),
                 new JWTClaimsSet.Builder().claim("status_list", Map.of("bits", bits, "lst", lst)).build());

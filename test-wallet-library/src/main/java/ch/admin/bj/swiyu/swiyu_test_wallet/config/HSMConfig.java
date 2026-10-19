@@ -9,6 +9,8 @@ import java.util.List;
 @Component
 @Getter
 @Setter
+// Configuration and fixture paths are data; Unix file modes deliberately use octal notation.
+@SuppressWarnings({"PMD.DataClass", "PMD.AvoidUsingOctalValues"})
 public class HSMConfig {
 
     public String networkAlias = "hsm-network";

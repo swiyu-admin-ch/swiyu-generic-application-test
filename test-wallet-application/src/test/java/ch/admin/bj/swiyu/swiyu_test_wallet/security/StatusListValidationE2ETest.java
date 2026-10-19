@@ -17,6 +17,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.mock.tp2.Tp2TrustStatementRouteSuppor
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -300,7 +301,7 @@ class StatusListValidationE2ETest extends BaseTest {
     }
 
     private SignedJWT statusListToken(String uri, String issuer, String kid, ECKey key, StatusListCase testCase)
-            throws Exception {
+            throws JOSEException {
         final String subject = switch (testCase) {
             case MISMATCHED_SUB -> freshStatusListUri();
             case MISSING_SUB -> null;

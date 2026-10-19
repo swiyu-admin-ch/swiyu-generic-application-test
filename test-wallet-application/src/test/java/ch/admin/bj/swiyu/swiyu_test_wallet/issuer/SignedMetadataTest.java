@@ -31,6 +31,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
+import java.text.ParseException;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -164,7 +165,7 @@ class SignedMetadataTest extends BaseTest {
             reason = "Global signed issuer metadata is introduced by EIDOMNI-1011 and is not available on these image tags yet."
     )
     void signedMetadata_whenGlobalIssuerMetadataRequestedWithJwtAcceptHeader_thenReturnsSignedMetadataWithoutTenantId()
-            throws Exception {
+            throws ParseException {
         final URI metadataUri = createGlobalWellKnownUri("/.well-known/openid-credential-issuer");
         final ResponseEntity<String> response = performMetadataRequest(metadataUri, "application/jwt");
 
@@ -322,7 +323,7 @@ class SignedMetadataTest extends BaseTest {
                 .toUri();
     }
 
-    private JsonNode walletEntryJson(String body) throws Exception {
+    private JsonNode walletEntryJson(String body) {
         return OBJECT_MAPPER.readTree(body);
     }
 }

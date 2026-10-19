@@ -14,6 +14,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+// Each operation is a separate batch invariant; malformed decoded values must retain assertion diagnostics.
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.CyclomaticComplexity"})
 public final class SdJwtBatchAssert {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -317,11 +319,12 @@ public final class SdJwtBatchAssert {
                 .map(this::parse)
                 .map(jwt -> {
                     try {
-                        Date issueTime = jwt.getJWTClaimsSet().getIssueTime();
+                        final java.time.Instant issueTime = Optional.ofNullable(jwt.getJWTClaimsSet().getIssueTime())
+                                .map(timestamp -> timestamp.toInstant()).orElse(null);
                         if (issueTime == null) {
                             throw new AssertionError("Missing iat claim");
                         }
-                        return issueTime.toInstant().getEpochSecond();
+                        return issueTime.getEpochSecond();
                     } catch (ParseException e) {
                         throw new AssertionError(e);
                     }
@@ -401,7 +404,8 @@ public final class SdJwtBatchAssert {
 
         if (!kids.isEmpty()) {
             long distinct = kids.stream().distinct().count();
-            if (distinct == 1) {
+            final long sharedValueCount = 1;
+            if (distinct == sharedValueCount) {
                 throw new AssertionError(
                         "cnf.jwk.kid is constant across batch → correlation signal: " + kids.get(0)
                 );
@@ -416,11 +420,12 @@ public final class SdJwtBatchAssert {
                 .map(this::parse)
                 .map(jwt -> {
                     try {
-                        Date issueTime = jwt.getJWTClaimsSet().getIssueTime();
+                        final java.time.Instant issueTime = Optional.ofNullable(jwt.getJWTClaimsSet().getIssueTime())
+                                .map(timestamp -> timestamp.toInstant()).orElse(null);
                         if (issueTime == null) {
                             throw new AssertionError("Missing iat claim");
                         }
-                        return issueTime.toInstant().getEpochSecond();
+                        return issueTime.getEpochSecond();
                     } catch (ParseException e) {
                         throw new AssertionError(e);
                     }
@@ -428,7 +433,8 @@ public final class SdJwtBatchAssert {
                 .toList();
 
         final long distinct = iats.stream().distinct().count();
-        if (distinct != 1) {
+        final long sharedValueCount = 1;
+        if (distinct != sharedValueCount) {
             throw new AssertionError("iat values differ across batch: " + iats);
         }
 
@@ -449,11 +455,12 @@ public final class SdJwtBatchAssert {
         for (String sdJwt : sdJwts) {
             final SignedJWT jwt = parse(sdJwt);
             try {
-                final Date exp = jwt.getJWTClaimsSet().getExpirationTime();
+                final java.time.Instant exp = Optional.ofNullable(jwt.getJWTClaimsSet().getExpirationTime())
+                        .map(timestamp -> timestamp.toInstant()).orElse(null);
                 if (exp == null) {
                     continue;
                 }
-                final long epoch = exp.toInstant().getEpochSecond();
+                final long epoch = exp.getEpochSecond();
                 if (epoch % secondsInDay != secondsInDay - 1) {
                     throw new AssertionError(
                             "exp is not rounded to end of day (23:59:59 UTC). Value: " + epoch

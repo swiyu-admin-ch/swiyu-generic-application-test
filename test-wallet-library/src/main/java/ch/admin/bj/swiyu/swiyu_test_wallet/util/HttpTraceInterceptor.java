@@ -133,6 +133,8 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
         private final ClientHttpResponse response;
         private final byte[] body;
 
+        // The interceptor transfers ownership of its freshly read response body to this private wrapper.
+        @SuppressWarnings("PMD.ArrayIsStoredDirectly")
         BufferingClientHttpResponseWrapper(ClientHttpResponse response, byte[] body) {
             this.response = response;
             this.body = body;

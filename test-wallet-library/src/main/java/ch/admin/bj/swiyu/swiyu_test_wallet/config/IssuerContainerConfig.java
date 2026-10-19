@@ -60,7 +60,8 @@ public class IssuerContainerConfig {
      *
      * <p>The returned container is configured but not started; its caller owns the runtime lifecycle.
      */
-    @SuppressWarnings("java:S1452") // Testcontainers API requires wildcard return type here
+    // Explicit dependencies preserve container ownership and metadata selection.
+    @SuppressWarnings({"java:S1452", "PMD.ExcessiveParameterList"}) // Testcontainers API requires wildcard return type here
     public static GenericContainer<?> createIssuerContainer(
             final Network network,
             final PostgreSQLContainer<?> dbContainer,

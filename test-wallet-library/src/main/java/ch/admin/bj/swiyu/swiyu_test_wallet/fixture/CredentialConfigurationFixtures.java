@@ -4,6 +4,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+// A constants namespace intentionally exposes fixture values without instance behavior.
+@SuppressWarnings("PMD.DataClass")
 public final class CredentialConfigurationFixtures {
 
     public static final int BATCH_SIZE = 10;

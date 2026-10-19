@@ -21,14 +21,16 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
  * {@link IssuerRuntimeFactory} and {@link VerifierRuntimeFactory}. Stateful Previous-to-Candidate replacements are kept
  * outside this registry because they require explicit image identities and a transition-owned schema lifecycle.
  */
+// The registry coordinates the shared runtimes and their typed factories at this assembly boundary.
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class SwiyuEnvironmentRegistry {
 
-    private final PostgreSQLContainer<?> dbContainer;
-    private final MockServerContainer mockServerContainer;
-    private final MockServerClient mockServerClient;
+    private final PostgreSQLContainer<?> sharedDatabase;
+    private final MockServerContainer sharedMockServer;
+    private final MockServerClient sharedMockClient;
     private final MockServices mockServices;
-    private final TrustConfig trustConfig;
-    private final MockAttestationAuthority mockAttestationAuthority;
+    private final TrustConfig configuredTrust;
+    private final MockAttestationAuthority configuredAttestationAuthority;
     private final IssuerImageConfig issuerImageTemplate;
     private final VerifierImageConfig verifierImageTemplate;
     private final IssuerRuntimeFactory issuerRuntimeFactory;
@@ -38,24 +40,26 @@ public class SwiyuEnvironmentRegistry {
     private final Map<IssuerVariant, IssuerHandle> issuers = new EnumMap<>(IssuerVariant.class);
     private final Map<VerifierVariant, VerifierHandle> verifiers = new EnumMap<>(VerifierVariant.class);
 
+    // Explicit assembly dependencies retain container ownership and startup order.
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     public SwiyuEnvironmentRegistry(
-            final PostgreSQLContainer<?> dbContainer,
-            final MockServerContainer mockServerContainer,
-            final MockServerClient mockServerClient,
+            final PostgreSQLContainer<?> sharedDatabase,
+            final MockServerContainer sharedMockServer,
+            final MockServerClient sharedMockClient,
             final MockServices mockServices,
-            final TrustConfig trustConfig,
-            final MockAttestationAuthority mockAttestationAuthority,
+            final TrustConfig configuredTrust,
+            final MockAttestationAuthority configuredAttestationAuthority,
             final IssuerImageConfig issuerImageTemplate,
             final VerifierImageConfig verifierImageTemplate,
             final IssuerRuntimeFactory issuerRuntimeFactory,
             final VerifierRuntimeFactory verifierRuntimeFactory,
             final EnvironmentSupportServices supportServices) {
-        this.dbContainer = dbContainer;
-        this.mockServerContainer = mockServerContainer;
-        this.mockServerClient = mockServerClient;
+        this.sharedDatabase = sharedDatabase;
+        this.sharedMockServer = sharedMockServer;
+        this.sharedMockClient = sharedMockClient;
         this.mockServices = mockServices;
-        this.trustConfig = trustConfig;
-        this.mockAttestationAuthority = mockAttestationAuthority;
+        this.configuredTrust = configuredTrust;
+        this.configuredAttestationAuthority = configuredAttestationAuthority;
         this.issuerImageTemplate = issuerImageTemplate;
         this.verifierImageTemplate = verifierImageTemplate;
         this.issuerRuntimeFactory = issuerRuntimeFactory;
@@ -70,8 +74,8 @@ public class SwiyuEnvironmentRegistry {
      * MockServer containers must already be running.
      */
     public synchronized void ensureStarted(final SwiyuEnvironmentSelection selection) {
-        ensureRunning("database", dbContainer);
-        ensureRunning("mockserver", mockServerContainer);
+        ensureRunning("database", sharedDatabase);
+        ensureRunning("mockserver", sharedMockServer);
         stopUnselectedIssuers(selection.issuers());
         stopUnselectedVerifiers(selection.verifiers());
         if (selection.hsm()) {
@@ -127,23 +131,23 @@ public class SwiyuEnvironmentRegistry {
     }
 
     public PostgreSQLContainer<?> dbContainer() {
-        return dbContainer;
+        return sharedDatabase;
     }
 
     public MockServerContainer mockServerContainer() {
-        return mockServerContainer;
+        return sharedMockServer;
     }
 
     public MockServerClient mockServerClient() {
-        return mockServerClient;
+        return sharedMockClient;
     }
 
     public TrustConfig trustConfig() {
-        return trustConfig;
+        return configuredTrust;
     }
 
     public MockAttestationAuthority mockAttestationAuthority() {
-        return mockAttestationAuthority;
+        return configuredAttestationAuthority;
     }
 
     private void stopUnselectedIssuers(final Set<IssuerVariant> selectedVariants) {
@@ -232,10 +236,10 @@ public class SwiyuEnvironmentRegistry {
 
     private void registerTp2Routes(final IssuerVariant issuerVariant, final VerifierVariant verifierVariant) {
         mockServices.registerTp2Routes(
-                mockServerClient,
+                sharedMockClient,
                 issuer(issuerVariant).config(),
                 verifier(verifierVariant).config(),
-                trustConfig
+                configuredTrust
         );
     }
 
