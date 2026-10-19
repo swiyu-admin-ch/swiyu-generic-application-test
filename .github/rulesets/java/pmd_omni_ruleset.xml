@@ -19,6 +19,8 @@
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
         <exclude name="UnitTestContainsTooManyAsserts"/>
+        <!-- Wildcard imports are permitted throughout this E2E test project. -->
+        <exclude name="OnDemandImport"/>
     </rule>
 
     <!-- Design rules -->

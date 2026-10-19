@@ -69,7 +69,8 @@ class IssuerTest extends BaseTest {
         assertThat(credentialOffer.get("grants").get("urn:ietf:params:oauth:grant-type:pre-authorized_code")).isNotNull();
         assertThat(credentialOffer.get("grants").get("urn:ietf:params:oauth:grant-type:pre-authorized_code").get("pre-authorized_code")).isNotNull();
         var code = credentialOffer.at("/grants/urn:ietf:params:oauth:grant-type:pre-authorized_code/pre-authorized_code").asText();
-        assert credentialDetails.getManagementId() != null;
+        assertThat(credentialDetails.getManagementId())
+                .isNotNull();
         assertThat(code)
                 .isNotNull()
                 .isNotEmpty()

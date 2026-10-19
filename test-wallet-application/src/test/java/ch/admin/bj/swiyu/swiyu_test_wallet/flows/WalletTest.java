@@ -280,7 +280,8 @@ class WalletTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(deepLink);
         var res = batchEntry.getVerifiableCredential(0);
 
-        assert verificationDetails.getDcqlQuery() != null;
+        assertThat(verificationDetails.getDcqlQuery())
+                .isNotNull();
 
         assertThrows(HttpClientErrorException.class, () -> {
             wallet.respondToVerification(verificationDetails, res);

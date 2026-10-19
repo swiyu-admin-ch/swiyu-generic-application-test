@@ -47,7 +47,7 @@ final class VerifierClient {
         this.wallet = wallet;
     }
 
-    public VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
+    VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
         var query = URI.create(verificationDeeplink).getQuery();
         String[] pairs = query.split("&");
 
@@ -96,21 +96,21 @@ final class VerifierClient {
             throw new IllegalArgumentException("Unable to read signed request object", e);
         }
     }
-    public RequestObject getVerificationRequestObject(String verificationDeeplink) {
+    RequestObject getVerificationRequestObject(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return readSignedRequestObject(((VerificationRequestObject.Signed) request).jwt());
     }
-    public String getVerificationDetailSigned(String verificationDeeplink) {
+    String getVerificationDetailSigned(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return ((VerificationRequestObject.Signed) request).jwt();
     }
-    public Optional<URI> respondToVerification(RequestObject requestObject, String token) {
+    Optional<URI> respondToVerification(RequestObject requestObject, String token) {
         final ResponseEntity<String> response = respondToVerificationWithVpTokens(requestObject, List.of(token));
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return readRedirectUri(response);
     }
-    public ResponseEntity<String> respondToVerificationWithVpTokens(
+    ResponseEntity<String> respondToVerificationWithVpTokens(
             final RequestObject requestObject,
             final List<String> tokens
     ) {
@@ -140,7 +140,7 @@ final class VerifierClient {
      * advertised by the Verifier. Intended for negative protocol tests that require a deliberately malformed
      * or oversized plaintext while preserving normal Wallet encryption behavior.
      */
-    public ResponseEntity<String> respondToVerificationWithEncryptedPayload(
+    ResponseEntity<String> respondToVerificationWithEncryptedPayload(
             final RequestObject requestObject,
             final String payload
     ) {
@@ -153,7 +153,7 @@ final class VerifierClient {
     /**
      * Posts an already encrypted direct_post.jwt response through the normal Wallet transport path.
      */
-    public ResponseEntity<String> postEncryptedVerificationResponse(
+    ResponseEntity<String> postEncryptedVerificationResponse(
             final RequestObject requestObject,
             final String encryptedPayload
     ) {
@@ -184,7 +184,7 @@ final class VerifierClient {
     /**
      * Creates the JSON representation of a direct_post.jwt error response, including the request state.
      */
-    public String createVerificationErrorPayload(
+    String createVerificationErrorPayload(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
@@ -208,7 +208,7 @@ final class VerifierClient {
     DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
         return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, wallet.getTrustConfig());
     }
-    public Optional<URI> respondToVerificationWithError(
+    Optional<URI> respondToVerificationWithError(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
@@ -220,7 +220,7 @@ final class VerifierClient {
                 errorDescription
         );
     }
-    public Optional<URI> respondToVerificationWithError(
+    Optional<URI> respondToVerificationWithError(
             final URI responseUri,
             final String state,
             final String error,
@@ -296,7 +296,7 @@ final class VerifierClient {
 
     // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
     @SuppressWarnings("PMD.AvoidCatchingGenericException")
-    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+    String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
         if (!wallet.getProfile().encryption()) {
             throw new IllegalStateException("Wallet payload encryption must be enabled");
         }

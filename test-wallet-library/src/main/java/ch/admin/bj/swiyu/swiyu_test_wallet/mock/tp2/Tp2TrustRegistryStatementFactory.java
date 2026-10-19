@@ -23,7 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 // Each statement type has its own focused builder; aggregate metrics reflect the fixture catalog.
-@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.CyclomaticComplexity"})
+@SuppressWarnings("PMD.CyclomaticComplexity")
 final class Tp2TrustRegistryStatementFactory {
 
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
