@@ -38,7 +38,7 @@ import static org.mockito.Mockito.spy;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
-public class IssuerCallbacksTest extends BaseTest {
+class IssuerCallbacksTest extends BaseTest {
 
     @Test
     @XrayTest(
@@ -54,7 +54,7 @@ public class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The new callbacks are not available yet."
     )
-    public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
+    void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
         wallet.setUseDPoP(true);
         final CredentialWithDeeplinkResponse offer1 =
@@ -172,8 +172,6 @@ public class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The fix is not available yet"
     )
-    // This deliberate deviation needs a distinct proof and signing key for each extra batch entry.
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {
 
         wallet.setUseDPoP(true);
@@ -188,16 +186,17 @@ public class IssuerCallbacksTest extends BaseTest {
 
         // When - Send too much proofs to the issuer
         doAnswer(invocation -> {
-            entry.getProofs().clear();
+            final java.util.List<JwtProof> invalidProofs = new java.util.ArrayList<>();
             for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE + 1; i++) {
-                entry.getProofs().add(new JwtProof(
+                invalidProofs.add(new JwtProof(
                         entry.getIssuerMetadata().getCredentialIssuer(),
                         wallet.collectCNonce(entry),
                         entry.getProofPublicJwk(),
                         ECCryptoSupport.generateECKeyPair(),
                         null
-                ));;
+                ));
             }
+            entry.setProofsFromJwt(invalidProofs);
             return null;
         }).when(entry).createProofs();
 

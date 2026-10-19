@@ -1,5 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.identity;
 
+import java.net.MalformedURLException;
+import ch.admin.bj.swiyu.didtoolbox.context.DidLogCreatorStrategyException;
+import ch.admin.bj.swiyu.didtoolbox.model.VerificationMethodException;
 import ch.admin.bj.swiyu.didtoolbox.context.DidLogCreatorContext;
 import ch.admin.bj.swiyu.didtoolbox.model.DidLogMetaPeekerException;
 import ch.admin.bj.swiyu.didtoolbox.model.DidMethodEnum;
@@ -31,7 +34,7 @@ public class DidLogUtil {
                     VerificationMethod.of("assert-key-01", assertionMethodKey.toPublicJWK().toJSONString()),
                     identifierRegistryUrl
             );
-        } catch (Exception e) {
+        } catch (VerificationMethodException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -48,7 +51,7 @@ public class DidLogUtil {
                     .assertionMethods(Set.of(assertionMethod))
                     .build()
                     .create(identifierRegistryUrl.toURL());
-        } catch (Exception e) {
+        } catch (DidLogCreatorStrategyException | MalformedURLException e) {
             throw new IllegalStateException(e);
         }
     }

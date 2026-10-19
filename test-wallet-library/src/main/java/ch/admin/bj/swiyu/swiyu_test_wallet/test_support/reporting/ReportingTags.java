@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
+// A constants namespace intentionally exposes fixture values without instance behavior.
 public class ReportingTags {
     public final static String VERSION_REGRESSION = "version_regression";
     public final static String HAPPY_PATH = "happy_path";

@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.ECKey;
@@ -42,6 +43,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -67,7 +69,7 @@ import static org.mockserver.model.HttpRequest.request;
         matches = "true",
         disabledReason = "HSM tests require -Dhsm=true so SoftHSM is injected only when explicitly requested."
 )
-public class IssuerHSMTest extends BaseTest {
+class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
             "/api/v2/status/business-entities/[^/]+/status-list-entries/";
@@ -486,8 +488,8 @@ public class IssuerHSMTest extends BaseTest {
                 .isEqualTo(issuerConfig.getIssuerAssertKeyId());
         assertThat(jwt.getJWTClaimsSet().getSubject())
                 .isEqualTo(statusList.getStatusRegistryUrl());
-        assertThat(jwt.getJWTClaimsSet().getExpirationTime())
-                .isAfter(new java.util.Date());
+        assertThat(jwt.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isAfter(java.time.Instant.now());
         assertThat(isSignedByHsmKey(jwt, INITIAL_HSM_KEY_ID))
                 .isTrue();
         assertThat(isSignedByHsmKey(jwt, ROTATED_HSM_KEY_ID))
@@ -692,7 +694,7 @@ public class IssuerHSMTest extends BaseTest {
         return SignedJWT.parse(decodedBody);
     }
 
-    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws Exception {
+    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws ParseException {
         final var methods = JsonParser.parseString(didLog).getAsJsonObject()
                 .getAsJsonObject("state").getAsJsonArray("verificationMethod");
         for (var method : methods) {
@@ -704,9 +706,9 @@ public class IssuerHSMTest extends BaseTest {
         throw new IllegalArgumentException("No public verification method published for " + keyId);
     }
 
-    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws Exception {
+    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws IOException, JOSEException {
         final String certificateResourcePath = "softhsm/keys/%s-cert.pem".formatted(keyId);
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(certificateResourcePath)) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/" + certificateResourcePath)) {
             assertThat(inputStream)
                     .as("HSM public certificate should be available: %s", certificateResourcePath)
                     .isNotNull();

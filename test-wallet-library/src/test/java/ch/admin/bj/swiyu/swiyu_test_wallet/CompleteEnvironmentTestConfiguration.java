@@ -133,6 +133,8 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean(destroyMethod = "")
+    // A recreated support container invalidates the cached client or registry references.
+    @SuppressWarnings("PMD.NullAssignment")
     public PostgreSQLContainer<?> dbTestContainer(Network network, ContainerLogConfig containerLogConfig) {
         synchronized (ENVIRONMENT_LOCK) {
             if (sharedDbTestContainer == null || !sharedDbTestContainer.isRunning()) {
@@ -177,6 +179,8 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean(destroyMethod = "")
+    // A recreated support container invalidates the cached client or registry references.
+    @SuppressWarnings("PMD.NullAssignment")
     public MockServerContainer mockServer(
             Network network,
             ContainerLogConfig containerLogConfig) {
@@ -206,6 +210,7 @@ public class CompleteEnvironmentTestConfiguration {
     }
 
     @Bean
+    // Explicit assembly dependencies retain container ownership and startup order.
     public SwiyuEnvironmentRegistry swiyuEnvironmentRegistry(
             PostgreSQLContainer<?> dbTestContainer,
             MockServerContainer mockServer,
@@ -246,6 +251,8 @@ public class CompleteEnvironmentTestConfiguration {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> removeHsmTokenVolume(tokenDirPath)));
     }
 
+    // Best-effort shutdown cleanup must not replace test outcomes with a Docker cleanup failure.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private static void removeHsmTokenVolume(String tokenVolumeName) {
         try {
             DockerClientFactory.instance().client().removeVolumeCmd(tokenVolumeName).exec();

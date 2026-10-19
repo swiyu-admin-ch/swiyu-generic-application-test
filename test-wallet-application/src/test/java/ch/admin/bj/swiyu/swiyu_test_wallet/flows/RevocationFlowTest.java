@@ -23,6 +23,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.Webhook
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -44,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseVerifiers(VerifierVariant.DEFAULT)
 @Slf4j
-public class RevocationFlowTest extends BaseTest {
+class RevocationFlowTest extends BaseTest {
 
     @BeforeEach
     void useDefaultVerifier() {

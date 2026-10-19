@@ -57,7 +57,7 @@ final class RenewalService {
                                                 "credential_valid_until", validUntil,
                                                 "status_lists", List.of(statusRegistry.currentRenewalStatusList(httpRequest)))));
                     } catch (JacksonException e) {
-                        throw new TestSupportException("Cannot parse correctly data");
+                        throw new TestSupportException("Cannot parse correctly data", e);
                     }
                 });
     }

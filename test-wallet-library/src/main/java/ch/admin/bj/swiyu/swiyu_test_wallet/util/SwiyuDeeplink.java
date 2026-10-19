@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import tools.jackson.core.JacksonException;
 import lombok.Getter;
 import lombok.ToString;
 import tools.jackson.databind.JsonNode;
@@ -96,7 +97,7 @@ public class SwiyuDeeplink {
 
             return MAPPER.readTree(decoded);
 
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid Swiyu deeplink", e);
         }
     }

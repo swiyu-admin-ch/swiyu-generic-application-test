@@ -129,7 +129,6 @@ public class MockServices {
     }
 
     public void registerVerifier(final VerifierConfig verifierConfig) {
-        actors.addVerifier(verifierConfig);
         didLogs.register(verifierConfig.getVerifierDid(), verifierConfig.getVerifierDidLog());
         verifierConfig.getAdditionalSigningIdentities().forEach(this::registerVerifier);
     }

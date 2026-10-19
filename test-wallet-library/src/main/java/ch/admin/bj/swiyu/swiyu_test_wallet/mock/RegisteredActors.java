@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.TrustConfig;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.VerifierConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 
 import java.util.Collection;
@@ -9,19 +8,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** The Credential Issuers, Verifiers and trust anchor the mock services know about. */
+/** The Credential Issuers and trust anchor the mock services know about. */
 final class RegisteredActors {
 
     private final Map<String, IssuerConfig> issuersByDid = new ConcurrentHashMap<>();
-    private final Map<String, VerifierConfig> verifiersByDid = new ConcurrentHashMap<>();
-    private TrustConfig trustConfig;
+    private TrustConfig registeredTrust;
 
     void addIssuer(final IssuerConfig issuer) {
         issuersByDid.put(issuer.getIssuerDid(), issuer);
-    }
-
-    void addVerifier(final VerifierConfig verifier) {
-        verifiersByDid.put(verifier.getVerifierDid(), verifier);
     }
 
     Optional<IssuerConfig> issuer(final String did) {
@@ -40,10 +34,10 @@ final class RegisteredActors {
     }
 
     TrustConfig trustConfig() {
-        return trustConfig;
+        return registeredTrust;
     }
 
-    void trustConfig(final TrustConfig trustConfig) {
-        this.trustConfig = trustConfig;
+    void trustConfig(final TrustConfig registeredTrust) {
+        this.registeredTrust = registeredTrust;
     }
 }

@@ -41,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockserver.model.HttpRequest.request;
 
-public class IssuanceKeyAttestationTest extends BaseTest {
+class IssuanceKeyAttestationTest extends BaseTest {
 
     @Autowired
     private IssuerRuntimeFactory issuerRuntimeFactory;
@@ -270,14 +270,14 @@ public class IssuanceKeyAttestationTest extends BaseTest {
         MISSING(null),
         MISMATCHED("did:example:untrusted-attestation-issuer");
 
-        private final String value;
+        private final String serializedClaim;
 
-        AttestationIssuerClaim(final String value) {
-            this.value = value;
+        AttestationIssuerClaim(final String serializedClaim) {
+            this.serializedClaim = serializedClaim;
         }
 
         String value() {
-            return value;
+            return serializedClaim;
         }
     }
 

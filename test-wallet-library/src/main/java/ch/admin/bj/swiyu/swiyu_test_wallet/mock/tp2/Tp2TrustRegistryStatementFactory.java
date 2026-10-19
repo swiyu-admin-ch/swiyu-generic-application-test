@@ -22,6 +22,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+// Each statement type has its own focused builder; aggregate metrics reflect the fixture catalog.
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.CyclomaticComplexity"})
 final class Tp2TrustRegistryStatementFactory {
 
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
@@ -474,7 +476,10 @@ final class Tp2TrustRegistryStatementFactory {
         if (!(request.get("scope") instanceof String scope) || scope.isBlank()) {
             throw new IllegalArgumentException("request.scope is required");
         }
-        final Object query = request.get("query");
+        validateVerificationQuery(request.get("query"));
+    }
+
+    private void validateVerificationQuery(final Object query) {
         if (!(query instanceof Map<?, ?> queryMap)) {
             throw new IllegalArgumentException("request.query is required");
         }
@@ -483,17 +488,21 @@ final class Tp2TrustRegistryStatementFactory {
             throw new IllegalArgumentException("query.credentials must be a non-empty array");
         }
         for (Object credential : credentialList) {
-            if (!(credential instanceof Map<?, ?> credentialMap)) {
-                throw new IllegalArgumentException("query.credentials entries must be objects");
-            }
-            final Object meta = credentialMap.get("meta");
-            if (!(meta instanceof Map<?, ?> metaMap)) {
-                throw new IllegalArgumentException("query.credentials.meta is required");
-            }
-            final Object vctValues = metaMap.get("vct_values");
-            if (!(vctValues instanceof List<?> vctValuesList) || vctValuesList.isEmpty()) {
-                throw new IllegalArgumentException("query.credentials.meta.vct_values must be a non-empty array");
-            }
+            validateVerificationCredential(credential);
+        }
+    }
+
+    private void validateVerificationCredential(final Object credential) {
+        if (!(credential instanceof Map<?, ?> credentialMap)) {
+            throw new IllegalArgumentException("query.credentials entries must be objects");
+        }
+        final Object meta = credentialMap.get("meta");
+        if (!(meta instanceof Map<?, ?> metaMap)) {
+            throw new IllegalArgumentException("query.credentials.meta is required");
+        }
+        final Object vctValues = metaMap.get("vct_values");
+        if (!(vctValues instanceof List<?> vctValuesList) || vctValuesList.isEmpty()) {
+            throw new IllegalArgumentException("query.credentials.meta.vct_values must be a non-empty array");
         }
     }
 
@@ -598,9 +607,9 @@ final class Tp2TrustRegistryStatementFactory {
             agileStatement.sign(trustSigner());
             return agileStatement.serialize();
         } catch (JOSEException e) {
-            throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot sign TP2 trust-registry statement: " + e.getMessage(), e);
         } catch (java.text.ParseException e) {
-            throw new TestSupportException("Cannot read TP2 trust-registry statement claims: " + e.getMessage());
+            throw new TestSupportException("Cannot read TP2 trust-registry statement claims: " + e.getMessage(), e);
         }
     }
 
@@ -611,7 +620,7 @@ final class Tp2TrustRegistryStatementFactory {
             forged.sign(untrustedSigner());
             return forged.serialize();
         } catch (JOSEException | java.text.ParseException e) {
-            throw new TestSupportException("Cannot forge TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot forge TP2 trust-registry statement: " + e.getMessage(), e);
         }
     }
 
@@ -628,7 +637,7 @@ final class Tp2TrustRegistryStatementFactory {
             statement.sign(trustSigner());
             return statement.serialize();
         } catch (JOSEException e) {
-            throw new TestSupportException("Cannot build TP2 trust-registry statement: " + e.getMessage());
+            throw new TestSupportException("Cannot build TP2 trust-registry statement: " + e.getMessage(), e);
         }
     }
 

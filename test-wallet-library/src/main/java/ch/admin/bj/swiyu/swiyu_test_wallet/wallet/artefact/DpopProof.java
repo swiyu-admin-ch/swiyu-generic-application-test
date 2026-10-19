@@ -45,8 +45,8 @@ public final class DpopProof {
 
         private String htm;
         private String htu;
-        private String nonce;
-        private String accessToken;
+        private String requestNonce;
+        private String boundAccessToken;
         private String athOverride;
         private Instant issuedAt = Instant.now();
         private String jti = UUID.randomUUID().toString();
@@ -60,14 +60,14 @@ public final class DpopProof {
         }
 
         /** The server-provided DPoP nonce ({@code DPoP-Nonce}, RFC 9449 §8). */
-        public Builder nonce(final String nonce) {
-            this.nonce = nonce;
+        public Builder nonce(final String requestNonce) {
+            this.requestNonce = requestNonce;
             return this;
         }
 
         /** Binds the proof to this access token with {@code ath} (RFC 9449 §4.2). */
-        public Builder accessToken(final String accessToken) {
-            this.accessToken = accessToken;
+        public Builder accessToken(final String boundAccessToken) {
+            this.boundAccessToken = boundAccessToken;
             return this;
         }
 
@@ -129,13 +129,13 @@ public final class DpopProof {
                         .claim("htm", htm)
                         .claim("htu", htu)
                         .issueTime(Date.from(issuedAt));
-                if (nonce != null) {
-                    claims.claim("nonce", nonce);
+                if (requestNonce != null) {
+                    claims.claim("nonce", requestNonce);
                 }
                 if (athOverride != null) {
                     claims.claim("ath", athOverride);
-                } else if (accessToken != null) {
-                    claims.claim("ath", Sha256Base64Url.ofUsAscii(accessToken));
+                } else if (boundAccessToken != null) {
+                    claims.claim("ath", Sha256Base64Url.ofUsAscii(boundAccessToken));
                 }
 
                 final JWSSigner signer = ed25519

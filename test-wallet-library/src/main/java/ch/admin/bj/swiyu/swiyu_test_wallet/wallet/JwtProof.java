@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Optional;
 
 public class JwtProof {
+    private static final int NONCE_TIMESTAMP_PART_INDEX = 1;
     private final String credentialIssuerURI;
     private final String cNonce;
     private final ECKey publicJwk;
@@ -117,12 +118,12 @@ public class JwtProof {
         }
 
         final String[] parts = cNonce.split("::", -1);
-        if (parts.length < 2) {
+        if (parts.length <= NONCE_TIMESTAMP_PART_INDEX) {
             return Optional.empty();
         }
 
         try {
-            return Optional.of(Instant.parse(parts[1]));
+            return Optional.of(Instant.parse(parts[NONCE_TIMESTAMP_PART_INDEX]));
         } catch (DateTimeParseException ex) {
             return Optional.empty();
         }

@@ -130,6 +130,11 @@ public class WalletBatchEntry extends WalletEntry {
         return proofs.stream().map(JwtProof::toJwt).toList();
     }
 
+    /** Read-only view; deliberate replacement of a proof batch uses {@link #setProofsFromJwt(List)}. */
+    public List<JwtProof> getProofs() {
+        return Collections.unmodifiableList(proofs);
+    }
+
     public void setProofsFromJwt(final List<JwtProof> proofs) {
         this.proofs.clear();
         for (JwtProof p : proofs) {

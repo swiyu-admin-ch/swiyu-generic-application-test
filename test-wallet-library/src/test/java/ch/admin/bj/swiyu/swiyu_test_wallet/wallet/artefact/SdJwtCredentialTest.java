@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jose.jwk.ECKey;
@@ -26,7 +27,7 @@ class SdJwtCredentialTest {
     private SdJwtCredential credential;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() throws JOSEException {
         issuerKeyPair = ECCryptoSupport.generateECKeyPair();
         issuerPublicKey = ECCryptoSupport.toPublicJwk(issuerKeyPair.getPublic(), ISSUER_DID + "#assert-key-01");
         holderKeyPair = ECCryptoSupport.generateECKeyPair();

@@ -362,14 +362,14 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         MISSING(null),
         MISMATCHED("did:example:untrusted-credential-issuer");
 
-        private final String value;
+        private final String serializedClaim;
 
-        CredentialIssuerClaim(final String value) {
-            this.value = value;
+        CredentialIssuerClaim(final String serializedClaim) {
+            this.serializedClaim = serializedClaim;
         }
 
         String value() {
-            return value;
+            return serializedClaim;
         }
     }
 
