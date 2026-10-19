@@ -41,7 +41,7 @@ public class BusinessIssuer {
     private ActuatorApi actuatorApi;
 
     private StatusList statusList;
-    private IssuerConfig issuerConfig;
+    private final IssuerConfig issuerConfig;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
     /** For the management calls authenticated by a signed JWT in the body: no default headers, same trace as the others. */
@@ -310,12 +310,6 @@ public class BusinessIssuer {
         final String data = mapper.writeValueAsString(statusListCreate);
 
         return createSignedJwtWithEcKey(privateKey, keyId, data);
-    }
-
-    private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
-                                                String supportedMetadataId) throws JacksonException,
-            JOSEException {
-        return createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, false);
     }
 
     private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,

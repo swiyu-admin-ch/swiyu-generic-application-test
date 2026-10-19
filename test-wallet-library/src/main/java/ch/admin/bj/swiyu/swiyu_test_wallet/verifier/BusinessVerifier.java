@@ -23,7 +23,7 @@ public class BusinessVerifier {
     private VerifierManagementApiApi managementApi;
     private ManagementResponse managementResponse;
     private ActuatorApi actuatorApi;
-    private String verifierServiceUrl;
+    private final String verifierServiceUrl;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
 

@@ -34,7 +34,7 @@ public class SwiyuDeeplink {
     public String getCredentialIssuerTenantId() {
         final String completeCredentialIssuer = getText("credential_issuer");
         if (completeCredentialIssuer != null && completeCredentialIssuer.contains("/")) {
-            return completeCredentialIssuer.substring(completeCredentialIssuer.lastIndexOf("/") + 1);
+            return completeCredentialIssuer.substring(completeCredentialIssuer.lastIndexOf('/') + 1);
         }
         return null;
     }

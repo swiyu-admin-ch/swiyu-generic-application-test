@@ -16,15 +16,15 @@ public class IssuerImageConfig {
     private String imageTag = "latest";
 
     private String surname = "default";
-    private boolean enforceDpop = false;
-    private boolean signedMetadata = false;
-    private boolean enableJwtAuth = false;
-    private boolean encryptionEnforce = false;
-    private boolean enableHsm = false;
-    private boolean multipleSigningKeys = false;
+    private boolean enforceDpop;
+    private boolean signedMetadata;
+    private boolean enableJwtAuth;
+    private boolean encryptionEnforce;
+    private boolean enableHsm;
+    private boolean multipleSigningKeys;
     private boolean allowRefreshTokenRotation = true;
-    private long trustRegistryMaxCacheSize = 0;
-    private long trustRegistryMaxCacheTtlSeconds = 0;
+    private long trustRegistryMaxCacheSize;
+    private long trustRegistryMaxCacheTtlSeconds;
     private long trustRegistryClockSkewBufferSeconds = 60;
 
     private String hsmUser = "admin";

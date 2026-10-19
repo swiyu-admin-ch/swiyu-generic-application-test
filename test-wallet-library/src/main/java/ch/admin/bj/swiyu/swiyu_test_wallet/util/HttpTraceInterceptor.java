@@ -63,7 +63,7 @@ public class HttpTraceInterceptor implements ClientHttpRequestInterceptor {
 
         headers.forEach((key, values) -> {
             if (TRACEABLE_HEADERS.contains(key.toLowerCase())) {
-                sb.append("_")
+                sb.append('_')
                         .append(key.toLowerCase())
                         .append("_: ")
                         .append(String.join(", ", values))

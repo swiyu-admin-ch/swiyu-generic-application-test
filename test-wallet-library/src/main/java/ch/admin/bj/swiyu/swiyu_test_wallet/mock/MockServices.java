@@ -140,7 +140,6 @@ public class MockServices {
     }
 
     public void registerAttestationAuthority(final MockAttestationAuthority attestationAuthority) {
-        actors.attestationAuthority(attestationAuthority);
         if (attestationAuthority != null) {
             didLogs.register(attestationAuthority.getDid(), attestationAuthority.getDidLog());
         }

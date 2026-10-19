@@ -12,9 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.verify.VerificationTimes;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -212,14 +209,5 @@ class RandomizedIndexTest extends BaseTest {
             if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
         }
         return true;
-    }
-
-    private void assertCallbackWasCalled(MockServerClient mockClient, String path) {
-        mockClient.verify(
-                HttpRequest.request()
-                        .withMethod("POST")
-                        .withPath(path),
-                VerificationTimes.atLeast(1)
-        );
     }
 }

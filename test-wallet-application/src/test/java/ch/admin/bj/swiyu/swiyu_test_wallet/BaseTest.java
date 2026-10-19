@@ -192,7 +192,7 @@ public class BaseTest {
     }
 
     protected String swiyuDidVariant(final String did) {
-        final int lastColon = did.lastIndexOf(":");
+        final int lastColon = did.lastIndexOf(':');
         return did.substring(0, lastColon + 1) + UUID.randomUUID();
     }
 

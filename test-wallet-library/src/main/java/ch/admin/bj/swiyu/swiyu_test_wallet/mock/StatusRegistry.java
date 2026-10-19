@@ -64,8 +64,8 @@ final class StatusRegistry {
     private final Map<String, String> issuerDidByStatusListId = new ConcurrentHashMap<>();
     private volatile String currentStatusList = "";
     private volatile String activeIssuerDid = "";
-    private volatile boolean throwStatusListError = false;
-    private volatile boolean corruptStatusListSignature = false;
+    private volatile boolean throwStatusListError;
+    private volatile boolean corruptStatusListSignature;
 
     StatusRegistry(final RegisteredActors actors) {
         this.actors = actors;

@@ -17,7 +17,7 @@ import java.util.Set;
 public class DidLogUtil {
 
     public static String createDidLog(ECPublicKey authenticationKey, ECPublicKey assertionMethodKey, URI identifierRegistryUrl) {
-        return createDidLog(
+        return createDidLogWithVerificationMethods(
                 VerificationMethod.of("auth-key-01", authenticationKey),
                 VerificationMethod.of("assert-key-01", assertionMethodKey),
                 identifierRegistryUrl
@@ -26,7 +26,7 @@ public class DidLogUtil {
 
     public static String createDidLog(JWK authenticationKey, JWK assertionMethodKey, URI identifierRegistryUrl) {
         try {
-            return createDidLog(
+            return createDidLogWithVerificationMethods(
                     VerificationMethod.of("auth-key-01", authenticationKey.toPublicJWK().toJSONString()),
                     VerificationMethod.of("assert-key-01", assertionMethodKey.toPublicJWK().toJSONString()),
                     identifierRegistryUrl
@@ -36,7 +36,7 @@ public class DidLogUtil {
         }
     }
 
-    private static String createDidLog(
+    private static String createDidLogWithVerificationMethods(
             VerificationMethod authenticationMethod,
             VerificationMethod assertionMethod,
             URI identifierRegistryUrl) {
