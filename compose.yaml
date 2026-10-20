@@ -19,7 +19,7 @@ services:
       - db_data:/var/lib/postgresql/data
 
   mockServer:
-    image: mockserver/mockserver:8.0.0
+    image: mockserver/mockserver:9.0.0
     ports:
       - "127.0.0.1:${MOCKSERVER_PORT:-1080}:1080"
     environment:
