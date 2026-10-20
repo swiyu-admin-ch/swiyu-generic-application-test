@@ -38,6 +38,15 @@ jobs:
         run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Build & test with Maven
         run: mvn --batch-mode clean verify -DskipTests=false
+      - name: Upload Xray JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-junit-${{ github.job }}
+          path: test-wallet-application/target/TEST-junit-jupiter.xml
+          if-no-files-found: warn
+          retention-days: 30
+          overwrite: true
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
