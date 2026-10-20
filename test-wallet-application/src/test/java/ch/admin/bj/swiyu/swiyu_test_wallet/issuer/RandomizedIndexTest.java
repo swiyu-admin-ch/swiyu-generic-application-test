@@ -49,9 +49,9 @@ class RandomizedIndexTest extends BaseTest {
                     and batch credential creation through OID4VCI.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable, rc). Fix not available yet (staging)."
@@ -96,9 +96,9 @@ class RandomizedIndexTest extends BaseTest {
                     collisions or sequential patterns across batches.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -149,9 +149,9 @@ class RandomizedIndexTest extends BaseTest {
                     requests are properly constrained.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"

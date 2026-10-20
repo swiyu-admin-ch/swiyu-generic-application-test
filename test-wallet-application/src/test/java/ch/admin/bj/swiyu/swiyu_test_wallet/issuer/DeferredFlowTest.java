@@ -104,8 +104,10 @@ class DeferredFlowTest extends BaseTest {
                     issued credential batch once the issuer prepares the credential.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The images don't accept null claims on creation yet."
@@ -162,8 +164,9 @@ class DeferredFlowTest extends BaseTest {
                     This ensures specification-compliant deferred issuance flow behavior.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
@@ -210,8 +213,10 @@ class DeferredFlowTest extends BaseTest {
     }
 
     @Test
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1340",
             summary = "Deferred claims cannot be replaced after the first update marks the offer READY",
             description = "Sequential baseline for R39: claims A are accepted, claims B are refused, and every issued credential contains only claims A.")
@@ -257,8 +262,10 @@ class DeferredFlowTest extends BaseTest {
 
     @ParameterizedTest(name = "Expired offer previously {0}")
     @ValueSource(strings = {"DEFERRED", "READY"})
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1341",
             summary = "Expired deferred offers reject collection and cannot return to READY",
             description = "Sequential baseline for R40: expire only the prepared offer, keep its access token valid, then reject collection and a new READY transition.")
@@ -317,8 +324,11 @@ class DeferredFlowTest extends BaseTest {
                     It also confirms the issuer cannot transition the offer back to READY.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @Deprecated(forRemoval = true)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},

@@ -90,6 +90,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the Generic Verifier validates and injects both statements into verifier_info.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -137,6 +139,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then verifier_info contains valid idTS and pvaTS entries and the second fetch reuses the cache.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
@@ -206,6 +210,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then idTS and pvaTS subjects match the effective verifier DID and are not reused across subjects.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
@@ -265,6 +271,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the verifier refetches and injects fresh trust statements.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
@@ -328,6 +336,10 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the verifier accepts the presentation and reaches SUCCESS.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
@@ -385,6 +397,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then verifier_info omits idTS and still contains the valid pvaTS.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -435,6 +449,8 @@ class VerifierTrustStatementTest extends BaseTest {
                     the validated statements from cache.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet."
@@ -515,6 +531,10 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then the verifier registers a vqPS, substitutes scope, and embeds the matching vqPS in verifier_info.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M1C_REGISTER_VQPS_ON_THE_FLY)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The TP 2.0 is not available yet"
@@ -592,6 +612,12 @@ class VerifierTrustStatementTest extends BaseTest {
                     consistently with the OID4VP request object's client_id.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M1C_REGISTER_VQPS_ON_THE_FLY)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."
@@ -669,6 +695,12 @@ class VerifierTrustStatementTest extends BaseTest {
                     Then each tenant receives its own vqPS subject and tenant A reuses only its own cache entry.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M1C_REGISTER_VQPS_ON_THE_FLY)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Requires TP2 vqPS registration and the EIDOMNI-1338 fix."

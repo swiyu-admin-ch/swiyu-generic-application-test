@@ -61,6 +61,10 @@ class IssuanceKeyAttestationTest extends BaseTest {
                     DID document. The issued credential is then verified by the verifier.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet"
@@ -107,6 +111,8 @@ class IssuanceKeyAttestationTest extends BaseTest {
                     The wallet must not receive any credential.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet"
@@ -143,6 +149,8 @@ class IssuanceKeyAttestationTest extends BaseTest {
                     Then the Generic Issuer trusts the signer identified by kid and issues the credential.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1360 requires centralized JWT validation in the Generic Issuer"
@@ -183,6 +191,8 @@ class IssuanceKeyAttestationTest extends BaseTest {
                     Then the Generic Issuer rejects the proof before making any request to that host.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1361 requires centralized JWT validation in the Generic Issuer"
