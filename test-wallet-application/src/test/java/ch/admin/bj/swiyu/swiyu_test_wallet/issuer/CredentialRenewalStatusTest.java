@@ -24,6 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockserver.matchers.MatchType;
 import org.mockserver.matchers.TimeToLive;
 import org.mockserver.matchers.Times;
@@ -316,6 +317,47 @@ class CredentialRenewalStatusTest extends BaseTest {
                     .as("A strict refusal must happen before the Business Issuer call")
                     .isEmpty();
         }
+    }
+
+    @ParameterizedTest(name = "unsupported status={0}")
+    @ValueSource(strings = {"0x03", "UNKNOWN"})
+    @XrayTest(key = "EIDOMNI-XXX",
+            summary = "Business Issuer management API rejects unsupported statuses without changing the family",
+            description = """
+                    Given a suspended family with suspended renewal enabled.
+                    When the Business Issuer requests an unsupported status, represented as 0x03 or UNKNOWN.
+                    Then the management API answers HTTP 400 and leaves the management record unchanged.
+                    Deviation: the requested status is outside the management API enumeration.
+                    Spec: Issuer OpenAPI updateCredentialStatus and UpdateCredentialStatusRequestType.
+                    """)
+    void credentialManagement_whenBusinessIssuerRequestsUnsupportedStatus_thenRejectedWithoutSideEffects(
+            final String unsupportedStatus) {
+        // Given
+        useIssuer(issuer(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL));
+        final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
+                CredentialSubjectFixtures.completeEmployeeProfile());
+        wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
+        final var before = issuerManager.getCredentialById(offer.getManagementId());
+        assertThat(before.getStatus())
+                .isEqualTo(CredentialStatusType.SUSPENDED);
+
+        // When: the raw value bypasses only the generated client's enum restriction.
+        final var failure = assertThrows(HttpClientErrorException.class,
+                () -> issuerManager.getCredentialApi().getApiClient().getRestClient()
+                        .patch()
+                        .uri(issuerConfig.getIssuerServiceUrl()
+                                        + "/management/api/credentials/{id}/status?credentialStatus={status}",
+                                offer.getManagementId(), unsupportedStatus)
+                        .retrieve()
+                        .toBodilessEntity());
+
+        // Then
+        ApiErrorAssert.assertThat(failure)
+                .hasStatus(400);
+        assertThat(issuerManager.getCredentialById(offer.getManagementId()))
+                .usingRecursiveComparison()
+                .isEqualTo(before);
     }
 
     private static Stream<Arguments> renewalPolicies() {
