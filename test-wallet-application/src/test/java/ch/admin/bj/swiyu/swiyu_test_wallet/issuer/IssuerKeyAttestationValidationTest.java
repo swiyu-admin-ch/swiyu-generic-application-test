@@ -64,8 +64,9 @@ class IssuerKeyAttestationValidationTest extends BaseTest {
                     Spec: OID4VCI 1.0 §8.2, Appendix D.1, D.2 and F.1; Swiss issuance profile (key attestation).
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialRequest_whenKeyAttestationDeviates_thenRejectedWithoutIssuance(final AttestationDeviation deviation) {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(

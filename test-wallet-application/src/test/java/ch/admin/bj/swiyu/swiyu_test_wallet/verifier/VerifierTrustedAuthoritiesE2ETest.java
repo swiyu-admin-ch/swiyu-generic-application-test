@@ -77,9 +77,8 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Then database storage and the Request Object preserve both explicit constraints and populate only the unconstrained query.
                     Spec: OID4VP 1.0 §6.1.1; Swiss verification profile §6.1.1; EIDOMNI-1177 fallback requirement.
                     """)
-    @Tag(ReportingTags.UCV_M1)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
     void requestObject_whenQueriesHaveMixedAuthorities_thenOnlyMissingAuthoritiesArePopulated()
             throws ParseException, SQLException {
         // Given
@@ -126,8 +125,8 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Then explicit authorities survive persistence and serialization, and the unconstrained query in the Request Object omits trusted_authorities entirely.
                     Spec: OID4VP 1.0 §6.1 and §6.1.1; Swiss verification profile §6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
     void requestObject_whenAcceptedIssuerListIsAbsentOrEmpty_thenExplicitAuthoritiesSurviveWithoutEmptyFallback(
             final boolean emptyList
     ) throws ParseException, SQLException {
@@ -166,8 +165,11 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Then verification succeeds with exactly one credential result and one callback, and repeated management reads preserve that result.
                     Spec: OID4VP 1.0 §6.1.1 and §8.6; Swiss verification profile §6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenIssuerMatchesAnyExplicitAuthority_thenOneCredentialIsAccepted(final String authorityPlacement)
             throws ParseException {
         // Given
@@ -223,8 +225,11 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Then verification succeeds and exposes exactly one credential result under each id with one callback.
                     Spec: OID4VP 1.0 §6.1, §6.4.2 and §8.6; Swiss verification profile §6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenBothQueriesMatchTheirOwnAuthorities_thenBothCredentialResultsAreAccepted() {
         // Given
         final String issuerDid = issuerConfig.getIssuerDid();
@@ -281,8 +286,11 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Deviation: the Wallet deliberately ignores one query's trusted_authorities constraint; all signatures and holder binding remain valid.
                     Spec: OID4VP 1.0 §6.1, §6.4.2 and §8.6; Swiss verification profile §6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenMaliciousWalletIgnoresOneQueryAuthority_thenGlobalAcceptanceCannotBypassIt(
             final int restrictedIndex
     ) {
@@ -339,8 +347,10 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                     Deviation: in the rejection variant the Wallet deliberately selects by iss and ignores the constraint on the signing DID.
                     Spec: Swiss anchor profile, JWT Validation with cryptographic keys from DIDs, requires trust checks on kid's DID and requires iss to be ignored; OID4VP 1.0 §8.6.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void presentation_whenIssuerClaimConflictsWithSigningDid_thenExplicitAuthorityDecisionUsesKid(
             final boolean acceptsSigningDid
     ) throws ParseException, JOSEException {

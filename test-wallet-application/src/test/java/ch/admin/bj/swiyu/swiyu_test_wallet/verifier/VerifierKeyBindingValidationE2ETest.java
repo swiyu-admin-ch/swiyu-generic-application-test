@@ -54,9 +54,11 @@ class VerifierKeyBindingValidationE2ETest extends BaseTest {
                     Spec: RFC 9901 §4.3 and §7.3; OID4VP 1.0 Appendix B.3.6 and §14.1.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenKeyBindingJwtDeviates_thenFailedWithStoredErrorAndOneCallback(
             final KeyBindingDeviation deviation
     ) {

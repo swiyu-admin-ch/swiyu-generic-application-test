@@ -54,6 +54,9 @@ class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The new callbacks are not available yet."
     )
+    @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
         wallet.setUseDPoP(true);
@@ -166,8 +169,10 @@ class IssuerCallbacksTest extends BaseTest {
                     The wallet intentionally sends invalid proofs signed with incorrect keys during the credential collection process.
                     The issuer must reject the request and return an HTTP 400 error.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The fix is not available yet"

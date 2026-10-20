@@ -53,9 +53,13 @@ class KeycloakManagementAuthTest extends BaseTest {
                     Keycloak client-credentials token.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_P1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_C2_GET_THE_CURRENT_STATUS_OF_AN_OFFER)
+    @Tag(ReportingTags.UCI_P1_GET_JWT_FOR_ACCESSING)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
+    @Tag(ReportingTags.UCI_S2_RETRIEVE_STATUS_LIST)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void issuerManagement_withKeycloakAuth_thenPublicMetadataAndProtectedManagementBehaveCorrectly() {
         // Given
         final String unknownId = UUID.randomUUID().toString();
@@ -107,8 +111,9 @@ class KeycloakManagementAuthTest extends BaseTest {
                     client-credentials token.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     void verifierManagement_withKeycloakAuth_thenPublicWalletEndpointsAndProtectedManagementBehaveCorrectly() {
         // Given
         final String unknownId = UUID.randomUUID().toString();
@@ -146,9 +151,10 @@ class KeycloakManagementAuthTest extends BaseTest {
                     Authorization headers when Keycloak JWT resource-server authentication is configured.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_P1_GET_JWT_FOR_ACCESSING)
+    @Tag(ReportingTags.UCI_S2_RETRIEVE_STATUS_LIST)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     void managementEndpoints_withMalformedAuthorizationHeaders_thenIssuerAndVerifierRejectRequests() {
         // Given
         final String statusListUrl = issuerUrl("/management/api/status-list/" + getCurrentStatusList().getId());
@@ -180,10 +186,14 @@ class KeycloakManagementAuthTest extends BaseTest {
                     complete issuance and presentation workflow.
                     """
     )
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_P1_GET_JWT_FOR_ACCESSING)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void securedIssuerVerifierFlow_withKeycloakManagementAuth_thenWalletCanCompleteVerification() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
