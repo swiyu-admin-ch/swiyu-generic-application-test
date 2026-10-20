@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import com.google.gson.Gson;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -8,12 +9,17 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.Ed25519Signer;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.OctetKeyPair;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 import java.security.KeyPair;
+import java.security.SecureRandom;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +34,8 @@ import java.util.Optional;
 public final class SdJwtCredential {
 
     private static final String SEPARATOR = "~";
+    private static final Gson GSON = new Gson();
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final String signedIssuerJwt;
     private final List<String> disclosureValues;
@@ -96,6 +104,37 @@ public final class SdJwtCredential {
         return new SdJwtCredential(signedIssuerJwt, disclosureValues, corruptSignature(holderBindingJwt));
     }
 
+    /** Changes one Disclosure value without updating its signed digest (RFC 9901 §7.1). */
+    public SdJwtCredential withTamperedDisclosure(final String claimName, final Object forgedValue) {
+        final List<String> tampered = new ArrayList<>(disclosureValues);
+        for (int index = 0; index < disclosureValues.size(); index++) {
+            final List<Object> disclosure = decodeDisclosure(disclosureValues.get(index));
+            if (disclosure.size() == 3 && claimName.equals(disclosure.get(1))) {
+                tampered.set(index, encodeDisclosure(List.of(disclosure.getFirst(), claimName, forgedValue)));
+                return new SdJwtCredential(signedIssuerJwt, tampered, holderBindingJwt);
+            }
+        }
+        throw new IllegalArgumentException("There is no Disclosure of the claim " + claimName);
+    }
+
+    /** Adds a well-formed Disclosure without a corresponding signed digest (RFC 9901 §7.1). */
+    public SdJwtCredential withUnreferencedDisclosure(final String claimName, final Object value) {
+        final byte[] salt = new byte[16];
+        RANDOM.nextBytes(salt);
+        final List<String> extended = new ArrayList<>(disclosureValues);
+        extended.add(encodeDisclosure(List.of(Base64URL.encode(salt).toString(), claimName, value)));
+        return new SdJwtCredential(signedIssuerJwt, extended, holderBindingJwt);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> decodeDisclosure(final String disclosure) {
+        return GSON.fromJson(new Base64URL(disclosure).decodeToString(), List.class);
+    }
+
+    private static String encodeDisclosure(final List<Object> disclosure) {
+        return Base64URL.encode(GSON.toJson(disclosure)).toString();
+    }
+
     /**
      * Signs the Issuer-signed JWT again, with another key and/or with some claims changed. The header (including
      * {@code typ} and {@code profile_version}) and the claims are kept unless the caller changes them.
@@ -122,6 +161,9 @@ public final class SdJwtCredential {
         private boolean omitIssuerClaim;
         private JWK holderPublicKey;
         private boolean omitCredentialStatus;
+        private Instant expirationInstant;
+        private Instant notBeforeInstant;
+        private Integer statusIndex;
         private KeyPair ecKey;
         private OctetKeyPair ed25519Key;
 
@@ -171,6 +213,24 @@ public final class SdJwtCredential {
             return this;
         }
 
+        /** Sets exp to exercise credential expiry (RFC 7519 §4.1.4). */
+        public Resign expiresAt(final Instant instant) {
+            this.expirationInstant = instant;
+            return this;
+        }
+
+        /** Sets nbf to exercise credentials that are not valid yet (RFC 7519 §4.1.5). */
+        public Resign notBefore(final Instant instant) {
+            this.notBeforeInstant = instant;
+            return this;
+        }
+
+        /** Changes only status.status_list.idx, keeping the registry URI (Token Status List draft 20 §8.3). */
+        public Resign withStatusIndex(final int index) {
+            this.statusIndex = index;
+            return this;
+        }
+
         public SdJwtCredential build() {
             try {
                 final SignedJWT original = SignedJWT.parse(source.signedIssuerJwt);
@@ -207,7 +267,33 @@ public final class SdJwtCredential {
             if (omitCredentialStatus) {
                 claims.claim("status", null);
             }
+            applyValidityClaims(claims);
+            if (statusIndex != null) {
+                claims.claim("status", statusWithIndex(original.getJWTClaimsSet().getJSONObjectClaim("status")));
+            }
             return claims;
+        }
+
+        private void applyValidityClaims(final JWTClaimsSet.Builder claims) {
+            if (expirationInstant != null) {
+                claims.expirationTime(Date.from(expirationInstant));
+            }
+            if (notBeforeInstant != null) {
+                claims.notBeforeTime(Date.from(notBeforeInstant));
+            }
+        }
+
+        private Map<String, Object> statusWithIndex(final Map<String, Object> originalStatus) {
+            if (omitCredentialStatus || originalStatus == null
+                    || !(originalStatus.get("status_list") instanceof Map<?, ?> originalList)) {
+                throw new IllegalStateException("A status.status_list claim is required to change its index");
+            }
+            final Map<String, Object> statusList = new LinkedHashMap<>();
+            originalList.forEach((key, value) -> statusList.put((String) key, value));
+            statusList.put("idx", statusIndex);
+            final Map<String, Object> status = new LinkedHashMap<>(originalStatus);
+            status.put("status_list", statusList);
+            return status;
         }
 
         private JWSSigner resigningSigner() throws JOSEException {
