@@ -200,7 +200,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
                 .isEqualTo("SUCCESS");
         assertThat(result.at("/wallet_response/credential_subject_data/" + FIRST_QUERY_ID).size())
                 .isEqualTo(1);
-        assertThat(result.at("/wallet_response/credential_subject_data/" + FIRST_QUERY_ID + "/0/name").asText())
+        assertThat(result.at("/wallet_response/credential_subject_data/" + FIRST_QUERY_ID + "/holder_name/0").asText())
                 .isEqualTo(HOLDER_NAME);
         assertThat(result.at("/credential_evaluation/" + FIRST_QUERY_ID).size())
                 .isEqualTo(1);
@@ -254,12 +254,12 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
             final JsonNode subjectData = JSON.valueToTree(result.getWalletResponse().getCredentialSubjectData().get(queryId));
             assertThat(subjectData.size())
                     .isEqualTo(1);
-            assertThat(subjectData.get(0).path("name").asText())
+            assertThat(subjectData.at("/holder_name/0").asText())
                     .isEqualTo(HOLDER_NAME);
-            assertThat(subjectData.get(0).has("annual_salary"))
+            assertThat(subjectData.has("annual_salary"))
                     .as("The Wallet discloses only the requested name claim")
                     .isFalse();
-            assertThat(subjectData.get(0).has("signature_image"))
+            assertThat(subjectData.has("signature_image"))
                     .isFalse();
             assertThat(result.getCredentialEvaluation().get(queryId))
                     .hasSize(1);
@@ -378,7 +378,7 @@ class VerifierTrustedAuthoritiesE2ETest extends BaseTest {
             final JsonNode result = readManagement(verification.getId());
             assertThat(result.path("state").asText())
                     .isEqualTo("SUCCESS");
-            assertThat(result.at("/wallet_response/credential_subject_data/" + FIRST_QUERY_ID + "/0/name").asText())
+            assertThat(result.at("/wallet_response/credential_subject_data/" + FIRST_QUERY_ID + "/holder_name/0").asText())
                     .isEqualTo(HOLDER_NAME);
         } else {
             final HttpClientErrorException error = assertThrows(HttpClientErrorException.class,
