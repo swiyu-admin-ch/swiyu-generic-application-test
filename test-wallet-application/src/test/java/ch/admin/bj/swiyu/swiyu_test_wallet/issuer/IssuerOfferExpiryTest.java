@@ -30,7 +30,7 @@ class IssuerOfferExpiryTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1465",
             summary = "Issuer rejects the Pre-Authorized Code of an expired credential offer",
             description = """
                     Given a non-deferred credential offer whose offer deadline has passed before the wallet redeems it.
@@ -70,7 +70,7 @@ class IssuerOfferExpiryTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1466",
             summary = "Issuer denies the Credential Request of an offer that expired after the Token Request",
             description = """
                     Given a non-deferred credential offer for which the wallet already holds a valid access token.

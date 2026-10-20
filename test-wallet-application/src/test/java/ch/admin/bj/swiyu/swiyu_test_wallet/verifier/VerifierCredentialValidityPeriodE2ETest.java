@@ -39,7 +39,7 @@ class VerifierCredentialValidityPeriodE2ETest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(ValidityPeriod.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1468",
             summary = "Verifier rejects a credential outside its validity period",
             description = """
                     Given a holder-bound credential signed again by the Credential Issuer's own key with either an exp

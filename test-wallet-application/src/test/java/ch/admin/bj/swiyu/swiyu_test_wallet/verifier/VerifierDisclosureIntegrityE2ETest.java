@@ -39,7 +39,7 @@ class VerifierDisclosureIntegrityE2ETest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(DisclosureForgery.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1470",
             summary = "Verifier rejects a Disclosure that the Issuer-signed JWT does not reference",
             description = """
                     Given a holder-bound credential and a pending DCQL verification that requests the name claim.

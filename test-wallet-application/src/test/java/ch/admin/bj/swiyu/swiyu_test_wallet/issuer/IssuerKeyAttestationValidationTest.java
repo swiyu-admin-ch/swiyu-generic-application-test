@@ -51,7 +51,7 @@ class IssuerKeyAttestationValidationTest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(AttestationDeviation.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1464",
             summary = "Issuer rejects a key proof whose key attestation does not satisfy key_attestations_required",
             description = """
                     Given a pre-authorized offer for a credential configuration with key_attestations_required,

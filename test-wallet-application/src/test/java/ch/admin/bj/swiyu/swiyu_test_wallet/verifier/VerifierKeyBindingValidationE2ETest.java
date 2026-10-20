@@ -41,7 +41,7 @@ class VerifierKeyBindingValidationE2ETest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(KeyBindingDeviation.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1471",
             summary = "Verifier rejects a Key Binding JWT that is not bound to this request and presentation",
             description = """
                     Given a holder-bound credential and a pending DCQL verification.

@@ -38,7 +38,7 @@ class VerifierDcqlVctMismatchE2ETest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1469",
             summary = "Verifier rejects a credential whose vct is not in the DCQL vct_values",
             description = """
                     Given a DCQL verification request whose credential query only accepts another vct.

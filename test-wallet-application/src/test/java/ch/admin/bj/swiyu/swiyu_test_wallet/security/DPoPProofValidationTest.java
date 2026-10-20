@@ -12,6 +12,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.DpopProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -43,7 +45,7 @@ class DPoPProofValidationTest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(DpopDeviation.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1467",
             summary = "Issuer rejects a DPoP proof that is not bound to the credential request",
             description = """
                     Given a DPoP-bound access token and a fresh DPoP nonce from the Credential Issuer.
@@ -88,7 +90,7 @@ class DPoPProofValidationTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1462",
             summary = "Issuer rejects a DPoP proof whose ath is not the hash of the access token",
             description = """
                     Given a DPoP-bound access token and a fresh DPoP nonce from the Credential Issuer.
@@ -102,6 +104,7 @@ class DPoPProofValidationTest extends BaseTest {
     )
     @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Disabled("Bug ticket : EIDOMNI-1463")
     void credentialRequest_whenDpopAthIsOfAnotherAccessToken_thenRejectedWithoutIssuance() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(

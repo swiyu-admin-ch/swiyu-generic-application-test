@@ -43,7 +43,7 @@ class VerifierStatusListValidityE2ETest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(StatusListFailure.class)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1472",
             summary = "Verifier fails a verification whose credential status cannot be established",
             description = """
                     Given a holder-bound credential with a status list reference and a pending DCQL verification.
