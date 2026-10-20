@@ -28,7 +28,7 @@
         <bouncycastle.version>1.86</bouncycastle.version>
         <mockserver.version>8.0.0</mockserver.version>
         <postgresql.version>42.7.14</postgresql.version>
-        <xray-junit.version>1.0.1</xray-junit.version>
+        <xray-junit.version>1.1.0</xray-junit.version>
         <generic-java-lib.version>3.2.0</generic-java-lib.version>
         <pact.version>4.7.5</pact.version>
         <!-- Plugin Versions -->
