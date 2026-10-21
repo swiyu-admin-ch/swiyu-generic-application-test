@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockserver.matchers.MatchType;
 import org.mockserver.matchers.TimeToLive;
@@ -38,7 +39,11 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.security.interfaces.ECPublicKey;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Date;
@@ -214,9 +219,10 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
                 .isEqualTo(VerificationStatus.SUCCESS);
         assertEvaluation(controlResult, DEFAULT_CREDENTIAL_ID, true, VALID);
 
-        // Two days ahead remains beyond the propagation window even around UTC midnight after rounding.
-        final Instant businessStart = Instant.now().plus(2, ChronoUnit.DAYS)
-                .truncatedTo(ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS);
+        // The Business Issuer chooses a UTC midnight beyond the propagation window, with test execution margin.
+        // Near midnight this deliberately skips tomorrow if tomorrow would be too close.
+        final Instant businessStart = Instant.now().plus(30, ChronoUnit.MINUTES)
+                .truncatedTo(ChronoUnit.DAYS).plus(1, ChronoUnit.DAYS);
         final Instant businessEnd = businessStart.plus(7, ChronoUnit.DAYS);
         final Instant expectedNotBefore = businessStart.truncatedTo(ChronoUnit.DAYS);
         final var offer = issuerManager.createCredential(offerWithValidity(businessStart, businessEnd));
@@ -267,6 +273,8 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
             for (final WalletBatchEntry batch : List.of(initialEntry, renewedEntry)) {
                 assertThat(batch.getIssuedCredentials())
                         .hasSize(batchSize);
+                SdJwtBatchAssert.assertThat(batch.getIssuedCredentials())
+                        .haveDayRoundedIat();
                 for (final String credential : batch.getIssuedCredentials()) {
                     final var jwt = SignedJWT.parse(credential.split("~")[0]);
                     assertThat(jwt.verify(issuerSignatureVerifier))
@@ -278,6 +286,9 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
                             .isEqualTo(expectedNotBefore)
                             .isBeforeOrEqualTo(businessStart)
                             .isBefore(claims.getExpirationTime().toInstant());
+                    assertThat(claims.getExpirationTime())
+                            .isEqualTo(Date.from(businessEnd.truncatedTo(ChronoUnit.DAYS)
+                                    .plus(1, ChronoUnit.DAYS).minusSeconds(1)));
                     final var status = mapper.readTree(jwt.getPayload().toString())
                             .path("status").path("status_list");
                     assertThat(status.path("uri").asString())
@@ -367,6 +378,158 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
                     .isEqualTo(CredentialStatusType.SUSPENDED);
         } finally {
             mockServerClient.clear(renewalResponse[0].getId());
+        }
+    }
+
+    @ParameterizedTest(name = "reference {0} UTC, valid_from day +{1} at {2}: effective nbf delay {3} minutes")
+    @CsvSource({
+            "10:00, 0, 10:16, -600",
+            "10:00, 1, 00:00, 840",
+            "23:55, 1, 00:00, 5",
+            "23:55, 2, 00:00, 1445"
+    })
+    @XrayTest(key = "EIDOMNI-XXX",
+            summary = "Credential Issuer exposes the effective notBefore delay after UTC day rounding",
+            description = """
+                    Given Business Issuer scheduling examples using reference renewal times of 10:00 and 23:55 UTC.
+                    When the Wallet collects and renews a suspended family's batch with the corresponding valid_from.
+                    Then signed nbf is midnight UTC, leaving respectively -600, 840, 5 or 1445 minutes from the reference.
+                    A sixteen-minute request can lose its delay; tomorrow can be only five minutes away.
+                    Each batch has identical rounded nbf, iat and exp claims, without requiring iat = nbf = exp.
+                    Reference times illustrate scheduling decisions; the actual component clocks are not changed.
+                    Spec: Issuer README rounding and renewal warning; supplied batch date consistency decision.
+                    """)
+    void credentialRenewal_whenBusinessIssuerUsesUtcSchedulingExamples_thenSignedNotBeforeShowsEffectiveDelay(
+            final LocalTime referenceTime, final int startDayOffset, final LocalTime startTime,
+            final long expectedDelayMinutes) throws Exception {
+        // Given: use future dates so these examples never depend on the runner reaching 10:00 or 23:55.
+        useIssuer(issuer(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL));
+        final LocalDate referenceDay = LocalDate.now(ZoneOffset.UTC).plusDays(2);
+        final Instant referenceRenewal = referenceDay.atTime(referenceTime).toInstant(ZoneOffset.UTC);
+        final Instant validFrom = referenceDay.plusDays(startDayOffset).atTime(startTime).toInstant(ZoneOffset.UTC);
+        final Instant validUntil = validFrom.plus(7, ChronoUnit.DAYS);
+        final Instant expectedNotBefore = referenceDay.plusDays(startDayOffset).atStartOfDay(ZoneOffset.UTC).toInstant();
+        final Instant expectedExpiry = validUntil.truncatedTo(ChronoUnit.DAYS)
+                .plus(1, ChronoUnit.DAYS).minusSeconds(1);
+        final var offer = issuerManager.createCredential(offerWithValidity(validFrom, validUntil));
+        final var initialBatch = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
+        final var renewedBatch = initialBatch.duplicate();
+        final var businessResponse = renewalWithValidity(offer.getManagementId(), validFrom, validUntil);
+
+        try {
+            // When
+            CredentialResponseAssert.assertThat(wallet.renewedCredentials(renewedBatch))
+                    .hasCode(200)
+                    .isResponseEncrypted();
+
+            // Then: compare the dates actually signed by the Issuer with the Business Issuer's reference time.
+            for (final var batch : List.of(initialBatch, renewedBatch)) {
+                assertThat(batch.getIssuedCredentials())
+                        .hasSize(initialBatch.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize());
+                SdJwtBatchAssert.assertThat(batch.getIssuedCredentials())
+                        .haveDayRoundedIat();
+                for (final String credential : batch.getIssuedCredentials()) {
+                    final var claims = SignedJWT.parse(credential.split("~")[0]).getJWTClaimsSet();
+                    assertThat(claims.getNotBeforeTime())
+                            .isEqualTo(Date.from(expectedNotBefore));
+                    assertThat(claims.getExpirationTime())
+                            .isEqualTo(Date.from(expectedExpiry));
+                    assertThat(Duration.between(referenceRenewal, claims.getNotBeforeTime().toInstant()).toMinutes())
+                            .as("Effective delay from %s after rounding valid_from=%s", referenceRenewal, validFrom)
+                            .isEqualTo(expectedDelayMinutes);
+                }
+            }
+            assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
+                    .isEqualTo(CredentialStatusType.SUSPENDED);
+        } finally {
+            mockServerClient.clear(businessResponse[0].getId());
+        }
+    }
+
+    @Test
+    @XrayTest(key = "EIDOMNI-XXX",
+            summary = "Verifier accepts a suspended renewed credential during a stale registry window when nbf has passed",
+            description = """
+                    Given suspended renewal enabled, an already-effective nbf and an older signed Status List.
+                    When the Wallet presents a renewed credential while the registry still reports its index as VALID.
+                    Then the Verifier accepts it although the Business Issuer family remains SUSPENDED.
+                    Once the registry exposes the suspension, the same credential is rejected as SUSPENDED.
+                    This demonstrates the documented propagation risk; it does not expect renewal to reactivate the family.
+                    Deviation: the Wallet presents a suspended credential and the registry serves a stale signed snapshot.
+                    Spec: Issuer README suspended-renewal warning; RFC 7519 section 4.1.5;
+                    Swiss VC profile section 7.1; OID4VP 1.0 section 8.6.
+                    """)
+    void credentialRenewal_whenNotBeforeHasPassedAndRegistryIsStale_thenVerifierAcceptsUntilSuspensionIsVisible()
+            throws Exception {
+        // Given
+        useComponents(issuer(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL), verifier(VerifierVariant.DEFAULT));
+        final Instant validFrom = Instant.now().minus(1, ChronoUnit.MINUTES).truncatedTo(ChronoUnit.SECONDS);
+        final Instant validUntil = validFrom.plus(7, ChronoUnit.DAYS);
+        final var offer = issuerManager.createCredential(offerWithValidity(validFrom, validUntil));
+        final var initialBatch = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        final var renewedBatch = initialBatch.duplicate();
+        final String statusPath = URI.create(getCurrentStatusList().getStatusRegistryUrl()).getPath();
+        final URI publicStatusUri = URI.create("http://%s:%d%s".formatted(
+                mockServerContainer.getHost(), mockServerContainer.getServerPort(), statusPath));
+        final String staleStatusList = restClient.get().uri(publicStatusUri).retrieve().body(String.class);
+        assertThat(staleStatusList)
+                .isNotBlank();
+        final var staleResponse = mockServerClient
+                .when(request().withMethod("GET").withPath(statusPath), Times.unlimited(), TimeToLive.unlimited(), 100)
+                .respond(response().withStatusCode(200).withHeader("Content-Type", "application/statuslist+jwt")
+                        .withBody(staleStatusList));
+        final var businessResponse = renewalWithValidity(offer.getManagementId(), validFrom, validUntil);
+
+        try {
+            issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
+
+            // When
+            CredentialResponseAssert.assertThat(wallet.renewedCredentials(renewedBatch))
+                    .hasCode(200)
+                    .isResponseEncrypted();
+            final var claims = SignedJWT.parse(renewedBatch.getIssuedCredentials().getFirst().split("~")[0])
+                    .getJWTClaimsSet();
+            assertThat(claims.getNotBeforeTime().toInstant())
+                    .isBefore(Instant.now());
+
+            // Then: the stale registry lets the renewed VC through despite the family's suspension.
+            final var staleVerification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .encrypted()
+                    .createManagementResponse();
+            final var staleRequest = wallet.getVerificationRequestObject(staleVerification.getVerificationDeeplink());
+            final String stalePresentation = renewedBatch.createPresentationForSdJwtIndex(0, staleRequest);
+            final var staleResult = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(staleRequest, List.of(stalePresentation)),
+                    verifierManager, staleVerification.getId());
+            assertThat(staleResult.getState())
+                    .isEqualTo(VerificationStatus.SUCCESS);
+            assertEvaluation(staleResult, DEFAULT_CREDENTIAL_ID, true, VALID);
+            assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
+                    .isEqualTo(CredentialStatusType.SUSPENDED);
+
+            // Make the published suspension visible; present the same VC with a fresh request and proof.
+            mockServerClient.clear(staleResponse[0].getId());
+            final var currentVerification = verifierManager.verificationRequest()
+                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                    .withUniversityDCQL(true)
+                    .encrypted()
+                    .createManagementResponse();
+            final var currentRequest = wallet.getVerificationRequestObject(currentVerification.getVerificationDeeplink());
+            final String currentPresentation = renewedBatch.createPresentationForSdJwtIndex(0, currentRequest);
+            final var currentResult = assertWalletAndManagementRespondOk(
+                    () -> wallet.respondToVerificationWithVpTokens(currentRequest, List.of(currentPresentation)),
+                    verifierManager, currentVerification.getId());
+            assertThat(currentResult.getState())
+                    .isEqualTo(VerificationStatus.FAILED);
+            assertEvaluation(currentResult, DEFAULT_CREDENTIAL_ID, false, SUSPENDED);
+            assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
+                    .isEqualTo(CredentialStatusType.SUSPENDED);
+        } finally {
+            mockServerClient.clear(staleResponse[0].getId());
+            mockServerClient.clear(businessResponse[0].getId());
         }
     }
 
