@@ -64,7 +64,7 @@ class CredentialRenewalStatusTest extends BaseTest {
     @EnumSource(value = IssuerVariant.class, names = {
             "RENEWAL_DEFAULT", "RENEWAL_STRICT", "RENEWAL_PERMISSIVE_EXPERIMENTAL"})
     @XrayTest(
-            key = "EIDOMNI-1085",
+            key = "EIDOMNI-1475",
             summary = "Credential Issuer denies renewal of revoked batches under every renewal policy",
             description = """
                     Given an issued batch, a successful renewal, and a still-valid DPoP-bound access token.
@@ -193,7 +193,7 @@ class CredentialRenewalStatusTest extends BaseTest {
     @ParameterizedTest(name = "[{index}] {0}, credential={1}, renewal allowed={2}")
     @MethodSource("renewalPolicies")
     @XrayTest(
-            key = "EIDOMNI-1086",
+            key = "EIDOMNI-1476",
             summary = "Credential Issuer applies the default, strict and experimental suspended-renewal policies",
             description = """
                     Given a renewable batch and the ENABLE_SUSPENDED_RENEWAL property unset, false, or true.
@@ -321,7 +321,7 @@ class CredentialRenewalStatusTest extends BaseTest {
 
     @ParameterizedTest(name = "unsupported status={0}")
     @ValueSource(strings = {"0x03", "UNKNOWN"})
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1477",
             summary = "Business Issuer management API rejects unsupported statuses without changing the family",
             description = """
                     Given a suspended family with suspended renewal enabled.

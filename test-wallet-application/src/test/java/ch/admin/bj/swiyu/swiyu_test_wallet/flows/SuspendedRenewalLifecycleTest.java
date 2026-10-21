@@ -78,7 +78,7 @@ import static org.mockserver.model.JsonBody.json;
 class SuspendedRenewalLifecycleTest extends BaseTest {
 
     @Test
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1480",
             summary = "Credential Issuer preserves suspension across repeated renewals and subsequent family status changes",
             description = """
                     Given experimental suspended renewal enabled and an issued batch that the Business Issuer suspends.
@@ -182,7 +182,7 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
     @EnumSource(value = UpdateCredentialStatusRequestType.class, names = {"ISSUED", "SUSPENDED"})
     // Keep the signed claims, stale-registry precondition and Verifier assertions visible together.
     @SuppressWarnings("PMD.NcssCount")
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1481",
             summary = "Credential Issuer propagates Business Issuer notBefore and Verifier enforces it despite a stale Status List",
             description = """
                     Given experimental suspended renewal enabled and a Business Issuer setting credential_valid_from
@@ -343,7 +343,7 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
             "23:55, 1, 00:00, 5",
             "23:55, 2, 00:00, 1445"
     })
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1482",
             summary = "Credential Issuer exposes the effective notBefore delay after UTC day rounding",
             description = """
                     Given Business Issuer scheduling examples using reference renewal times of 10:00 and 23:55 UTC.
@@ -404,7 +404,7 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
     }
 
     @Test
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1483",
             summary = "Verifier accepts a suspended renewed credential during a stale registry window when nbf has passed",
             description = """
                     Given suspended renewal enabled, an already-effective nbf and an older signed Status List.

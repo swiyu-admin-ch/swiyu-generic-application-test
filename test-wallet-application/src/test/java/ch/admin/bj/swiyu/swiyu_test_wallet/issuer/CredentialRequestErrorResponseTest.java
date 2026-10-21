@@ -75,7 +75,7 @@ class CredentialRequestErrorResponseTest extends BaseTest {
 
     @ParameterizedTest(name = "[{index}] renewal={0}, fault={1}")
     @MethodSource("requestFaults")
-    @XrayTest(key = "EIDOMNI-XXX",
+    @XrayTest(key = "EIDOMNI-1478",
             summary = "Credential Issuer returns specific unencrypted errors for invalid collection and renewal requests",
             description = """
                     Given a valid access token and an encrypted Credential Request with DPoP.

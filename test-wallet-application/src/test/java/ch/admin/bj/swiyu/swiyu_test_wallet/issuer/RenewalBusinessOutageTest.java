@@ -53,7 +53,7 @@ class RenewalBusinessOutageTest extends BaseTest {
 
     @ParameterizedTest(name = "[{index}] renewal recovery for {0}")
     @EnumSource(value = CredentialStatusType.class, names = {"ISSUED", "SUSPENDED"})
-    @XrayTest(key = "EIDOMNI-1086",
+    @XrayTest(key = "EIDOMNI-1479",
             summary = "Credential Issuer preserves renewal eligibility after a temporary Business Issuer outage",
             description = """
                     Given an issued or suspended family with experimental suspended renewal enabled.
