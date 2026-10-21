@@ -335,55 +335,10 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
         }
     }
 
-    @Test
-    @XrayTest(key = "EIDOMNI-XXX",
-            summary = "Credential Issuer rounds a sixteen-minute validity delay to the start of the UTC day",
-            description = """
-                    Given a Business Issuer setting credential_valid_from to now plus sixteen minutes.
-                    When the Wallet collects the initial batch and renews it after suspension.
-                    Then both batches contain nbf rounded down to the UTC day and the family stays suspended.
-                    This checks the documented rounding; it does not assume the sixteen-minute delay survives it.
-                    Spec: Issuer README credential_valid_from rounding and suspended-renewal warning.
-                    """)
-    void credentialRenewal_whenBusinessIssuerSetsSixteenMinuteDelay_thenNotBeforeIsRoundedToUtcDay()
-            throws Exception {
-        // Given
-        useIssuer(issuer(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL));
-        final Instant validFrom = Instant.now().plus(16, ChronoUnit.MINUTES).truncatedTo(ChronoUnit.SECONDS);
-        final Instant validUntil = validFrom.plus(7, ChronoUnit.DAYS);
-        final Instant expectedNotBefore = validFrom.truncatedTo(ChronoUnit.DAYS);
-        final var offer = issuerManager.createCredential(offerWithValidity(validFrom, validUntil));
-        final var initialBatch = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.SUSPENDED);
-        final var renewedBatch = initialBatch.duplicate();
-        final var renewalResponse = renewalWithValidity(offer.getManagementId(), validFrom, validUntil);
-
-        try {
-            // When
-            CredentialResponseAssert.assertThat(wallet.renewedCredentials(renewedBatch))
-                    .hasCode(200)
-                    .isResponseEncrypted();
-
-            // Then
-            for (final var batch : List.of(initialBatch, renewedBatch)) {
-                assertThat(batch.getIssuedCredentials())
-                        .hasSize(initialBatch.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize());
-                for (final String credential : batch.getIssuedCredentials()) {
-                    final var claims = SignedJWT.parse(credential.split("~")[0]).getJWTClaimsSet();
-                    assertThat(claims.getNotBeforeTime())
-                            .isEqualTo(Date.from(expectedNotBefore));
-                }
-            }
-            assertThat(issuerManager.getCredentialById(offer.getManagementId()).getStatus())
-                    .isEqualTo(CredentialStatusType.SUSPENDED);
-        } finally {
-            mockServerClient.clear(renewalResponse[0].getId());
-        }
-    }
-
     @ParameterizedTest(name = "reference {0} UTC, valid_from day +{1} at {2}: effective nbf delay {3} minutes")
     @CsvSource({
             "10:00, 0, 10:16, -600",
+            "10:00, 0, 10:16:00.123, -600",
             "10:00, 1, 00:00, 840",
             "23:55, 1, 00:00, 5",
             "23:55, 2, 00:00, 1445"
@@ -426,7 +381,8 @@ class SuspendedRenewalLifecycleTest extends BaseTest {
             // Then: compare the dates actually signed by the Issuer with the Business Issuer's reference time.
             for (final var batch : List.of(initialBatch, renewedBatch)) {
                 assertThat(batch.getIssuedCredentials())
-                        .hasSize(initialBatch.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize());
+                        .hasSize(initialBatch.getIssuerMetadata().getBatchCredentialIssuance().getBatchSize())
+                        .hasSize(batch.getProofs().size());
                 SdJwtBatchAssert.assertThat(batch.getIssuedCredentials())
                         .haveDayRoundedIat();
                 for (final String credential : batch.getIssuedCredentials()) {
