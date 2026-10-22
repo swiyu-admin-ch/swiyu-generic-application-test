@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.issuer;
 
+import java.time.Instant;
 import ch.admin.bj.swiyu.gen.issuer.api.ActuatorApi;
 import ch.admin.bj.swiyu.gen.issuer.api.CredentialApiApi;
 import ch.admin.bj.swiyu.gen.issuer.api.StatusListApiApi;
@@ -34,6 +35,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @Getter
 @Slf4j
+// This test-facing facade intentionally assembles the generated Issuer management APIs.
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class BusinessIssuer {
 
     private CredentialApiApi credentialApi;
@@ -41,12 +44,12 @@ public class BusinessIssuer {
     private ActuatorApi actuatorApi;
 
     private StatusList statusList;
-    private IssuerConfig issuerConfig;
+    private final IssuerConfig issuerConfig;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
     /** For the management calls authenticated by a signed JWT in the body: no default headers, same trace as the others. */
     private RestClient signedJwtClient;
-    private Consumer<StatusList> statusListCreatedListener = ignored -> { };
+    private Consumer<StatusList> statusListCreatedListener;
 
     public BusinessIssuer(IssuerConfig issuerConfig) {
         this.issuerConfig = issuerConfig;
@@ -58,7 +61,7 @@ public class BusinessIssuer {
     }
 
     public void onStatusListCreated(final Consumer<StatusList> listener) {
-        statusListCreatedListener = listener == null ? ignored -> { } : listener;
+        statusListCreatedListener = listener;
     }
 
     /**
@@ -272,7 +275,9 @@ public class BusinessIssuer {
 
     private StatusList rememberStatusList(final StatusList createdStatusList) {
         statusList = createdStatusList;
-        statusListCreatedListener.accept(createdStatusList);
+        if (statusListCreatedListener != null) {
+            statusListCreatedListener.accept(createdStatusList);
+        }
         return statusList;
     }
 
@@ -282,11 +287,11 @@ public class BusinessIssuer {
                 .keyID(keyId)
                 .build();
 
-        final Date now = new Date();
+        final Instant now = Instant.now();
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .jwtID(UUID.randomUUID().toString())
-                .issueTime(now)
-                .expirationTime(new Date(now.getTime() + 3600000))
+                .issueTime(Date.from(now))
+                .expirationTime(Date.from(now.plusSeconds(3600)))
                 .subject("test-issuer")
                 .audience("issuer-api")
                 .claim("data", data)
@@ -310,12 +315,6 @@ public class BusinessIssuer {
         final String data = mapper.writeValueAsString(statusListCreate);
 
         return createSignedJwtWithEcKey(privateKey, keyId, data);
-    }
-
-    private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,
-                                                String supportedMetadataId) throws JacksonException,
-            JOSEException {
-        return createSignedJwtForCredential(privateKey, keyId, supportedMetadataId, false);
     }
 
     private String createSignedJwtForCredential(final PrivateKey privateKey, final String keyId,

@@ -39,7 +39,6 @@ public final class KeyBindingJwt {
 
     public static final class Builder {
 
-        private final String sdJwt;
         private String audience;
         private String nonce;
         private String sdHash;
@@ -48,7 +47,6 @@ public final class KeyBindingJwt {
         private OctetKeyPair ed25519Key;
 
         private Builder(final String sdJwt, final String audience, final String nonce) {
-            this.sdJwt = sdJwt;
             this.audience = audience;
             this.nonce = nonce;
             this.sdHash = Sha256Base64Url.ofUsAscii(sdJwt);

@@ -19,14 +19,16 @@ import java.util.Date;
 import java.util.Optional;
 
 public class JwtProof {
+    private static final int NONCE_TIMESTAMP_PART_INDEX = 1;
     private final String credentialIssuerURI;
     private final String cNonce;
     private final ECKey publicJwk;
     private final KeyPair keyPair;
     private final MockAttestationAuthority attestationAuthority;
     private final OctetKeyPair ed25519KeyPair;
+    private final Instant issuedAt;
+    private final String keyAttestation;
 
-    @Builder
     public JwtProof(
             final String credentialIssuerURI,
             final String cNonce,
@@ -34,12 +36,27 @@ public class JwtProof {
             final KeyPair keyPair,
             final MockAttestationAuthority attestationAuthority
     ) {
+        this(credentialIssuerURI, cNonce, publicJwk, keyPair, attestationAuthority, null, null);
+    }
+
+    @Builder
+    public JwtProof(
+            final String credentialIssuerURI,
+            final String cNonce,
+            final ECKey publicJwk,
+            final KeyPair keyPair,
+            final MockAttestationAuthority attestationAuthority,
+            final Instant issuedAt,
+            final String keyAttestation
+    ) {
         this.credentialIssuerURI = credentialIssuerURI;
         this.cNonce = cNonce;
         this.publicJwk = publicJwk;
         this.keyPair = keyPair;
         this.attestationAuthority = attestationAuthority;
         this.ed25519KeyPair = null;
+        this.issuedAt = issuedAt;
+        this.keyAttestation = keyAttestation;
     }
 
     private JwtProof(
@@ -53,6 +70,8 @@ public class JwtProof {
         this.keyPair = null;
         this.attestationAuthority = null;
         this.ed25519KeyPair = ed25519KeyPair;
+        this.issuedAt = null;
+        this.keyAttestation = null;
     }
 
     public static JwtProof ed25519(
@@ -78,7 +97,9 @@ public class JwtProof {
                         .jwk(jwk.toPublicJWK());
                 signer = ECCryptoSupport.createECDSASigner(keyPair.getPrivate());
 
-                if (attestationAuthority != null) {
+                if (keyAttestation != null) {
+                    headerBuilder.customParam("key_attestation", keyAttestation);
+                } else if (attestationAuthority != null) {
                     final String attestation = AttestationFactory.validHighAttestation(
                             publicJwk,
                             attestationAuthority.getIssuerClaim(),
@@ -106,9 +127,35 @@ public class JwtProof {
     }
 
     private Date proofIssueTime() {
+        if (issuedAt != null) {
+            return Date.from(issuedAt);
+        }
         return nonceInstant()
                 .map(Date::from)
                 .orElseGet(Date::new);
+    }
+
+    /** Named deviations for negative tests; the default builder keeps the wallet's existing behavior. */
+    public static class JwtProofBuilder {
+        /** Uses the audience of another Credential Issuer (OID4VCI Appendix F.1). */
+        public JwtProofBuilder withAudience(final String audience) {
+            return credentialIssuerURI(audience);
+        }
+
+        /** Uses a nonce other than the server-provided c_nonce (OID4VCI Appendix F.1). */
+        public JwtProofBuilder withNonce(final String nonce) {
+            return cNonce(nonce);
+        }
+
+        /** Omits the nonce despite the Credential Issuer's Nonce Endpoint (OID4VCI Appendix F.1). */
+        public JwtProofBuilder withoutNonce() {
+            return cNonce(null);
+        }
+
+        /** Overrides iat to exercise the Credential Issuer's freshness policy (OID4VCI Appendix F.4). */
+        public JwtProofBuilder withIssuedAt(final Instant instant) {
+            return issuedAt(instant);
+        }
     }
 
     private Optional<Instant> nonceInstant() {
@@ -117,12 +164,12 @@ public class JwtProof {
         }
 
         final String[] parts = cNonce.split("::", -1);
-        if (parts.length < 2) {
+        if (parts.length <= NONCE_TIMESTAMP_PART_INDEX) {
             return Optional.empty();
         }
 
         try {
-            return Optional.of(Instant.parse(parts[1]));
+            return Optional.of(Instant.parse(parts[NONCE_TIMESTAMP_PART_INDEX]));
         } catch (DateTimeParseException ex) {
             return Optional.empty();
         }

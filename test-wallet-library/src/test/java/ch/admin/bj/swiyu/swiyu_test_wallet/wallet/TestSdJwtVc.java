@@ -26,6 +26,8 @@ import java.util.*;
  * every claim is selectively disclosable, the nested object uses a recursive Disclosure, and the array elements are
  * Disclosures of their own (RFC 9901 §4.2.2 and §4.2.4).
  */
+// Credential fixture used by tests, not a JUnit test class.
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 final class TestSdJwtVc {
 
     static final String ISSUER_DID = "did:example:issuer";
@@ -35,30 +37,30 @@ final class TestSdJwtVc {
     private static final ObjectMapper JSON = JsonMapper.builder().build();
 
     private final ECKey issuerKey;
-    private final String issuerSignedJwt;
-    private final String nameDisclosure;
+    private final String serializedIssuerJwt;
+    private final String encodedNameDisclosure;
     private final String salaryDisclosure;
-    private final String streetDisclosure;
-    private final String localityDisclosure;
-    private final String addressDisclosure;
-    private final String chDisclosure;
-    private final String frDisclosure;
-    private final String nationalitiesDisclosure;
+    private final String encodedStreetDisclosure;
+    private final String encodedLocalityDisclosure;
+    private final String encodedAddressDisclosure;
+    private final String encodedChDisclosure;
+    private final String encodedFrDisclosure;
+    private final String encodedNationalitiesDisclosure;
 
     private TestSdJwtVc(final ECKey holderKey) {
         try {
             issuerKey = new ECKeyGenerator(com.nimbusds.jose.jwk.Curve.P_256).keyID(ISSUER_KID).generate();
 
-            nameDisclosure = disclosure("name", "John Doe");
+            encodedNameDisclosure = disclosure("name", "John Doe");
             salaryDisclosure = disclosure("annual_salary", 120000);
-            streetDisclosure = disclosure("street_address", "Main Street 1");
-            localityDisclosure = disclosure("locality", "Bern");
-            addressDisclosure = disclosure("address", Map.of("_sd", List.of(digest(streetDisclosure), digest(localityDisclosure))));
-            chDisclosure = arrayElementDisclosure("CH");
-            frDisclosure = arrayElementDisclosure("FR");
-            nationalitiesDisclosure = disclosure("nationalities", List.of(
-                    Map.of("...", digest(chDisclosure)),
-                    Map.of("...", digest(frDisclosure))));
+            encodedStreetDisclosure = disclosure("street_address", "Main Street 1");
+            encodedLocalityDisclosure = disclosure("locality", "Bern");
+            encodedAddressDisclosure = disclosure("address", Map.of("_sd", List.of(digest(encodedStreetDisclosure), digest(encodedLocalityDisclosure))));
+            encodedChDisclosure = arrayElementDisclosure("CH");
+            encodedFrDisclosure = arrayElementDisclosure("FR");
+            encodedNationalitiesDisclosure = disclosure("nationalities", List.of(
+                    Map.of("...", digest(encodedChDisclosure)),
+                    Map.of("...", digest(encodedFrDisclosure))));
 
             final Instant now = Instant.now();
             final JWTClaimsSet claims = new JWTClaimsSet.Builder()
@@ -70,10 +72,10 @@ final class TestSdJwtVc {
                     .claim("cnf", Map.of("jwk", holderKey.toPublicJWK().toJSONObject()))
                     .claim("_sd_alg", "sha-256")
                     .claim("_sd", List.of(
-                            digest(nameDisclosure),
+                            digest(encodedNameDisclosure),
                             digest(salaryDisclosure),
-                            digest(addressDisclosure),
-                            digest(nationalitiesDisclosure)))
+                            digest(encodedAddressDisclosure),
+                            digest(encodedNationalitiesDisclosure)))
                     .build();
             final JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
                     .type(new JOSEObjectType("dc+sd-jwt"))
@@ -82,7 +84,7 @@ final class TestSdJwtVc {
                     .build();
             final SignedJWT jwt = new SignedJWT(header, claims);
             jwt.sign(new ECDSASigner(issuerKey));
-            issuerSignedJwt = jwt.serialize();
+            serializedIssuerJwt = jwt.serialize();
         } catch (JOSEException e) {
             throw new IllegalStateException(e);
         }
@@ -99,44 +101,44 @@ final class TestSdJwtVc {
 
     /** {@code <Issuer-signed JWT>~<D1>~...~<DN>~}, every Disclosure, no Key Binding JWT. */
     String serialized() {
-        return issuerSignedJwt + "~" + String.join("~", allDisclosures()) + "~";
+        return serializedIssuerJwt + "~" + String.join("~", allDisclosures()) + "~";
     }
 
     List<String> allDisclosures() {
-        return List.of(nameDisclosure, salaryDisclosure, addressDisclosure, streetDisclosure, localityDisclosure,
-                nationalitiesDisclosure, chDisclosure, frDisclosure);
+        return List.of(encodedNameDisclosure, salaryDisclosure, encodedAddressDisclosure, encodedStreetDisclosure, encodedLocalityDisclosure,
+                encodedNationalitiesDisclosure, encodedChDisclosure, encodedFrDisclosure);
     }
 
     String issuerSignedJwt() {
-        return issuerSignedJwt;
+        return serializedIssuerJwt;
     }
 
     String nameDisclosure() {
-        return nameDisclosure;
+        return encodedNameDisclosure;
     }
 
     String addressDisclosure() {
-        return addressDisclosure;
+        return encodedAddressDisclosure;
     }
 
     String streetDisclosure() {
-        return streetDisclosure;
+        return encodedStreetDisclosure;
     }
 
     String localityDisclosure() {
-        return localityDisclosure;
+        return encodedLocalityDisclosure;
     }
 
     String nationalitiesDisclosure() {
-        return nationalitiesDisclosure;
+        return encodedNationalitiesDisclosure;
     }
 
     String chDisclosure() {
-        return chDisclosure;
+        return encodedChDisclosure;
     }
 
     String frDisclosure() {
-        return frDisclosure;
+        return encodedFrDisclosure;
     }
 
     /** {@code [salt, claim name, claim value]}, base64url encoded (RFC 9901 §4.2.1). */

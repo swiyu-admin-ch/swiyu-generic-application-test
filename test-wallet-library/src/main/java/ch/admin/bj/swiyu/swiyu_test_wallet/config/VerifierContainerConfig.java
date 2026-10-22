@@ -115,19 +115,7 @@ public class VerifierContainerConfig {
                     .withEnv("JAVA_TOOL_OPTIONS", "-Djavax.net.ssl.trustStore=/app/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit")
                     .dependsOn(dbContainer);
 
-            // Most scenarios inspect audit data explicitly; null tests the product's own defaults.
-            if (verifierImageConfig.getAuditVpTokenEnabled() != null) {
-                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED",
-                        verifierImageConfig.getAuditVpTokenEnabled().toString());
-            }
-            if (verifierImageConfig.getAuditCredentialSubjectDataEnabled() != null) {
-                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED",
-                        verifierImageConfig.getAuditCredentialSubjectDataEnabled().toString());
-            }
-            if (verifierImageConfig.getAuditCredentialEvaluationEnabled() != null) {
-                container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED",
-                        verifierImageConfig.getAuditCredentialEvaluationEnabled().toString());
-            }
+            configureAuditInformation(container, verifierImageConfig);
 
             if (containerLogConfig.isVerifier()) {
                 container.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("VerifierContainer")));
@@ -149,26 +137,7 @@ public class VerifierContainerConfig {
                                 managementAuthConfig.getJwsAlgorithms());
             }
 
-            if (verifierImageConfig.getJwkCacheTtlMillis() > 0) {
-                container.withEnv(
-                        "JWK_CACHE_TTL_MILLI",
-                        String.valueOf(verifierImageConfig.getJwkCacheTtlMillis())
-                );
-            }
-
-            if (verifierImageConfig.getTrustStatementCacheTtlMillis() > 0) {
-                container.withEnv(
-                        "TRUST_CACHE_TTL_MILLI",
-                        String.valueOf(verifierImageConfig.getTrustStatementCacheTtlMillis())
-                );
-            }
-
-            if (verifierImageConfig.getRequestObjectTtlSeconds() > 0) {
-                container.withEnv(
-                        "APPLICATION_REQUESTOBJECTTTLSECONDS",
-                        String.valueOf(verifierImageConfig.getRequestObjectTtlSeconds())
-                );
-            }
+            configureCacheAndRequestLifetimes(container, verifierImageConfig);
 
             if (verifierImageConfig.isMultipleSigningKeys()) {
                 configureMultipleSigningKeys(container, config);
@@ -218,6 +187,45 @@ public class VerifierContainerConfig {
             container
                     .withEnv(prefix + "VERIFICATIONMETHOD", identity.getVerifierAuthKeyId())
                     .withEnv(prefix + "PRIVATEKEY", identity.getVerifierAuthKeyPemString());
+        }
+    }
+
+    private static void configureAuditInformation(final GenericContainer<?> container, final VerifierImageConfig verifierImageConfig) {
+        // Most scenarios inspect audit data explicitly; null tests the product's own defaults.
+        if (verifierImageConfig.getAuditVpTokenEnabled() != null) {
+            container.withEnv("ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED",
+                    verifierImageConfig.getAuditVpTokenEnabled().toString());
+        }
+        if (verifierImageConfig.getAuditCredentialSubjectDataEnabled() != null) {
+            container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED",
+                    verifierImageConfig.getAuditCredentialSubjectDataEnabled().toString());
+        }
+        if (verifierImageConfig.getAuditCredentialEvaluationEnabled() != null) {
+            container.withEnv("ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED",
+                    verifierImageConfig.getAuditCredentialEvaluationEnabled().toString());
+        }
+    }
+
+    private static void configureCacheAndRequestLifetimes(final GenericContainer<?> container, final VerifierImageConfig verifierImageConfig) {
+        if (verifierImageConfig.getJwkCacheTtlMillis() > 0) {
+            container.withEnv(
+                    "JWK_CACHE_TTL_MILLI",
+                    String.valueOf(verifierImageConfig.getJwkCacheTtlMillis())
+            );
+        }
+
+        if (verifierImageConfig.getTrustStatementCacheTtlMillis() > 0) {
+            container.withEnv(
+                    "TRUST_CACHE_TTL_MILLI",
+                    String.valueOf(verifierImageConfig.getTrustStatementCacheTtlMillis())
+            );
+        }
+
+        if (verifierImageConfig.getRequestObjectTtlSeconds() > 0) {
+            container.withEnv(
+                    "APPLICATION_REQUESTOBJECTTTLSECONDS",
+                    String.valueOf(verifierImageConfig.getRequestObjectTtlSeconds())
+            );
         }
     }
 }

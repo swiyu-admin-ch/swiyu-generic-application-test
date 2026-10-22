@@ -33,7 +33,7 @@ final class Tp2MockServerResponseFactory {
                     .withHeader(CONTENT_TYPE, "application/json")
                     .withBody(objectMapper.writeValueAsString(body));
         } catch (JacksonException e) {
-            throw new TestSupportException("Cannot serialize MockServer response: " + e.getMessage());
+            throw new TestSupportException("Cannot serialize MockServer response: " + e.getMessage(), e);
         }
     }
 
@@ -81,7 +81,7 @@ final class Tp2MockServerResponseFactory {
                     "updatedAt", now
             ));
         } catch (ParseException e) {
-            throw new TestSupportException("Cannot parse published vqPS JWT: " + e.getMessage());
+            throw new TestSupportException("Cannot parse published vqPS JWT: " + e.getMessage(), e);
         }
     }
 
@@ -99,7 +99,7 @@ final class Tp2MockServerResponseFactory {
             return objectMapper.readValue(request.getBodyAsString(), new TypeReference<>() {
             });
         } catch (JacksonException e) {
-            throw new IllegalArgumentException("request body must be a JSON object");
+            throw new IllegalArgumentException("request body must be a JSON object", e);
         }
     }
 

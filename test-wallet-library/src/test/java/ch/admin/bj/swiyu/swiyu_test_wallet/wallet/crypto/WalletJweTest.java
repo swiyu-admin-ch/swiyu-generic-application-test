@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
 import ch.admin.bj.swiyu.jweutil.JweUtil;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEObject;
 import com.nimbusds.jose.crypto.ECDHDecrypter;
 import com.nimbusds.jose.jwk.Curve;
@@ -23,7 +24,7 @@ class WalletJweTest {
     private ECKey verifierKey;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() throws JOSEException {
         verifierKey = new ECKeyGenerator(Curve.P_256).keyID("verifier-key-1").generate();
     }
 

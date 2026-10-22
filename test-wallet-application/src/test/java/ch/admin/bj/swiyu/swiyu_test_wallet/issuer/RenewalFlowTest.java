@@ -134,9 +134,9 @@ class RenewalFlowTest extends BaseTest {
                     a second batch of credentials using the DPoP-bound refresh token mechanism.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -183,9 +183,8 @@ class RenewalFlowTest extends BaseTest {
                     credential_request_denied without forwarding the request to the Business Issuer renewal endpoint.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1301 is not available in these issuer images"
@@ -262,9 +261,10 @@ class RenewalFlowTest extends BaseTest {
                     a second batch of credentials using the DPoP-bound refresh token mechanism.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -321,9 +321,9 @@ class RenewalFlowTest extends BaseTest {
                     validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
@@ -347,10 +347,7 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(entry);
-        final String dpopCrendetialEndpoint = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                token.getAccessToken());
+        wallet.collectDPoPNonce(entry);
 
         log.info("Provide wrong access token to simulate missmatch refresh token");
         final OAuthToken modifiedToken = Mockito.spy(token);
@@ -383,9 +380,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -428,7 +424,6 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the wrong dpop");
-        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequest(entry, invalidDpopCrendetialEndpoint)
@@ -454,9 +449,8 @@ class RenewalFlowTest extends BaseTest {
                     """
 
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -518,9 +512,9 @@ class RenewalFlowTest extends BaseTest {
                     The renewal attempt must be rejected with HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet"
@@ -544,10 +538,7 @@ class RenewalFlowTest extends BaseTest {
         entry.generateHolderKeys();
         entry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(entry);
-        final String dpopCrendetialEndpoint = DPoPSupport.createDpopProofForToken(
-                entry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                token.getAccessToken());
+        wallet.collectDPoPNonce(entry);
 
         log.info("The management revokes the credential");
         issuerManager.updateStateWithSignedJwt(
@@ -557,7 +548,6 @@ class RenewalFlowTest extends BaseTest {
         );
 
         log.info("Renew credentials using the refresh token");
-        final String accessToken = token.getAccessToken();
         final HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,
                 () -> wallet.postCredentialRequest(entry)
@@ -581,9 +571,9 @@ class RenewalFlowTest extends BaseTest {
                     enforce strict token validation and deny requests with HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
@@ -632,9 +622,9 @@ class RenewalFlowTest extends BaseTest {
                     DPoP binding verification and reject with HTTP 401.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -683,9 +673,9 @@ class RenewalFlowTest extends BaseTest {
                     with HTTP 401.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
@@ -730,9 +720,10 @@ class RenewalFlowTest extends BaseTest {
                     and return HTTP 400 invalid_token error.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (stable) Fix not available (rc, staging)"
@@ -781,9 +772,8 @@ class RenewalFlowTest extends BaseTest {
                     credential_management_id without cross-linking between independent management entities.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCI_I1E)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -839,8 +829,12 @@ class RenewalFlowTest extends BaseTest {
     }
 
     @Test
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @XrayTest(key = "EIDOMNI-1337",
             summary = "Delayed Business Issuer renewal succeeds and both batches can subsequently be revoked",
             description = "Sequential baseline for R29: delay the renewal response, await success, then revoke and verify every initial and renewed credential.")
@@ -914,8 +908,12 @@ class RenewalFlowTest extends BaseTest {
     }
 
     @Test
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @XrayTest(key = "EIDOMNI-1339",
             summary = "Business Issuer renewal failure leaves no partial batch and does not prevent subsequent revocation",
             description = "Sequential baseline for R30: a targeted renewal 503 leaves offers and status references unchanged; revoke then invalidates the original batch.")
@@ -1017,7 +1015,7 @@ class RenewalFlowTest extends BaseTest {
         entry.createProofs(nonce);
 
         nonce = wallet.collectDPoPNonce(entry);
-        dpop = DPoPSupport.createDpopProofForToken(
+        DPoPSupport.createDpopProofForToken(
                 entry.getIssuerCredentialUri().toString(),
                 nonce,
                 wallet.getDpopKeyPair(),

@@ -57,6 +57,7 @@ class DPoPFlowTest extends BaseTest {
                     Then the issuer rejects it because holder DPoP keys remain hardware-bound ES256/P-256 keys.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "DPoP and EIDOMNI-1050 validation are not available yet"
@@ -113,9 +114,10 @@ class DPoPFlowTest extends BaseTest {
                     7. Issuer successfully issues credentials.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "The fix of DPoP token is not available yet."
@@ -194,9 +196,9 @@ class DPoPFlowTest extends BaseTest {
                     10. Wallet uses the refreshed access_token on /credential (V1) and receives credentials.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "The fix of DPoP token is not available yet."
@@ -297,8 +299,8 @@ class DPoPFlowTest extends BaseTest {
                     without any protection.
                     """
     )
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -373,8 +375,9 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance renewal requests cannot be replayed.
                     """
     )
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -465,8 +468,9 @@ class DPoPFlowTest extends BaseTest {
                     This ensures that batch issuance cannot be exploited through nonce replay.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -556,8 +560,9 @@ class DPoPFlowTest extends BaseTest {
                     MUST be rejected by the issuer.
                     """
     )
-    @Tag(ReportingTags.UCI_I2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -633,8 +638,9 @@ class DPoPFlowTest extends BaseTest {
                     This verifies RFC 9449: DPoP URI binding prevents MITM reuse of tokens on different endpoints.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -716,8 +722,9 @@ class DPoPFlowTest extends BaseTest {
                     6. Wallet requests new credential batch with new nonces - must succeed.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
