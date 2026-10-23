@@ -1,3 +1,6 @@
+# Manual local debugging stack. The E2E suite starts its own Testcontainers.
+# The default DIDs and private keys below are public test fixtures matching init.json.
+# Override an identity and its DID log together when using your own keys.
 services:
   postgres:
     image: postgres:15-alpine
@@ -6,96 +9,118 @@ services:
       POSTGRES_PASSWORD: "secret"
       POSTGRES_DB: "db"
     ports:
-      - "5434:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5434}:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U db_mgmt_user -d db" ]
+      test: ["CMD-SHELL", "pg_isready -U db_mgmt_user -d db"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
     volumes:
       - db_data:/var/lib/postgresql/data
 
   mockServer:
-    image: mockserver/mockserver:8.0.0
+    image: mockserver/mockserver:9.0.0
     ports:
-      - 1080:1080
+      - "127.0.0.1:${MOCKSERVER_PORT:-1080}:1080"
     environment:
       MOCKSERVER_INITIALIZATION_JSON_PATH: /config/init.json
-
     volumes:
       - type: bind
-        source: .
-        target: /config
+        source: ./init.json
+        target: /config/init.json
+        read_only: true
+    networks:
+      default:
+        aliases: [mockserver]
 
   swiyu-issuer-service:
-    image: ghcr.io/swiyu-admin-ch/swiyu-issuer:latest
+    image: ${ISSUER_IMAGE_NAME:-ghcr.io/swiyu-admin-ch/swiyu-issuer}:${ISSUER_IMAGE_TAG:-dev}
     environment:
-      EXTERNAL_URL: ${EXTERNAL_URL}
-      SPRING_APPLICATION_NAME: ${SPRING_APPLICATION_NAME}
-      ISSUER_ID: ${ISSUER_ID}
-      DID_STATUS_LIST_VERIFICATION_METHOD: ${DID_STATUS_LIST_VERIFICATION_METHOD}
-      STATUS_LIST_KEY: ${STATUS_LIST_KEY}
-      SWIYU_PARTNER_ID: ${SWIYU_PARTNER_ID}
-      SWIYU_STATUS_REGISTRY_CUSTOMER_KEY: ${SWIYU_STATUS_REGISTRY_CUSTOMER_KEY}
-      SWIYU_STATUS_REGISTRY_ACCESS_TOKEN: ${SWIYU_STATUS_REGISTRY_ACCESS_TOKEN}
-      SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET: ${SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET}
-      SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN: ${SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN}
-      DID_SDJWT_VERIFICATION_METHOD: ${DID_SDJWT_VERIFICATION_METHOD}
-      SDJWT_KEY: ${SDJWT_KEY}
-
-      # Environment specific values. Please consult the main manual
-      SWIYU_STATUS_REGISTRY_TOKEN_URL: ${SWIYU_STATUS_REGISTRY_TOKEN_URL}
-      SWIYU_STATUS_REGISTRY_API_URL: ${SWIYU_STATUS_REGISTRY_API_URL}
-
-      # Default settings for the application. Only change these if you know what you are doing
-      LOGGING_LEVEL_CH_ADMIN_BJ_SWIYU: DEBUG
+      EXTERNAL_URL: ${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}
+      SPRING_APPLICATION_NAME: swiyu-local-issuer
+      ISSUER_ID: ${ISSUER_ID:-did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085}
+      DID_STATUS_LIST_VERIFICATION_METHOD: ${DID_STATUS_LIST_VERIFICATION_METHOD:-did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#auth-key-01}
+      STATUS_LIST_KEY: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIIupKIpEQVfUvOKDA1eU+cPPL+QOayyHN5j9gMtkg3WfoAoGCCqGSM49
+        AwEHoUQDQgAEdh8fP0Dz/Vo6wZ5WpPCKifeLy8HvSTAv+qbCo/0Xfz6VYtvSSHkk
+        inihnv1fFpPwy4W4D6jB4Qdvj1GL8AooSA==
+        -----END EC PRIVATE KEY-----
+      DID_SDJWT_VERIFICATION_METHOD: ${DID_SDJWT_VERIFICATION_METHOD:-did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#assert-key-01}
+      SDJWT_KEY: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIER/u8byOBpnZ92rpXXYiVmc2AplHImHHn5vbbdhEHVOoAoGCCqGSM49
+        AwEHoUQDQgAEMIvpO+h6qKmVX9eEFkF+OPTPYNxqoFmbYfBMmhL06IdrJh7nu8AV
+        2PJMKgxq6l6I0X/QNnQtDyl2diz0bxs1+w==
+        -----END EC PRIVATE KEY-----
+      SWIYU_PARTNER_ID: 18fa7c77-9dd1-4e20-a147-fb1bec146085
+      SWIYU_STATUS_REGISTRY_CUSTOMER_KEY: local-customer
+      SWIYU_STATUS_REGISTRY_CUSTOMER_SECRET: local-secret
+      SWIYU_STATUS_REGISTRY_BOOTSTRAP_REFRESH_TOKEN: local-refresh-token
       SWIYU_STATUS_REGISTRY_AUTH_ENABLE_REFRESH_TOKEN_FLOW: "true"
-
-      # Default settings for the application. Only change these if you know what you are doing
-      OPENID_CONFIG_FILE: "file:/cfg-files/openid_metadata.json"
-      METADATA_CONFIG_FILE: "file:/cfg-files/issuer_metadata.json"
-      TOKEN_TTL: 600
-
-      # Persistence
-      POSTGRES_USER: "db_mgmt_user"
-      POSTGRES_PASSWORD: "secret"
-      POSTGRES_DB: "db"
-      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/db?currentSchema=mocked_issuer"
+      SWIYU_STATUS_REGISTRY_TOKEN_URL: http://mockserver:1080/openid-connect/token
+      SWIYU_STATUS_REGISTRY_API_URL: http://mockserver:1080
+      SWIYU_TRUST_REGISTRY_API_URL: http://mockserver:1080
+      APPLICATION_ACCEPTED_REGISTRY_HOSTS_0: mockserver
+      URL_REWRITE_MAPPING: '{"https://mockserver":"http://mockserver"}'
+      OPENID_CONFIG_FILE: file:/cfg-files/openid_metadata.json
+      METADATA_CONFIG_FILE: file:/cfg-files/issuer_metadata.json
+      TOKEN_TTL: "600"
+      POSTGRES_USER: db_mgmt_user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: db
+      POSTGRES_DB_SCHEMA: mocked_issuer
+      POSTGRES_JDBC: jdbc:postgresql://postgres:5432/db?currentSchema=mocked_issuer
     configs:
       - source: issuer_metadata
         target: /cfg-files/issuer_metadata.json
       - source: openid_metadata
         target: /cfg-files/openid_metadata.json
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${ISSUER_PORT:-8080}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      mockServer:
+        condition: service_healthy
 
   verifier-service:
-    image: ghcr.io/swiyu-admin-ch/swiyu-verifier:latest
+    image: ${VERIFIER_IMAGE_NAME:-ghcr.io/swiyu-admin-ch/swiyu-verifier}:${VERIFIER_IMAGE_TAG:-dev}
+    environment:
+      EXTERNAL_URL: ${VERIFIER_EXTERNAL_URL:-http://localhost:${VERIFIER_PORT:-8083}}
+      OPENID_CLIENT_METADATA_FILE: file:/verifier_metadata.json
+      VERIFIER_DID: ${VERIFIER_DID:-did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea}
+      DID_VERIFICATION_METHOD: ${DID_VERIFICATION_METHOD:-did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea#auth-key-01}
+      SIGNING_KEY: |-
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIP5LSM09U+xqpqq95qCke+d/7hQPW/X5Mx2f3qrny4HloAoGCCqGSM49
+        AwEHoUQDQgAEPidnCqE0WaIqVD0FY4NVwwMI2bepWc75owiSRWLWtqMWHNLckwCX
+        dVzfn5Qxa1EBS1497wNErYlgOofLrxwyVA==
+        -----END EC PRIVATE KEY-----
+      APPLICATION_ACCEPTED_REGISTRY_HOSTS_0: mockserver
+      APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0: mockserver
+      APPLICATION_CLIENT_ID_PREFIX: decentralized_identifier
+      URL_REWRITE_MAPPING: '{"https://mockserver":"http://mockserver"}'
+      SWIYU_TRUST_REGISTRY_API_URL: http://mockserver:1080
+      # Mirror the E2E harness opt-in to verification audit details.
+      ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED: "true"
+      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED: "true"
+      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED: "true"
+      POSTGRES_USER: db_mgmt_user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: db
+      POSTGRES_DB_SCHEMA: mocked_verifier
+      POSTGRES_JDBC: jdbc:postgresql://postgres:5432/db?currentSchema=mocked_verifier
     configs:
       - source: verifier_metadata
         target: /verifier_metadata.json
     ports:
-      - "8083:8080"
-    environment:
-      EXTERNAL_URL: ${EXTERNAL_URL}
-      OPENID_CLIENT_METADATA_FILE: ${OPENID_CLIENT_METADATA_FILE}
-      VERIFIER_DID: ${VERIFIER_DID}
-      DID_VERIFICATION_METHOD: ${DID_VERIFICATION_METHOD}
-      SIGNING_KEY: ${SIGNING_KEY}
-
-      # Audit information is omitted from the management API response by default (EIDOMNI-1321).
-      # The local stack mirrors the E2E harness and opts in to all of it.
-      ADDITIONAL_AUDIT_INFORMATION_VP_TOKEN_ENABLED: "true"
-      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_SUBJECT_DATA_ENABLED: "true"
-      ADDITIONAL_AUDIT_INFORMATION_CREDENTIAL_EVALUATION_ENABLED: "true"
-
-      # Persistence
-      POSTGRES_USER: "db_mgmt_user"
-      POSTGRES_PASSWORD: "secret"
-      POSTGRES_DB: "db"
-      POSTGRES_JDBC: "jdbc:postgresql://postgres:5432/db?currentSchema=mocked_verifier"
+      - "127.0.0.1:${VERIFIER_PORT:-8083}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mockServer:
+        condition: service_healthy
 
 volumes:
   db_data:
@@ -104,34 +129,30 @@ configs:
   openid_metadata:
     content: |
       {
-        "issuer": "${EXTERNAL_URL}",
-        "token_endpoint": "${EXTERNAL_URL}/oid4vci/api/token"
+        "issuer": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}",
+        "token_endpoint": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}/oid4vci/api/token"
       }
   issuer_metadata:
     content: |
       {
-        "credential_issuer": "${EXTERNAL_URL}",
-        "credential_endpoint": "${EXTERNAL_URL}/oid4vci/api/credential",
-        "version": "1.0",
+        "credential_issuer": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}",
+        "credential_endpoint": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}/oid4vci/api/credential",
+        "deferred_credential_endpoint": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}/oid4vci/api/deferred_credential",
+        "nonce_endpoint": "${ISSUER_EXTERNAL_URL:-http://localhost:${ISSUER_PORT:-8080}}/oid4vci/api/nonce",
+        "profile_version": "swiss-profile-issuance:1.0.0",
         "display": [
           {
-            "name": "Mein Test VC",
-            "locale": "de-CH",
-            "logo": {
-              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
-            }
-          },
-          {
-            "name": "My test vc",
-            "locale": "en-US",
-            "logo": {
-              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
-            }
+            "name": "Local Test Issuer",
+            "locale": "en-US"
           }
         ],
+        "batch_credential_issuance": {
+          "batch_size": 10
+        },
         "credential_configurations_supported": {
           "my-test-vc": {
             "format": "dc+sd-jwt",
+            "vct": "urn:swiyu:compose:my-test-vc",
             "cryptographic_binding_methods_supported": [
               "jwk"
             ],
@@ -145,124 +166,65 @@ configs:
                 ]
               }
             },
-            "display": [
-              {
-                "name": "Demo-VC",
-                "locale": "de-CH",
-                "logo": {
-                  "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+            "credential_metadata": {
+              "display": [
+                {
+                  "name": "Demo VC",
+                  "locale": "en-US",
+                  "description": "Local test credential"
+                }
+              ],
+              "claims": [
+                {
+                  "path": [
+                    "lastName"
+                  ],
+                  "display": [
+                    {
+                      "locale": "en-US",
+                      "name": "Last name"
+                    }
+                  ]
                 },
-                "description": "Das ist ein Test-VC",
-                "background_color": "#ff69b4"
-              },
-              {
-                "name": "Demo-VC",
-                "locale": "en-US",
-                "logo": {
-                  "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAABD0lEQVR4nOyYsUrEQBRFVQYRYYUtZi0UC0vFUrBeYW1sF2E/wU623P8RkTSCf7FFipDaIkxhmkyapBgCYivz5sKAmynuaS9vOPDgcRlVXl/spcTB2AJ/oRCCQggKIVT8pJ4pfeqNnKmG1u5aaLpc6ecXb2Q26/Yji3s2uZVRCEEhBIUQFEKIl1rp2XS5Ckwe395J0WS+ODw7l1JX1zZ7ldJ9qVMfXd1cvn8GhKLpy+Lr6VFKk1sZhRAUQlAIIR5GZyqzWQcmJ/PFyf2DN2qyty7fSoODbWKEhtaGe/HvLRaEunzLTv1vUAhBIQSFEPGfDa7+7svCG4VvcRixwo5FciujEIJCCAohkhP6CQAA///lDD1tMy8HCAAAAABJRU5ErkJggg=="
+                {
+                  "path": [
+                    "firstName"
+                  ],
+                  "display": [
+                    {
+                      "locale": "en-US",
+                      "name": "First name"
+                    }
+                  ]
                 },
-                "description": "This is an test vc",
-                "background_color": "#4A412A"
-              }
-            ],
-              "vct": "my-test-vc",
-            "claims": {
-              "lastName": {
-                "mandatory": false,
-                "value_type": "string",
-                "display": [
-                  {
-                    "locale": "de-CH",
-                    "name": "Name"
-                  },
-                  {
-                    "locale": "fr-CH",
-                    "name": "Nom de famille"
-                  },
-                  {
-                    "locale": "it-CH",
-                    "name": "Cognome"
-                  },
-                  {
-                    "locale": "en-US",
-                    "name": "Last name"
-                  }
-                ]
-              },
-              "firstName": {
-                "mandatory": false,
-                "value_type": "string",
-                "display": [
-                  {
-                    "locale": "de-CH",
-                    "name": "Vorname"
-                  },
-                  {
-                    "locale": "fr-CH",
-                    "name": "Prénom"
-                  },
-                  {
-                    "locale": "it-CH",
-                    "name": "Nome"
-                  },
-                  {
-                    "locale": "en-US",
-                    "name": "First name"
-                  }
-                ]
-              },
-              "birthDate": {
-                "mandatory": true,
-                "value_type": "string",
-                "display": [
-                  {
-                    "locale": "de-CH",
-                    "name": "Geburtsdatum"
-                  },
-                  {
-                    "locale": "fr-CH",
-                    "name": "Date de naissance"
-                  },
-                  {
-                    "locale": "it-CH",
-                    "name": "Data di nascita"
-                  },
-                  {
-                    "locale": "rm-CH",
-                    "name": "Data di naschientscha"
-                  },
-                  {
-                    "locale": "en-GB",
-                    "name": "Date of birth"
-                  }
-                ]
-              }
-            },
-            "order": [
-              "firstName",
-              "lastName",
-              "birthDate"
-            ]
+                {
+                  "path": [
+                    "birthDate"
+                  ],
+                  "display": [
+                    {
+                      "locale": "en-US",
+                      "name": "Date of birth"
+                    }
+                  ]
+                }
+              ]
+            }
           }
         }
       }
-
   verifier_metadata:
-    # Verifier logo configuration guide: https://swiyu-admin-ch.github.io/cookbooks/vc-visual-presentation/#verifier-logo
     content: |
       {
-        "client_id": "${VERIFIER_DID}",
-        "client_name#en": "Development Demo Verifier",
-        "client_name#fr": "Vérificateur de démonstration de développement",
-        "client_name#de-DE": "Entwicklungs-Demo-Verifizierer",
-        "client_name#de-CH": "Entwickligs-Demo-Verifizier",
-        "client_name#de": "Entwicklungs-Demo-Verifizierer (Fallback DE)",
-        "client_name": "DEV Demo Verifier (Base)",
-        "logo_uri": "www.example.com/logo.png",
-        "logo_uri#fr": "www.example.com/logo_fr.png",
-        "vp_formats": {
-          "jwt_vp": {
-            "alg": [
+        "client_id": "${VERIFIER_DID:-did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea}",
+        "client_name": "Local Test Verifier",
+        "client_name#fr": "Vérificateur de test local",
+        "vp_formats_supported": {
+          "dc+sd-jwt": {
+            "sd-jwt_alg_values": [
+              "ES256"
+            ],
+            "kb-jwt_alg_values": [
               "ES256"
             ]
           }

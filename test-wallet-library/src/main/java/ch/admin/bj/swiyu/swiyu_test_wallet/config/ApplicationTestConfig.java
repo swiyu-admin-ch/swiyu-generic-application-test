@@ -10,5 +10,5 @@ import org.springframework.stereotype.Component;
 @Setter
 @ConfigurationProperties("application")
 public class ApplicationTestConfig {
-    private boolean trace = false;
+    private boolean trace;
 }

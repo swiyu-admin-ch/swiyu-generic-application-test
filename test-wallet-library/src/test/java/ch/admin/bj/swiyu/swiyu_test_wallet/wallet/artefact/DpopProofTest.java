@@ -1,9 +1,11 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 
+import ch.admin.bj.swiyu.dpop.DpopValidationException;
 import ch.admin.bj.swiyu.dpop.DpopConstants;
 import ch.admin.bj.swiyu.dpop.DpopJwtValidator;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.OctetKeyPair;
@@ -13,7 +15,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyPair;
+import java.text.ParseException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -52,7 +56,7 @@ class DpopProofTest {
     }
 
     /** The names of the requirements the proof does not satisfy, for a request to {@link #REQUEST_URI}. */
-    private static Set<String> violations(final String proof) throws Exception {
+    private static Set<String> violations(final String proof) throws ParseException {
         final SignedJWT jwt = DpopJwtValidator.parse(proof);
         final Set<String> violated = new LinkedHashSet<>();
         check(violated, "mandatory claims", () -> DpopJwtValidator.validateMandatoryClaims(jwt.getHeader(), jwt.getJWTClaimsSet()));
@@ -72,13 +76,13 @@ class DpopProofTest {
 
     @FunctionalInterface
     private interface Check {
-        void run() throws Exception;
+        void run() throws ParseException, JOSEException, URISyntaxException;
     }
 
     private static void check(final Set<String> violated, final String name, final Check check) {
         try {
             check.run();
-        } catch (Exception e) {
+        } catch (ParseException | JOSEException | URISyntaxException | DpopValidationException e) {
             violated.add(name);
         }
     }

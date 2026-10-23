@@ -67,8 +67,10 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     Spec: OID4VP 1.0 §8.3 Encrypted Responses and §8.6 VP Token Validation; Swiss verification profile §8 Response.
                     HTTP 410, terminal-state immutability and the callback bound come from the verifier API and the ticket.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {
@@ -128,9 +130,10 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     Spec: OID4VP 1.0 §8.5 Error Response; Swiss verification profile §8.5 Error Response says errors SHOULD be never encrypted.
                     HTTP 410, terminal-state immutability and the callback bound come from the verifier API and the ticket.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
-    @Disabled("Bug ticket : EIDOMNI-1386")
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void walletError_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {

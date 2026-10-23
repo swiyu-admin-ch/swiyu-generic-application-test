@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import lombok.experimental.UtilityClass;
+import org.mockserver.client.MockServerClient;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.containers.Network;
@@ -14,7 +15,7 @@ public class MockServerContainerConfig {
         MockServerContainer container = new MockServerContainer(
                 DockerImageName
                         .parse("mockserver/mockserver")
-                        .withTag("8.0.0"));
+                        .withTag(MockServerClient.class.getPackage().getImplementationVersion()));
         container.withExposedPorts(1080);
         container.withNetwork(network);
         container.withEnv(

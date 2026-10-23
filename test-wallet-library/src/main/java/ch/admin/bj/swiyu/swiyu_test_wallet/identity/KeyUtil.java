@@ -20,7 +20,7 @@ public class KeyUtil {
 
     public static KeyPair generateEC256KeyPair() {
 
-        KeyPairGenerator keyPairGenerator = null;
+        final KeyPairGenerator keyPairGenerator;
         try {
             keyPairGenerator = KeyPairGenerator.getInstance("EC", BouncyCastleProviderSingleton.getInstance());
         } catch (NoSuchAlgorithmException e) {

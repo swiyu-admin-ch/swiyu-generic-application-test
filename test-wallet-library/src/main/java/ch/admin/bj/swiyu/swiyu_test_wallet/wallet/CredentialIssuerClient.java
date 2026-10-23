@@ -43,6 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Request, Nonce Request, Credential Request, Deferred Credential Request, refresh, and the DPoP proofs that go with them.
  * It reads the wallet's current settings (profile, DPoP key, service location) on every call.
  */
+// This protocol boundary coordinates typed metadata, tokens, request artifacts and credential responses.
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.CyclomaticComplexity"})
 final class CredentialIssuerClient {
 
     private final Wallet wallet;
@@ -51,11 +53,11 @@ final class CredentialIssuerClient {
         this.wallet = wallet;
     }
 
-    public WalletBatchEntry collectTransactionIdFromDeferredOffer(final URI issuerDeepLink) {
+    WalletBatchEntry collectTransactionIdFromDeferredOffer(final URI issuerDeepLink) {
         final WalletBatchEntry walletBatchEntry = wallet.createWalletBatchEntry();
         return collectTransactionIdFromDeferredOffer(walletBatchEntry, issuerDeepLink);
     }
-    public WalletBatchEntry collectTransactionIdFromDeferredOffer(final WalletBatchEntry walletBatchEntry, final URI issuerDeepLink) {
+    WalletBatchEntry collectTransactionIdFromDeferredOffer(final WalletBatchEntry walletBatchEntry, final URI issuerDeepLink) {
         walletBatchEntry.receiveDeepLinkAndValidateIt(wallet.getIssuerContext().getContextualizedUri(issuerDeepLink));
         walletBatchEntry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(walletBatchEntry));
         walletBatchEntry.setIssuerMetadata(getIssuerWellKnownMetadata(walletBatchEntry));
@@ -85,7 +87,7 @@ final class CredentialIssuerClient {
         walletBatchEntry.setTransactionId(UUID.fromString(transactionId));
         return walletBatchEntry;
     }
-    public OAuthAuthorizationServerMetadata getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
+    OAuthAuthorizationServerMetadata getIssuerWellKnownConfiguration(WalletEntry walletEntry) {
         final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerUri());
         final URI issuerOpenIdConfiguration = UriComponentsBuilder
                 .fromUri(issuerUri)
@@ -123,11 +125,11 @@ final class CredentialIssuerClient {
 
             return mapper.treeToValue(rawMetadata, OAuthAuthorizationServerMetadata.class);
 
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse issuer well-known configuration", e);
         }
     }
-    public IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
+    IssuerMetadata getIssuerWellKnownMetadata(WalletEntry walletEntry) {
         final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerUri());
         final URI issuerOpenIdCredentialIssuer = UriComponentsBuilder
                 .fromUri(issuerUri)
@@ -164,11 +166,11 @@ final class CredentialIssuerClient {
 
             return mapper.treeToValue(rawMetadata, IssuerMetadata.class);
 
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse issuer metadata", e);
         }
     }
-    public OAuthToken collectToken(WalletEntry walletEntry) {
+    OAuthToken collectToken(WalletEntry walletEntry) {
         final URI tokenUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerTokenUri());
         final String preAuthorizedCode = walletEntry.getPreAuthorizedCode();
 
@@ -186,7 +188,7 @@ final class CredentialIssuerClient {
                 .retrieve()
                 .body(OAuthToken.class);
     }
-    public ResponseEntity<NonceResponse> collectNonce(WalletEntry walletEntry) {
+    ResponseEntity<NonceResponse> collectNonce(WalletEntry walletEntry) {
         String nonceEndpointStr = walletEntry.getIssuerMetadata().getNonceEndpoint();
         if (nonceEndpointStr == null) {
             throw new IllegalStateException("nonce_endpoint not available in issuer metadata");
@@ -198,7 +200,7 @@ final class CredentialIssuerClient {
                 .retrieve()
                 .toEntity(NonceResponse.class);
     }
-    public String collectCNonce(WalletEntry walletEntry) {
+    String collectCNonce(WalletEntry walletEntry) {
         final ResponseEntity<NonceResponse> response = collectNonce(walletEntry);
         final NonceResponse body = response.getBody();
         if (body == null) {
@@ -206,7 +208,7 @@ final class CredentialIssuerClient {
         }
         return body.getcNonce();
     }
-    public List<String> getVerifiableCredentialFromIssuer(final WalletBatchEntry batchEntry) {
+    List<String> getVerifiableCredentialFromIssuer(final WalletBatchEntry batchEntry) {
         CredentialResponse credentialResponse = postCredentialRequest(batchEntry);
         return extractIssuedCredentials(batchEntry, credentialResponse);
     }
@@ -278,16 +280,7 @@ final class CredentialIssuerClient {
 
         String bearerToken = token.getAccessToken();
 
-        String doPProofForCredentialRequest = null;
-        if (DPOP.equals(token.getTokenType())) {
-            doPProofForCredentialRequest = DPoPSupport.createDpopProofForToken(
-                    deferredCredentialUri.toString(),
-                    collectDPoPNonce(walletEntry),
-                    wallet.getDpopKeyPair(),
-                    wallet.getDpopPublicKey(),
-                    token.getAccessToken()
-            );
-        }
+        final String doPProofForCredentialRequest = deferredDpopProof(walletEntry, deferredCredentialUri, token);
 
         var requestBuilder = wallet.getRestClient().post()
                 .uri(wallet.getIssuerContext().getContextualizedUri(deferredCredentialUri))
@@ -317,6 +310,24 @@ final class CredentialIssuerClient {
             responseBody = JweUtil.decrypt(responseBody, walletEntry.getEphemeralEncryptionKey(), JweDecryptionLimits.defaults());
         }
 
+        return rememberDeferredResponse(walletEntry, responseCode, responseBody, rawResponse);
+    }
+
+    private String deferredDpopProof(final WalletBatchEntry walletEntry, final URI deferredCredentialUri, final OAuthToken token) {
+        if (!DPOP.equals(token.getTokenType())) {
+            return null;
+        }
+        return DPoPSupport.createDpopProofForToken(
+                deferredCredentialUri.toString(),
+                collectDPoPNonce(walletEntry),
+                wallet.getDpopKeyPair(),
+                wallet.getDpopPublicKey(),
+                token.getAccessToken()
+        );
+    }
+
+    private CredentialResponse rememberDeferredResponse(
+            final WalletBatchEntry walletEntry, final int responseCode, final String responseBody, final String rawResponse) {
         final JsonObject credentialResponse = JsonParser.parseString(responseBody).getAsJsonObject();
 
         if (credentialResponse.has(CREDENTIALS)) {
@@ -339,7 +350,9 @@ final class CredentialIssuerClient {
 
         return completeCredentialResponse;
     }
-    public String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
+    // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    String encryptCredentialRequestPayload(final WalletEntry walletEntry, final String requestJson) {
         if (!wallet.getProfile().encryption()) {
             throw new IllegalStateException("Wallet payload encryption must be enabled");
         }
@@ -348,19 +361,7 @@ final class CredentialIssuerClient {
             var metadata = walletEntry.getIssuerMetadata();
             var requestEncryptionMetadata = metadata.getCredentialRequestEncryption();
 
-            Object jwksObject = requestEncryptionMetadata.getJwks();
-            Map<String, Object> issuerKeyMap;
-
-            if (jwksObject instanceof List<?> jwksList && !jwksList.isEmpty()) {
-                issuerKeyMap = (Map<String, Object>) jwksList.get(0);
-            } else if (jwksObject instanceof Map<?, ?> jwksMap && jwksMap.containsKey("keys")) {
-                var keys = (List<?>) jwksMap.get("keys");
-                issuerKeyMap = (Map<String, Object>) keys.get(0);
-            } else if (jwksObject instanceof Map<?, ?> singleKey) {
-                issuerKeyMap = (Map<String, Object>) singleKey;
-            } else {
-                throw new IllegalStateException("Unexpected JWKS format in issuer metadata: " + jwksObject);
-            }
+            final Map<String, Object> issuerKeyMap = issuerEncryptionKey(requestEncryptionMetadata.getJwks());
 
             var issuerKey = JWK.parse(issuerKeyMap);
 
@@ -386,28 +387,44 @@ final class CredentialIssuerClient {
             throw new IllegalStateException("Error during encryption", e);
         }
     }
-    public CredentialResponse getCredentialFromTransactionId(WalletBatchEntry walletBatchEntry) {
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> issuerEncryptionKey(final Object jwksObject) {
+        final Map<String, Object> issuerKeyMap;
+        if (jwksObject instanceof List<?> jwksList && !jwksList.isEmpty()) {
+            issuerKeyMap = (Map<String, Object>) jwksList.get(0);
+        } else if (jwksObject instanceof Map<?, ?> jwksMap && jwksMap.containsKey("keys")) {
+            var keys = (List<?>) jwksMap.get("keys");
+            issuerKeyMap = (Map<String, Object>) keys.get(0);
+        } else if (jwksObject instanceof Map<?, ?> singleKey) {
+            issuerKeyMap = (Map<String, Object>) singleKey;
+        } else {
+            throw new IllegalStateException("Unexpected JWKS format in issuer metadata: " + jwksObject);
+        }
+        return issuerKeyMap;
+    }
+
+    CredentialResponse getCredentialFromTransactionId(WalletBatchEntry walletBatchEntry) {
         return postDeferredCredentialRequest(walletBatchEntry);
     }
-    public CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
+    CredentialResponse renewedCredentials(WalletBatchEntry batchEntry) {
         final String nonce = collectCNonce(batchEntry);
         batchEntry.generateHolderKeys();
         batchEntry.createProofs(nonce);
 
         return postCredentialRequest(batchEntry);
     }
-    public WalletBatchEntry collectOffer(final URI offerDeepLink) {
+    WalletBatchEntry collectOffer(final URI offerDeepLink) {
         final WalletBatchEntry entry = wallet.createWalletBatchEntry();
         return collectOffer(entry, offerDeepLink, null);
     }
-    public WalletBatchEntry collectOffer(final URI offerDeepLink, final Integer count) {
+    WalletBatchEntry collectOffer(final URI offerDeepLink, final Integer count) {
         final WalletBatchEntry entry = wallet.createWalletBatchEntry();
         return collectOffer(entry, offerDeepLink, count);
     }
-    public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink) {
+    WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink) {
         return collectOffer(entry, offerDeepLink, null);
     }
-    public WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
+    WalletBatchEntry collectOffer(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
         receiveOfferAndCollectToken(entry, offerDeepLink, count);
         getVerifiableCredentialFromIssuerWithFreshProofs(entry);
         return entry;
@@ -418,7 +435,7 @@ final class CredentialIssuerClient {
      * metadata discovery, token collection, holder-key generation, nonce retrieval and proof creation identical for
      * custom negative request tests.
      */
-    public WalletBatchEntry prepareOffer(final URI offerDeepLink) {
+    WalletBatchEntry prepareOffer(final URI offerDeepLink) {
         final WalletBatchEntry entry = wallet.createWalletBatchEntry();
         receiveOfferAndCollectToken(entry, offerDeepLink, null);
         entry.setCNonce(collectCNonce(entry));
@@ -431,7 +448,7 @@ final class CredentialIssuerClient {
      * exchanges the Pre-Authorized Code for an access token (Token Request) and generates the holder keys. The entry is
      * ready for a Credential Request, which the caller sends, for a test that needs to send it its own way or repeat it.
      */
-    public WalletBatchEntry receiveOfferAndCollectToken(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
+    WalletBatchEntry receiveOfferAndCollectToken(final WalletBatchEntry entry, final URI offerDeepLink, final Integer count) {
         entry.receiveDeepLinkAndValidateIt(wallet.getIssuerContext().getContextualizedUri(offerDeepLink));
         entry.setIssuerWellKnownConfiguration(getIssuerWellKnownConfiguration(entry));
         entry.setIssuerMetadata(getIssuerWellKnownMetadata(entry));
@@ -454,7 +471,7 @@ final class CredentialIssuerClient {
         return entry;
     }
 
-    public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry) {
+    CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry) {
         return postCredentialRequest(walletEntry, null);
     }
 
@@ -464,7 +481,9 @@ final class CredentialIssuerClient {
      * @param dpopProofOverride the DPoP proof to send, for a test that deliberately sends a wrong one (see
      *                          {@code DpopProof}); {@code null} sends the conformant proof when the profile uses DPoP
      */
-    public CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry, final String dpopProofOverride) {
+    // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    CredentialResponse postCredentialRequest(final WalletBatchEntry walletEntry, final String dpopProofOverride) {
         final URI credentialUri = walletEntry.getIssuerCredentialUri();
         final String requestPayload = createCredentialRequestPayload(walletEntry);
         final String finalPayload = wallet.getProfile().encryption()
@@ -516,7 +535,7 @@ final class CredentialIssuerClient {
      * Creates the same Credential Request plaintext as the regular Wallet flow without posting it. Negative protocol
      * tests can add one deliberate mutation while retaining valid proofs and response-encryption parameters.
      */
-    public String createCredentialRequestPayload(final WalletBatchEntry walletEntry) {
+    String createCredentialRequestPayload(final WalletBatchEntry walletEntry) {
 
         var proofsDto = new ProofsDto();
         proofsDto.setJwt(walletEntry.getProofsAsJwt());
@@ -548,7 +567,7 @@ final class CredentialIssuerClient {
      * Posts a caller-supplied Credential Request plaintext using the Wallet's configured encryption, authorization
      * and DPoP behavior. Intended for negative protocol tests that cannot use the generated request DTO.
      */
-    public ResponseEntity<String> postCredentialRequestWithCustomPayload(
+    ResponseEntity<String> postCredentialRequestWithCustomPayload(
             final WalletBatchEntry walletEntry,
             final String requestPayload
     ) {
@@ -564,7 +583,7 @@ final class CredentialIssuerClient {
     /**
      * Posts an already encrypted Credential Request through the normal Wallet authorization and DPoP transport path.
      */
-    public ResponseEntity<String> postCredentialRequestWithEncryptedPayload(
+    ResponseEntity<String> postCredentialRequestWithEncryptedPayload(
             final WalletBatchEntry walletEntry,
             final String encryptedPayload
     ) {
@@ -625,11 +644,11 @@ final class CredentialIssuerClient {
 
         return supportedEncValues.getFirst();
     }
-    public String collectDPoPNonce(WalletEntry walletEntry) {
+    String collectDPoPNonce(WalletEntry walletEntry) {
         ResponseEntity<NonceResponse> response = collectNonce(walletEntry);
         return response.getHeaders().getFirst("dpop-nonce");
     }
-    public OAuthToken collectTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+    OAuthToken collectTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
         final URI tokenUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerTokenUri());
         final String preAuthorizedCode = walletEntry.getPreAuthorizedCode();
 
@@ -651,7 +670,7 @@ final class CredentialIssuerClient {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
     }
-    public OAuthToken collectRefreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+    OAuthToken collectRefreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
         final URI tokenUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerTokenUri());
 
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -669,7 +688,7 @@ final class CredentialIssuerClient {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
     }
-    public OAuthToken refreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
+    OAuthToken refreshTokenWithDPoP(WalletEntry walletEntry, String doPProof) {
         final URI tokenUri = wallet.getIssuerContext().getContextualizedUri(walletEntry.getIssuerTokenUri());
         final String refreshToken = walletEntry.getToken().getRefreshToken();
 
@@ -690,7 +709,7 @@ final class CredentialIssuerClient {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return response.getBody();
     }
-    public void postCredentialRequestWithCustomDPoP(WalletBatchEntry batchEntry, String customDpopProof, URI credentialUri) {
+    void postCredentialRequestWithCustomDPoP(WalletBatchEntry batchEntry, String customDpopProof, URI credentialUri) {
         final OAuthToken token = batchEntry.getToken();
         final String bearerToken = token.getAccessToken();
         var proofsDto = new ProofsDto();
@@ -727,7 +746,7 @@ final class CredentialIssuerClient {
                         .formatted(credentialUri, responseCode, responseBody))
                 .isIn(List.of(200, 202));
     }
-    public String generateDpopForCredentialEndpoint(final WalletEntry walletEntry) {
+    String generateDpopForCredentialEndpoint(final WalletEntry walletEntry) {
         walletEntry.setCNonce(collectDPoPNonce(walletEntry));
         return DPoPSupport.createDpopProofForToken(
                 walletEntry.getIssuerCredentialUri().toString(),

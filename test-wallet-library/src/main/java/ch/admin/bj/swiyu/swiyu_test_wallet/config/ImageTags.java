@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
+// A constants namespace intentionally exposes fixture values without instance behavior.
 public class ImageTags {
     public final static String STABLE = "stable";
     public final static String RC = "rc";

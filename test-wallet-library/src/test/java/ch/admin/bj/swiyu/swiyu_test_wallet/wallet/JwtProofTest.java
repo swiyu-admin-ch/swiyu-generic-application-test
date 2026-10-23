@@ -11,6 +11,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.net.URI;
 import java.security.KeyPair;
@@ -147,5 +149,62 @@ class JwtProofTest {
                 .isEqualTo(edKey.getX());
         assertThat(proof.verify(new Ed25519Verifier(edKey.toPublicJWK())))
                 .isTrue();
+    }
+    @Test
+    void proof_whenAudienceDeviates_thenOnlyAudChanges() throws Exception {
+        final Instant issuedAt = Instant.now();
+        final SignedJWT normal = SignedJWT.parse(proof().issuedAt(issuedAt).build().toJwt());
+        final SignedJWT deviating = SignedJWT.parse(proof().issuedAt(issuedAt)
+                .withAudience("https://another-issuer.example.com").build().toJwt());
+
+        assertThat(deviating.verify(new ECDSAVerifier(publicJwk)))
+                .isTrue();
+        assertThat(deviating.getHeader().toJSONObject())
+                .isEqualTo(normal.getHeader().toJSONObject());
+        final var expected = new java.util.LinkedHashMap<>(normal.getJWTClaimsSet().getClaims());
+        expected.put("aud", List.of("https://another-issuer.example.com"));
+        assertThat(deviating.getJWTClaimsSet().getClaims())
+                .isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void proof_whenNonceDeviates_thenOnlyNonceChanges(final boolean omitNonce) throws Exception {
+        final Instant issuedAt = Instant.now();
+        final SignedJWT normal = SignedJWT.parse(proof().issuedAt(issuedAt).build().toJwt());
+        final var builder = proof().issuedAt(issuedAt);
+        final SignedJWT deviating = SignedJWT.parse((omitNonce ? builder.withoutNonce()
+                : builder.withNonce("another-nonce")).build().toJwt());
+
+        assertThat(deviating.verify(new ECDSAVerifier(publicJwk)))
+                .isTrue();
+        assertThat(deviating.getHeader().toJSONObject())
+                .isEqualTo(normal.getHeader().toJSONObject());
+        final var expected = new java.util.LinkedHashMap<>(normal.getJWTClaimsSet().getClaims());
+        if (omitNonce) {
+            expected.remove("nonce");
+        } else {
+            expected.put("nonce", "another-nonce");
+        }
+        assertThat(deviating.getJWTClaimsSet().getClaims())
+                .isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {-3600, 3600})
+    void proof_whenIssuedAtDeviates_thenOnlyIatChanges(final long offsetSeconds) throws Exception {
+        final Instant issuedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        final Instant deviatingTime = issuedAt.plusSeconds(offsetSeconds);
+        final SignedJWT normal = SignedJWT.parse(proof().issuedAt(issuedAt).build().toJwt());
+        final SignedJWT deviating = SignedJWT.parse(proof().withIssuedAt(deviatingTime).build().toJwt());
+
+        assertThat(deviating.verify(new ECDSAVerifier(publicJwk)))
+                .isTrue();
+        assertThat(deviating.getHeader().toJSONObject())
+                .isEqualTo(normal.getHeader().toJSONObject());
+        final var expected = new java.util.LinkedHashMap<>(normal.getJWTClaimsSet().getClaims());
+        expected.put("iat", java.util.Date.from(deviatingTime));
+        assertThat(deviating.getJWTClaimsSet().getClaims())
+                .isEqualTo(expected);
     }
 }
