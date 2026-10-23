@@ -234,7 +234,6 @@ class RevocationFlowTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
-    @Disabled ("Bug ticket : EIDOMNI-830")
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
         // Given
         cleanIssuerCallbacks();
