@@ -56,8 +56,9 @@ class DPoPProofValidationTest extends BaseTest {
                     Spec: RFC 9449 §4.2, §4.3 and §11.1; Swiss issuance profile §8.2.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialRequest_whenDpopProofDeviates_thenRejectedWithoutIssuance(final DpopDeviation deviation) {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
@@ -102,8 +103,9 @@ class DPoPProofValidationTest extends BaseTest {
                     Spec: RFC 9449 §4.2, §4.3 and §7.1.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialRequest_whenDpopAthIsOfAnotherAccessToken_thenRejectedWithoutIssuance() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(

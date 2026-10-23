@@ -66,9 +66,10 @@ class VerifierHSMTest extends BaseTest {
                     key PIN and the override key instead of the configured default HSM key.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_withOnlyOverrideHsmKeyId_thenUsesOverrideKey() throws Exception {
         // Given
         final ConfigurationOverrideDto configurationOverride = new ConfigurationOverrideDto()
@@ -115,8 +116,10 @@ class VerifierHSMTest extends BaseTest {
                     Then the signature verifies only with the selected key, kid and client_id identify the same DID and verification reaches SUCCESS.
                     Spec: Verifier management ConfigurationOverride; OID4VP 1.0 sections 5.9.3 and 8.6; Swiss verification section 5.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenHsmIdentityIsSelected_thenVerificationUsesThatIdentity(
             final boolean overridden, final String keyPin) throws Exception {
         // Given
@@ -181,8 +184,10 @@ class VerifierHSMTest extends BaseTest {
                     Then every signature, kid and client_id still belongs to its own request and both transactions remain PENDING.
                     Spec: Verifier management ConfigurationOverride, scope limited to one verification; OID4VP 1.0 section 5.9.3.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenHsmOverridesAreInterleaved_thenEachRequestKeepsItsOwnSigner() throws Exception {
         // Given
         final ManagementResponse defaultVerification = verifierManager.verificationRequest()
@@ -228,8 +233,10 @@ class VerifierHSMTest extends BaseTest {
                     Deviation: the Business Verifier selects an HSM key absent from the token.
                     Spec: Verifier management ConfigurationOverride; fail-closed signing invariant, exact HTTP error mapping Unknown.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenOverrideKeyDoesNotExist_thenDoesNotReuseCachedDefaultSigner() throws Exception {
         // Given
         final ManagementResponse warmup = verifierManager.verificationRequest()

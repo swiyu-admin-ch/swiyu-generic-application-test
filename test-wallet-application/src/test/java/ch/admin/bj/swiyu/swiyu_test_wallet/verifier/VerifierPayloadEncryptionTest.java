@@ -81,9 +81,9 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The test runs for both bound and unbound SD-JWT credentials to ensure encryption works correctly across credential types.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
@@ -144,8 +144,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     payloads must fail at the JWE boundary without state changes or callbacks. The same verification
                     then processes a valid encrypted wallet refusal above Nimbus's default one million bytes.
                     """)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     void directPostJwtPayloadEncryption_whenDecompressionLimitExceeded_thenAllowsValidRetry(
             final JWESupport.PayloadEncoding encoding
     ) {
@@ -212,8 +212,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     Spec: Swiss verification profile §13, Authorization Response Size.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
@@ -275,8 +275,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     Spec: configured JWE limit; independent of the Swiss profile §13 recommendation of 21 MB.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
@@ -336,8 +336,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     payloads must reach business processing. This is separate from the Swiss 21 MB capacity.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
@@ -397,8 +397,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     or a callback, while the compressed ciphertext remains below its separate length limit.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
@@ -422,8 +422,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     or firing a callback. This scenario does not assert a particular HTTP server body-size limit.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE and HTTP payload limits are not available on these verifier tags"
@@ -581,8 +581,9 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     and close the verification as failed instead of rejecting it for missing encryption.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     void rejectVerification_whenWalletSendsUnencryptedErrorForDirectPostJwt_thenAcceptedAsFailure() {
         // Given
         final String errorDescription = "Wallet cannot generate encrypted response";
@@ -623,8 +624,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation does not meet security requirements.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
@@ -681,8 +682,8 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                     The verification state remains PENDING as the presentation cannot be decrypted with the expected keys.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."

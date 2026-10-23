@@ -77,8 +77,11 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
                     evaluation containing credential_status.valid=false with SUSPENDED status 2.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     void suspendedCredential_withDefaultConfiguration_thenFailsAndPropagatesStatusEvaluation(
             final boolean withRedirectUri
     ) {
@@ -219,8 +222,11 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
                     credential_status.valid=false with REVOKED status 1.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     void revokedCredential_withEitherConfiguration_thenFailsAndPropagatesStatusEvaluation(
             final VerifierVariant verifierVariant
     ) {

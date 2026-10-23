@@ -96,6 +96,16 @@ class EnvironmentClassOrdererTest {
     }
 
     @Test
+    void classes_whenRegressionTagIsOnAMethod_thenKeepItsPositionAndGroupTheOtherClasses() {
+        final var descriptors = descriptors(VersionRegressionZ.class, Strict.class, DefaultA.class);
+
+        orderer.orderClasses(context(descriptors));
+
+        assertThat(classes(descriptors))
+                .containsExactly(VersionRegressionZ.class, DefaultA.class, Strict.class);
+    }
+
+    @Test
     void classes_whenSelectionIsEmptyOrTargeted_thenKeepTheSelection() {
         final var empty = new ArrayList<ClassDescriptor>();
         final var targeted = descriptors(Strict.class);
@@ -160,9 +170,11 @@ class EnvironmentClassOrdererTest {
     @UseSharedServices(hsm = true)
     private static final class SoftHsm { }
 
-    @Tag(ReportingTags.VERSION_REGRESSION)
+    @Tag(ReportingTags.TEST_REGRESSION)
     private static final class VersionRegression { }
 
-    @Tag(ReportingTags.VERSION_REGRESSION)
-    private static final class VersionRegressionZ { }
+    private static final class VersionRegressionZ {
+        @Tag(ReportingTags.TEST_REGRESSION)
+        void regressionScenario() { }
+    }
 }

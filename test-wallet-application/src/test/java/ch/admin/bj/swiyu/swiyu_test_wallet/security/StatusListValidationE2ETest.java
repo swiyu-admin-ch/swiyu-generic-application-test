@@ -83,6 +83,9 @@ class StatusListValidationE2ETest extends BaseTest {
             description = "A validly signed status list must match the credential URI and have typ=statuslist+jwt. "
                     + "Invalid sub or typ must produce a controlled error, FAILED state and one callback.")
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     void credentialStatusList_whenPresented_thenOnlyValidListAccepted(final StatusListCase testCase)
             throws Exception {
         // Given: a real credential with its own status list, collected before the registry substitution.
@@ -159,6 +162,8 @@ class StatusListValidationE2ETest extends BaseTest {
             description = "The request object includes idTS only when its status list has the expected sub, typ "
                     + "and signer DID. A different resolvable signer with a valid signature is rejected.")
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1C_EMBED_TRUST_STATEMENTS_IN_VERIFIER_INFO)
     @DisableIfImageTag(verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "TP2 request-object enrichment is required")
     void verifierIdentityTrustStatement_whenStatusListInvalid_thenOmitted(final StatusListCase testCase)
@@ -232,6 +237,7 @@ class StatusListValidationE2ETest extends BaseTest {
                     + "and signer DID. A different resolvable signer with a valid signature is rejected, and no "
                     + "substitution may fail the metadata endpoint.")
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "TP2 issuer metadata enrichment is required")
     void issuerIdentityTrustStatement_whenStatusListInvalid_thenOmitted(final StatusListCase testCase)
             throws Exception {

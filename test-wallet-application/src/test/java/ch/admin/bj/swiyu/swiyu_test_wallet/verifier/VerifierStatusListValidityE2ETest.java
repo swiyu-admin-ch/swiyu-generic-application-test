@@ -55,9 +55,12 @@ class VerifierStatusListValidityE2ETest extends BaseTest {
                     Spec: Token Status List draft 20 §5.1 (exp), §6.2 and §8.3; Swiss VC profile Token Status List §5.1.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
     void presentation_whenStatusCannotBeEstablished_thenFailedWithStoredErrorAndOneCallback(
             final StatusListFailure failure
     ) {

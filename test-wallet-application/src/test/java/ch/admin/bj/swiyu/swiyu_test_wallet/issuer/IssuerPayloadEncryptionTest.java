@@ -75,8 +75,12 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             The wallet encrypts the Credential Request with A256GCM and requests the Credential Response to use A256GCM.
             The encrypted response is asserted through its JWE header before the issued SD-JWT credentials are validated.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "A256GCM support is not available on these issuer tags"
@@ -144,8 +148,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     The same offer then accepts an encrypted request above Nimbus's default one million bytes,
                     verifying that the configured decompression limit reaches the decrypter.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialRequestPayloadEncryption_whenDecompressionLimitExceeded_thenAllowsValidRetry(
             final JWESupport.PayloadEncoding encoding
     ) {
@@ -200,8 +205,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     Wallet response capacity.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these issuer tags"
@@ -244,8 +250,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     payloads must be accepted. The Swiss Wallet's 20 MB response capacity is a separate boundary.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these issuer tags"
@@ -288,8 +295,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     a callback, while the compressed ciphertext remains below its separate length limit.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these issuer tags"
@@ -313,8 +321,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     firing a callback. This scenario does not assert a particular HTTP server body-size limit.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE and HTTP payload limits are not available on these issuer tags"
@@ -395,8 +404,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             It first sends a Credential Request JWE with an unsupported enc header, then sends a valid encrypted
             Credential Request that asks for an unsupported Credential Response enc.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "A256GCM support is not available on these issuer tags"
@@ -448,8 +458,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             reject the request with invalid_encryption_parameters and return the Credential Error Response as
             unencrypted JSON.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
@@ -479,8 +490,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             ephemeral encryption key. The issuer returns an A256GCM JWE and the wallet proves that the encrypted
             payload is unreadable with the wrong key.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "A256GCM support is not available on these issuer tags"
@@ -530,8 +542,10 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             The test runs for both SWIYU API versions (V1 and ID2) to ensure deferred credentials are correctly
             retrieved and their disclosures are properly validated.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
@@ -580,8 +594,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -624,8 +639,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             This test validates that deferred credentials are correctly encrypted with the ephemeral key
             used at the time of the deferred credential request, even if different from the initial credential request key.
             """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "Fix for deferred encryption is not available yet"
@@ -669,8 +685,9 @@ class IssuerPayloadEncryptionTest extends BaseTest {
                     This test validates that a wallet cannot retrieve a deferred credential using an unencrypted request
                     when the strict issuer profile requires encryption.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The issuer rejects the unencrypted payload but trigger an internal server error waiting on @EIDOMNI-664"
