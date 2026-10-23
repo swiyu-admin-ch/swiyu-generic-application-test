@@ -21,6 +21,8 @@ public class HSMContainerConfig {
     public static final String IMAGE_NAME = "eclipse-temurin:25-jre-ubi10-minimal";
     private static final String IMAGE_PLATFORM = "linux/amd64";
 
+    // Unix permission bits deliberately use their conventional octal notation.
+    @SuppressWarnings("PMD.AvoidUsingOctalValues")
     public static GenericContainer<?> createSoftHsmContainer(
             final Network network,
             final HSMConfig hsmConfig,

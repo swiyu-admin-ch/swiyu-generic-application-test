@@ -9,6 +9,8 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtu
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.dcqlClaim;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.defaultDcqlQuery;
 
+// Test support type; its name does not identify a JUnit test class.
+@SuppressWarnings("PMD.TestClassWithoutTestCases")
 public final class TestPresentationDefinitions {
 
     private TestPresentationDefinitions() {

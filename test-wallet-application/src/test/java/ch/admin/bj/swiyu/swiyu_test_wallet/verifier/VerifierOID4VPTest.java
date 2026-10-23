@@ -52,9 +52,9 @@ class VerifierOID4VPTest extends BaseTest {
                     and cryptographic parameters required for the OID4VP flow.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The images have not the state yet."
@@ -143,9 +143,9 @@ class VerifierOID4VPTest extends BaseTest {
                     response requirements, and necessary cryptographic parameters for the OID4VP flow.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1B_CREATE_UNSIGNED_REQUEST_OBJECT)
     @DisableIfImageTag(
         issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
         reason = "The client prefix is not available on theses tags"
@@ -209,10 +209,9 @@ class VerifierOID4VPTest extends BaseTest {
                     through the OID4VCI flow and then presented to the verifier via OID4VP. The verification must complete 
                     successfully in both encrypted and non-encrypted payload modes.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
@@ -281,10 +280,9 @@ class VerifierOID4VPTest extends BaseTest {
                     state before sending the presentation. The verifier must return an error and keep the verification in 
                     the PENDING state in both encrypted and non-encrypted payload modes.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet the state is not checked yet"

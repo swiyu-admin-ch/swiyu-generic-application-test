@@ -58,8 +58,9 @@ class VerifierDcqlMultipleCredentialE2ETest extends BaseTest {
                     Then the verifier rejects the presentation because omitted multiple defaults to false.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void dcqlPresentation_whenMultipleIsOmittedAndWalletSubmitsThreeCredentials_thenVerifierRejects()
             throws JacksonException {
 

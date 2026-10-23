@@ -59,9 +59,9 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
                     When the wallet presents the credential using either an accepted issuer allow-list or a direct trust anchor.
                     Then the verifier resolves the kid, rejects the untrusted signing DID, and ends the verification as FAILED.
                     """)
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void verification_whenTrustedIssuerClaimConflictsWithUntrustedKid_thenRejected(
             final TrustedIssuerConfiguration trustedIssuerConfiguration
     ) throws ParseException, JOSEException {
@@ -138,9 +138,9 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
                     When the wallet presents the credential to the Generic Verifier.
                     Then the Verifier derives issuer trust from kid and completes the verification successfully.
                     """)
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1362 requires centralized JWT validation in the Generic Verifier"
@@ -199,9 +199,9 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
                     When the wallet presents the credential to the Generic Verifier.
                     Then the Verifier fails the verification before making any request to that host.
                     """)
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "EIDOMNI-1363 requires centralized JWT validation in the Generic Verifier"
@@ -362,14 +362,14 @@ class VerifierIssuerKeyResolutionTest extends BaseTest {
         MISSING(null),
         MISMATCHED("did:example:untrusted-credential-issuer");
 
-        private final String value;
+        private final String serializedClaim;
 
-        CredentialIssuerClaim(final String value) {
-            this.value = value;
+        CredentialIssuerClaim(final String serializedClaim) {
+            this.serializedClaim = serializedClaim;
         }
 
         String value() {
-            return value;
+            return serializedClaim;
         }
     }
 

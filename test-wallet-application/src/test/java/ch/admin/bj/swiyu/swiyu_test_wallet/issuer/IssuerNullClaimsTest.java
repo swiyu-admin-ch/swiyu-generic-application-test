@@ -38,13 +38,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@Tag(ReportingTags.EDGE_CASE)
 class IssuerNullClaimsTest extends BaseTest {
 
     @ParameterizedTest(name = "Null claim: {0}")
     @ValueSource(strings = {"job_title", "years_of_experience", "profile_picture"})
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1444",
             summary = "Credential Issuer preserves explicit null claims in every issued SD-JWT VC",
             description = """
                     Given a Credential Offer with an explicit null claim and other populated claims.
@@ -53,8 +52,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     preserves the other values, omits absent claims, and binds each Disclosure to the signed payload.
                     Spec: RFC 9901 §4.2.1, §4.2.3, §4.2.4.1; OID4VCI 1.0 §8.3.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenSubjectClaimIsNull_thenPreservesNullInEveryCredential(final String nullClaim) throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -69,14 +69,16 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualClaims = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualClaims.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
             final Map<String, JsonNode> disclosures = decodeDisclosures(sdJwt);
-            final Map<String, Object> actualClaims = new HashMap<>();
             for (final var disclosure : disclosures.entrySet()) {
                 final JsonNode parts = disclosure.getValue();
                 assertThat(parts.size())
@@ -109,7 +111,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1445",
             summary = "Credential Issuer preserves null properties in nested subject objects",
             description = """
                     Given a Credential Offer whose address contains a null street address, a populated locality, and no postal code.
@@ -118,8 +120,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     retains the locality, omits the postal code, and binds both child Disclosures to the address.
                     Spec: RFC 9901 §4.2.1, §4.2.3, §4.2.6; Swiss VC profile 1.0 §4.2.6.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenNestedSubjectPropertyIsNull_thenPreservesNullAndSibling() throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialClaimsFixtures.createBaseProfile();
@@ -136,9 +139,12 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualAddress = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualAddress.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
@@ -156,7 +162,6 @@ class IssuerNullClaimsTest extends BaseTest {
             assertThat(childDigests)
                     .as("Only the two supplied address properties are disclosed")
                     .hasSize(2);
-            final Map<String, Object> actualAddress = new HashMap<>();
             for (final String digest : childDigests) {
                 assertThat(disclosures)
                         .containsKey(digest);
@@ -181,7 +186,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1446",
             summary = "Credential Issuer preserves null array elements and their positions",
             description = """
                     Given a Credential Offer whose nationalities array contains CH, null, and FR in that order.
@@ -190,8 +195,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     with Disclosure digests bound to the array and the signed payload.
                     Spec: RFC 9901 §4.2.2, §4.2.3, §4.2.4.2; Swiss VC profile 1.0 §4.2.2.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @Disabled ("Issue : https://github.com/swiyu-admin-ch/swiyu-issuer/issues/527")
     void credentialIssuance_whenSubjectArrayContainsNull_thenPreservesNullPosition() throws Exception {
         // Given
@@ -207,9 +213,10 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
         for (final String sdJwt : entry.getIssuedCredentials()) {
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
@@ -251,7 +258,7 @@ class IssuerNullClaimsTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1372",
+            key = "EIDOMNI-1447",
             summary = "Credential Issuer preserves null claims supplied by a deferred subject update",
             description = """
                     Given a deferred Credential Offer with a populated job title and no issued Credentials.
@@ -259,8 +266,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     Then every Credential contains the explicit null, preserves the other claims, and the issuance becomes ISSUED.
                     Spec: RFC 9901 §4.2.1, §4.2.3; OID4VCI 1.0 §9.2.
                     """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     void deferredCredentialIssuance_whenSubjectUpdateReplacesValueWithNull_thenPreservesNull() throws Exception {
         // Given
         final Map<String, Object> initialClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -286,13 +294,15 @@ class IssuerNullClaimsTest extends BaseTest {
         SdJwtBatchAssert.assertThat(entry.getIssuedCredentials())
                 .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
                 .areUnique();
+        final ECDSAVerifier issuerVerifier = new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic());
+        final Map<String, Object> actualClaims = new HashMap<>();
         for (final String sdJwt : entry.getIssuedCredentials()) {
+            actualClaims.clear();
             final SignedJWT issuerJwt = SignedJWT.parse(sdJwt.split("~")[0]);
-            assertThat(issuerJwt.verify(new ECDSAVerifier((ECPublicKey) issuerConfig.getKeyPair().getPublic())))
+            assertThat(issuerJwt.verify(issuerVerifier))
                     .as("Credential Issuer signature")
                     .isTrue();
             final JsonNode payload = JsonConverter.toJsonNode(SdJwtParser.payload(sdJwt));
-            final Map<String, Object> actualClaims = new HashMap<>();
             for (final var disclosure : decodeDisclosures(sdJwt).entrySet()) {
                 final JsonNode parts = disclosure.getValue();
                 assertThat(parts.size())
@@ -317,6 +327,8 @@ class IssuerNullClaimsTest extends BaseTest {
                 .isEqualTo(CredentialStatusType.ISSUED);
     }
 
+    // Each Disclosure contains different UTF-8 bytes and therefore needs its own decoded String.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static Map<String, JsonNode> decodeDisclosures(final String sdJwt) {
         final Map<String, JsonNode> disclosures = new HashMap<>();
         for (final String raw : SdJwtParser.rawDisclosures(sdJwt)) {

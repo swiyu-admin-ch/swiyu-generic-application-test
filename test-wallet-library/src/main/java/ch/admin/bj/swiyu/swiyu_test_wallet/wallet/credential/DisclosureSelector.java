@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.credential;
 
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -16,6 +17,11 @@ import java.util.*;
  * integer selects one array element, and {@code null} selects every array element.
  */
 public final class DisclosureSelector {
+
+    private static final int ARRAY_DISCLOSURE_PART_COUNT = 2;
+    private static final int OBJECT_DISCLOSURE_PART_COUNT = 3;
+    private static final int ARRAY_ELEMENT_PATH_LENGTH = 2;
+    private static final int ARRAY_PROPERTY_PATH_LENGTH = 3;
 
     private DisclosureSelector() {
     }
@@ -77,16 +83,19 @@ public final class DisclosureSelector {
 
     private static JsonNode extractPayload(String jwt) {
         try {
-            String[] parts = jwt.split("\\.");
-            if (parts.length < 2) {
-                throw new IllegalStateException("Invalid JWT");
-            }
-
-            byte[] decoded = Base64.getUrlDecoder().decode(parts[1]);
+            byte[] decoded = Base64.getUrlDecoder().decode(jwtPayloadPart(jwt));
             return new ObjectMapper().readTree(decoded);
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalArgumentException | IllegalStateException e) {
             throw new IllegalStateException("Unable to parse JWT payload", e);
         }
+    }
+
+    private static String jwtPayloadPart(final String jwt) {
+        final String[] parts = jwt.split("\\.");
+        if (parts.length < ARRAY_DISCLOSURE_PART_COUNT) {
+            throw new IllegalStateException("Invalid JWT");
+        }
+        return parts[1];
     }
 
     private static List<Object> decodeDisclosure(String disclosure) {
@@ -94,50 +103,55 @@ public final class DisclosureSelector {
             byte[] decoded = Base64.getUrlDecoder().decode(disclosure);
             String json = new String(decoded, StandardCharsets.UTF_8);
             return new ObjectMapper().readValue(json, new tools.jackson.core.type.TypeReference<List<Object>>() {});
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             throw new IllegalStateException("Invalid disclosure: " + disclosure, e);
         }
     }
 
     private static Map<String, List<Object>> buildDigestPathMap(JsonNode node, List<Object> currentPath) {
-        Map<String, List<Object>> result = new HashMap<>();
-
+        final Map<String, List<Object>> result = new HashMap<>();
         if (node.isObject()) {
-            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> entry = fields.next();
-                String key = entry.getKey();
-                JsonNode value = entry.getValue();
-
-                if ("_sd".equals(key) && value.isArray()) {
-                    for (JsonNode digestNode : value) {
-                        result.put(digestNode.asText(), new ArrayList<>(currentPath));
-                    }
-                } else {
-                    List<Object> childPath = new ArrayList<>(currentPath);
-                    childPath.add(key);
-                    result.putAll(buildDigestPathMap(value, childPath));
-                }
-            }
+            indexObjectDigests(node, currentPath, result);
         } else if (node.isArray()) {
-            for (int i = 0; i < node.size(); i++) {
-                JsonNode element = node.get(i);
+            indexArrayDigests(node, currentPath, result);
+        }
+        return result;
+    }
 
-                if (element.isObject()
-                        && element.size() == 1
-                        && element.has("...")) {
-                    List<Object> elementPath = new ArrayList<>(currentPath);
-                    elementPath.add(i);
-                    result.put(element.get("...").asText(), elementPath);
-                } else {
-                    List<Object> childPath = new ArrayList<>(currentPath);
-                    childPath.add(i);
-                    result.putAll(buildDigestPathMap(element, childPath));
+    // Every stored digest keeps an independent snapshot of its parent path.
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    private static void indexObjectDigests(
+            final JsonNode node, final List<Object> currentPath, final Map<String, List<Object>> result) {
+        for (Map.Entry<String, JsonNode> entry : node.properties()) {
+            final String key = entry.getKey();
+            final JsonNode value = entry.getValue();
+            if ("_sd".equals(key) && value.isArray()) {
+                for (JsonNode digestNode : value) {
+                    result.put(digestNode.asText(), new ArrayList<>(currentPath));
                 }
+            } else {
+                result.putAll(buildDigestPathMap(value, appendPath(currentPath, key)));
             }
         }
+    }
 
-        return result;
+    private static void indexArrayDigests(
+            final JsonNode node, final List<Object> currentPath, final Map<String, List<Object>> result) {
+        for (int i = 0; i < node.size(); i++) {
+            final JsonNode element = node.get(i);
+            final List<Object> elementPath = appendPath(currentPath, i);
+            if (element.isObject() && element.size() == 1 && element.has("...")) {
+                result.put(element.get("...").asText(), elementPath);
+            } else {
+                result.putAll(buildDigestPathMap(element, elementPath));
+            }
+        }
+    }
+
+    private static List<Object> appendPath(final List<Object> parentPath, final Object segment) {
+        final List<Object> path = new ArrayList<>(parentPath);
+        path.add(segment);
+        return path;
     }
 
     private static void augmentDigestMapFromDisclosures(List<String> disclosures, Map<String, List<Object>> digestToPath) {
@@ -145,72 +159,70 @@ public final class DisclosureSelector {
         while (changed) {
             changed = false;
             for (String disclosure : disclosures) {
-                final List<Object> decodedParts = decodeDisclosure(disclosure);
-                if (decodedParts.size() != 2 && decodedParts.size() != 3) {
-                    continue;
-                }
+                changed |= augmentDisclosure(disclosure, digestToPath);
+            }
+        }
+    }
 
-                final String digest = Sha256Base64Url.ofUsAscii(disclosure);
-                final List<Object> parentPath = digestToPath.get(digest);
-                if (parentPath == null) {
-                    continue;
-                }
+    private static boolean augmentDisclosure(final String disclosure, final Map<String, List<Object>> digestToPath) {
+        final List<Object> parts = decodeDisclosure(disclosure);
+        if (parts.size() != ARRAY_DISCLOSURE_PART_COUNT && parts.size() != OBJECT_DISCLOSURE_PART_COUNT) {
+            return false;
+        }
+        final List<Object> parentPath = digestToPath.get(Sha256Base64Url.ofUsAscii(disclosure));
+        if (parentPath == null) {
+            return false;
+        }
 
-                final List<Object> valuePath = new ArrayList<>(parentPath);
-                final Object value;
-                if (decodedParts.size() == 3) {
-                    final Object key = decodedParts.get(1);
-                    if (!(key instanceof String)) {
-                        continue;
-                    }
-                    valuePath.add(key);
-                    value = decodedParts.get(2);
-                } else if (decodedParts.size() == 2) {
-                    value = decodedParts.get(1);
-                } else {
-                    continue;
-                }
+        final List<Object> valuePath = new ArrayList<>(parentPath);
+        final Object value;
+        if (parts.size() == OBJECT_DISCLOSURE_PART_COUNT) {
+            final Object key = parts.get(1);
+            if (!(key instanceof String)) {
+                return false;
+            }
+            valuePath.add(key);
+            value = parts.get(2);
+        } else {
+            value = parts.get(1);
+        }
+        if (value instanceof Map<?, ?> valueMap) {
+            return registerObjectDigests(valueMap, valuePath, digestToPath);
+        }
+        return value instanceof List<?> arrayValue && registerArrayDigests(arrayValue, valuePath, digestToPath);
+    }
 
-                // Case 1: value is an object with _sd — nested disclosed object fields (e.g. address)
-                if (value instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    final Map<String, Object> valueMap = (Map<String, Object>) value;
-                    final Object sdNode = valueMap.get("_sd");
-                    if (sdNode instanceof List) {
-                        @SuppressWarnings("unchecked")
-                        final List<String> nestedDigests = (List<String>) sdNode;
-                        for (final String nestedDigest : nestedDigests) {
-                            if (!digestToPath.containsKey(nestedDigest)) {
-                                digestToPath.put(nestedDigest, new ArrayList<>(valuePath));
-                                changed = true;
-                            }
-                        }
-                    }
-                }
+    // Each nested digest retains its own path while later Disclosures extend sibling paths.
+    @SuppressWarnings({"unchecked", "PMD.AvoidInstantiatingObjectsInLoops"})
+    private static boolean registerObjectDigests(
+            final Map<?, ?> value, final List<Object> valuePath, final Map<String, List<Object>> digestToPath) {
+        final Object sdNode = value.get("_sd");
+        if (!(sdNode instanceof List<?>)) {
+            return false;
+        }
+        boolean changed = false;
+        for (String nestedDigest : (List<String>) sdNode) {
+            if (!digestToPath.containsKey(nestedDigest)) {
+                digestToPath.put(nestedDigest, new ArrayList<>(valuePath));
+                changed = true;
+            }
+        }
+        return changed;
+    }
 
-                // Case 2: value is an array with {"...": digest} wrappers — disclosed array elements (e.g. nationalities, degrees)
-                if (value instanceof List) {
-                    @SuppressWarnings("unchecked")
-                    final List<Object> arrayValue = (List<Object>) value;
-                    for (int i = 0; i < arrayValue.size(); i++) {
-                        final Object element = arrayValue.get(i);
-                        if (element instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            final Map<String, Object> elementMap = (Map<String, Object>) element;
-                            final Object elementDigest = elementMap.get("...");
-                            if (elementDigest instanceof String) {
-                                if (!digestToPath.containsKey((String) elementDigest)) {
-                                    final List<Object> elementPath = new ArrayList<>(valuePath);
-                                    elementPath.add(i);
-                                    digestToPath.put((String) elementDigest, elementPath);
-                                    changed = true;
-                                }
-                            }
-                        }
-                    }
+    private static boolean registerArrayDigests(
+            final List<?> value, final List<Object> valuePath, final Map<String, List<Object>> digestToPath) {
+        boolean changed = false;
+        for (int i = 0; i < value.size(); i++) {
+            if (value.get(i) instanceof Map<?, ?> element) {
+                final Object digest = element.get("...");
+                if (digest instanceof String stringDigest && !digestToPath.containsKey(stringDigest)) {
+                    digestToPath.put(stringDigest, appendPath(valuePath, i));
+                    changed = true;
                 }
             }
         }
+        return changed;
     }
 
     private static boolean matchesAnyRequestedPath(
@@ -219,69 +231,62 @@ public final class DisclosureSelector {
             List<DcqlClaimDto> requestedClaims
     ) {
         final List<Object> actualPath = resolveDisclosurePath(disclosure, digestToPath);
-        if (actualPath.isEmpty()) {
-            return false;
-        }
-
-        return requestedClaims.stream()
+        return !actualPath.isEmpty() && requestedClaims.stream()
                 .map(DcqlClaimDto::getPath)
                 .anyMatch(requestedPath -> requestedPath != null
                         && !requestedPath.isEmpty()
                         && matchesRequestedPath(actualPath, requestedPath));
     }
 
-    private static boolean matchesRequestedPath(
-            List<Object> actualPath,
-            List<Object> requestedPath
-    ) {
-        if (actualPath == null || actualPath.isEmpty() || requestedPath == null || requestedPath.isEmpty()) {
+    private static boolean matchesRequestedPath(List<Object> actualPath, List<Object> requestedPath) {
+        if (isEmptyPath(actualPath) || isEmptyPath(requestedPath)) {
             return false;
         }
-
         if (actualPath.equals(requestedPath)) {
             return true;
         }
+        return (actualPath.size() < requestedPath.size()
+                && requestedPath.subList(0, actualPath.size()).equals(actualPath))
+                || matchesArrayPath(actualPath, requestedPath);
+    }
 
-        if (actualPath.size() < requestedPath.size()
-                && requestedPath.subList(0, actualPath.size()).equals(actualPath)) {
-            return true;
+    private static boolean isEmptyPath(final List<Object> path) {
+        return path == null || path.isEmpty();
+    }
+
+    private static boolean matchesArrayPath(final List<Object> actual, final List<Object> requested) {
+        if (!(requested.getFirst() instanceof String)) {
+            return false;
         }
-
-        if (requestedPath.size() == 2
-                && requestedPath.get(0) instanceof String
-                && requestedPath.get(1) == null) {
-            return actualPath.size() == 2
-                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && actualPath.get(1) instanceof Integer;
+        if (requested.size() == ARRAY_ELEMENT_PATH_LENGTH && requested.get(1) == null) {
+            return matchesArrayElement(actual, requested);
         }
-
-        if (requestedPath.size() == 3
-                && requestedPath.get(0) instanceof String
-                && requestedPath.get(1) == null
-                && requestedPath.get(2) instanceof String) {
-            return (actualPath.size() == 2
-                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && actualPath.get(1) instanceof Integer)
-                    || (actualPath.size() == 3
-                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && actualPath.get(1) instanceof Integer
-                    && Objects.equals(actualPath.get(2), requestedPath.get(2)));
+        if (requested.size() != ARRAY_PROPERTY_PATH_LENGTH || !(requested.get(2) instanceof String)) {
+            return false;
         }
-
-        if (requestedPath.size() == 3
-                && requestedPath.get(0) instanceof String
-                && requestedPath.get(1) instanceof Integer
-                && requestedPath.get(2) instanceof String) {
-            return (actualPath.size() == 2
-                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && Objects.equals(actualPath.get(1), requestedPath.get(1)))
-                    || (actualPath.size() == 3
-                    && Objects.equals(actualPath.get(0), requestedPath.get(0))
-                    && Objects.equals(actualPath.get(1), requestedPath.get(1))
-                    && Objects.equals(actualPath.get(2), requestedPath.get(2)));
+        if (requested.get(1) == null) {
+            return matchesArrayElement(actual, requested)
+                    || (matchesArrayProperty(actual, requested) && actual.get(1) instanceof Integer);
         }
+        return requested.get(1) instanceof Integer && matchesIndexedArrayPath(actual, requested);
+    }
 
-        return false;
+    private static boolean matchesArrayElement(final List<Object> actual, final List<Object> requested) {
+        return actual.size() == ARRAY_ELEMENT_PATH_LENGTH
+                && Objects.equals(actual.getFirst(), requested.getFirst())
+                && actual.get(1) instanceof Integer;
+    }
+
+    private static boolean matchesArrayProperty(final List<Object> actual, final List<Object> requested) {
+        return actual.size() == ARRAY_PROPERTY_PATH_LENGTH
+                && Objects.equals(actual.getFirst(), requested.getFirst())
+                && Objects.equals(actual.get(2), requested.get(2));
+    }
+
+    private static boolean matchesIndexedArrayPath(final List<Object> actual, final List<Object> requested) {
+        return (actual.size() == ARRAY_ELEMENT_PATH_LENGTH || matchesArrayProperty(actual, requested))
+                && Objects.equals(actual.getFirst(), requested.getFirst())
+                && Objects.equals(actual.get(1), requested.get(1));
     }
 
     private static List<Object> resolveDisclosurePath(
@@ -298,7 +303,7 @@ public final class DisclosureSelector {
         List<Object> parts = decodeDisclosure(disclosure);
 
         // Object property disclosure: [salt, key, value]
-        if (parts.size() == 3) {
+        if (parts.size() == OBJECT_DISCLOSURE_PART_COUNT) {
             Object key = parts.get(1);
             if (!(key instanceof String)) {
                 throw new IllegalStateException("Invalid object disclosure key: " + key);
@@ -310,7 +315,7 @@ public final class DisclosureSelector {
         }
 
         // Array element disclosure: [salt, value]
-        if (parts.size() == 2) {
+        if (parts.size() == ARRAY_DISCLOSURE_PART_COUNT) {
             return parentPath;
         }
 

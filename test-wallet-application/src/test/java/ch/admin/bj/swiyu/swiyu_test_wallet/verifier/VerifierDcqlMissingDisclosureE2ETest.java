@@ -54,8 +54,9 @@ class VerifierDcqlMissingDisclosureE2ETest extends BaseTest {
                     Then the verifier rejects the presentation instead of treating the undisclosed object as present.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The missing array-element disclosure fix is not available on these verifier images"

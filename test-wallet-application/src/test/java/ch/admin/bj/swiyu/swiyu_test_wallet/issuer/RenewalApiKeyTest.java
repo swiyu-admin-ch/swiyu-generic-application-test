@@ -42,11 +42,11 @@ import static org.mockserver.model.JsonBody.json;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers({IssuerVariant.RENEWAL_API_KEY, IssuerVariant.RENEWAL_WEBHOOK_ONLY})
-@Tag(ReportingTags.UCI_I2)
 class RenewalApiKeyTest extends BaseTest {
 
     @Test
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1378",
             summary = "Renewal uses its dedicated API key independently of webhooks",
             description = "Complete issuance and renewal against an authenticated Business Issuer mock. "
@@ -120,6 +120,7 @@ class RenewalApiKeyTest extends BaseTest {
 
     @Test
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1379",
             summary = "Unconfigured renewal API key preserves existing integrations",
             description = "Leave both renewal key properties unset while configuring webhook authentication. "

@@ -93,39 +93,34 @@ public class JsonConverter {
         for (int i = 0; i < input.length(); i++) {
             char ch = input.charAt(i);
 
-            switch (ch) {
-                case '"':
-                    escaped.append("\\\"");
-                    break;
-                case '\\':
-                    escaped.append("\\\\");
-                    break;
-                case '\b':
-                    escaped.append("\\b");
-                    break;
-                case '\f':
-                    escaped.append("\\f");
-                    break;
-                case '\n':
-                    escaped.append("\\n");
-                    break;
-                case '\r':
-                    escaped.append("\\r");
-                    break;
-                case '\t':
-                    escaped.append("\\t");
-                    break;
-                default:
-                    // If the character is a control character or non-printable, use Unicode escape
-                    if (ch < 0x20 || ch > 0x7e) {
-                        escaped.append(String.format("\\u%04x", (int) ch));
-                    } else {
-                        escaped.append(ch);
-                    }
-                    break;
-            }
+            escaped.append(escapeCharacter(ch));
         }
 
         return escaped.toString();
+    }
+
+    private static String escapeCharacter(final char ch) {
+        switch (ch) {
+            case '"':
+                return "\\\"";
+            case '\\':
+                return "\\\\";
+            case '\b':
+                return "\\b";
+            case '\f':
+                return "\\f";
+            case '\n':
+                return "\\n";
+            case '\r':
+                return "\\r";
+            case '\t':
+                return "\\t";
+            default:
+                return escapePrintableCharacter(ch);
+        }
+    }
+
+    private static String escapePrintableCharacter(final char ch) {
+        return ch < 0x20 || ch > 0x7e ? String.format("\\u%04x", (int) ch) : String.valueOf(ch);
     }
 }

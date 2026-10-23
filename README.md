@@ -141,6 +141,12 @@ The environment is shared inside the same Maven/JVM test run:
 - one SoftHSM container when requested by a selected component or by `@UseSharedServices`;
 - one issuer/verifier container per selected variant.
 
+The standard E2E suite groups test classes by their declared issuer, verifier, and optional shared services. Compatible
+classes run consecutively so the environment registry can reuse their containers. Tests remain sequential, with the same
+per-class preparation and method order. Version regression tests retain their existing order. The ordering is configured
+in `test-wallet-application/src/test/resources/junit-platform.properties` and can be overridden with the standard JUnit
+`junit.jupiter.testclass.order.default` configuration parameter when investigating an order-dependent failure.
+
 MockServer routes are component-aware. DID documents, status lists, trust statements, renewal data, and callbacks are resolved by DID, status-list id, business id, or active component context rather than by a single global issuer.
 
 ### Declaring Components
