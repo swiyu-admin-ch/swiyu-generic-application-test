@@ -39,9 +39,9 @@ class RequestObjectReplayProtectionTest extends BaseTest {
                     Request Object becomes expired without changing the pending verification transaction.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenValidityWindowElapses_thenCapturedObjectIsExpired() {
         // Given - the verifier is configured with a short Request Object validity duration
         final ManagementResponse verification = verifierManager

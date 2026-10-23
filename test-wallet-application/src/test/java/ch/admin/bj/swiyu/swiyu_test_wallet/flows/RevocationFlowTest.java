@@ -23,6 +23,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.Webhook
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -44,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseVerifiers(VerifierVariant.DEFAULT)
 @Slf4j
-public class RevocationFlowTest extends BaseTest {
+class RevocationFlowTest extends BaseTest {
 
     @BeforeEach
     void useDefaultVerifier() {
@@ -71,9 +73,11 @@ public class RevocationFlowTest extends BaseTest {
                         Management returns state FAILED and exposes credential_status.valid=false with the REVOKED
                         status-list value 1.
                     """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             verifier = {ImageTags.STAGING},
             reason = "EIDOMNI-1090 is not available in staging: revoked credentials return HTTP 400 instead of credential evaluations"
@@ -134,9 +138,11 @@ public class RevocationFlowTest extends BaseTest {
                 Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
                 the credentials successfully with state SUCCESS and credential_status.valid=true.
                 """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
@@ -223,10 +229,11 @@ public class RevocationFlowTest extends BaseTest {
                     revocation callback. Finally, it verifies that the credential remains valid and can still be 
                     successfully verified.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @Disabled ("Bug ticket : EIDOMNI-830")
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
         // Given
@@ -308,10 +315,11 @@ public class RevocationFlowTest extends BaseTest {
                     revocation callback. Finally, it verifies that the credential remains valid and can still be 
                     successfully verified.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available on other image tags"

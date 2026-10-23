@@ -4,6 +4,8 @@ import ch.admin.bj.swiyu.jwtvalidator.DidJwtValidator;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwt;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtParser;
 import ch.admin.bj.swiyu.sdjwtverifier.SdJwtVcValidator;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtParseException;
+import ch.admin.bj.swiyu.sdjwtverifier.exception.SdJwtVerificationException;
 import com.nimbusds.jose.jwk.ECKey;
 
 import java.util.Map;
@@ -32,14 +34,15 @@ final class SdJwtLibReference {
      * {@code aud}, {@code nonce}, {@code sd_hash}, freshness), and Disclosure processing.
      *
      * @return the claims resolved from the Disclosures that are present in the presentation
-     * @throws Exception when any of the Verifier-side checks rejects the presentation
+     * @throws SdJwtParseException when the presentation cannot be parsed
+     * @throws SdJwtVerificationException when any of the Verifier-side checks rejects the presentation
      */
     static Map<String, Object> verifyAndResolveClaims(
             final String presentation,
             final ECKey issuerKey,
             final String audience,
             final String nonce
-    ) throws Exception {
+    ) throws SdJwtParseException, SdJwtVerificationException {
         final SdJwtVcValidator validator = new SdJwtVcValidator(mock(DidJwtValidator.class));
         final SdJwt sdJwt = SdJwtParser.parseSdJwt(presentation);
         validator.validateAndSetHeader(sdJwt);

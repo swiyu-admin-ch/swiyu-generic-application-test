@@ -35,9 +35,9 @@ class VerifierTest extends BaseTest {
                     the correct URI scheme and can be used by the wallet to initiate the verification flow.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
-    @Tag(ReportingTags.UCV_M1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M1B_PROVIDE_DEEPLINK_FOR_QR_CODE)
     void verifierProvidesDeeplink() {
         final ManagementResponse deeplink = verifierManager.verificationRequest().acceptedIssuerDid(UUID.randomUUID().toString()).withUniversityDCQL().createManagementResponse();
         assertThat(deeplink.getVerificationDeeplink())
@@ -56,8 +56,8 @@ class VerifierTest extends BaseTest {
                     for all verification requests.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
     void managementCreateVerification_missingDcqlQuery_thenRejected() {
         final VerificationRequestBuilder verificationRequest = verifierManager.verificationRequest()
                 .acceptedIssuerDid(UUID.randomUUID().toString())
@@ -83,8 +83,8 @@ class VerifierTest extends BaseTest {
                     requested verification was not found.
                     """
     )
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     void managementGetVerification_randomId_thenRejected() {
         final UUID unknownId = UUID.randomUUID();
 

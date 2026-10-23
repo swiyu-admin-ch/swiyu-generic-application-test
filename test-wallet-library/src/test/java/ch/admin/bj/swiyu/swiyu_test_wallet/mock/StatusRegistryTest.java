@@ -3,6 +3,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -28,14 +30,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class StatusRegistryTest {
 
-    private RegisteredActors actors;
     private StatusRegistry registry;
     private IssuerConfig issuer;
     private IssuerConfig otherIssuer;
 
     @BeforeEach
     void setUp() {
-        actors = new RegisteredActors();
+        final RegisteredActors actors = new RegisteredActors();
         registry = new StatusRegistry(actors);
         issuer = newIssuer();
         otherIssuer = newIssuer();
@@ -52,13 +53,13 @@ class StatusRegistryTest {
         return UUID.randomUUID().toString();
     }
 
-    private static boolean verifies(final String token, final IssuerConfig signer) throws Exception {
+    private static boolean verifies(final String token, final IssuerConfig signer) throws ParseException, JOSEException {
         return SignedJWT.parse(token).verify(
                 new ECDSAVerifier(KeyUtil.createJWKFromKeyPair(signer.getKeyPair()).toECKey()));
     }
 
     /** What a Credential Issuer PUTs: a Status List Token with its own {@code bits} and {@code lst}. */
-    private static String publishedToken(final IssuerConfig publisher, final int bits, final String lst) throws Exception {
+    private static String publishedToken(final IssuerConfig publisher, final int bits, final String lst) throws JOSEException {
         final SignedJWT jwt = new SignedJWT(
                 new JWSHeader.Builder(JWSAlgorithm.ES256).type(new JOSEObjectType("statuslist+jwt")).keyID("k").build(),
                 new JWTClaimsSet.Builder().claim("status_list", Map.of("bits", bits, "lst", lst)).build());
@@ -187,5 +188,35 @@ class StatusRegistryTest {
         registry.resetFaults();
 
         assertThat(registry.updatesFail()).isFalse();
+    }
+
+    @Test
+    void statusListToken_whenExpiredFaultIsOn_thenOnlyItsDatesChangeAndResetRestoresValidity() throws Exception {
+        final String listId = id();
+        registry.onStatusListCreated(issuer.getSwiyuPartnerId(), listId);
+        final SignedJWT original = SignedJWT.parse(registry.statusListToken(listId).orElseThrow());
+
+        registry.enableExpiredToken();
+        final SignedJWT expired = SignedJWT.parse(registry.statusListToken(listId).orElseThrow());
+
+        assertThat(verifies(expired.serialize(), issuer))
+                .isTrue();
+        assertThat(expired.getHeader().toJSONObject())
+                .isEqualTo(original.getHeader().toJSONObject());
+        final var originalClaims = new java.util.LinkedHashMap<>(original.getJWTClaimsSet().getClaims());
+        final var expiredClaims = new java.util.LinkedHashMap<>(expired.getJWTClaimsSet().getClaims());
+        originalClaims.keySet().removeAll(java.util.Set.of("iat", "exp"));
+        expiredClaims.keySet().removeAll(java.util.Set.of("iat", "exp"));
+        assertThat(expiredClaims)
+                .isEqualTo(originalClaims);
+        assertThat(expired.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isBefore(Instant.now());
+        assertThat(expired.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isEqualTo(expired.getJWTClaimsSet().getIssueTime().toInstant().plusSeconds(60));
+
+        registry.resetFaults();
+        assertThat(SignedJWT.parse(registry.statusListToken(listId).orElseThrow())
+                .getJWTClaimsSet().getExpirationTime().toInstant())
+                .isAfter(Instant.now());
     }
 }

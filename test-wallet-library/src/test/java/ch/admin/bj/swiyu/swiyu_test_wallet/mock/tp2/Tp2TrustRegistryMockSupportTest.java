@@ -23,6 +23,7 @@ import org.mockserver.model.HttpRequest;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -436,9 +437,9 @@ class Tp2TrustRegistryMockSupportTest {
     }
 
     private static String toPem(KeyPair keyPair) {
-        String privateKeyBase64 = Base64.getMimeEncoder(64, "\n".getBytes())
+        String privateKeyBase64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8))
                 .encodeToString(keyPair.getPrivate().getEncoded());
-        String publicKeyBase64 = Base64.getMimeEncoder(64, "\n".getBytes())
+        String publicKeyBase64 = Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8))
                 .encodeToString(keyPair.getPublic().getEncoded());
         return "-----BEGIN PRIVATE KEY-----\n" + privateKeyBase64 + "\n-----END PRIVATE KEY-----\n"
                 + "-----BEGIN PUBLIC KEY-----\n" + publicKeyBase64 + "\n-----END PUBLIC KEY-----\n";
