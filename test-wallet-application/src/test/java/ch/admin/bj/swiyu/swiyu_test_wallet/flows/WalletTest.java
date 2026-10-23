@@ -42,10 +42,11 @@ class WalletTest extends BaseTest {
                     through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
                     collects the non-deferred credential and presents it to a verifier for validation.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -90,10 +91,11 @@ class WalletTest extends BaseTest {
                     collects the credential after the issuer marks it as READY. The credential is subsequently
                     verified through the OID4VP interface.
                     """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
@@ -151,10 +153,11 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1A)
-    @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -199,10 +202,11 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
@@ -260,8 +264,9 @@ class WalletTest extends BaseTest {
                     when the wallet attempts to present an unbound credential. The verifier detects the missing holder key binding
                     proof and rejects the presentation with an appropriate error.
                     """)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.RC},
             reason = "This is fixed in next versions"
@@ -280,7 +285,8 @@ class WalletTest extends BaseTest {
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(deepLink);
         var res = batchEntry.getVerifiableCredential(0);
 
-        assert verificationDetails.getDcqlQuery() != null;
+        assertThat(verificationDetails.getDcqlQuery())
+                .isNotNull();
 
         assertThrows(HttpClientErrorException.class, () -> {
             wallet.respondToVerification(verificationDetails, res);

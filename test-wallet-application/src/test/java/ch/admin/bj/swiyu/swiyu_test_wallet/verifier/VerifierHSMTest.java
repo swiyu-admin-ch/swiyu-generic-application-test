@@ -14,6 +14,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.VerifierVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.ECKey;
@@ -30,8 +31,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -63,9 +66,10 @@ class VerifierHSMTest extends BaseTest {
                     key PIN and the override key instead of the configured default HSM key.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_withOnlyOverrideHsmKeyId_thenUsesOverrideKey() throws Exception {
         // Given
         final ConfigurationOverrideDto configurationOverride = new ConfigurationOverrideDto()
@@ -104,7 +108,7 @@ class VerifierHSMTest extends BaseTest {
     @ParameterizedTest(name = "override={0}, key_pin={1}")
     @CsvSource({"false,", "true,", "true,''", "true,1234"})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1431",
             summary = "Verifier completes a verification with its selected HSM key and matching client identity",
             description = """
                     Given an HSM Verifier using its default identity or a per-verification override with an optional key_pin.
@@ -112,8 +116,10 @@ class VerifierHSMTest extends BaseTest {
                     Then the signature verifies only with the selected key, kid and client_id identify the same DID and verification reaches SUCCESS.
                     Spec: Verifier management ConfigurationOverride; OID4VP 1.0 sections 5.9.3 and 8.6; Swiss verification section 5.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenHsmIdentityIsSelected_thenVerificationUsesThatIdentity(
             final boolean overridden, final String keyPin) throws Exception {
         // Given
@@ -170,7 +176,7 @@ class VerifierHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1432",
             summary = "Verifier isolates default and override HSM signers across interleaved Request Object retrievals",
             description = """
                     Given default and override-key verification requests in one Verifier runtime.
@@ -178,8 +184,10 @@ class VerifierHSMTest extends BaseTest {
                     Then every signature, kid and client_id still belongs to its own request and both transactions remain PENDING.
                     Spec: Verifier management ConfigurationOverride, scope limited to one verification; OID4VP 1.0 section 5.9.3.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenHsmOverridesAreInterleaved_thenEachRequestKeepsItsOwnSigner() throws Exception {
         // Given
         final ManagementResponse defaultVerification = verifierManager.verificationRequest()
@@ -216,7 +224,7 @@ class VerifierHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1433",
             summary = "Verifier rejects an unknown override HSM key even after its default signer is cached",
             description = """
                     Given a Verifier that already served a valid default-key Request Object.
@@ -225,8 +233,10 @@ class VerifierHSMTest extends BaseTest {
                     Deviation: the Business Verifier selects an HSM key absent from the token.
                     Spec: Verifier management ConfigurationOverride; fail-closed signing invariant, exact HTTP error mapping Unknown.
                     """)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     void signedRequestObject_whenOverrideKeyDoesNotExist_thenDoesNotReuseCachedDefaultSigner() throws Exception {
         // Given
         final ManagementResponse warmup = verifierManager.verificationRequest()
@@ -266,7 +276,7 @@ class VerifierHSMTest extends BaseTest {
                 .isFalse();
     }
 
-    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws Exception {
+    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws ParseException {
         final var methods = JsonParser.parseString(didLog).getAsJsonObject()
                 .getAsJsonObject("state").getAsJsonArray("verificationMethod");
         for (var method : methods) {
@@ -278,9 +288,9 @@ class VerifierHSMTest extends BaseTest {
         throw new IllegalArgumentException("No public verification method published for " + keyId);
     }
 
-    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws Exception {
+    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws IOException, JOSEException {
         final String certificateResourcePath = "softhsm/keys/%s-cert.pem".formatted(keyId);
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(certificateResourcePath)) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/" + certificateResourcePath)) {
             assertThat(inputStream)
                     .as("HSM public certificate should be available: %s", certificateResourcePath)
                     .isNotNull();

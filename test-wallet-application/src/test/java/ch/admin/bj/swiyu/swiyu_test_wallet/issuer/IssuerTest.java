@@ -50,9 +50,9 @@ class IssuerTest extends BaseTest {
                     unique pre-authorized code that differs from the management ID for security purposes.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_C1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_C1A_CREATE_A_DEEPLINK_FOR_CREDENTIAL_OFFER)
     void offerDeepLinkWithSDJwt() {
 
         var credentialDetails = issuerManager.createCredentialOffer("bound_example_sd_jwt");
@@ -69,7 +69,8 @@ class IssuerTest extends BaseTest {
         assertThat(credentialOffer.get("grants").get("urn:ietf:params:oauth:grant-type:pre-authorized_code")).isNotNull();
         assertThat(credentialOffer.get("grants").get("urn:ietf:params:oauth:grant-type:pre-authorized_code").get("pre-authorized_code")).isNotNull();
         var code = credentialOffer.at("/grants/urn:ietf:params:oauth:grant-type:pre-authorized_code/pre-authorized_code").asText();
-        assert credentialDetails.getManagementId() != null;
+        assertThat(credentialDetails.getManagementId())
+                .isNotNull();
         assertThat(code)
                 .isNotNull()
                 .isNotEmpty()
@@ -86,9 +87,9 @@ class IssuerTest extends BaseTest {
                     supported credential configurations.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void validateMetadata() {
         IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
 
@@ -100,15 +101,16 @@ class IssuerTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-179",
+            key = "EIDOMNI-1434",
             summary = "Issuer metadata exposes only the dc+sd-jwt credential format",
             description = """
                     This test verifies that every configured OID4VCI credential uses the current dc+sd-jwt format
                     after support for the deprecated vc+sd-jwt identifier was removed from the issuer contract.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void metadataAdvertisesOnlyDcSdJwtCredentialConfigurations() {
         // Given
         final IssuerMetadata metadata = issuanceService.getWellKnownCredentialIssuerInfo();
@@ -132,8 +134,9 @@ class IssuerTest extends BaseTest {
                     expected configuration pattern and are reachable.
                     """
     )
-    @Tag(ReportingTags.UCI_W1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
+    @Tag(ReportingTags.UCI_W1A_EXPOSE_TOKEN_ENDPOINT)
     void validateConfiguration() {
         var openIdConfig = issuanceService.getWellKnownOpenIdConfiguration();
 
@@ -153,8 +156,9 @@ class IssuerTest extends BaseTest {
                     configured consistently with OID4VCI authorization flow expectations.
                     """
     )
-    @Tag(ReportingTags.UCI_W1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
+    @Tag(ReportingTags.UCI_W1A_EXPOSE_TOKEN_ENDPOINT)
     void validateOAuthAuthorizationServer() {
         OAuthAuthorizationServerMetadata openIdConfig = issuanceService.getWellKnownOAuthAuthorizationServer();
 
@@ -174,9 +178,9 @@ class IssuerTest extends BaseTest {
                     available as regular disclosed claims when supported by the credential
                     profile.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void unboundNonDeferredCredential_whenIssued_thenContainsExpectedVctApplicationClaims() {
         final Map<String, Object> subjectClaims =
                 CredentialClaimsFixtures.createBaseProfile();
@@ -221,8 +225,8 @@ class IssuerTest extends BaseTest {
                     pre-authorized_code exchange after the related credential was already issued.
                     The OAuth error code is normative; the human-readable error description may vary.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     void unboundNonDeferredCredential_whenTokenRequestedAgainAfterIssuance_thenRequestIsRejected() {
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
@@ -268,9 +272,11 @@ class IssuerTest extends BaseTest {
                     credential configuration fields remain unchanged.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_M1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_M1A_EXPOSE_CREDENTIAL_TYPE_METADATA)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void createCredentialOffer_whenVctMetadataUriIsOverridden_thenDefaultOfferMetadataIsRestored() {
         try {
             useIssuer(issuer(IssuerVariant.SIGNED_METADATA));

@@ -32,7 +32,7 @@ public record HeldCredential(String sdJwt, KeyPair holderKey, ECKey holderPublic
         try {
             final String selected = DisclosureSelector.select(sdJwt, requestedClaims);
             return selected + KeyBindingJwt.forPresentation(selected, audience, nonce).signedWith(holderKey).build();
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             throw new IllegalStateException("Failed to create selective disclosure presentation", e);
         }
     }

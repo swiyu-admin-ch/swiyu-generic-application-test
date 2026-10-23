@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
+import java.time.Instant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import com.nimbusds.jose.*;
@@ -15,6 +16,7 @@ import org.mockserver.model.HttpStatusCode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
@@ -64,8 +66,9 @@ final class StatusRegistry {
     private final Map<String, String> issuerDidByStatusListId = new ConcurrentHashMap<>();
     private volatile String currentStatusList = "";
     private volatile String activeIssuerDid = "";
-    private volatile boolean throwStatusListError = false;
-    private volatile boolean corruptStatusListSignature = false;
+    private volatile boolean throwStatusListError;
+    private volatile boolean corruptStatusListSignature;
+    private volatile boolean expiredStatusListToken;
 
     StatusRegistry(final RegisteredActors actors) {
         this.actors = actors;
@@ -94,6 +97,15 @@ final class StatusRegistry {
     void resetFaults() {
         disableUpdateError();
         disableCorruptSignature();
+        disableExpiredToken();
+    }
+
+    void enableExpiredToken() {
+        expiredStatusListToken = true;
+    }
+
+    void disableExpiredToken() {
+        expiredStatusListToken = false;
     }
 
     boolean updatesFail() {
@@ -210,6 +222,8 @@ final class StatusRegistry {
      * that is not conformant to the Swiss profile with a {@code 400} and an {@code ApiError} listing the violations, and
      * accepts it with a {@code 200} (operation {@code updateStatusListEntry} of {@code SWIYU_Core_Business_status.yaml}).
      */
+    // The mock HTTP boundary preserves its 500 response for any fixture-processing failure.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private HttpResponse updateResponse(final HttpRequest httpRequest, final boolean enforceSwissProfile) {
         log.info("Entered PUT expectation (Swiss profile enforced: {}) for status list update with path: {}",
                 enforceSwissProfile, httpRequest.getPath().getValue());
@@ -258,16 +272,16 @@ final class StatusRegistry {
             final JWSSigner signer = new ECDSASigner(jwk.toECKey());
 
             final PublishedStatusList published = publishedStatusLists.getOrDefault(statusListId, EMPTY_LIST);
-            final Date issuedAt = new Date();
+            final Instant issuedAt = expiredStatusListToken ? Instant.now().minusSeconds(7200) : Instant.now();
 
             final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))
                     .issuer(issuerConfig.getIssuerDid())
-                    .issueTime(issuedAt)
+                    .issueTime(Date.from(issuedAt))
                     .claim("status_list", Map.of(
                             "bits", published.bits(),
                             "lst", published.compressedStatuses()))
-                    .expirationTime(new Date(issuedAt.getTime() + 60 * 1000))
+                    .expirationTime(Date.from(issuedAt.plusSeconds(60)))
                     .build();
 
             final SignedJWT signedJWT = new SignedJWT(
@@ -343,7 +357,7 @@ final class StatusRegistry {
             return null;
         }
         try {
-            return new String(Base64.getDecoder().decode(body));
+            return new String(Base64.getDecoder().decode(body), StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             return body;
         }

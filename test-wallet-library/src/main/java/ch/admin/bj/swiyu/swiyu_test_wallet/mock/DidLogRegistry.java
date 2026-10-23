@@ -44,10 +44,10 @@ final class DidLogRegistry {
 
     private static String extractDidIdFromPath(final String path) {
         String normalized = path.endsWith("/did.jsonl") ? path.substring(0, path.length() - "/did.jsonl".length()) : path;
-        return normalized.substring(normalized.lastIndexOf("/") + 1);
+        return normalized.substring(normalized.lastIndexOf('/') + 1);
     }
 
     private static String extractDidId(final String did) {
-        return did.substring(did.lastIndexOf(":") + 1);
+        return did.substring(did.lastIndexOf(':') + 1);
     }
 }

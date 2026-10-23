@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
+import java.time.Instant;
 import ch.admin.bj.swiyu.jwtutil.JwtUtil;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.JOSEObjectType;
@@ -12,9 +13,12 @@ import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 
-public class AttestationFactory {
+public final class AttestationFactory {
 
     private static final JOSEObjectType ATTESTATION_TYP = new JOSEObjectType("key-attestation+jwt");
+
+    private AttestationFactory() {
+    }
 
     public static String validHighAttestation(final ECKey attestedKey, final String issuerClaim, final PrivateKey signingKey, final String kid) {
         return buildAttestation(attestedKey, issuerClaim, signingKey, kid, "iso_18045_high");
@@ -30,8 +34,8 @@ public class AttestationFactory {
 
     private static String buildAttestation(final ECKey attestedKey, final String issuerClaim, final PrivateKey signingKey, final String kid, final String level) {
         final JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
-                .issueTime(new Date())
-                .expirationTime(new Date(System.currentTimeMillis() + 60000))
+                .issueTime(Date.from(Instant.now()))
+                .expirationTime(Date.from(Instant.now().plusSeconds(60)))
                 .claim("key_storage", List.of(level))
                 .claim("attested_keys", List.of(attestedKey.toPublicJWK().toJSONObject()));
 

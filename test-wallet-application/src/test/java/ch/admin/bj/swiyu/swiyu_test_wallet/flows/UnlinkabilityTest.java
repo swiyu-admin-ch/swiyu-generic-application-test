@@ -31,7 +31,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
-public class UnlinkabilityTest extends BaseTest {
+class UnlinkabilityTest extends BaseTest {
 
     @Test
     @XrayTest(
@@ -68,15 +68,15 @@ public class UnlinkabilityTest extends BaseTest {
                     correlation across batch issuance and renewals.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "Renewal flow not available on (stable). This rounded iat is not available yet. (rc, staging)"
     )
-    public void shouldEnsureUnlinkabilityAcrossBatchIssuanceAndRenewals() {
+    void shouldEnsureUnlinkabilityAcrossBatchIssuanceAndRenewals() {
         wallet.setUseEncryption(true);
         wallet.setUseDPoP(true);
 
