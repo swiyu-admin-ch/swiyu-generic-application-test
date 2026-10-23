@@ -106,7 +106,6 @@ class DPoPProofValidationTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
-    @Disabled("Bug ticket : EIDOMNI-1463")
     void credentialRequest_whenDpopAthIsOfAnotherAccessToken_thenRejectedWithoutIssuance() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
