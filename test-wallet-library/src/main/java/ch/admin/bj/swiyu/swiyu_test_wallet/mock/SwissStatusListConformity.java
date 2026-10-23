@@ -49,10 +49,13 @@ final class SwissStatusListConformity {
     static List<String> violations(final String compactJwt) {
         final SignedJWT jwt;
         final JWTClaimsSet claims;
+        if (compactJwt == null) {
+            return List.of("the body is not a signed JWT in compact serialization");
+        }
         try {
             jwt = SignedJWT.parse(compactJwt);
             claims = jwt.getJWTClaimsSet();
-        } catch (ParseException | NullPointerException e) {
+        } catch (ParseException e) {
             return List.of("the body is not a signed JWT in compact serialization");
         }
 
@@ -95,11 +98,10 @@ final class SwissStatusListConformity {
             return Optional.of("'lst' is not base64url");
         }
 
-        final Inflater inflater = new Inflater();
-        inflater.setInput(compressed);
-        final byte[] buffer = new byte[8192];
-        long total = 0;
-        try {
+        try (final Inflater inflater = new Inflater()) {
+            inflater.setInput(compressed);
+            final byte[] buffer = new byte[8192];
+            long total = 0;
             while (!inflater.finished()) {
                 final int read = inflater.inflate(buffer);
                 if (read == 0 && (inflater.needsInput() || inflater.needsDictionary())) {
@@ -112,8 +114,6 @@ final class SwissStatusListConformity {
             }
         } catch (DataFormatException e) {
             return Optional.of("'lst' is not a ZLIB stream");
-        } finally {
-            inflater.end();
         }
         return Optional.empty();
     }

@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import({CompleteEnvironmentTestConfiguration.class, RegressionEnvironmentTestConfiguration.class})
-@Tag(ReportingTags.VERSION_REGRESSION)
 class VerifierVerificationVersionRegressionTest {
 
     private static final String WALLET_REJECTION = "access_denied";
@@ -63,6 +62,16 @@ class VerifierVerificationVersionRegressionTest {
                     schema. Candidate completes the pending requests and preserves the terminal states without allowing
                     an old wallet response to reopen them.
                     """)
+    // Independent scenario invariants are checked together; extracting assertions would hide the oracle.
+    @SuppressWarnings("PMD.NcssCount")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_REGRESSION)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2D_STORE_VERIFICATION_RESULT)
     void verificationsPreparedByPrevious_whenVerifierUpgradesOnce_thenCandidateCompletesLifecycleMatrix() {
         final IssuerHandle issuer = environmentRegistry.issuer(IssuerVariant.DEFAULT);
 

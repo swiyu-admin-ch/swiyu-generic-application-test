@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import tools.jackson.core.JacksonException;
 import lombok.Getter;
 import lombok.ToString;
 import tools.jackson.databind.JsonNode;
@@ -34,7 +35,7 @@ public class SwiyuDeeplink {
     public String getCredentialIssuerTenantId() {
         final String completeCredentialIssuer = getText("credential_issuer");
         if (completeCredentialIssuer != null && completeCredentialIssuer.contains("/")) {
-            return completeCredentialIssuer.substring(completeCredentialIssuer.lastIndexOf("/") + 1);
+            return completeCredentialIssuer.substring(completeCredentialIssuer.lastIndexOf('/') + 1);
         }
         return null;
     }
@@ -96,7 +97,7 @@ public class SwiyuDeeplink {
 
             return MAPPER.readTree(decoded);
 
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid Swiyu deeplink", e);
         }
     }

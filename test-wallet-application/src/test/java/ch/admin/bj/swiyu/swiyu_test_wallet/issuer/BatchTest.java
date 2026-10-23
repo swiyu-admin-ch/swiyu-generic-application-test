@@ -19,12 +19,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,10 +46,9 @@ class BatchTest extends BaseTest {
                     to ensure proper randomization and uniqueness across the status list.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This feature is not available yet (round iat batch issuance to start of the day)"
@@ -93,10 +88,9 @@ class BatchTest extends BaseTest {
                     with an appropriate error message.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -119,34 +113,5 @@ class BatchTest extends BaseTest {
         assertThat(ex.getMessage())
                 .as("Expected message to contain Bad Request and detail about max length exceeded")
                 .contains("\"detail\":\"Too few status indexes remain in status list");
-    }
-
-    private boolean areSequential(final List<Integer> indexes) {
-        if (indexes.size() < 2) return false;
-
-        final List<Integer> sorted = indexes.stream().sorted().collect(Collectors.toList());
-        for (int i = 1; i < sorted.size(); i++) {
-            if (sorted.get(i) - sorted.get(i - 1) != 1) return false;
-        }
-
-        return true;
-    }
-
-    private List<Integer> getUsedIndexesFromDb() throws SQLException {
-        final List<Integer> indexes = new ArrayList<>();
-
-        final String query = """
-                    SELECT index
-                    FROM %s.credential_offer_status
-                    ORDER BY index ASC
-                """.formatted(issuerImageConfig.getDbSchema());
-
-        try (ResultSet rs = stmt.executeQuery(query)) {
-            while (rs.next()) {
-                indexes.add(rs.getInt("index"));
-            }
-        }
-
-        return indexes;
     }
 }

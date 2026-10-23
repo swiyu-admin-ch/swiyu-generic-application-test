@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback;
 
+import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
@@ -43,7 +44,7 @@ public final class WebhookCallbackAssert {
                         return currentSize == expectedSize;
                     });
 
-        } catch (Exception e) {
+        } catch (ConditionTimeoutException e) {
             final int currentSize = callbacks.size();
             callbacks.forEach(cb -> log.error(" -> {}", cb));
             throw new AssertionError(

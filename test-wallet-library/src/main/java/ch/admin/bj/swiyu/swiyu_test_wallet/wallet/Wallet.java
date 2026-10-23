@@ -40,6 +40,8 @@ import java.util.UUID;
  */
 @Getter
 @Setter
+// The test-facing Wallet facade exposes both protocol journeys while clients own their implementation.
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessivePublicCount"})
 public class Wallet {
 
     public static final String BEARER_PREFIX = "Bearer ";

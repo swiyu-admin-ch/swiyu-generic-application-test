@@ -60,9 +60,11 @@ class TransactionCodeTest extends BaseTest {
                     Issuer as a six-digit numeric value, advertised in the credential offer, and accepted together
                     with a DPoP-protected pre-authorized code token request.
                     """)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @Disabled("Bug ticket : EIDOMNI-1418")
     void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued(
             final boolean includeLength, final boolean includeDescription) {
@@ -149,9 +151,11 @@ class TransactionCodeTest extends BaseTest {
                     invalid_tx_code responses for all five allowed attempts, invalid_grant on any subsequent request,
                     and terminal offer lockout even if the correct code is subsequently supplied.
                     """)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     void preAuthorizedOffer_whenTransactionCodeAttemptsFail_thenRetryAndLockoutAreEnforced() {
         // Given a retryable offer
         final CredentialWithDeeplinkResponse retryableOffer = issuerManager.createCredentialOfferWithTransactionCode(
@@ -262,9 +266,10 @@ class TransactionCodeTest extends BaseTest {
                     valid tx_code cannot both succeed. Exactly one access token is returned, the competing request is
                     rejected with invalid_grant, and the successful token remains usable for credential issuance.
                     """)
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     void preAuthorizedOffer_whenValidTokenRequestsRace_thenCodeIsConsumedOnlyOnce() throws Exception {
         // Given
         final CredentialWithDeeplinkResponse credentialOffer = issuerManager.createCredentialOfferWithTransactionCode(

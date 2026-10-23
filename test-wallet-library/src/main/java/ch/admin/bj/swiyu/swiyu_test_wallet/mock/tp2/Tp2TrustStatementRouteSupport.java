@@ -513,7 +513,7 @@ public final class Tp2TrustStatementRouteSupport {
             String[] parts = jwt.split("\\.", -1);
             return confusedHeader.toBase64URL() + "." + parts[1] + "." + parts[2];
         } catch (ParseException e) {
-            throw new TestSupportException("Cannot confuse TP2 trust-statement algorithm: " + e.getMessage());
+            throw new TestSupportException("Cannot confuse TP2 trust-statement algorithm: " + e.getMessage(), e);
         }
     }
 
@@ -526,7 +526,7 @@ public final class Tp2TrustStatementRouteSupport {
             String[] parts = jwt.split("\\.", -1);
             return parts[0] + "." + Base64URL.encode(tamperedClaims.toString()) + "." + parts[2];
         } catch (ParseException e) {
-            throw new TestSupportException("Cannot tamper TP2 trust-statement payload: " + e.getMessage());
+            throw new TestSupportException("Cannot tamper TP2 trust-statement payload: " + e.getMessage(), e);
         }
     }
 
@@ -548,7 +548,7 @@ public final class Tp2TrustStatementRouteSupport {
                     .build();
             return new PlainJWT(header, parsed.getJWTClaimsSet()).serialize();
         } catch (ParseException e) {
-            throw new TestSupportException("Cannot create alg=none TP2 trust statement: " + e.getMessage());
+            throw new TestSupportException("Cannot create alg=none TP2 trust statement: " + e.getMessage(), e);
         }
     }
 

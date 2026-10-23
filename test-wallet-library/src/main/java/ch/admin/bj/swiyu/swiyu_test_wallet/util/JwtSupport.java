@@ -4,6 +4,7 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.UtilityClass;
 import tools.jackson.databind.JsonNode;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 
@@ -11,6 +12,8 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.JsonConverter.toJsonNode;
 
 @UtilityClass
 public class JwtSupport {
+
+    private static final int COMPACT_JWT_PART_COUNT = 3;
 
     public static String header(String jwt) {
         return parts(jwt)[0];
@@ -21,7 +24,7 @@ public class JwtSupport {
     }
 
     public static String decodePayload(String jwt) {
-        return new String(Base64.getUrlDecoder().decode(payload(jwt)));
+        return new String(Base64.getUrlDecoder().decode(payload(jwt)), StandardCharsets.UTF_8);
     }
 
     public static JsonNode decodePayloadToJsonNode(String jwt) {
@@ -30,7 +33,7 @@ public class JwtSupport {
 
     public static String[] parts(String jwt) {
         String[] split = jwt.split("\\.");
-        if (split.length != 3) {
+        if (split.length != COMPACT_JWT_PART_COUNT) {
             throw new IllegalArgumentException("Invalid JWT format");
         }
         return split;

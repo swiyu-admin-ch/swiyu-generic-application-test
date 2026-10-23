@@ -23,7 +23,7 @@ public class BusinessVerifier {
     private VerifierManagementApiApi managementApi;
     private ManagementResponse managementResponse;
     private ActuatorApi actuatorApi;
-    private String verifierServiceUrl;
+    private final String verifierServiceUrl;
     private String bearerToken;
     private HttpTraceInterceptor traceInterceptor;
 
@@ -67,18 +67,8 @@ public class BusinessVerifier {
             return this;
         }
 
-        public VerificationRequestBuilder trustAnchors(List<TrustAnchor> trustAnchors) {
-            request.trustAnchors(trustAnchors);
-            return this;
-        }
-
         public VerificationRequestBuilder acceptedIssuerDid(final String did) {
             request.addAcceptedIssuerDidsItem(did);
-            return this;
-        }
-
-        public VerificationRequestBuilder trustAnchor(TrustAnchor trustAnchor) {
-            request.addTrustAnchorsItem(trustAnchor);
             return this;
         }
 

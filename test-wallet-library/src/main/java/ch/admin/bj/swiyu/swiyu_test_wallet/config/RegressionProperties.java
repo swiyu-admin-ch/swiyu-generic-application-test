@@ -9,7 +9,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * validates only the component transition requested by a test, keeping Issuer and Verifier configuration independent.
  */
 @ConfigurationProperties("regression")
-@SuppressWarnings("PMD.DataClass")
 public class RegressionProperties {
 
     private static final String DEFAULT_ISSUER_METADATA = "classpath:issuer/metadata.json";
@@ -35,7 +34,6 @@ public class RegressionProperties {
     }
 
     /** Configuration pair bound for one component without resolving its variant or resources. */
-    @SuppressWarnings("PMD.DataClass")
     public static class ComponentTransition {
 
         private ComponentVersion previous;
@@ -68,7 +66,6 @@ public class RegressionProperties {
     }
 
     /** Raw version, variant and metadata values for one side of a transition. */
-    @SuppressWarnings("PMD.DataClass")
     public static class ComponentVersion {
 
         private String version;
