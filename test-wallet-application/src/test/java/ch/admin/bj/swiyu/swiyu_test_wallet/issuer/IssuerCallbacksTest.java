@@ -38,7 +38,7 @@ import static org.mockito.Mockito.spy;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.STRICT)
-public class IssuerCallbacksTest extends BaseTest {
+class IssuerCallbacksTest extends BaseTest {
 
     @Test
     @XrayTest(
@@ -54,7 +54,10 @@ public class IssuerCallbacksTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The new callbacks are not available yet."
     )
-    public void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
+    @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
+    void managementEntity_fullLifecycle_shouldHandleIssueSuspendReissueAndRevoke() {
         // Given
         wallet.setUseDPoP(true);
         final CredentialWithDeeplinkResponse offer1 =
@@ -166,8 +169,10 @@ public class IssuerCallbacksTest extends BaseTest {
                     The wallet intentionally sends invalid proofs signed with incorrect keys during the credential collection process.
                     The issuer must reject the request and return an HTTP 400 error.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The fix is not available yet"
@@ -186,16 +191,17 @@ public class IssuerCallbacksTest extends BaseTest {
 
         // When - Send too much proofs to the issuer
         doAnswer(invocation -> {
-            entry.getProofs().clear();
+            final java.util.List<JwtProof> invalidProofs = new java.util.ArrayList<>();
             for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE + 1; i++) {
-                entry.getProofs().add(new JwtProof(
+                invalidProofs.add(new JwtProof(
                         entry.getIssuerMetadata().getCredentialIssuer(),
                         wallet.collectCNonce(entry),
                         entry.getProofPublicJwk(),
                         ECCryptoSupport.generateECKeyPair(),
                         null
-                ));;
+                ));
             }
+            entry.setProofsFromJwt(invalidProofs);
             return null;
         }).when(entry).createProofs();
 

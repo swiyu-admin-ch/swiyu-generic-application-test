@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jose.jwk.Curve;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -43,7 +45,9 @@ class KeyBindingJwtTest {
     }
 
     /** The requirements the Key Binding JWT does not satisfy. */
-    private Set<String> violations(final String keyBindingJwt) throws Exception {
+    // Independent scenario invariants are checked together; extracting assertions would hide the oracle.
+    @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
+    private Set<String> violations(final String keyBindingJwt) throws ParseException, JOSEException {
         final SignedJWT jwt = SignedJWT.parse(keyBindingJwt);
         final Set<String> violated = new LinkedHashSet<>();
         if (jwt.getHeader().getType() == null || !"kb+jwt".equals(jwt.getHeader().getType().getType())) {

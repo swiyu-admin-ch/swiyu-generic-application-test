@@ -1,6 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.flows;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.OAuthToken;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
@@ -23,6 +24,8 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.DPoPSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -45,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @UseIssuers(IssuerVariant.STRICT)
 @UseVerifiers(VerifierVariant.DEFAULT)
 @UseWallet(dpop = true)
-public class RenewalFlowStateTransitionTest extends BaseTest {
+class RenewalFlowStateTransitionTest extends BaseTest {
 
     @BeforeEach
     void useDefaultVerifier() {
@@ -121,9 +124,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     Management returns state FAILED and exposes credential_status.valid=false with the REVOKED
                     status-list value 1.
                     """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             verifier = {ImageTags.STAGING},
@@ -142,10 +148,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         final var credentialResponse = wallet.postCredentialRequest(renewedEntry);
 
@@ -224,9 +227,12 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     the Wallet must be able to complete the OID4VP verification flow with state SUCCESS and
                     credential_status.valid=true.
                     """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
@@ -360,9 +366,9 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     associated offer and prevent any further renewal operations.
                     """
     )
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             verifier = {ImageTags.STAGING},
@@ -388,10 +394,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
@@ -422,9 +425,9 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
                     until the Issuer explicitly reactivates the credential.
                     """
     )
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             verifier = {ImageTags.STAGING},
@@ -450,10 +453,7 @@ public class RenewalFlowStateTransitionTest extends BaseTest {
         renewedEntry.generateHolderKeys();
         renewedEntry.createProofs(nonce);
 
-        nonce = wallet.collectDPoPNonce(renewedEntry);
-        final String finalDpop = DPoPSupport.createDpopProofForToken(
-                renewedEntry.getIssuerCredentialUri().toString(), nonce, wallet.getDpopKeyPair(), wallet.getDpopPublicKey(),
-                renewedEntry.getToken().getAccessToken());
+        wallet.collectDPoPNonce(renewedEntry);
 
         // Then - Renewal must be rejected
         final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {

@@ -11,7 +11,7 @@ public class ContainerLogConfig {
 
     private boolean issuer = true;
     private boolean verifier = true;
-    private boolean db = false;
-    private boolean mockServer = false;
-    private boolean softHsm = false;
+    private boolean db;
+    private boolean mockServer;
+    private boolean softHsm;
 }

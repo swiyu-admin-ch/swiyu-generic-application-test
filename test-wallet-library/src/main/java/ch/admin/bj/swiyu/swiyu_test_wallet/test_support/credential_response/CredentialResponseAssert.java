@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.credential_response;
 
+import java.text.ParseException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
 import com.google.gson.JsonObject;
 import com.nimbusds.jose.JWEObject;
@@ -121,7 +122,7 @@ public final class CredentialResponseAssert {
             Assertions.assertThat(actualEnc)
                     .as("Credential response JWE enc header")
                     .isEqualTo(expectedEnc);
-        } catch (Exception ex) {
+        } catch (ParseException ex) {
             throw new AssertionError(
                     "Expected payload to be a valid encrypted JWE, but header parsing failed: " + ex.getMessage(),
                     ex);

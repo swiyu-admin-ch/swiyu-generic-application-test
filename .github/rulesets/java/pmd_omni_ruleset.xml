@@ -7,7 +7,9 @@
          language="java">
 
     <description>
-        Custom PMD ruleset for Java. MethodNamingConventions rule is intentionally omitted.
+        PMD rules for the Java E2E suite and its support library.
+        Fixtures, Spring wiring and explicit scenario data are intentional test patterns.
+        MethodNamingConventions is not enabled, preserving descriptive JUnit scenario names.
     </description>
 
     <!-- Never analyze generated Maven sources, regardless of the configured PMD source path. -->
@@ -17,15 +19,34 @@
     <rule ref="category/java/bestpractices.xml">
         <exclude name="GuardLogStatement"/>
         <exclude name="UnitTestContainsTooManyAsserts"/>
+        <!-- Wildcard imports are permitted throughout this E2E test project. -->
+        <exclude name="OnDemandImport"/>
     </rule>
 
     <!-- Design rules -->
     <rule ref="category/java/design.xml">
         <exclude name="LawOfDemeter"/>
+        <!-- Size-based design limits are disabled for this test application. -->
+        <exclude name="ExcessiveImports"/>
+        <exclude name="GodClass"/>
+        <exclude name="TooManyMethods"/>
+        <!-- Test contexts and image configurations retain explicit scenario state and options. -->
+        <exclude name="TooManyFields"/>
+        <!-- Fixtures and configuration holders deliberately separate data from test behavior. -->
+        <exclude name="DataClass"/>
+        <!-- Container factories and Spring beans expose their assembly dependencies explicitly. -->
+        <exclude name="ExcessiveParameterList"/>
+        <!-- No package-dependency whitelist is defined; the rule otherwise fails configuration. -->
+        <exclude name="LoosePackageCoupling"/>
     </rule>
 
     <!-- Error prone rules -->
-    <rule ref="category/java/errorprone.xml"/>
+    <rule ref="category/java/errorprone.xml">
+        <!-- Repeated literals are intentional in test scenarios. -->
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Boundary values and expected protocol values may remain visible at their point of use. -->
+        <exclude name="AvoidLiteralsInIfCondition"/>
+    </rule>
 
     <!-- Performance rules -->
     <rule ref="category/java/performance.xml"/>

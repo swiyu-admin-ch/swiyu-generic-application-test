@@ -38,7 +38,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1441",
             summary = "Request Object carries the accepted issuer DIDs as did trusted authorities",
             description = """
                     Given a verification request with one accepted issuer DID.
@@ -46,8 +46,8 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
                     Then its DCQL credential query contains one trusted authority of type did whose values are exactly the accepted issuer DID.
                     Spec: OID4VP 1.0 6.1.1, Swiss verification profile 6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
     void requestObject_whenOneIssuerIsAccepted_thenDcqlQueryHasADidTrustedAuthorityWithIt() throws ParseException {
         // Given
         final String acceptedIssuerDid = issuerConfig.getIssuerDid();
@@ -70,7 +70,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1442",
             summary = "Request Object lists every accepted issuer DID in one did trusted authority",
             description = """
                     Given a verification request with two accepted issuer DIDs.
@@ -78,8 +78,8 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
                     Then its DCQL credential query contains both DIDs as values of a trusted authority of type did.
                     Spec: OID4VP 1.0 6.1.1 (a value matches if it is one of the provided values), Swiss verification profile 6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
     void requestObject_whenSeveralIssuersAreAccepted_thenTheDidTrustedAuthorityListsAllOfThem() throws ParseException {
         // Given
         final String firstIssuerDid = issuerConfig.getIssuerDid();
@@ -103,7 +103,7 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-1177",
+            key = "EIDOMNI-1443",
             summary = "Request Object has no trusted authorities when no issuer is listed",
             description = """
                     Given a verification request without accepted issuer DIDs.
@@ -111,8 +111,8 @@ class VerifierTrustedAuthoritiesTest extends BaseTest {
                     Then its DCQL credential query has no trusted_authorities, because the array must be non-empty when present.
                     Spec: OID4VP 1.0 6.1 (trusted_authorities is a non-empty array), Swiss verification profile 6.1.1.
                     """)
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
     void requestObject_whenNoIssuerIsAccepted_thenDcqlQueryHasNoTrustedAuthorities() throws ParseException {
         // Given
         final ManagementResponse verification = verifierManager.verificationRequest()

@@ -8,7 +8,6 @@ import ch.admin.bj.swiyu.gen.issuer.model.WebhookCallback;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
-import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.*;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -105,8 +104,10 @@ class DeferredFlowTest extends BaseTest {
                     issued credential batch once the issuer prepares the credential.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The images don't accept null claims on creation yet."
@@ -163,15 +164,15 @@ class DeferredFlowTest extends BaseTest {
                     This ensures specification-compliant deferred issuance flow behavior.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "The images have not the fix yet (The transaction_id MUST remain the same.)."
     )
     void deferredCredentialRequestV1_whenCredentialNotReady_remainsDeferred() {
         // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.V1;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
@@ -212,8 +213,10 @@ class DeferredFlowTest extends BaseTest {
     }
 
     @Test
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1340",
             summary = "Deferred claims cannot be replaced after the first update marks the offer READY",
             description = "Sequential baseline for R39: claims A are accepted, claims B are refused, and every issued credential contains only claims A.")
@@ -259,8 +262,10 @@ class DeferredFlowTest extends BaseTest {
 
     @ParameterizedTest(name = "Expired offer previously {0}")
     @ValueSource(strings = {"DEFERRED", "READY"})
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     @XrayTest(key = "EIDOMNI-1341",
             summary = "Expired deferred offers reject collection and cannot return to READY",
             description = "Sequential baseline for R40: expire only the prepared offer, keep its access token valid, then reject collection and a new READY transition.")
@@ -272,7 +277,7 @@ class DeferredFlowTest extends BaseTest {
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
                 CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile());
         final var entry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-        if ("READY".equals(initialState)) {
+        if (UpdateCredentialStatusRequestType.READY.name().equals(initialState)) {
             issuerManager.updateState(offer.getManagementId(), UpdateCredentialStatusRequestType.READY);
         }
 
@@ -319,8 +324,11 @@ class DeferredFlowTest extends BaseTest {
                     It also confirms the issuer cannot transition the offer back to READY.
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @Deprecated(forRemoval = true)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
@@ -330,7 +338,6 @@ class DeferredFlowTest extends BaseTest {
         cleanIssuerCallbacks();
 
         // Given
-        final SwiyuApiVersionConfig apiVersion = SwiyuApiVersionConfig.ID2;
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
         final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 

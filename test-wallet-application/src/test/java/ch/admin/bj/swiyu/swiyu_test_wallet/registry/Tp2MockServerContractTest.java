@@ -43,6 +43,7 @@ class Tp2MockServerContractTest extends BaseTest {
             key = "EIDOMNI-1414",
             summary = "TP2 route replacement preserves credential status lists",
             description = "Replacing and restoring TP2 scenario routes must not remove the credential status list route.")
+    @Tag(ReportingTags.EDGE_CASE)
     void tp2Routes_whenReplacedAndRestored_thenCredentialStatusListRemainsResolvable() throws Exception {
         // Given
         final RestClient client = mockServerRestClient();
@@ -276,6 +277,7 @@ class Tp2MockServerContractTest extends BaseTest {
                     expected authorization header and rejects DCQL registration payloads
                     whose credential metadata does not provide vct_values.
                     """)
+    @Tag(ReportingTags.EDGE_CASE)
     void tmsRegistration_whenAuthorizationOrDcqlMetadataMissing_thenRejectsRequest() {
         RestClient client = mockServerRestClient();
 
@@ -320,6 +322,7 @@ class Tp2MockServerContractTest extends BaseTest {
                     paged results for unknown identifiers and reject malformed query
                     parameters or invalid statement identifiers with the expected errors.
                     """)
+    @Tag(ReportingTags.EDGE_CASE)
     void tp2MockRoutes_whenMalformedOrUnknownRegistryQueries_thenRejectOrReturnEmptyResults() throws Exception {
         RestClient client = mockServerRestClient();
 
@@ -710,7 +713,7 @@ class Tp2MockServerContractTest extends BaseTest {
                 .build();
     }
 
-    private void assertIdentityTrustStatementList(String responseBody) throws Exception {
+    private void assertIdentityTrustStatementList(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -755,7 +758,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertThat(statement.getJWTClaimsSet().getStringClaim("entity_name#de-CH")).isEqualTo("Mock TP2 Issuer Schweiz");
     }
 
-    private void assertVerificationQueryPublicStatementList(String responseBody) throws Exception {
+    private void assertVerificationQueryPublicStatementList(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -770,10 +773,11 @@ class Tp2MockServerContractTest extends BaseTest {
                 .containsEntry("totalPages", 1)
                 .containsEntry("totalElements", content.size());
 
+        final String defaultStatementId = "07f289d5-8b1f-4604-bf72-53bdcb71ee05";
         String defaultStatement = null;
         for (String jwt : content) {
             SignedJWT statement = SignedJWT.parse(jwt);
-            if ("07f289d5-8b1f-4604-bf72-53bdcb71ee05".equals(statement.getJWTClaimsSet().getJWTID())) {
+            if (defaultStatementId.equals(statement.getJWTClaimsSet().getJWTID())) {
                 defaultStatement = jwt;
                 break;
             }
@@ -815,7 +819,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedVctValues(meta.get("vct_values"));
     }
 
-    private void assertTmsRegistrationResponse(String responseBody) throws Exception {
+    private void assertTmsRegistrationResponse(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -861,7 +865,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedVctValues(meta.get("vct_values"));
     }
 
-    private void assertProtectedIssuanceAuthorizationList(String responseBody) throws Exception {
+    private void assertProtectedIssuanceAuthorizationList(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -891,7 +895,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedVctUrl((String) canIssue.get("vct"));
     }
 
-    private void assertProtectedVerificationAuthorizationList(String responseBody) throws Exception {
+    private void assertProtectedVerificationAuthorizationList(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -935,7 +939,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedVctUrl((String) canIssue.get("vct"));
     }
 
-    private void assertProtectedIssuanceTrustListStatementList(String responseBody) throws Exception {
+    private void assertProtectedIssuanceTrustListStatementList(String responseBody) throws ParseException {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")
@@ -1026,7 +1030,7 @@ class Tp2MockServerContractTest extends BaseTest {
         assertProtectedVctUrl((String) ((List<?>) vctValues).getFirst());
     }
 
-    private void assertEmptyPagedContent(String responseBody, int expectedPageNumber) throws Exception {
+    private void assertEmptyPagedContent(String responseBody, int expectedPageNumber) {
         Map<String, Object> response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
         });
         @SuppressWarnings("unchecked")

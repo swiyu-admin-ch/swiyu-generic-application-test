@@ -12,7 +12,7 @@ import org.testcontainers.containers.GenericContainer;
 @ConfigurationProperties("application.management-auth")
 public class ManagementAuthConfig {
 
-    private boolean enabled = false;
+    private boolean enabled;
     private String keycloakImage = "quay.io/keycloak/keycloak:25.0";
     private String realm = "trust";
     private String networkAlias = "keycloak";

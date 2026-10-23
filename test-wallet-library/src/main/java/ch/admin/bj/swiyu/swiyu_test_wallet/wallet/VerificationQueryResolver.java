@@ -18,7 +18,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.text.ParseException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +26,8 @@ final class VerificationQueryResolver {
 
     static final String VQPS_TYPE = "swiyu-verification-query-public-statement+jwt";
     static final String TP2_PROFILE_VERSION = "swiss-profile-trust:1.0.0";
+
+    private static final int EXPECTED_STATEMENT_COUNT = 1;
 
     private static final String JWT_FORMAT = "jwt";
     private static final String DCQL_TYPE = "DCQL";
@@ -64,6 +65,11 @@ final class VerificationQueryResolver {
         validateLifetime(claims);
         validateSubject(claims, requestObject.getClientId());
 
+        final Map<String, Object> verificationRequest = verificationRequest(requestObject, claims);
+        return queryFromRequest(verificationRequest);
+    }
+
+    private Map<String, Object> verificationRequest(final RequestObject requestObject, final JWTClaimsSet claims) {
         final Map<String, Object> verificationRequest = jsonObjectClaim(claims, "request");
         if (!DCQL_TYPE.equals(requiredString(verificationRequest, "type"))) {
             throw invalidRequest("vqPS request.type must be DCQL");
@@ -75,6 +81,10 @@ final class VerificationQueryResolver {
             throw invalidRequest("Authorization Request scope must match the vqPS request.scope");
         }
 
+        return verificationRequest;
+    }
+
+    private DcqlQueryDto queryFromRequest(final Map<String, Object> verificationRequest) {
         final Object query = verificationRequest.get("query");
         if (!(query instanceof Map<?, ?>)) {
             throw invalidRequest("vqPS request.query must be a JSON object");
@@ -84,7 +94,7 @@ final class VerificationQueryResolver {
         try {
             dcqlQuery = objectMapper.convertValue(query, DcqlQueryDto.class);
         } catch (final IllegalArgumentException exception) {
-            throw invalidRequest("vqPS request.query is not valid DCQL");
+            throw invalidRequest("vqPS request.query is not valid DCQL", exception);
         }
 
         if (dcqlQuery.getCredentials() == null || dcqlQuery.getCredentials().isEmpty()) {
@@ -106,7 +116,7 @@ final class VerificationQueryResolver {
                 .filter(entry -> VQPS_TYPE.equals(entry.getValue().getHeader().getType().getType()))
                 .toList();
 
-        if (statements.size() != 1) {
+        if (statements.size() != EXPECTED_STATEMENT_COUNT) {
             throw invalidRequest("verifier_info must contain exactly one vqPS");
         }
         final Map.Entry<VerifierInfoEntryDto, SignedJWT> vqPs = statements.getFirst();
@@ -121,7 +131,7 @@ final class VerificationQueryResolver {
         try {
             return SignedJWT.parse(statement);
         } catch (final ParseException exception) {
-            throw invalidRequest("verifier_info contains an invalid compact JWT");
+            throw invalidRequest("verifier_info contains an invalid compact JWT", exception);
         }
     }
 
@@ -129,8 +139,7 @@ final class VerificationQueryResolver {
         if (!JWSAlgorithm.ES256.equals(vqPs.getHeader().getAlgorithm())) {
             throw invalidRequest("vqPS must use ES256");
         }
-        if (vqPs.getHeader().getType() == null
-                || !VQPS_TYPE.equals(vqPs.getHeader().getType().getType())) {
+        if (!hasVqPsType(vqPs)) {
             throw invalidRequest("vqPS typ is invalid");
         }
         if (!TP2_PROFILE_VERSION.equals(vqPs.getHeader().getCustomParam("profile_version"))) {
@@ -141,14 +150,21 @@ final class VerificationQueryResolver {
         }
     }
 
+    private boolean hasVqPsType(final SignedJWT vqPs) {
+        return vqPs.getHeader().getType() != null
+                && VQPS_TYPE.equals(vqPs.getHeader().getType().getType());
+    }
+
     private void verifySignature(final SignedJWT vqPs, final TrustConfig trustConfig) {
+        final boolean verified;
         try {
             final JWK trustKey = JWK.parse(trustConfig.getTrustAssertPublicJwk());
-            if (!vqPs.verify(new ECDSAVerifier(trustKey.toECKey()))) {
-                throw invalidRequest("vqPS signature is invalid");
-            }
+            verified = vqPs.verify(new ECDSAVerifier(trustKey.toECKey()));
         } catch (final JOSEException | ParseException exception) {
-            throw invalidRequest("vqPS signature cannot be validated");
+            throw invalidRequest("vqPS signature cannot be validated", exception);
+        }
+        if (!verified) {
+            throw invalidRequest("vqPS signature is invalid");
         }
     }
 
@@ -156,19 +172,21 @@ final class VerificationQueryResolver {
         try {
             return vqPs.getJWTClaimsSet();
         } catch (final ParseException exception) {
-            throw invalidRequest("vqPS claims cannot be parsed");
+            throw invalidRequest("vqPS claims cannot be parsed", exception);
         }
     }
 
     private void validateLifetime(final JWTClaimsSet claims) {
         final Instant now = clock.instant();
-        final Date issuedAt = claims.getIssueTime();
-        final Date expiresAt = claims.getExpirationTime();
+        final Instant issuedAt = java.util.Optional.ofNullable(claims.getIssueTime())
+                .map(timestamp -> timestamp.toInstant()).orElse(null);
+        final Instant expiresAt = java.util.Optional.ofNullable(claims.getExpirationTime())
+                .map(timestamp -> timestamp.toInstant()).orElse(null);
 
-        if (issuedAt == null || issuedAt.toInstant().isAfter(now)) {
+        if (issuedAt == null || issuedAt.isAfter(now)) {
             throw invalidRequest("vqPS iat is missing or in the future");
         }
-        if (expiresAt == null || !expiresAt.toInstant().isAfter(now)) {
+        if (expiresAt == null || !expiresAt.isAfter(now)) {
             throw invalidRequest("vqPS is expired or has no exp");
         }
     }
@@ -182,15 +200,16 @@ final class VerificationQueryResolver {
     }
 
     private Map<String, Object> jsonObjectClaim(final JWTClaimsSet claims, final String claimName) {
+        final Map<String, Object> value;
         try {
-            final Map<String, Object> value = claims.getJSONObjectClaim(claimName);
-            if (value == null) {
-                throw invalidRequest("vqPS " + claimName + " claim is required");
-            }
-            return value;
+            value = claims.getJSONObjectClaim(claimName);
         } catch (final ParseException exception) {
-            throw invalidRequest("vqPS " + claimName + " claim must be a JSON object");
+            throw invalidRequest("vqPS " + claimName + " claim must be a JSON object", exception);
         }
+        if (value == null) {
+            throw invalidRequest("vqPS " + claimName + " claim is required");
+        }
+        return value;
     }
 
     private String requiredString(final Map<String, Object> values, final String key) {
@@ -210,5 +229,9 @@ final class VerificationQueryResolver {
 
     private TestSupportException invalidRequest(final String message) {
         return new TestSupportException(message);
+    }
+
+    private TestSupportException invalidRequest(final String message, final Throwable cause) {
+        return new TestSupportException(message, cause);
     }
 }

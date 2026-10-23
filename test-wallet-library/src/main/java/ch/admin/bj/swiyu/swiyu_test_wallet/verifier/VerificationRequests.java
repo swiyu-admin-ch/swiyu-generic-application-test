@@ -19,7 +19,6 @@ public class VerificationRequests {
     public static CreateVerificationManagement createDefaultRequest(boolean withKeyBinding) {
         return new CreateVerificationManagement()
                 .acceptedIssuerDids(null)
-                .trustAnchors(null)
                 .jwtSecuredAuthorizationRequest(false)
                 .responseMode(ResponseModeType.DIRECT_POST)
                 .dcqlQuery(defaultDcqlQuery(List.of(dcqlClaim("name")), withKeyBinding));

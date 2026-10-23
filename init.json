@@ -1,89 +1,104 @@
 [
   {
-    "httpRequest" : {
-      "method" : "GET",
-      "path" : "/api/v1/did/18fa7c77-9dd1-4e20-a147-fb1bec146085/did.jsonl"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type": "application/jsonl+json"
-      },
-      "body" : "[\"1-QmZAZFkYRzp5Us5KK7HwRQs7ziXXYbWF4kfv1EbQQYLsPM\",\"2025-10-01T09:50:34Z\",{\"method\":\"did:tdw:0.3\",\"scid\":\"Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC\",\"updateKeys\":[\"z6MkkYzpNSVmMhNRM6cwocPWw6tcTknioWnZ8QHgvVwWUYnk\"]},{\"value\":{\"@context\":[\"https://www.w3.org/ns/did/v1\",\"https://w3id.org/security/suites/jws-2020/v1\"],\"id\":\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"authentication\":[\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#auth-key-01\"],\"assertionMethod\":[\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#assert-key-01\"],\"verificationMethod\":[{\"id\":\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#auth-key-01\",\"controller\":\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"kgWFYUhu_53TYtG4YS0zXHbz3LMQAXwcSmxYhpBvqTw\",\"y\":\"-lgXUspETh4kWVyp5V9LDv_4KjRlzS_3xIkQYDh6yIU\",\"kid\":\"auth-key-01\"}},{\"id\":\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#assert-key-01\",\"controller\":\"did:tdw:Qmeqe1d1tRTCLg5Z4mVUrqhCRbvtHBBpDYTsirnJBt5UXC:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"x\":\"iBVeBG3_btA3mDyPB6zwPaHlNm87soVKP1abZjqMzdc\",\"y\":\"jooQ6LC1SS_5Qv3VpCtV4-YFx21lzQqkIZAcPUMA71w\",\"kid\":\"assert-key-01\"}}]}},[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"created\":\"2025-10-01T09:50:34Z\",\"verificationMethod\":\"did:key:z6MkkYzpNSVmMhNRM6cwocPWw6tcTknioWnZ8QHgvVwWUYnk#z6MkkYzpNSVmMhNRM6cwocPWw6tcTknioWnZ8QHgvVwWUYnk\",\"proofPurpose\":\"authentication\",\"challenge\":\"1-QmZAZFkYRzp5Us5KK7HwRQs7ziXXYbWF4kfv1EbQQYLsPM\",\"proofValue\":\"z3p4iQHMSMVYnm8DApN8XqwPoMgaHaVZqvBFdiLEnAu51jQWJwVRo3tPvbJVHhKeEGL8TEjRqwa5pR3PRJc2tafBo\"}]]",
-      "statusCode": 200
-    }
-  },
-  {
-    "httpRequest" : {
-      "method" : "GET",
-      "path" : "/api/v1/statuslist/6f81acca-cb30-45bb-a774-38e73e09bdec.jwt"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type": "application/statuslist+jwt"
-      },
-      "body" : "eyJ0eXAiOiJzdGF0dXNsaXN0K2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoiZGlkOnRkdzpRbWVxZTFkMXRSVENMZzVaNG1WVXJxaENSYnZ0SEJCcERZVHNpcm5KQnQ1VVhDOm1vY2tzZXJ2ZXIlM0ExMDgwOmFwaTp2MTpkaWQ6MThmYTdjNzctOWRkMS00ZTIwLWExNDctZmIxYmVjMTQ2MDg1I2Fzc2VydC1rZXktMDEifQ.eyJpc3MiOiJkaWQ6dGR3OlFtZXFlMWQxdFJUQ0xnNVo0bVZVcnFoQ1JidnRIQkJwRFlUc2lybkpCdDVVWEM6bW9ja3NlcnZlciUzQTEwODA6YXBpOnYxOmRpZDoxOGZhN2M3Ny05ZGQxLTRlMjAtYTE0Ny1mYjFiZWMxNDYwODUiLCJzdWIiOiJodHRwczovL21vY2tzZXJ2ZXI6MTA4MC9hcGkvdjEvc3RhdHVzbGlzdC82ZjgxYWNjYS1jYjMwLTQ1YmItYTc3NC0zOGU3M2UwOWJkZWMuand0IiwiaWF0IjoxNzQ3NjYzNzY3LCJzdGF0dXNfbGlzdCI6eyJiaXRzIjoyLCJsc3QiOiJlTnJ0d1FFQkFBQUFnaURfcjI1SVFBRUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUh3WVlhZ0FBUSJ9fQ.0YlPuL8WmUV1-T8kvu5y6l41P_ejGp_4nFSayxz-bqV7_Jg1gu0DN45-3hpdF_Qw6YereoGjOdkqFm7AWdMtTQ",
-      "statusCode": 200
-    }
-  },
-  {
-    "httpRequest" : {
-      "method" : "POST",
-      "path" : "/openid-connect/token"
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
-      },
-      "body" : "{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}",
-      "statusCode": 200
-    }
-  },
-  {
-    "httpRequest" : {
-      "method" : "GET",
-      "path" : "/openid-connect/token"
-    },
-    "httpResponse" : {
-      "body" : "{\"access_token\": \"access_token\", \"refresh_token\": \"refresh_token\"}",
-      "statusCode": 200
-    }
-  },
-  {
     "httpRequest": {
-      "method" : "POST",
-      "path": "/api/v1/status/business-entities/{businessId}/status-list-entries/",
-      "pathParameters": {
-        "businessId": [
-          "[A-Z0-9\\-]+"
+      "method": "GET",
+      "path": "/api/v1/did/18fa7c77-9dd1-4e20-a147-fb1bec146085/did.jsonl"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": [
+          "application/jsonl+json"
         ]
-      }
-    },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
       },
-      "body" : "{\"id\": \"34a1a794-dd87-49cb-9105-d950dfed8913\", \"statusRegistryUrl\": \"https://mockserver:1080/api/v1/statuslist/6f81acca-cb30-45bb-a774-38e73e09bdec.jwt\"}",
-      "statusCode": 200
+      "body": "{\"versionId\":\"1-QmbJFLzGzG5kgGTTqoH8xHCX6HwREoQ6My2LdqwvYjznHM\",\"versionTime\":\"2026-10-19T08:12:38Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9\",\"updateKeys\":[\"z6MkuLXGB98YeHSczRWjdeDjYRdD5mvr8FD7QYuBmpeMgRJy\"],\"portable\":false},\"state\":{\"id\":\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"profile_version\":\"swiss-profile-anchor:1.0.0\",\"authentication\":[\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#auth-key-01\"],\"assertionMethod\":[\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#assert-key-01\"],\"verificationMethod\":[{\"id\":\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#auth-key-01\",\"controller\":\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"kid\":\"auth-key-01\",\"x\":\"dh8fP0Dz_Vo6wZ5WpPCKifeLy8HvSTAv-qbCo_0Xfz4\",\"y\":\"lWLb0kh5JIp4oZ79XxaT8MuFuA-oweEHb49Ri_AKKEg\"}},{\"id\":\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085#assert-key-01\",\"controller\":\"did:webvh:QmVsv8U8YdFnEGCEKstZL9Hii1S1PjTB5a2A86LvM7DKd9:mockserver%3A1080:api:v1:did:18fa7c77-9dd1-4e20-a147-fb1bec146085\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"kid\":\"assert-key-01\",\"x\":\"MIvpO-h6qKmVX9eEFkF-OPTPYNxqoFmbYfBMmhL06Ic\",\"y\":\"ayYe57vAFdjyTCoMaupeiNF_0DZ0LQ8pdnYs9G8bNfs\"}}]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"created\":\"2026-10-19T08:12:38Z\",\"verificationMethod\":\"did:key:z6MkuLXGB98YeHSczRWjdeDjYRdD5mvr8FD7QYuBmpeMgRJy#z6MkuLXGB98YeHSczRWjdeDjYRdD5mvr8FD7QYuBmpeMgRJy\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"ziSmoxhH7FGFEz11rXejhh4NbdXqbR7p1vFNM89fwz9q2ptPBTSM9mG4xYKCqWakHYyrznLH1L6sAziYHz3ct5bM\"}]}"
     }
   },
   {
     "httpRequest": {
-      "method" : "PUT",
-      "path": "/api/v1/status/business-entities/{businessId}/status-list-entries/{statusListId}",
+      "method": "GET",
+      "path": "/api/v1/did/778922de-3154-458e-adde-a44828653dea/did.jsonl"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": [
+          "application/jsonl+json"
+        ]
+      },
+      "body": "{\"versionId\":\"1-QmbAyRvGU7P9CHEtSw4GwaaQevq5HpvRrV3EKjoX9beTbD\",\"versionTime\":\"2026-10-19T08:12:38Z\",\"parameters\":{\"method\":\"did:webvh:1.0\",\"scid\":\"QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS\",\"updateKeys\":[\"z6MkkbrpppWG164PG3DE8AbL6723bCx7fHzD1XfRVyydjmJR\"],\"portable\":false},\"state\":{\"id\":\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea\",\"profile_version\":\"swiss-profile-anchor:1.0.0\",\"authentication\":[\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea#auth-key-01\"],\"assertionMethod\":[\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea#assert-key-01\"],\"verificationMethod\":[{\"id\":\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea#auth-key-01\",\"controller\":\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"kid\":\"auth-key-01\",\"x\":\"PidnCqE0WaIqVD0FY4NVwwMI2bepWc75owiSRWLWtqM\",\"y\":\"FhzS3JMAl3Vc35-UMWtRAUtePe8DRK2JYDqHy68cMlQ\"}},{\"id\":\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea#assert-key-01\",\"controller\":\"did:webvh:QmU23PyZoU3gZvjyCdze5WbrMUMhYNcNG4hXwfKm6apFnS:mockserver%3A1080:api:v1:did:778922de-3154-458e-adde-a44828653dea\",\"type\":\"JsonWebKey2020\",\"publicKeyJwk\":{\"kty\":\"EC\",\"crv\":\"P-256\",\"kid\":\"assert-key-01\",\"x\":\"Ks67L_Ct7ireQNwZuniaH0wirwu7OkRXh9exiBzGOV8\",\"y\":\"uWij3LM0oNX20c6SpPxNuxmlesVeCfIzVn8vz5xVhCA\"}}]},\"proof\":[{\"type\":\"DataIntegrityProof\",\"cryptosuite\":\"eddsa-jcs-2022\",\"created\":\"2026-10-19T08:12:38Z\",\"verificationMethod\":\"did:key:z6MkkbrpppWG164PG3DE8AbL6723bCx7fHzD1XfRVyydjmJR#z6MkkbrpppWG164PG3DE8AbL6723bCx7fHzD1XfRVyydjmJR\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"z4uBCZdu7nGvuZPQFtrpqoJguDgy34a3FAiFBGjFGDLTiWGLarRv3S3CJE5bG23D9gbb3yxAAFj1dmuL5NNX1p219\"}]}"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/openid-connect/token"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "{\"access_token\": \"local-access-token\", \"refresh_token\": \"local-refresh-token\", \"token_type\": \"Bearer\", \"expires_in\": 3600}"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/v1/status/business-entities/18fa7c77-9dd1-4e20-a147-fb1bec146085/status-list-entries/"
+    },
+    "httpResponseTemplate": {
+      "templateType": "VELOCITY",
+      "template": "#set($id = \"$uuid\")\n#set($ignored = $scenario.set(\"owner:$id\", \"18fa7c77-9dd1-4e20-a147-fb1bec146085\"))\n{\"statusCode\":200,\"headers\":{\"Content-Type\":[\"application/json\"]},\"body\":\"{\\\"id\\\":\\\"$id\\\",\\\"statusRegistryUrl\\\":\\\"https://mockserver:1080/api/v1/statuslist/${id}.jwt\\\"}\"}"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "PUT",
+      "path": "/api/v1/status/business-entities/18fa7c77-9dd1-4e20-a147-fb1bec146085/status-list-entries/{statusListId}",
       "pathParameters": {
         "statusListId": [
-          "[A-Z0-9\\-]+"
-        ],
-        "businessId": [
-          "[A-Z0-9\\-]+"
+          "[0-9a-fA-F-]{36}"
         ]
       }
     },
-    "httpResponse" : {
-      "headers" : {
-        "Content-Type" : [ "application/json" ]
-      },
-      "statusCode": 200
+    "httpResponseTemplate": {
+      "templateType": "VELOCITY",
+      "template": "#set($id = $request.pathParameters['statusListId'][0])\n#if($scenario.get(\"owner:$id\") == \"18fa7c77-9dd1-4e20-a147-fb1bec146085\")\n  #set($token = $request.body.trim())\n  #if(!$token.contains('.') && $token.matches('(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?'))\n    #set($token = $strings.base64Decode($token))\n  #end\n  #if($token.matches('[A-Za-z0-9_-]+[.][A-Za-z0-9_-]+[.][A-Za-z0-9_-]+'))\n    #set($ignored = $scenario.set(\"token:$id\", $token))\n    {\"statusCode\":202}\n  #else\n    {\"statusCode\":400,\"headers\":{\"Content-Type\":[\"application/json\"]},\"body\":\"{\\\"errorCode\\\":\\\"data_invalid\\\",\\\"message\\\":\\\"Expected a compact Status List Token JWT\\\"}\"}\n  #end\n#else\n  {\"statusCode\":404}\n#end"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "PUT",
+      "path": "/api/v2/status/business-entities/18fa7c77-9dd1-4e20-a147-fb1bec146085/status-list-entries/{statusListId}",
+      "pathParameters": {
+        "statusListId": [
+          "[0-9a-fA-F-]{36}"
+        ]
+      }
+    },
+    "httpResponseTemplate": {
+      "templateType": "VELOCITY",
+      "template": "#set($id = $request.pathParameters['statusListId'][0])\n#if($scenario.get(\"owner:$id\") == \"18fa7c77-9dd1-4e20-a147-fb1bec146085\")\n  #set($token = $request.body.trim())\n  #if(!$token.contains('.') && $token.matches('(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?'))\n    #set($token = $strings.base64Decode($token))\n  #end\n  #if($token.matches('[A-Za-z0-9_-]+[.][A-Za-z0-9_-]+[.][A-Za-z0-9_-]+'))\n    #set($ignored = $scenario.set(\"token:$id\", $token))\n    {\"statusCode\":200}\n  #else\n    {\"statusCode\":400,\"headers\":{\"Content-Type\":[\"application/json\"]},\"body\":\"{\\\"errorCode\\\":\\\"data_invalid\\\",\\\"message\\\":\\\"Expected a compact Status List Token JWT\\\"}\"}\n  #end\n#else\n  {\"statusCode\":404}\n#end"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/v1/statuslist/[0-9a-fA-F-]{36}\\.jwt"
+    },
+    "httpResponseTemplate": {
+      "templateType": "VELOCITY",
+      "template": "#set($id = $request.path.replace(\"/api/v1/statuslist/\", \"\").replace(\".jwt\", \"\"))\n#set($token = $scenario.get(\"token:$id\"))\n#if($token.matches('[A-Za-z0-9_-]+[.][A-Za-z0-9_-]+[.][A-Za-z0-9_-]+'))\n  {\"statusCode\":200,\"headers\":{\"Content-Type\":[\"application/statuslist+jwt\"]},\"body\":\"$token\"}\n#else\n  {\"statusCode\":404}\n#end"
+    }
+  },
+  {
+    "priority": -100,
+    "httpRequest": {},
+    "httpResponse": {
+      "statusCode": 404
     }
   }
 ]
