@@ -134,7 +134,6 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
     @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
-    @Disabled("Bug ticket : EIDOMNI-1386")
     void walletError_whenWalletRepeatsResponsesAfterClosure_thenResultAndCallbackCountStayUnchanged(
             final VerificationStatus terminalState
     ) {
