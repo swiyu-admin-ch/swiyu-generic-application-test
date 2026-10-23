@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /** Verifies the cross-component contract of the public regression-environment façade. */
-@SuppressWarnings({"PMD.ExcessiveImports", "PMD.CouplingBetweenObjects"})
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 class RegressionEnvironmentFactoryTest {
 
     private static final String ISSUER_IMAGE = "registry.example/issuer";

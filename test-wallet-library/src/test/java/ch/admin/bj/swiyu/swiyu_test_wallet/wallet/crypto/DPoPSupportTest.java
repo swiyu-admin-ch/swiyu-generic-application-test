@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -112,14 +113,16 @@ class DPoPSupportTest {
         final SignedJWT proof = DpopJwtValidator.parse(DPoPSupport.createDpopProofForToken(
                 TOKEN_URI.toString(), NONCE, keyPair, publicJwk, ACCESS_TOKEN));
 
-        DpopJwtValidator.validateMandatoryClaims(proof.getHeader(), proof.getJWTClaimsSet());
-        DpopJwtValidator.validateTyp(proof.getHeader());
-        DpopJwtValidator.validateAlgorithm(proof.getHeader(), DpopConstants.SUPPORTED_ALGORITHMS);
-        DpopJwtValidator.validatePublicKeyNotPrivate(proof.getHeader().getJWK());
-        DpopJwtValidator.validateSignature(proof, proof.getHeader().getJWK());
-        DpopJwtValidator.validateHtm("POST", proof.getJWTClaimsSet());
-        DpopJwtValidator.validateHtu(TOKEN_URI, proof.getJWTClaimsSet().getStringClaim("htu"), TOKEN_URI);
-        DpopJwtValidator.validateIssuedAt(proof.getJWTClaimsSet(), 60, Clock.systemUTC());
+        assertThatCode(() -> {
+            DpopJwtValidator.validateMandatoryClaims(proof.getHeader(), proof.getJWTClaimsSet());
+            DpopJwtValidator.validateTyp(proof.getHeader());
+            DpopJwtValidator.validateAlgorithm(proof.getHeader(), DpopConstants.SUPPORTED_ALGORITHMS);
+            DpopJwtValidator.validatePublicKeyNotPrivate(proof.getHeader().getJWK());
+            DpopJwtValidator.validateSignature(proof, proof.getHeader().getJWK());
+            DpopJwtValidator.validateHtm("POST", proof.getJWTClaimsSet());
+            DpopJwtValidator.validateHtu(TOKEN_URI, proof.getJWTClaimsSet().getStringClaim("htu"), TOKEN_URI);
+            DpopJwtValidator.validateIssuedAt(proof.getJWTClaimsSet(), 60, Clock.systemUTC());
+        }).doesNotThrowAnyException();
     }
 
     @Test

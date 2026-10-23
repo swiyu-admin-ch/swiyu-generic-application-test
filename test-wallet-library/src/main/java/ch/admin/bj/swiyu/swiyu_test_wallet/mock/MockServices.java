@@ -83,6 +83,15 @@ public class MockServices {
         statusRegistry.disableCorruptSignature();
     }
 
+    /** Serves every Status List Token with an {@code exp} that has passed, as a registry with a stale cache would. */
+    public void enableExpiredStatusListToken() {
+        statusRegistry.enableExpiredToken();
+    }
+
+    public void disableExpiredStatusListToken() {
+        statusRegistry.disableExpiredToken();
+    }
+
     /** Puts every simulated service back to its normal behavior; {@code BaseTest} does it after each test. */
     public void resetFaults() {
         statusRegistry.resetFaults();
@@ -129,7 +138,6 @@ public class MockServices {
     }
 
     public void registerVerifier(final VerifierConfig verifierConfig) {
-        actors.addVerifier(verifierConfig);
         didLogs.register(verifierConfig.getVerifierDid(), verifierConfig.getVerifierDidLog());
         verifierConfig.getAdditionalSigningIdentities().forEach(this::registerVerifier);
     }
@@ -140,7 +148,6 @@ public class MockServices {
     }
 
     public void registerAttestationAuthority(final MockAttestationAuthority attestationAuthority) {
-        actors.attestationAuthority(attestationAuthority);
         if (attestationAuthority != null) {
             didLogs.register(attestationAuthority.getDid(), attestationAuthority.getDidLog());
         }

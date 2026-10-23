@@ -23,6 +23,8 @@ query-filters:
       id: java/deprecated-call # Exclude deprecated calls because of V1 version
   - exclude:
       id: java/potentially-weak-cryptographic-algorithm # The cryptographic choices in this codebase are deliberate (OpenID specs & Swiss profile)
+  - exclude:
+      id: java/sensitive-log # Keys and credentials are generated solely for test scenarios; retain diagnostic logs.
 
 # Extended analysis options
 disable-default-queries: false

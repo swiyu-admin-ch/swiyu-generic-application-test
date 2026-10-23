@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @ConfigurationProperties("application.verifier")
+// Each field maps to an independently configured issuer or verifier image property.
 public class VerifierImageConfig {
 
     private String baseImage = "ghcr.io/swiyu-admin-ch/swiyu-verifier";
@@ -18,15 +19,15 @@ public class VerifierImageConfig {
 
 
     private String surname = "default";
-    private boolean enableHsm = false;
-    private boolean multipleSigningKeys = false;
-    private boolean omitStaticVerifierDid = false;
-    private long trustRegistryMaxCacheSize = 0;
-    private long trustRegistryMaxCacheTtlSeconds = 0;
-    private long jwkCacheTtlMillis = 0;
-    private long trustStatementCacheTtlMillis = 0;
-    private int requestObjectTtlSeconds = 0;
-    private boolean rejectSuspendedCredentials = false;
+    private boolean enableHsm;
+    private boolean multipleSigningKeys;
+    private boolean omitStaticVerifierDid;
+    private long trustRegistryMaxCacheSize;
+    private long trustRegistryMaxCacheTtlSeconds;
+    private long jwkCacheTtlMillis;
+    private long trustStatementCacheTtlMillis;
+    private int requestObjectTtlSeconds;
+    private boolean rejectSuspendedCredentials;
 
     // Null leaves the environment variable unset to exercise the verifier's production default.
     private Boolean auditVpTokenEnabled = true;

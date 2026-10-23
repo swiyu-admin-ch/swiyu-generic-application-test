@@ -1,5 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.identity;
 
+import java.net.MalformedURLException;
+import ch.admin.bj.swiyu.didtoolbox.context.DidLogCreatorStrategyException;
+import ch.admin.bj.swiyu.didtoolbox.model.VerificationMethodException;
 import ch.admin.bj.swiyu.didtoolbox.context.DidLogCreatorContext;
 import ch.admin.bj.swiyu.didtoolbox.model.DidLogMetaPeekerException;
 import ch.admin.bj.swiyu.didtoolbox.model.DidMethodEnum;
@@ -17,7 +20,7 @@ import java.util.Set;
 public class DidLogUtil {
 
     public static String createDidLog(ECPublicKey authenticationKey, ECPublicKey assertionMethodKey, URI identifierRegistryUrl) {
-        return createDidLog(
+        return createDidLogWithVerificationMethods(
                 VerificationMethod.of("auth-key-01", authenticationKey),
                 VerificationMethod.of("assert-key-01", assertionMethodKey),
                 identifierRegistryUrl
@@ -26,17 +29,17 @@ public class DidLogUtil {
 
     public static String createDidLog(JWK authenticationKey, JWK assertionMethodKey, URI identifierRegistryUrl) {
         try {
-            return createDidLog(
+            return createDidLogWithVerificationMethods(
                     VerificationMethod.of("auth-key-01", authenticationKey.toPublicJWK().toJSONString()),
                     VerificationMethod.of("assert-key-01", assertionMethodKey.toPublicJWK().toJSONString()),
                     identifierRegistryUrl
             );
-        } catch (Exception e) {
+        } catch (VerificationMethodException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    private static String createDidLog(
+    private static String createDidLogWithVerificationMethods(
             VerificationMethod authenticationMethod,
             VerificationMethod assertionMethod,
             URI identifierRegistryUrl) {
@@ -48,7 +51,7 @@ public class DidLogUtil {
                     .assertionMethods(Set.of(assertionMethod))
                     .build()
                     .create(identifierRegistryUrl.toURL());
-        } catch (Exception e) {
+        } catch (DidLogCreatorStrategyException | MalformedURLException e) {
             throw new IllegalStateException(e);
         }
     }

@@ -21,6 +21,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.jwk.ECKey;
@@ -42,6 +43,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -67,7 +69,7 @@ import static org.mockserver.model.HttpRequest.request;
         matches = "true",
         disabledReason = "HSM tests require -Dhsm=true so SoftHSM is injected only when explicitly requested."
 )
-public class IssuerHSMTest extends BaseTest {
+class IssuerHSMTest extends BaseTest {
 
     private static final String STATUS_REGISTRY_UPDATE_PATH =
             "/api/v2/status/business-entities/[^/]+/status-list-entries/";
@@ -77,7 +79,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1419",
             summary = "Credential Issuer signs a batch with its default HSM key and the Verifier accepts every presentation",
             description = """
                     Given a Credential Issuer using the default SoftHSM key.
@@ -86,6 +88,11 @@ public class IssuerHSMTest extends BaseTest {
                     Spec: OID4VCI 1.0 section 8.3; OID4VP 1.0 section 8.6; Swiss anchor profile, JWT Validation.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void hsmSetupTest() throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -131,7 +138,7 @@ public class IssuerHSMTest extends BaseTest {
     @NullAndEmptySource
     @ValueSource(strings = HSM_KEY_PIN)
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1420",
             summary = "Credential Issuer signs every Credential with the override HSM key with an optional key PIN",
             description = """
                     Given a Credential Offer with an alternate HSM key and its matching verification method.
@@ -139,8 +146,10 @@ public class IssuerHSMTest extends BaseTest {
                     Then every Credential advertises the alternate kid, verifies only with that key and issuance becomes ISSUED.
                     Spec: Issuer management ConfigurationOverride; OID4VCI 1.0 section 8.3; Swiss anchor profile, JWT Validation.
                     """)
-    @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenHsmKeyIsOverridden_thenEveryCredentialUsesOverrideKey(final String keyPin)
             throws Exception {
         // Given
@@ -180,7 +189,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1421",
             summary = "Credential Issuer keeps its default HSM key after issuing with an override",
             description = """
                     Given a default offer and a separate offer selecting the alternate HSM key.
@@ -189,6 +198,9 @@ public class IssuerHSMTest extends BaseTest {
                     Spec: Issuer management ConfigurationOverride, scope limited to the created entity.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenOverrideIsUsed_thenDefaultOfferKeepsItsOwnKey() throws Exception {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -232,7 +244,7 @@ public class IssuerHSMTest extends BaseTest {
     @ParameterizedTest(name = "override={0}")
     @ValueSource(booleans = {false, true})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1422",
             summary = "Credential Issuer signs tenant metadata with the selected HSM key",
             description = """
                     Given a default Credential Offer or one selecting the alternate HSM key.
@@ -240,8 +252,10 @@ public class IssuerHSMTest extends BaseTest {
                     Then the metadata has the expected type, subject and kid and verifies only with the selected key.
                     Spec: OID4VCI 1.0 section 12.2.3; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_M1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void signedIssuerMetadata_whenHsmIdentityIsSelected_thenSignatureMatchesTheTenantKey(final boolean overridden)
             throws Exception {
         // Given
@@ -286,7 +300,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1423",
             summary = "Credential Issuer retains the HSM key override throughout deferred issuance",
             description = """
                     Given a deferred Credential Offer selecting the alternate HSM key.
@@ -294,8 +308,10 @@ public class IssuerHSMTest extends BaseTest {
                     Then every Credential verifies only with the persisted override key and issuance becomes ISSUED.
                     Spec: OID4VCI 1.0 section 9; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_C3)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     void deferredIssuance_whenHsmKeyIsOverridden_thenCollectionKeepsTheOverrideKey() throws Exception {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -339,7 +355,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1424",
             summary = "Credential Issuer rejects an unknown override HSM key without issuing with its default key",
             description = """
                     Given a valid Credential Offer whose management override selects a nonexistent HSM key.
@@ -349,6 +365,9 @@ public class IssuerHSMTest extends BaseTest {
                     Spec: Issuer management ConfigurationOverride; fail-closed signing invariant, exact HTTP error mapping Unknown.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenOverrideKeyDoesNotExist_thenNoCredentialIsIssued() {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -383,8 +402,9 @@ public class IssuerHSMTest extends BaseTest {
                     from a status-list update request when publishing the HSM-backed status list to the registry.
                     """
     )
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_withHsmConfigurationOverride_thenPublishesWithOverrideKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2,
@@ -427,7 +447,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1425",
             summary = "Credential Issuer signs a default status list with the HSM key advertised by its kid",
             description = """
                     Given a Credential Issuer with separate default HSM keys for Credentials and status lists.
@@ -435,8 +455,9 @@ public class IssuerHSMTest extends BaseTest {
                     Then the registry receives a token signed by the configured status key matching the advertised kid.
                     Spec: Swiss VC profile, Token Status List section 5.1; Swiss anchor profile, JWT Validation.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListCreation_whenNoOverrideIsProvided_thenDefaultStatusKeyMatchesItsKid() throws Exception {
         // Given / When
         final StatusList statusList = issuerManager.createStatusList(10000, 2);
@@ -458,7 +479,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1426",
             summary = "Credential Issuer publishes a new status list with its override HSM key without a key PIN",
             description = """
                     Given a status-list creation request selecting the alternate HSM key and matching verification method.
@@ -466,8 +487,9 @@ public class IssuerHSMTest extends BaseTest {
                     Then the v2 registry receives a statuslist+jwt signed only with the alternate key and the correct kid.
                     Spec: Swiss VC profile, Token Status List section 5.1; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListCreation_whenHsmKeyIsOverriddenWithoutPin_thenPublishesWithOverrideKey() throws Exception {
         // Given / When
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -486,8 +508,8 @@ public class IssuerHSMTest extends BaseTest {
                 .isEqualTo(issuerConfig.getIssuerAssertKeyId());
         assertThat(jwt.getJWTClaimsSet().getSubject())
                 .isEqualTo(statusList.getStatusRegistryUrl());
-        assertThat(jwt.getJWTClaimsSet().getExpirationTime())
-                .isAfter(new java.util.Date());
+        assertThat(jwt.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isAfter(java.time.Instant.now());
         assertThat(isSignedByHsmKey(jwt, INITIAL_HSM_KEY_ID))
                 .isTrue();
         assertThat(isSignedByHsmKey(jwt, ROTATED_HSM_KEY_ID))
@@ -497,7 +519,7 @@ public class IssuerHSMTest extends BaseTest {
     @ParameterizedTest(name = "empty configuration_override={0}")
     @ValueSource(booleans = {false, true})
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1427",
             summary = "Credential Issuer preserves a stored HSM status-list override when an update supplies no replacement",
             description = """
                     Given a status list created with the alternate HSM key and matching verification method.
@@ -505,8 +527,9 @@ public class IssuerHSMTest extends BaseTest {
                     Then publication still uses the stored override key and verification method.
                     Spec: Issuer StatusListOrchestrator.updateStatusList contract, persisted non-null field merge.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOverrideIsAbsentOrEmpty_thenPreservesStoredKey(final boolean emptyOverride)
             throws Exception {
         // Given
@@ -533,7 +556,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1428",
             summary = "Credential Issuer retains the stored status-list key and verification method during a partial HSM override",
             description = """
                     Given a status list selecting the alternate HSM key.
@@ -541,8 +564,9 @@ public class IssuerHSMTest extends BaseTest {
                     Then the omitted fields retain their persisted values and publication verifies only with the alternate key.
                     Spec: Issuer StatusListOrchestrator.updateStatusList contract, persisted non-null field merge.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOnlyKeyPinIsProvided_thenRetainsStoredKeyAndVerificationMethod() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -568,7 +592,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1429",
             summary = "Credential Issuer rejects an unknown status-list HSM key and preserves the last valid override",
             description = """
                     Given a status list successfully published with the alternate HSM key.
@@ -577,8 +601,9 @@ public class IssuerHSMTest extends BaseTest {
                     Deviation: the Business Issuer selects an HSM key absent from the token.
                     Spec: Issuer management ConfigurationOverride; atomic update invariant, exact HTTP error mapping Unknown.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOverrideKeyDoesNotExist_thenDoesNotPublishOrPersistInvalidKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -614,7 +639,7 @@ public class IssuerHSMTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-XXX",
+            key = "EIDOMNI-1430",
             summary = "Credential Issuer isolates HSM key rotation between status lists",
             description = """
                     Given two status lists created with the initial HSM key.
@@ -622,8 +647,9 @@ public class IssuerHSMTest extends BaseTest {
                     Then each publication verifies only with its own list's key and advertises the matching kid.
                     Spec: Issuer management ConfigurationOverride, scope limited to the created entity.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOneListRotates_thenAnotherListKeepsItsOwnKey() throws Exception {
         // Given
         final StatusList rotatedList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -692,7 +718,7 @@ public class IssuerHSMTest extends BaseTest {
         return SignedJWT.parse(decodedBody);
     }
 
-    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws Exception {
+    private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws ParseException {
         final var methods = JsonParser.parseString(didLog).getAsJsonObject()
                 .getAsJsonObject("state").getAsJsonArray("verificationMethod");
         for (var method : methods) {
@@ -704,9 +730,9 @@ public class IssuerHSMTest extends BaseTest {
         throw new IllegalArgumentException("No public verification method published for " + keyId);
     }
 
-    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws Exception {
+    private boolean isSignedByHsmKey(final SignedJWT jwt, final String keyId) throws IOException, JOSEException {
         final String certificateResourcePath = "softhsm/keys/%s-cert.pem".formatted(keyId);
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(certificateResourcePath)) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/" + certificateResourcePath)) {
             assertThat(inputStream)
                     .as("HSM public certificate should be available: %s", certificateResourcePath)
                     .isNotNull();

@@ -6,6 +6,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.SwiyuApiVersionConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.exceptions.WalletEncryptionException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequestObject;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.JWESupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.WalletJwe;
@@ -46,7 +47,7 @@ final class VerifierClient {
         this.wallet = wallet;
     }
 
-    public VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
+    VerificationRequestObject getVerificationDetails(String verificationDeeplink) {
         var query = URI.create(verificationDeeplink).getQuery();
         String[] pairs = query.split("&");
 
@@ -80,40 +81,36 @@ final class VerifierClient {
             final RequestObject requestObject =
                     mapper.readValue(body, RequestObject.class);
             return new VerificationRequestObject.Unsigned(requestObject);
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Failed to parse unsigned request object", e);
         }
     }
     private RequestObject readSignedRequestObject(String jwt) {
         try {
-            String[] parts = jwt.split("\\.");
-
-            if (parts.length != 3) {
-                throw new IllegalArgumentException("Invalid JWT format");
-            }
+            final String[] parts = JwtSupport.parts(jwt);
 
             byte[] payload = Base64.getUrlDecoder().decode(parts[1]);
 
             return objectMapper.readValue(payload, RequestObject.class);
-        } catch (Exception e) {
+        } catch (JacksonException | IllegalArgumentException e) {
             throw new IllegalArgumentException("Unable to read signed request object", e);
         }
     }
-    public RequestObject getVerificationRequestObject(String verificationDeeplink) {
+    RequestObject getVerificationRequestObject(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return readSignedRequestObject(((VerificationRequestObject.Signed) request).jwt());
     }
-    public String getVerificationDetailSigned(String verificationDeeplink) {
+    String getVerificationDetailSigned(String verificationDeeplink) {
         VerificationRequestObject request = getVerificationDetails(verificationDeeplink);
         return ((VerificationRequestObject.Signed) request).jwt();
     }
-    public Optional<URI> respondToVerification(RequestObject requestObject, String token) {
+    Optional<URI> respondToVerification(RequestObject requestObject, String token) {
         final ResponseEntity<String> response = respondToVerificationWithVpTokens(requestObject, List.of(token));
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         return readRedirectUri(response);
     }
-    public ResponseEntity<String> respondToVerificationWithVpTokens(
+    ResponseEntity<String> respondToVerificationWithVpTokens(
             final RequestObject requestObject,
             final List<String> tokens
     ) {
@@ -143,7 +140,7 @@ final class VerifierClient {
      * advertised by the Verifier. Intended for negative protocol tests that require a deliberately malformed
      * or oversized plaintext while preserving normal Wallet encryption behavior.
      */
-    public ResponseEntity<String> respondToVerificationWithEncryptedPayload(
+    ResponseEntity<String> respondToVerificationWithEncryptedPayload(
             final RequestObject requestObject,
             final String payload
     ) {
@@ -156,7 +153,7 @@ final class VerifierClient {
     /**
      * Posts an already encrypted direct_post.jwt response through the normal Wallet transport path.
      */
-    public ResponseEntity<String> postEncryptedVerificationResponse(
+    ResponseEntity<String> postEncryptedVerificationResponse(
             final RequestObject requestObject,
             final String encryptedPayload
     ) {
@@ -187,7 +184,7 @@ final class VerifierClient {
     /**
      * Creates the JSON representation of a direct_post.jwt error response, including the request state.
      */
-    public String createVerificationErrorPayload(
+    String createVerificationErrorPayload(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
@@ -211,7 +208,7 @@ final class VerifierClient {
     DcqlQueryDto resolveVerificationQuery(final RequestObject requestObject) {
         return VERIFICATION_QUERY_RESOLVER.resolve(requestObject, wallet.getTrustConfig());
     }
-    public Optional<URI> respondToVerificationWithError(
+    Optional<URI> respondToVerificationWithError(
             final RequestObject requestObject,
             final String error,
             final String errorDescription
@@ -223,7 +220,7 @@ final class VerifierClient {
                 errorDescription
         );
     }
-    public Optional<URI> respondToVerificationWithError(
+    Optional<URI> respondToVerificationWithError(
             final URI responseUri,
             final String state,
             final String error,
@@ -254,7 +251,7 @@ final class VerifierClient {
         return readRedirectUri(response);
     }
     private Optional<URI> readRedirectUri(ResponseEntity<String> response) {
-        if (response.getStatusCode().value() != 200 || response.getBody() == null || response.getBody().isBlank()) {
+        if (!hasRedirectBody(response)) {
             return Optional.empty();
         }
 
@@ -278,6 +275,10 @@ final class VerifierClient {
             throw new IllegalArgumentException("Unable to process redirect_uri from verifier response", e);
         }
     }
+    private boolean hasRedirectBody(final ResponseEntity<String> response) {
+        return response.getStatusCode().value() == 200 && response.getBody() != null && !response.getBody().isBlank();
+    }
+
     private String buildEncryptedResponse(final RequestObject requestObject, final Map<String, Object> payload) {
         try {
             final Map<String, Object> responsePayload = new LinkedHashMap<>();
@@ -288,12 +289,14 @@ final class VerifierClient {
             final String vpTokenPayload =
                     new ObjectMapper().writeValueAsString(responsePayload);
             return encryptVerificationResponsePayload(requestObject, vpTokenPayload);
-        } catch (Exception e) {
+        } catch (JacksonException | WalletEncryptionException e) {
             throw new WalletEncryptionException("Failed to build encrypted VP token response (JWE creation failed)", e);
         }
     }
 
-    public String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
+    // The protocol boundary wraps metadata and cryptographic failures with its stable diagnostic exception.
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    String encryptVerificationResponsePayload(final RequestObject requestObject, final String payload) {
         if (!wallet.getProfile().encryption()) {
             throw new IllegalStateException("Wallet payload encryption must be enabled");
         }
