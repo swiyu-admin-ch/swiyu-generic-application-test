@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.COMPLETE)
 @UseWallet(dpop = true, encryption = true)
-public class SignedRenewalFlowTest extends BaseTest {
+class SignedRenewalFlowTest extends BaseTest {
 
     @Test
     @XrayTest(
@@ -48,9 +48,11 @@ public class SignedRenewalFlowTest extends BaseTest {
                     
                     The test also verifies that the renewal operation works as expected in this context, resulting in a new batch of valid credentials while preserving the integrity, uniqueness, and expected subject disclosures of the issued credentials.
                     """)
-    @Tag(ReportingTags.UCI_I1E)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available yet"

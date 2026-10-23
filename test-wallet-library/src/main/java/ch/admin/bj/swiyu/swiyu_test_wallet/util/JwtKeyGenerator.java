@@ -1,5 +1,7 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.util;
 
+import tools.jackson.core.JacksonException;
+import java.security.GeneralSecurityException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.Getter;
@@ -65,8 +67,8 @@ public class JwtKeyGenerator {
 
             log.info("Generated JWT key with ID: {} (algorithm: ES256, key type: EC, curve: P-256)", keyId);
             log.debug("JWKS: {}", this.jwksAsJson);
-        } catch (Exception e) {
-            log.error("Failed to generate JWT key", e);
+        } catch (GeneralSecurityException | JacksonException e) {
+            log.atError().setCause(e).log("Failed to generate JWT key");
             throw new IllegalStateException("Failed to generate JWT key", e);
         }
     }

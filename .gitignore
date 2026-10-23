@@ -31,6 +31,7 @@ build/
 
 ### Files ###
 .DS_Store
+screenlog.*
 docs/
 
 ### VS Code ###

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error;
 
+import tools.jackson.core.JacksonException;
 import org.assertj.core.api.Assertions;
 import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.ObjectMapper;
@@ -84,7 +85,7 @@ public final class ApiErrorAssert {
         try {
             return new ObjectMapper()
                     .readValue(exception.getResponseBodyAsString(), Map.class);
-        } catch (Exception e) {
+        } catch (JacksonException e) {
             throw new AssertionError(
                     "Failed to parse error response body as JSON",
                     e

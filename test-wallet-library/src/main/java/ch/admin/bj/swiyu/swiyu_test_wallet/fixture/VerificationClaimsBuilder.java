@@ -8,14 +8,14 @@ import java.util.List;
 
 public class VerificationClaimsBuilder {
 
-    private final List<DcqlClaimDto> claims = new ArrayList<>();
+    private final List<DcqlClaimDto> requestedClaims = new ArrayList<>();
 
     public static VerificationClaimsBuilder claims() {
         return new VerificationClaimsBuilder();
     }
 
     public VerificationClaimsBuilder claim(String key, List<Object> values) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key))
                 .id(null)
                 .values(values));
@@ -27,7 +27,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder arrayAll(String key) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, null))
                 .id(null)
                 .values(null));
@@ -35,7 +35,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder arrayAllWithValues(String key, List<Object> values) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, null))
                 .id(null)
                 .values(values));
@@ -43,7 +43,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder arrayIndex(String key, int index) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, index))
                 .id(null)
                 .values(null));
@@ -51,7 +51,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder arrayIndex(String key, int index, List<Object> values) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, index))
                 .id(null)
                 .values(values));
@@ -59,7 +59,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder arrayField(String key, String field, List<Object> values) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(key, null, field))
                 .id(null)
                 .values(values));
@@ -71,7 +71,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder nested(String... path) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(path))
                 .id(null)
                 .values(null));
@@ -79,7 +79,7 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder nestedWithValues(List<Object> values, String... path) {
-        claims.add(new DcqlClaimDto()
+        requestedClaims.add(new DcqlClaimDto()
                 .path(Arrays.asList(path))
                 .id(null)
                 .values(values));
@@ -87,11 +87,11 @@ public class VerificationClaimsBuilder {
     }
 
     public VerificationClaimsBuilder dcqlClaimDto(final DcqlClaimDto dcqlClaimDto) {
-        claims.add(dcqlClaimDto);
+        requestedClaims.add(dcqlClaimDto);
         return this;
     }
 
     public List<DcqlClaimDto> build() {
-        return claims;
+        return requestedClaims;
     }
 }

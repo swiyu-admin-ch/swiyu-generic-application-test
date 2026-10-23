@@ -51,7 +51,7 @@ public final class DisableIfImageTagExtension implements ExecutionCondition {
 
     private static boolean matches(
             final String actualTag,
-            final String[] forbiddenTags
+            final String... forbiddenTags
     ) {
         return actualTag != null
                 && Arrays.asList(forbiddenTags).contains(actualTag);

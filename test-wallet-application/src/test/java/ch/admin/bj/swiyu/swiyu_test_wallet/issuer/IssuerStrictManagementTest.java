@@ -38,9 +38,10 @@ class IssuerStrictManagementTest extends BaseTest {
                     actions including status list creation and credential issuance.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_P1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_P1_GET_JWT_FOR_ACCESSING)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void issuerManagementAccess_withSignedJwt_thenSuccess() {
         log.info("Creating status list with signed JWT body (should succeed)");
         final StatusList statusList = issuerManager.createStatusListWithSignedJwt(jwtKey, keyId, 10000, 2);
@@ -72,9 +73,10 @@ class IssuerStrictManagementTest extends BaseTest {
                     actions when the JWT is not trusted.
                     """
     )
-    @Tag(ReportingTags.UCI_S1)
-    @Tag(ReportingTags.UCI_P1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C1_CREATE_A_GENERIC_CREDENTIAL_OFFER)
+    @Tag(ReportingTags.UCI_P1_GET_JWT_FOR_ACCESSING)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void issuerManagementAccess_withUnauthorizedSignedJwt_thenRejected() {
         HttpClientErrorException ex = assertThrows(
                 HttpClientErrorException.class,

@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+// A constants namespace intentionally exposes fixture values without instance behavior.
 public final class RenewalApiKeyFixtures {
     public static final String RENEWAL_HEADER = "X-Business-Renewal-Key";
     public static final String RENEWAL_VALUE = "application-tests-renewal-key";

@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import com.nimbusds.jose.jwk.ECKey;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.net.URI;
 import java.security.KeyPair;
@@ -14,6 +15,7 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.createJWKFrom
 import static ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil.generateEC256KeyPair;
 
 @Getter
+@ToString(of = {"did", "kid", "issuerClaim"})
 public class MockAttestationAuthority {
 
     private final String did;

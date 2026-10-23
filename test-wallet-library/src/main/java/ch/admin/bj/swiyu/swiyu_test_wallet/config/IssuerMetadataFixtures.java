@@ -26,17 +26,19 @@ public class IssuerMetadataFixtures {
      *
      * <p>The standard metadata remains unchanged so older issuer images can still start for unrelated tests.</p>
      */
+    // Unix permission bits deliberately use their conventional octal notation.
+    @SuppressWarnings("PMD.AvoidUsingOctalValues")
     public static MountableFile cryptoAgilityMetadata() {
         try (InputStream metadata = IssuerMetadataFixtures.class
-                .getClassLoader()
-                .getResourceAsStream(STANDARD_METADATA)) {
+                .getResourceAsStream("/" + STANDARD_METADATA)) {
             if (metadata == null) {
                 throw new IllegalStateException("Missing issuer metadata fixture: " + STANDARD_METADATA);
             }
 
-            final JsonObject root = JsonParser.parseReader(
-                    new InputStreamReader(metadata, StandardCharsets.UTF_8)
-            ).getAsJsonObject();
+            final JsonObject root;
+            try (InputStreamReader reader = new InputStreamReader(metadata, StandardCharsets.UTF_8)) {
+                root = JsonParser.parseReader(reader).getAsJsonObject();
+            }
             final JsonArray supportedAlgorithms = root
                     .getAsJsonObject("credential_configurations_supported")
                     .getAsJsonObject(BOUND_CREDENTIAL_CONFIGURATION)

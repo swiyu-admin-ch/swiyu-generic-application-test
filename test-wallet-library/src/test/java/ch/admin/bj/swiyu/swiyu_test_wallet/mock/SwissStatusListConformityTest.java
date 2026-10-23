@@ -1,5 +1,9 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.mock;
 
+import com.nimbusds.jose.JOSEException;
+import java.security.GeneralSecurityException;
+import java.util.Optional;
+import java.time.Instant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
@@ -37,7 +42,7 @@ class SwissStatusListConformityTest {
             final KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
             generator.initialize(new ECGenParameterSpec("secp256r1"));
             return generator.generateKeyPair();
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -50,7 +55,7 @@ class SwissStatusListConformityTest {
     private static final class TokenBuilder {
         private String type = "statuslist+jwt";
         private String profileVersion = "swiss-profile-vc:1.0.0";
-        private Date expiration = new Date(System.currentTimeMillis() + 3_600_000L);
+        private Optional<Instant> expiration = Optional.of(Instant.now().plusSeconds(3600));
         private Object bits = 2;
         private Object lst = zlibBase64Url(new byte[16]);
 
@@ -65,7 +70,7 @@ class SwissStatusListConformityTest {
         }
 
         TokenBuilder withoutExpiration() {
-            this.expiration = null;
+            this.expiration = Optional.empty();
             return this;
         }
 
@@ -91,28 +96,26 @@ class SwissStatusListConformityTest {
                 final JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                         .subject("https://mockserver:1080/api/v1/statuslist/x.jwt")
                         .claim("status_list", Map.of("bits", bits, "lst", lst));
-                if (expiration != null) {
-                    claims.expirationTime(expiration);
-                }
+                expiration.ifPresent(value -> claims.expirationTime(Date.from(value)));
                 final SignedJWT jwt = new SignedJWT(header.build(), claims.build());
                 jwt.sign(ECCryptoSupport.createECDSASigner(KEY_PAIR.getPrivate()));
                 return jwt.serialize();
-            } catch (Exception e) {
+            } catch (JOSEException e) {
                 throw new IllegalStateException(e);
             }
         }
     }
 
     private static String zlibBase64Url(final byte[] data) {
-        final Deflater deflater = new Deflater();
-        deflater.setInput(data);
-        deflater.finish();
-        final byte[] buffer = new byte[data.length + 64];
-        final int length = deflater.deflate(buffer);
-        deflater.end();
-        final byte[] compressed = new byte[length];
-        System.arraycopy(buffer, 0, compressed, 0, length);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(compressed);
+        try (final Deflater deflater = new Deflater()) {
+            deflater.setInput(data);
+            deflater.finish();
+            final byte[] buffer = new byte[data.length + 64];
+            final int length = deflater.deflate(buffer);
+            final byte[] compressed = new byte[length];
+            System.arraycopy(buffer, 0, compressed, 0, length);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(compressed);
+        }
     }
 
     @Test
@@ -177,7 +180,7 @@ class SwissStatusListConformityTest {
 
     @Test
     void violations_whenLstIsNotAZlibStream_thenOnlyLstIsReported() {
-        final String notZlib = Base64.getUrlEncoder().withoutPadding().encodeToString("plain text".getBytes());
+        final String notZlib = Base64.getUrlEncoder().withoutPadding().encodeToString("plain text".getBytes(StandardCharsets.UTF_8));
 
         assertThat(SwissStatusListConformity.violations(conformantToken().withLst(notZlib).build()))
                 .singleElement().asString().contains("ZLIB");

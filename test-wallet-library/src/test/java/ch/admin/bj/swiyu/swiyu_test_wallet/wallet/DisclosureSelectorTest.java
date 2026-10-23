@@ -2,6 +2,7 @@ package ch.admin.bj.swiyu.swiyu_test_wallet.wallet;
 
 import ch.admin.bj.swiyu.gen.verifier.model.DcqlClaimDto;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.credential.DisclosureSelector;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +23,7 @@ class DisclosureSelectorTest {
     private TestSdJwtVc credential;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() throws JOSEException {
         credential = TestSdJwtVc.issueFor(new ECKeyGenerator(Curve.P_256).generate());
     }
 
