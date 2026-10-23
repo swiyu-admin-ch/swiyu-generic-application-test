@@ -189,7 +189,6 @@ class RenewalFlowTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "EIDOMNI-1301 is not available in these issuer images"
     )
-    @Disabled("Open MR : https://github.com/swiyu-admin-ch/swiyu-issuer/pull/528")
     void credentialRefreshDisabled_whenWalletAttemptsRenewal_thenRejectedWithoutBusinessIssuerCall() {
         // Given
         final String credentialConfigurationId =
