@@ -218,7 +218,6 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "JWE decompressed-payload limits are not available on these verifier tags"
     )
-    @Disabled("Bug ticket : EIDOMNI-1397")
     void directPostJwtPayloadEncryption_whenPayloadMatchesSwissProfileCapacity_thenAccepted(
             final JWESupport.PayloadEncoding encoding
     ) {
