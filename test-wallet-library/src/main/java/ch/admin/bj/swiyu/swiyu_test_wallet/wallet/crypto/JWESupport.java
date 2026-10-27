@@ -17,19 +17,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @UtilityClass
 public class JWESupport {
 
-    private static final int MEBIBYTE = 1_024 * 1_024;
-    private static final int OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES = 32 * MEBIBYTE + 1;
+    private static final int MEGABYTE = 1_000 * 1_000;
+    private static final int OVERSIZED_COMPACT_JWE_PLAINTEXT_BYTES = 32 * MEGABYTE + 1;
     private static final String JSON_PADDING_PROPERTY = "\"padding\":\"";
     private static final String RANDOM_JSON_CHARACTERS =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_~!@#$%^&*()[]{}:;,.?/";
 
     // Technical defaults of the issuer/verifier containers, separate from Swiss Wallet interoperability capacities.
-    public static final int DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES = 20 * MEBIBYTE;
-    public static final int DEFAULT_JWE_COMPRESSED_CIPHER_TEXT_LIMIT_CHARACTERS = 20 * MEBIBYTE;
+    public static final int DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES = 20 * MEGABYTE;
+    public static final int DEFAULT_JWE_COMPRESSED_CIPHER_TEXT_LIMIT_CHARACTERS = 20 * MEGABYTE;
     // Swiss verification profile §13, Authorization Response Size: MB is expressed in decimal bytes here.
-    public static final int SWISS_AUTHORIZATION_RESPONSE_SIZE_BYTES = 21_000_000;
+    public static final int SWISS_AUTHORIZATION_RESPONSE_SIZE_BYTES = 21 * MEGABYTE;
     // A lower bound for the oversized-body fixture; this is not an asserted HTTP server configuration.
-    private static final int OVERSIZED_BODY_FIXTURE_THRESHOLD_BYTES = 25 * MEBIBYTE;
+    private static final int OVERSIZED_BODY_FIXTURE_THRESHOLD_BYTES = 25 * MEGABYTE;
 
     public static ECKey toECKey(final JsonWebKey jsonWebKey) {
         return new ECKey.Builder(
