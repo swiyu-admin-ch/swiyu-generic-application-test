@@ -162,7 +162,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         final String errorDescription = "Wallet declined the presentation";
         final String responsePayload = wallet.createVerificationErrorPayload(
                 requestObject, "access_denied", errorDescription);
-        final int oversizedBytes = decompressionLimitBytes + 1;
+        final int oversizedBytes = JWESupport.SWISS_AUTHORIZATION_RESPONSE_SIZE_BYTES + 1;
         final String oversized = JWESupport.createDecompressedJsonPayloadAtSize(
                 responsePayload, oversizedBytes, encoding);
         final String encrypted = wallet.encryptVerificationResponsePayload(requestObject, oversized);
@@ -406,7 +406,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             final JWESupport.PayloadEncoding encoding
     ) {
         assertVerifierRejectsDecompressedPayloadAtSize(
-                JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES + 1,
+                JWESupport.SWISS_AUTHORIZATION_RESPONSE_SIZE_BYTES + 1,
                 encoding
         );
     }
