@@ -65,7 +65,6 @@ class TransactionCodeTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
-    @Disabled("Bug ticket : EIDOMNI-1418")
     void preAuthorizedOffer_whenTransactionCodeIsValid_thenCredentialIsIssued(
             final boolean includeLength, final boolean includeDescription) {
         // Given
