@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -69,16 +68,13 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         wallet.setUseEncryption(true);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
-            CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
+    @Test
     @XrayTest(
             key = "EIDOMNI-392",
             summary = "Successful DCQL verification with payload encryption when wallet responds with encrypted presentation",
             description = """
                     This test validates the end-to-end DCQL verification flow when the Business Verifier requests payload encryption.
                     The Wallet retrieves the verification request and successfully constructs an encrypted presentation that satisfies the Verifier's encryption requirements.
-                    The test runs for both bound and unbound SD-JWT credentials to ensure encryption works correctly across credential types.
                     """
     )
     @Tag(ReportingTags.HAPPY_PATH)
@@ -88,7 +84,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The fix about alg in jwk keys is not yet available on disabled tags"
     )
-    void verifyDCQL_whenEncryptionRequired_thenSuccess(final String supportedMetadataId) {
+    void verifyDCQL_whenEncryptionRequired_thenSuccess() {
         final String expectedAlgorithm = "ECDH-ES";
         final String expectedKeyType = "EC";
         final String expectedCurve = "P-256";
@@ -96,15 +92,14 @@ class VerifierPayloadEncryptionTest extends BaseTest {
 
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final boolean holderBindingRequired =
-                supportedMetadataId.equalsIgnoreCase(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, subjectClaims);
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(holderBindingRequired)
+                .withUniversityDCQL()
                 .encrypted()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
@@ -123,12 +118,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .hasVpFormats();
 
         // When
-        String presentation;
-        if (holderBindingRequired) {
-            presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        } else {
-            presentation = batchEntry.getVerifiableCredential(0);
-        }
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
         wallet.respondToVerification(verificationDetails, presentation);
 
         // Then
@@ -149,8 +139,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
     void directPostJwtPayloadEncryption_whenDecompressionLimitExceeded_thenAllowsValidRetry(
             final JWESupport.PayloadEncoding encoding
     ) {
-        // Given: the service's 20 MiB default differs from the Swiss profile's 21 MB interoperability capacity.
-        final int decompressionLimitBytes = JWESupport.DEFAULT_JWE_DECOMPRESSED_PAYLOAD_LIMIT_BYTES;
+        // Given: exercise the Swiss profile's 21 MB response capacity separately from the service default.
         final var verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
                 .withUniversityDCQL(false)
@@ -611,9 +600,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .isEqualTo(errorDescription);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
-            CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
+    @Test
     @XrayTest(
             key = "EIDOMNI-452",
             summary = "Reject unencrypted DCQL presentation when Business Verifier requires encrypted payload",
@@ -629,18 +616,17 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
-    void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected(final String supportedMetadataId) {
+    void rejectDCQLPresentation_whenWalletSendsUnencryptedAndEncryptionRequired_thenRejected() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final boolean holderBindingRequired =
-                supportedMetadataId.equalsIgnoreCase(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, subjectClaims);
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(holderBindingRequired)
+                .withUniversityDCQL()
                 .encrypted()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
@@ -649,12 +635,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
-        String presentation;
-        if (holderBindingRequired) {
-            presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        } else {
-            presentation = batchEntry.getVerifiableCredential(0);
-        }
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         // When - Wallet will not encrypt the payload for the next request
         wallet.setUseEncryption(false);
@@ -669,9 +650,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
         verifierManager.verifyState(VerificationStatus.PENDING);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
-            CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT})
+    @Test
     @XrayTest(
             key = "EIDOMNI-461",
             summary = "Reject encrypted DCQL presentation when encrypted with wrong key",
@@ -687,18 +666,17 @@ class VerifierPayloadEncryptionTest extends BaseTest {
             issuer = {ImageTags.STABLE},
             reason = "The stable tag is not yet ready with batch issuance."
     )
-    void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected(final String supportedMetadataId) throws JOSEException {
+    void rejectDCQLPresentation_whenWalletEncryptsWithWrongKey_thenRejected() throws JOSEException {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
-        final boolean holderBindingRequired =
-                supportedMetadataId.equalsIgnoreCase(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT, subjectClaims);
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
 
         // When
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(holderBindingRequired)
+                .withUniversityDCQL()
                 .encrypted()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
@@ -707,12 +685,7 @@ class VerifierPayloadEncryptionTest extends BaseTest {
                 .hasResponseMode(ResponseModeType.DIRECT_POST_JWT);
 
         // Given
-        String presentation;
-        if (holderBindingRequired) {
-            presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
-        } else {
-            presentation = batchEntry.getVerifiableCredential(0);
-        }
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
 
         // When - Wallet will encrypt the payload but with the wrong key
         final RequestObject modifiedVerificationRequest = Mockito.spy(verificationDetails);

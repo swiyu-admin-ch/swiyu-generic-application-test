@@ -71,7 +71,7 @@ class RandomizedIndexTest extends BaseTest {
                 .as("Expected one entry after single credential issuance")
                 .isEqualTo(expectedCount);
         final CredentialWithDeeplinkResponse batchResponse =
-                issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                issuerManager.createCredentialOffer("bound_example_sd_jwt");
         wallet.collectOffer(toUri(batchResponse.getOfferDeeplink()));
         expectedCount += CredentialConfigurationFixtures.BATCH_SIZE;
 
@@ -113,7 +113,7 @@ class RandomizedIndexTest extends BaseTest {
         try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
             Callable<Void> batchJob = () -> {
                 CredentialWithDeeplinkResponse response =
-                        issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                        issuerManager.createCredentialOffer("bound_example_sd_jwt");
                 wallet.collectOffer(toUri(response.getOfferDeeplink()));
                 return null;
             };
@@ -169,7 +169,7 @@ class RandomizedIndexTest extends BaseTest {
         try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
             Callable<Void> batchJob = () -> {
                 CredentialWithDeeplinkResponse response =
-                        issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+                        issuerManager.createCredentialOffer("bound_example_sd_jwt");
                 wallet.collectOffer(toUri(response.getOfferDeeplink()));
                 return null;
             };
