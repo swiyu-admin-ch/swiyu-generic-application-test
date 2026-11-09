@@ -50,9 +50,10 @@ class TrustAnchorVerificationTest extends BaseTest {
                     (OID4VP standard and DCQL-based), ensuring that trust relationships are properly validated.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2F_VALIDATE_ISSUER_VIA_TRUST_REGISTRY_TP2_VERIFIER_VIEW)
     void verificationWithValidTrustAnchor_thenSuccess() {
         // Given
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
@@ -121,9 +122,10 @@ class TrustAnchorVerificationTest extends BaseTest {
                     untrusted issuers across both SWIYU API versions.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2F_VALIDATE_ISSUER_VIA_TRUST_REGISTRY_TP2_VERIFIER_VIEW)
     void verificationWithUntrustedIssuer_thenFails() {
         // Given
         final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);

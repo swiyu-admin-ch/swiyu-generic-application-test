@@ -66,8 +66,11 @@ class VerifierAuditInformationE2ETest extends BaseTest {
                     correct, and repeated management reads preserve the result.
                     """
     )
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_M4_RETRIEVE_FULL_VERIFIABLE_PRESENTATION_EXTENDED_NON_REPUDIATION)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     // Independent scenario invariants are checked together; extracting assertions would hide the oracle.
     @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
     void businessResult_whenAuditConfigurationChanges_thenOnlyConfiguredFieldsAreReturned(
@@ -196,8 +199,11 @@ class VerifierAuditInformationE2ETest extends BaseTest {
                     subject data or successful evaluations. Rejected tokens are not persisted, even with audit enabled.
                     """
     )
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_M4_RETRIEVE_FULL_VERIFIABLE_PRESENTATION_EXTENDED_NON_REPUDIATION)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void invalidSignature_withAnyAuditConfiguration_thenFailsWithoutUnverifiedClaims(final AuditMode mode) {
         // Given: the malicious wallet changes only the issuer signature.
         useVerifier(verifier(mode.variant));

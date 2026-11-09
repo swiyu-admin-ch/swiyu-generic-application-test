@@ -63,8 +63,9 @@ class MultipleSigningKeysE2ETest extends BaseTest {
                     Then each SD-JWT contains the matching issuer and kid and verifies only with its bound key.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void issuerWithTwoSigningIdentities_whenCredentialsIssued_thenEachUsesItsBoundDidAndKey() throws Exception {
         // Given
         assertThat(issuerConfig.getAdditionalSigningIdentities())
@@ -153,8 +154,11 @@ class MultipleSigningKeysE2ETest extends BaseTest {
                     bound key, and both verification transactions reach SUCCESS.
                     """
     )
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void verifierWithTwoSigningIdentities_whenRequestsCompleted_thenEachUsesItsBoundDidAndKey() throws Exception {
         // Given
         assertThat(verifierConfig.getAdditionalSigningIdentities())

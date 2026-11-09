@@ -39,8 +39,10 @@ class VerifierManagementTest extends BaseTest {
                     and return a verification deeplink suitable for QR code generation.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
+    @Tag(ReportingTags.UCV_M1A_CREATE_VERIFICATION_MANAGEMENT_ENTRY)
+    @Tag(ReportingTags.UCV_M1B_PROVIDE_DEEPLINK_FOR_QR_CODE)
     void verifierInitiatesDCQLVerification_thenManagementEntryAndDeeplinkCreated() {
 
         // GIVEN
@@ -133,8 +135,8 @@ class VerifierManagementTest extends BaseTest {
                     requests contain valid digital credential query requirements.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
     void verifierInitiatesVerification_withoutDcqlQuery_thenRejected() {
 
         // GIVEN
@@ -163,8 +165,8 @@ class VerifierManagementTest extends BaseTest {
                     verification result after a wallet has completed a successful DCQL presentation and verification flow.
                     """
     )
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     @Test
     void verifierRetrievesVerificationResult_afterSuccessfulVerification() {
 
@@ -218,8 +220,8 @@ class VerifierManagementTest extends BaseTest {
                     to unauthorized or deleted verification entries.
                     """
     )
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     void verifierRetrievesVerificationResult_withUnknownVerificationId_thenNotFound() {
 
         // GIVEN – a non-existing verification identifier

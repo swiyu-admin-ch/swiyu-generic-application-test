@@ -38,7 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(CompleteEnvironmentTestConfiguration.class)
-@Tag(ReportingTags.EDGE_CASE)
 class IssuerNullClaimsTest extends BaseTest {
 
     @ParameterizedTest(name = "Null claim: {0}")
@@ -53,8 +52,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     preserves the other values, omits absent claims, and binds each Disclosure to the signed payload.
                     Spec: RFC 9901 §4.2.1, §4.2.3, §4.2.4.1; OID4VCI 1.0 §8.3.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenSubjectClaimIsNull_thenPreservesNullInEveryCredential(final String nullClaim) throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
@@ -120,8 +120,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     retains the locality, omits the postal code, and binds both child Disclosures to the address.
                     Spec: RFC 9901 §4.2.1, §4.2.3, §4.2.6; Swiss VC profile 1.0 §4.2.6.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenNestedSubjectPropertyIsNull_thenPreservesNullAndSibling() throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialClaimsFixtures.createBaseProfile();
@@ -194,8 +195,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     with Disclosure digests bound to the array and the signed payload.
                     Spec: RFC 9901 §4.2.2, §4.2.3, §4.2.4.2; Swiss VC profile 1.0 §4.2.2.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @Disabled ("Issue : https://github.com/swiyu-admin-ch/swiyu-issuer/issues/527")
     void credentialIssuance_whenSubjectArrayContainsNull_thenPreservesNullPosition() throws Exception {
         // Given
@@ -264,8 +266,9 @@ class IssuerNullClaimsTest extends BaseTest {
                     Then every Credential contains the explicit null, preserves the other claims, and the issuance becomes ISSUED.
                     Spec: RFC 9901 §4.2.1, §4.2.3; OID4VCI 1.0 §9.2.
                     """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     void deferredCredentialIssuance_whenSubjectUpdateReplacesValueWithNull_thenPreservesNull() throws Exception {
         // Given
         final Map<String, Object> initialClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();

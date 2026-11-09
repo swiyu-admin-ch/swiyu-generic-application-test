@@ -68,8 +68,6 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                     preserving backward compatibility without advertising an unknown algorithm.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
     void openIdClientMetadata_whenExpandAlgorithmsAreConfigured_thenAdvertisesBothAlgorithms() {
         final JsonNode metadata = restClient.get()
@@ -94,9 +92,9 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                     Then the Generic Verifier validates the Ed25519 credential signature and completes successfully.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -138,9 +136,9 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                     Then the Generic Verifier validates the key-binding signature and completes successfully.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void verification_whenKeyBindingJwtUsesEd25519_thenSucceeds() throws Exception {
         final WalletBatchEntry batchEntry = issueBoundCredential();
         final OctetKeyPair holderKey = generateEd25519Key("holder-key");
@@ -183,9 +181,9 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                     and never accepts an Ed25519 artifact merely because its alg header is allowed.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",

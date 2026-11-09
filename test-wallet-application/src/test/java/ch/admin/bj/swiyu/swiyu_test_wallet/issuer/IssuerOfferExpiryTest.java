@@ -40,8 +40,8 @@ class IssuerOfferExpiryTest extends BaseTest {
                     Spec: OID4VCI 1.0 §4.1.1 and §6.3; RFC 6749 §5.2 (invalid_grant: expired authorization grant).
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     void tokenRequest_whenOfferExpiredBeforeRedemption_thenInvalidGrantAndNoIssuance() throws SQLException {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
@@ -80,8 +80,9 @@ class IssuerOfferExpiryTest extends BaseTest {
                     Spec: OID4VCI 1.0 §8.3.1.2 (credential_request_denied).
                     """
     )
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialRequest_whenOfferExpiredAfterTokenRequest_thenDeniedAndNoIssuance() throws SQLException {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(

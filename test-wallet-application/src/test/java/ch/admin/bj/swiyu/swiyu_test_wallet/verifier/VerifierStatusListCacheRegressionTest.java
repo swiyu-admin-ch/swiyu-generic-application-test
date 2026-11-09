@@ -43,12 +43,15 @@ class VerifierStatusListCacheRegressionTest extends BaseTest {
                     cacheProperties bean.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
+    @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     void credentialWithStatusList_whenPresentedToVerifier_thenStatusIsResolvedAndVerificationSucceeds() {
 
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
                 CredentialSubjectFixtures.completeEmployeeProfile()
         );
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));

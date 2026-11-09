@@ -52,9 +52,9 @@ class VerifierOID4VPTest extends BaseTest {
                     and cryptographic parameters required for the OID4VP flow.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1A_CREATE_SIGNED_REQUEST_OBJECT)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "The images have not the state yet."
@@ -143,9 +143,9 @@ class VerifierOID4VPTest extends BaseTest {
                     response requirements, and necessary cryptographic parameters for the OID4VP flow.
                     """
     )
-    @Tag(ReportingTags.UCV_O1)
-    @Tag(ReportingTags.UCV_O1B)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_O1_REQUEST_VERIFICATION_OBJECT)
+    @Tag(ReportingTags.UCV_O1B_CREATE_UNSIGNED_REQUEST_OBJECT)
     @DisableIfImageTag(
         issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
         reason = "The client prefix is not available on theses tags"
@@ -201,78 +201,6 @@ class VerifierOID4VPTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-795",
-            summary = "Successful verification of an unbound SD-JWT credential with valid state",
-            description = """
-                    This test verifies that an unbound SD-JWT credential can be successfully presented and validated when the 
-                    OAuth2 state returned by the wallet matches the state in the Request Object. The credential is issued 
-                    through the OID4VCI flow and then presented to the verifier via OID4VP. The verification must complete 
-                    successfully in both encrypted and non-encrypted payload modes.
-                    """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.HAPPY_PATH)
-    @DisableIfImageTag(
-            verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
-            reason = "This feature is not available yet"
-    )
-    void unboundNonDeferredCredential_whenValidState_thenSuccess() {
-        // Given
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
-                subjectClaims);
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
-
-        // Given
-        String verifiableCredential = batchEntry.getIssuedCredentials().get(0);
-        ManagementResponse verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
-                .createManagementResponse();
-        RequestObject verificationDetails = wallet
-                .getVerificationRequestObject(verification.getVerificationDeeplink());
-        RequestObjectAssert.assertThat(verificationDetails)
-                .hasState();
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-
-        // When
-        wallet.setUseEncryption(false);
-        wallet.respondToVerification(verificationDetails, verifiableCredential);
-
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-
-        // Given
-        verification = verifierManager.verificationRequest()
-                .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
-                .encrypted()
-                .createManagementResponse();
-        verificationDetails = wallet
-                .getVerificationRequestObject(verification.getVerificationDeeplink());
-        RequestObjectAssert.assertThat(verificationDetails)
-                .hasState();
-        verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-
-        // When
-        wallet.setUseEncryption(true);
-        wallet.respondToVerification(verificationDetails, verifiableCredential);
-
-        // Then
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-    }
-
-    @Test
-    @XrayTest(
             key = "EIDOMNI-797",
             summary = "Verification rejected when OAuth2 state mismatch occurs",
             description = """
@@ -281,18 +209,17 @@ class VerifierOID4VPTest extends BaseTest {
                     state before sending the presentation. The verifier must return an error and keep the verification in 
                     the PENDING state in both encrypted and non-encrypted payload modes.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet the state is not checked yet"
     )
-    void unboundNonDeferredCredential_whenWrongState_thenRejected() {
+    void boundNonDeferredCredential_whenWrongState_thenRejected() {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
@@ -305,15 +232,15 @@ class VerifierOID4VPTest extends BaseTest {
                 .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
 
         // Given
-        String verifiableCredential = batchEntry.getIssuedCredentials().get(0);
         ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .createManagementResponse();
         RequestObject verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
+        final String unencryptedPresentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
         final RequestObject verificationDetailsUnencryptedFaked = Mockito.spy(verificationDetails);
         Mockito.doReturn(verificationDetails.getState() + "wrong")
                 .when(verificationDetailsUnencryptedFaked)
@@ -323,7 +250,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(false);
         HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerification(verificationDetailsUnencryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsUnencryptedFaked, unencryptedPresentation);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)
@@ -335,13 +262,14 @@ class VerifierOID4VPTest extends BaseTest {
         // Given
         verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .encrypted()
                 .createManagementResponse();
         verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         RequestObjectAssert.assertThat(verificationDetails)
                 .hasState();
+        final String encryptedPresentation = batchEntry.createPresentationForSdJwtIndex(0, verificationDetails);
         final RequestObject verificationDetailsEncryptedFaked = Mockito.spy(verificationDetails);
         Mockito.doReturn(verificationDetails.getState() + "wrong")
                 .when(verificationDetailsEncryptedFaked)
@@ -351,7 +279,7 @@ class VerifierOID4VPTest extends BaseTest {
         // When
         wallet.setUseEncryption(true);
         ex = assertThrows(HttpClientErrorException.class, () -> {
-            wallet.respondToVerification(verificationDetailsEncryptedFaked, verifiableCredential);
+            wallet.respondToVerification(verificationDetailsEncryptedFaked, encryptedPresentation);
         });
         ApiErrorAssert.assertThat(ex)
                 .hasStatus(400)

@@ -30,8 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @UseIssuers(IssuerVariant.NO_REFRESH_TOKEN_ROTATION)
 class RefreshTokenWithoutRotationTest extends BaseTest {
     @Test
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1E_RENEW_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
     @XrayTest(key = "EIDOMNI-1342",
             summary = "Repeated refresh without rotation keeps the refresh token and replaces the access token",
             description = "Sequential baseline for R16: two fresh DPoP proofs use the same refresh token; only the latest access token can renew credentials.")

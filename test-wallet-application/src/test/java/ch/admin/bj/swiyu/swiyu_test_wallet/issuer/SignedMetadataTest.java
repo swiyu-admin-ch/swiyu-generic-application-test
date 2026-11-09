@@ -63,16 +63,16 @@ class SignedMetadataTest extends BaseTest {
                     The wallet decodes the signed JWT response and confirms that all required OID4VCI metadata claims are present.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void shouldSuccessfullyValidateSignedMetadata() {
         var walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         final SwiyuDeeplink swiyuDeeplink = new SwiyuDeeplink(deeplink);
@@ -118,9 +118,9 @@ class SignedMetadataTest extends BaseTest {
                     values that make application/jwt unacceptable.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "Fix not available yet"
@@ -157,9 +157,9 @@ class SignedMetadataTest extends BaseTest {
                     issuer URL instead of a tenant-scoped issuer URL.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING, ImageTags.DEV},
             reason = "Global signed issuer metadata is introduced by EIDOMNI-1011 and is not available on these image tags yet."
@@ -201,13 +201,13 @@ class SignedMetadataTest extends BaseTest {
                     This test covers the happy path for unsigned issuer metadata retrieval in a multi-tenant configuration.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
         wallet.setSignedMetadataPreferred(false);
         var walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
@@ -245,16 +245,16 @@ class SignedMetadataTest extends BaseTest {
                     a non-existent tenant ID, returning HTTP 404 to prevent unauthorized metadata access.
                     """
     )
-    @Tag(ReportingTags.UCI_M1)
-    @Tag(ReportingTags.UCI_M1A)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
     )
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
         final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         var offerDeeplink = new SwiyuDeeplink(deeplink);
@@ -306,7 +306,7 @@ class SignedMetadataTest extends BaseTest {
     }
 
     private URI createTenantSpecificWellKnownUri(String suffix) {
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final SwiyuDeeplink deeplink = new SwiyuDeeplink(response.getOfferDeeplink());
         final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(URI.create(deeplink.getCredentialIssuer()));
         return UriComponentsBuilder.fromUri(issuerUri)

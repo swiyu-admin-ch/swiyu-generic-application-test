@@ -69,8 +69,10 @@ class IssuerWebhookFloodTest extends BaseTest {
                     Spec: OID4VCI 1.0 §8.3.1 Credential Error Response and Appendix F.1 jwt Proof Type;
                     Swiss issuance profile §8.2 Credential Request. The callback bound comes from the ticket.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @Disabled("Bug ticket : EIDOMNI-1400")
     void credentialRequest_whenWalletRepeatsInvalidProofAndCallbackIsUnavailable_thenQueueStaysBounded() {
         // Given: freeze the proof, while the Wallet still creates fresh DPoP and encrypted request envelopes.
@@ -142,8 +144,10 @@ class IssuerWebhookFloodTest extends BaseTest {
                     Spec: OID4VCI 1.0 §8.3 Credential Response, §8.3.1 Credential Error Response and Appendix F.1 jwt Proof Type;
                     Swiss issuance profile §8.3 Credential Response. Recovery and callbacks are ticket regression invariants.
                     """)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     void credentialRequest_whenWalletUsesValidProofAfterRepeatedInvalidProof_thenIssuanceStillSucceeds() {
         // Given
         final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.ClassOrdererContext;
 import org.junit.jupiter.api.Tag;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -55,7 +56,10 @@ public final class EnvironmentClassOrderer implements ClassOrderer {
 
     private static boolean isVersionRegression(final ClassDescriptor descriptor) {
         return descriptor.findRepeatableAnnotations(Tag.class).stream()
-                .anyMatch(tag -> ReportingTags.VERSION_REGRESSION.equals(tag.value()));
+                .anyMatch(tag -> ReportingTags.TEST_REGRESSION.equals(tag.value()))
+                || Arrays.stream(descriptor.getTestClass().getDeclaredMethods())
+                .flatMap(method -> Arrays.stream(method.getAnnotationsByType(Tag.class)))
+                .anyMatch(tag -> ReportingTags.TEST_REGRESSION.equals(tag.value()));
     }
 
     private static String variantNames(final Set<? extends Enum<?>> variants) {
