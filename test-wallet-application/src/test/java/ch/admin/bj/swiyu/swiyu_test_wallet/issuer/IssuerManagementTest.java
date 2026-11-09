@@ -44,7 +44,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag(ReportingTags.UCI_C2_GET_THE_CURRENT_STATUS_OF_AN_OFFER)
     void getOfferStatus_NonDeferred_thenSuccess() {
         log.info("Creating non-deferred credential offer...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final UUID managementId = response.getManagementId();
 
         log.info("Retrieving status for credential offer...");
@@ -68,7 +68,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag(ReportingTags.UCI_C2_GET_THE_CURRENT_STATUS_OF_AN_OFFER)
     void getOfferStatus_Deferred_thenSuccess() {
         log.info("Creating deferred credential offer...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createDeferredCredentialOffer("bound_example_sd_jwt");
         final UUID managementId = response.getManagementId();
 
         log.info("Retrieving status for deferred credential offer...");
@@ -117,7 +117,7 @@ class IssuerManagementTest extends BaseTest {
     @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
     void updateCredentialStatus_ValidTransitions_thenSuccess() {
         log.info("Creating credential for status update test...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final UUID managementId = response.getManagementId();
 
         StatusResponse initialStatus = issuerManager.getStatusById(managementId);
@@ -151,7 +151,7 @@ class IssuerManagementTest extends BaseTest {
     )
     void updateCredentialStatus_InvalidTransition_thenRejected() {
         log.info("Creating credential for invalid transition test...");
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final UUID managementId = response.getManagementId();
 
         log.info("Setting up: OFFERED → CANCELLED");

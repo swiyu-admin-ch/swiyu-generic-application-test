@@ -155,7 +155,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
             final JWESupport.PayloadEncoding encoding
     ) {
         // Given: only the decompressed limit is exceeded; ciphertext and HTTP body remain small.
-        final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT);
+        final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
         final var walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
         final var stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
         final int callbacksBefore = awaitStableIssuerCallbacks();
@@ -217,7 +217,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     ) {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
         );
         final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
         final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
@@ -262,7 +262,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     ) {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
         );
         final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
         final String validCredentialRequest = wallet.createCredentialRequestPayload(walletEntry);
@@ -331,7 +331,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     void credentialRequestPayloadEncryption_whenEncryptedBodyIsOversized_thenRejectedWithoutSideEffects() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
         );
         final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
         final CredentialStatusType stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
@@ -366,7 +366,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
     ) {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
         );
         final WalletBatchEntry walletEntry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
         final CredentialStatusType stateBefore = issuerManager.getStatusById(offer.getManagementId()).getStatus();
