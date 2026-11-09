@@ -56,6 +56,39 @@ class SdJwtCredentialTest {
     }
 
     @Test
+    void resign_whenWithoutHolderBinding_thenOnlyCnfIsRemovedAndSignatureRemainsValid() throws Exception {
+        final SdJwtCredential unbound = credential.resign()
+                .signedWith(issuerKeyPair)
+                .withoutHolderBinding()
+                .build();
+        final SignedJWT jwt = SignedJWT.parse(unbound.issuerSignedJwt());
+        final Map<String, Object> originalClaims = new java.util.HashMap<>(
+                SignedJWT.parse(credential.issuerSignedJwt()).getJWTClaimsSet().getClaims());
+        originalClaims.remove("cnf");
+
+        assertThat(jwt.verify(new ECDSAVerifier(issuerPublicKey)))
+                .isTrue();
+        assertThat(jwt.getJWTClaimsSet().getClaims())
+                .doesNotContainKey("cnf")
+                .containsExactlyInAnyOrderEntriesOf(originalClaims);
+        assertThat(jwt.getHeader().toJSONObject())
+                .isEqualTo(SignedJWT.parse(credential.issuerSignedJwt()).getHeader().toJSONObject());
+        assertThat(unbound.disclosures())
+                .isEqualTo(credential.disclosures());
+    }
+
+    @Test
+    void resign_whenHolderKeyIsGivenAndRemoved_thenRejectsContradictoryDeviation() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> credential.resign()
+                        .signedWith(issuerKeyPair)
+                        .holderKey(holderPublicKey)
+                        .withoutHolderBinding()
+                        .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("contradict");
+    }
+
+    @Test
     void parse_whenACredential_thenSerializeGivesTheSameText() {
         final String text = credential.serialize();
 
