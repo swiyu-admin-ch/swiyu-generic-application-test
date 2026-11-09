@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import({CompleteEnvironmentTestConfiguration.class, RegressionEnvironmentTestConfiguration.class})
-@Tag(ReportingTags.VERSION_REGRESSION)
 class IssuerOfferVersionRegressionTest {
 
     private static final String CREDENTIAL_CONFIGURATION_ID =
@@ -58,6 +57,14 @@ class IssuerOfferVersionRegressionTest {
                     historical artifacts are persisted, the test starts the Candidate Issuer only once on the same
                     schema and validates the complete offer lifecycle matrix with the latest fake wallet.
                     """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_REGRESSION)
+    @Tag(ReportingTags.UCI_C1B_STORE_THE_CREDENTIAL_OFFER_IN_THE_DATABASE)
+    @Tag(ReportingTags.UCI_C2_GET_THE_CURRENT_STATUS_OF_AN_OFFER)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     void offersPreparedByPrevious_whenIssuerUpgradesOnce_thenCandidateCompletesLifecycleMatrix() {
         try (final IssuerVersionTransition transition = regressionEnvironment.issuerTransition()) {
             final IssuerHandle previousIssuer = transition.startPrevious();

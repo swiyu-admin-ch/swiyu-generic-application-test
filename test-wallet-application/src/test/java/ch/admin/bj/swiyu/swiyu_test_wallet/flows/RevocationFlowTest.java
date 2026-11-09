@@ -23,6 +23,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.Webhook
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -72,9 +73,11 @@ class RevocationFlowTest extends BaseTest {
                         Management returns state FAILED and exposes credential_status.valid=false with the REVOKED
                         status-list value 1.
                     """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             verifier = {ImageTags.STAGING},
             reason = "EIDOMNI-1090 is not available in staging: revoked credentials return HTTP 400 instead of credential evaluations"
@@ -135,9 +138,11 @@ class RevocationFlowTest extends BaseTest {
                 Finally, the Issuer reactivates the batch by setting the status back to ISSUED, after which the Wallet can present
                 the credentials successfully with state SUCCESS and credential_status.valid=true.
                 """)
-    @Tag("ucv_c3")
-    @Tag("ucv_o2c")
-    @Tag("edge_case")
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             verifier = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
@@ -148,7 +153,7 @@ class RevocationFlowTest extends BaseTest {
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When - Issue credential
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
@@ -168,7 +173,7 @@ class RevocationFlowTest extends BaseTest {
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
             final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
+                    .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
@@ -178,7 +183,7 @@ class RevocationFlowTest extends BaseTest {
             final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
-                            List.of(batchEntry.getVerifiableCredential(index))
+                            List.of(batchEntry.createPresentationForSdJwtIndex(index, verificationDetails))
                     ),
                     verifierManager,
                     verification.getId()
@@ -193,12 +198,12 @@ class RevocationFlowTest extends BaseTest {
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
             final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
+                    .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            final String credential = batchEntry.getVerifiableCredential(i);
+            final String credential = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
 
             final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
@@ -224,17 +229,18 @@ class RevocationFlowTest extends BaseTest {
                     revocation callback. Finally, it verifies that the credential remains valid and can still be 
                     successfully verified.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @Disabled ("Bug ticket : EIDOMNI-830")
     void errorEventCallback_whenRevokeDbFailed_thenVCRemainsValidAndErrorCallbackSent() {
         // Given
         cleanIssuerCallbacks();
         final String blockingTable = "swiyu_issuer_default.credential_management";
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
@@ -286,14 +292,14 @@ class RevocationFlowTest extends BaseTest {
         // Then - VC should still be valid
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
-                batchEntry.getVerifiableCredential(0));
+                batchEntry.createPresentationForSdJwtIndex(0, verificationDetails));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
@@ -309,10 +315,11 @@ class RevocationFlowTest extends BaseTest {
                     revocation callback. Finally, it verifies that the credential remains valid and can still be 
                     successfully verified.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_C3_UPDATE_THE_STATUS_OF_AN_OFFER_OR_VC)
+    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.STABLE, ImageTags.RC},
             reason = "This fix is not available on other image tags"
@@ -321,7 +328,7 @@ class RevocationFlowTest extends BaseTest {
         // Given
         cleanIssuerCallbacks();
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
@@ -380,14 +387,14 @@ class RevocationFlowTest extends BaseTest {
         // Then - VC should still be valid
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
-                batchEntry.getVerifiableCredential(0));
+                batchEntry.createPresentationForSdJwtIndex(0, verificationDetails));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }

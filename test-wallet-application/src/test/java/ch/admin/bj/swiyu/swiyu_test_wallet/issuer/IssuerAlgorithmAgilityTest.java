@@ -58,9 +58,9 @@ class IssuerAlgorithmAgilityTest extends BaseTest {
                     Then the Generic Issuer validates the proof, issues the credential, and binds it to the Ed25519 key.
                     """
     )
-    @Tag(ReportingTags.UCI_C1)
-    @Tag(ReportingTags.UCI_I1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void boundCredential_whenProofJwtUsesEd25519_thenIssuanceSucceeds() throws Exception {
         // Given
         final String credentialConfigurationId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;

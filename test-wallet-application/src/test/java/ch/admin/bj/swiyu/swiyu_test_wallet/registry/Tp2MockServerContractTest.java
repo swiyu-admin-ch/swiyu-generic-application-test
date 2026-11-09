@@ -43,6 +43,7 @@ class Tp2MockServerContractTest extends BaseTest {
             key = "EIDOMNI-1414",
             summary = "TP2 route replacement preserves credential status lists",
             description = "Replacing and restoring TP2 scenario routes must not remove the credential status list route.")
+    @Tag(ReportingTags.EDGE_CASE)
     void tp2Routes_whenReplacedAndRestored_thenCredentialStatusListRemainsResolvable() throws Exception {
         // Given
         final RestClient client = mockServerRestClient();
@@ -276,6 +277,7 @@ class Tp2MockServerContractTest extends BaseTest {
                     expected authorization header and rejects DCQL registration payloads
                     whose credential metadata does not provide vct_values.
                     """)
+    @Tag(ReportingTags.EDGE_CASE)
     void tmsRegistration_whenAuthorizationOrDcqlMetadataMissing_thenRejectsRequest() {
         RestClient client = mockServerRestClient();
 
@@ -320,6 +322,7 @@ class Tp2MockServerContractTest extends BaseTest {
                     paged results for unknown identifiers and reject malformed query
                     parameters or invalid statement identifiers with the expected errors.
                     """)
+    @Tag(ReportingTags.EDGE_CASE)
     void tp2MockRoutes_whenMalformedOrUnknownRegistryQueries_thenRejectOrReturnEmptyResults() throws Exception {
         RestClient client = mockServerRestClient();
 

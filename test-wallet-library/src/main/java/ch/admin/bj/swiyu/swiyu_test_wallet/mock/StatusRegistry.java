@@ -68,6 +68,7 @@ final class StatusRegistry {
     private volatile String activeIssuerDid = "";
     private volatile boolean throwStatusListError;
     private volatile boolean corruptStatusListSignature;
+    private volatile boolean expiredStatusListToken;
 
     StatusRegistry(final RegisteredActors actors) {
         this.actors = actors;
@@ -96,6 +97,15 @@ final class StatusRegistry {
     void resetFaults() {
         disableUpdateError();
         disableCorruptSignature();
+        disableExpiredToken();
+    }
+
+    void enableExpiredToken() {
+        expiredStatusListToken = true;
+    }
+
+    void disableExpiredToken() {
+        expiredStatusListToken = false;
     }
 
     boolean updatesFail() {
@@ -262,7 +272,7 @@ final class StatusRegistry {
             final JWSSigner signer = new ECDSASigner(jwk.toECKey());
 
             final PublishedStatusList published = publishedStatusLists.getOrDefault(statusListId, EMPTY_LIST);
-            final Instant issuedAt = Instant.now();
+            final Instant issuedAt = expiredStatusListToken ? Instant.now().minusSeconds(7200) : Instant.now();
 
             final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                     .subject(STATUSLIST_URI_PATTERN.formatted(statusListId))

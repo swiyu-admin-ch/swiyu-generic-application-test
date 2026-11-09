@@ -85,6 +85,8 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             reason = "This fix is not available yet"
     )
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void verification_whenJwkCacheTtlExpires_thenTamperedIssuerDidLogIsResolvedAndCredentialRejected() {
         // Given
         awaitResolverCacheTtlBoundary();
@@ -145,6 +147,10 @@ class VerifierResolverCacheE2ETest extends BaseTest {
             reason = "This fix is not available yet"
     )
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2F_VALIDATE_ISSUER_VIA_TRUST_REGISTRY_TP2_VERIFIER_VIEW)
     void verification_whenTrustStatementCacheTtlExpires_thenTrustRegistryIsQueriedAgain() {
         // Given
         final WalletBatchEntry batchEntry = issueBoundCredential();

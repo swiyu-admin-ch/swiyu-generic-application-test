@@ -47,10 +47,10 @@ class VerifierRedirectUriTest extends BaseTest {
                     remains data rather than a fragment and must survive the redirect unchanged (EIDOMNI-1352).
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void successfulPresentation_withRedirectUri_thenHolderCanRetrieveResultWithResponseCode(String additionalQuery) {
         // Given – credential issued to the fake Wallet
         final CredentialWithDeeplinkResponse offer =
@@ -108,9 +108,8 @@ class VerifierRedirectUriTest extends BaseTest {
                     the response_code from another browser session must be rejected.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
     void redirectEnabledVerifications_withMissingOrCrossSessionResponseCode_thenRejectResultAccess() {
         // Given – a credential and two independent redirect-enabled browser sessions
         final CredentialWithDeeplinkResponse offer =
@@ -171,9 +170,8 @@ class VerifierRedirectUriTest extends BaseTest {
                     as the invalid field. No Wallet presentation is needed to trigger validation.
                     """
     )
-    @Tag(ReportingTags.UCV_M1)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M1_INITIATE_VERIFICATION_PROCESS)
     void initializeVerification_withRelativeOrFragmentRedirectUri_thenRejectAtManagementBoundary(String redirectUri) {
         // Given – only the redirect target violates the initialization contract
         final URI invalidRedirectUri = URI.create(redirectUri);
@@ -203,9 +201,10 @@ class VerifierRedirectUriTest extends BaseTest {
                     no further action. Clients without redirect_uri remain backward compatible.
                     """
     )
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.UCV_M3)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void redirectUri_withAuthorizationErrorAndLegacyClient_thenPreserveOptionalBehavior() {
         // Given – one credential and two verifications sharing the same issuer configuration
         final CredentialWithDeeplinkResponse offer =

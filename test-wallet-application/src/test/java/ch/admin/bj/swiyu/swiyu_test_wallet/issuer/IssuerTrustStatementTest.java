@@ -90,6 +90,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then the Generic Issuer validates and injects both Trust Statements into issuer metadata.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -140,6 +141,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then the Generic Issuer rejects the invalid statement and still injects the independently valid one.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -197,6 +199,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then it rejects them because the declared algorithm, key type and signature do not match.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @EnabledIfSystemProperty(
             named = "didresolver.version",
             matches = "2\\.9\\.0",
@@ -238,6 +241,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then it rejects them and does not inject their claims into issuer metadata.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "EIDOMNI-1050 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementUsesAlgorithmNone_thenStrictlyRejects() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
@@ -277,6 +281,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then metadata contains valid idTS and matching piaTS, and the second fetch reuses cached statements.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "The TP2.0 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementsCached_thenInjectsStatementsAndReusesCache() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
@@ -329,6 +334,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then the issuer refetches TP2 statements and metadata contains fresh JWT values.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "The TP2.0 is not available yet")
     void tenantIssuerMetadata_whenTrustStatementExpReached_thenRefetchesTrustStatements() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
@@ -386,6 +392,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     the third reuses issuer B's validated statements from cache.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void tenantIssuerMetadata_whenTrustStatementFetchFails_thenRetriesAndCachesRecovery() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 
@@ -473,6 +480,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then each metadata response contains statements whose subject matches its own issuer DID.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     @DisableIfImageTag(issuer = {ImageTags.STABLE}, reason = "The TP2.0 is not available yet")
     void tenantIssuerMetadata_whenIssuerDidChanges_thenTrustStatementCacheIsSubjectScoped() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
@@ -515,6 +523,7 @@ class IssuerTrustStatementTest extends BaseTest {
                     Then metadata should keep idTS, omit piaTS, and avoid repeated registry calls.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void tenantIssuerMetadata_whenPiaTsVctDoesNotMatch_thenDoesNotInvalidateTrustStatementCache() {
         final Tp2TrustStatementRouteSupport tp2Routes = tp2Routes();
 

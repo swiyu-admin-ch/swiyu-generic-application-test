@@ -15,6 +15,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -35,115 +36,6 @@ class WalletTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-386",
-            summary = "Successful verification of an unbound SD-JWT credential (non-deferred)",
-            description = """
-                    This test validates the end-to-end issuance and verification of an unbound SD-JWT credential
-                    through immediate OID4VCI credential issuance and OID4VP-based verification. The wallet successfully
-                    collects the non-deferred credential and presents it to a verifier for validation.
-                    """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.HAPPY_PATH)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE},
-            reason = "This feature is not available yet"
-    )
-    void unboundNonDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
-        // Given
-        final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
-                subjectClaims);
-        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(subjectClaims);
-
-        // When
-        batchEntry.getIssuedCredentials().forEach(verifiableCredential -> {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
-                    .createManagementResponse();
-            final RequestObject verificationDetails = wallet
-                    .getVerificationRequestObject(verification.getVerificationDeeplink());
-            verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            wallet.respondToVerification(verificationDetails, verifiableCredential);
-            // Then
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        });
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-389",
-            summary = "Successful deferred issuance and verification of an unbound SD-JWT credential",
-            description = """
-                    This test validates the end-to-end deferred issuance flow for an unbound SD-JWT credential,
-                    where the wallet retrieves a transaction ID during the initial offer collection phase and
-                    collects the credential after the issuer marks it as READY. The credential is subsequently
-                    verified through the OID4VP interface.
-                    """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2)
-    @Tag(ReportingTags.HAPPY_PATH)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
-            reason = "This feature is not available yet"
-    )
-    void unboundDeferredCredential_whenIssuedAndVerifiedWithDcql_thenSuccess() {
-        // Given
-        final Map<String, Object> initialSubjectClaims = CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        final Map<String, Object> updatedSubjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createDeferredCredentialOffer(supportedMetadataId,
-                initialSubjectClaims);
-        final WalletBatchEntry batchEntry = wallet.collectTransactionIdFromDeferredOffer(toUri(offer.getOfferDeeplink()));
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.DEFERRED);
-        assertThat(batchEntry.getTransactionId()).isNotNull();
-
-        // When
-        issuerManager.updateCredentialForDeferredFlowRequestCreation(offer.getManagementId(), updatedSubjectClaims);
-        // Then
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.READY);
-
-        // When
-        wallet.getCredentialFromTransactionId(batchEntry);
-        // Then
-        SdJwtBatchAssert.assertThat(batchEntry.getIssuedCredentials())
-                .hasBatchSize(CredentialConfigurationFixtures.BATCH_SIZE)
-                .areUnique()
-                .allHaveExactlyInAnyOrderDisclosures(updatedSubjectClaims);
-        issuerManager.verifyStatus(offer.getManagementId(), CredentialStatusType.ISSUED);
-
-        // When
-        batchEntry.getIssuedCredentials().forEach(verifiableCredential -> {
-            final ManagementResponse verification = verifierManager.verificationRequest()
-                    .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
-                    .createManagementResponse();
-            final RequestObject verificationDetails = wallet
-                    .getVerificationRequestObject(verification.getVerificationDeeplink());
-            verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            wallet.respondToVerification(verificationDetails,
-                    verifiableCredential);
-            // Then
-            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
-        });
-    }
-
-    @Test
-    @XrayTest(
             key = "EIDOMNI-393",
             summary = "Successful issuance and verification of a bound SD-JWT credential with selective disclosure",
             description = """
@@ -151,10 +43,11 @@ class WalletTest extends BaseTest {
                     disclosure during verification. The wallet constructs a derived presentation based on the verifier's
                     requirements and the credential is successfully validated.
                     """)
-    @Tag(ReportingTags.UCI_C1A)
-    @Tag(ReportingTags.UCI_I1A)
-    @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE},
             reason = "This feature is not available yet"
@@ -199,10 +92,11 @@ class WalletTest extends BaseTest {
                     with selective disclosure requirements. The wallet retrieves the credential using a transaction ID
                     and successfully constructs a presentation that satisfies the verifier's requirements.
                     """)
-    @Tag(ReportingTags.UCI_C1B)
-    @Tag(ReportingTags.UCI_I1B)
-    @Tag(ReportingTags.UCV_O2A)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC, ImageTags.STAGING},
             reason = "This feature is not available yet"
@@ -260,14 +154,15 @@ class WalletTest extends BaseTest {
                     when the wallet attempts to present an unbound credential. The verifier detects the missing holder key binding
                     proof and rejects the presentation with an appropriate error.
                     """)
-    @Tag(ReportingTags.UCV_O2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     @DisableIfImageTag(
             verifier = {ImageTags.RC},
             reason = "This is fixed in next versions"
     )
     void verifyDCQLRequestHolderBindingWalletWithoutHolder_thenReject() {
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
 
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
         assertThat(batchEntry.getCredentialOffer()).isNotNull();
@@ -278,7 +173,13 @@ class WalletTest extends BaseTest {
                 .create();
 
         final RequestObject verificationDetails = wallet.getVerificationRequestObject(deepLink);
-        var res = batchEntry.getVerifiableCredential(0);
+        // A malicious issuer removes only the holder binding; the signature and disclosures remain valid.
+        final String res = SdJwtCredential.parse(batchEntry.getVerifiableCredential(0))
+                .resign()
+                .signedWith(issuerConfig.getKeyPair())
+                .withoutHolderBinding()
+                .build()
+                .serialize();
 
         assertThat(verificationDetails.getDcqlQuery())
                 .isNotNull();

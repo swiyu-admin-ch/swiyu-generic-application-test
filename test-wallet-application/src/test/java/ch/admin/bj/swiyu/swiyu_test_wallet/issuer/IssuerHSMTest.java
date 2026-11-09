@@ -88,6 +88,11 @@ class IssuerHSMTest extends BaseTest {
                     Spec: OID4VCI 1.0 section 8.3; OID4VP 1.0 section 8.6; Swiss anchor profile, JWT Validation.
                     """)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
     void hsmSetupTest() throws Exception {
         // Given
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
@@ -141,8 +146,10 @@ class IssuerHSMTest extends BaseTest {
                     Then every Credential advertises the alternate kid, verifies only with that key and issuance becomes ISSUED.
                     Spec: Issuer management ConfigurationOverride; OID4VCI 1.0 section 8.3; Swiss anchor profile, JWT Validation.
                     """)
-    @Tag(ReportingTags.UCI_C1)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenHsmKeyIsOverridden_thenEveryCredentialUsesOverrideKey(final String keyPin)
             throws Exception {
         // Given
@@ -191,6 +198,9 @@ class IssuerHSMTest extends BaseTest {
                     Spec: Issuer management ConfigurationOverride, scope limited to the created entity.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenOverrideIsUsed_thenDefaultOfferKeepsItsOwnKey() throws Exception {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -242,8 +252,10 @@ class IssuerHSMTest extends BaseTest {
                     Then the metadata has the expected type, subject and kid and verifies only with the selected key.
                     Spec: OID4VCI 1.0 section 12.2.3; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_M1)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
     void signedIssuerMetadata_whenHsmIdentityIsSelected_thenSignatureMatchesTheTenantKey(final boolean overridden)
             throws Exception {
         // Given
@@ -296,8 +308,10 @@ class IssuerHSMTest extends BaseTest {
                     Then every Credential verifies only with the persisted override key and issuance becomes ISSUED.
                     Spec: OID4VCI 1.0 section 9; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_C3)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1B_CREATE_DEFERRED_VERIFIABLE_CREDENTIALS)
     void deferredIssuance_whenHsmKeyIsOverridden_thenCollectionKeepsTheOverrideKey() throws Exception {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -351,6 +365,9 @@ class IssuerHSMTest extends BaseTest {
                     Spec: Issuer management ConfigurationOverride; fail-closed signing invariant, exact HTTP error mapping Unknown.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     void credentialIssuance_whenOverrideKeyDoesNotExist_thenNoCredentialIsIssued() {
         // Given
         wallet.setProfile(WalletProfile.swiss());
@@ -385,8 +402,9 @@ class IssuerHSMTest extends BaseTest {
                     from a status-list update request when publishing the HSM-backed status list to the registry.
                     """
     )
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_withHsmConfigurationOverride_thenPublishesWithOverrideKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2,
@@ -437,8 +455,9 @@ class IssuerHSMTest extends BaseTest {
                     Then the registry receives a token signed by the configured status key matching the advertised kid.
                     Spec: Swiss VC profile, Token Status List section 5.1; Swiss anchor profile, JWT Validation.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListCreation_whenNoOverrideIsProvided_thenDefaultStatusKeyMatchesItsKid() throws Exception {
         // Given / When
         final StatusList statusList = issuerManager.createStatusList(10000, 2);
@@ -468,8 +487,9 @@ class IssuerHSMTest extends BaseTest {
                     Then the v2 registry receives a statuslist+jwt signed only with the alternate key and the correct kid.
                     Spec: Swiss VC profile, Token Status List section 5.1; Issuer management ConfigurationOverride.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.HAPPY_PATH)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListCreation_whenHsmKeyIsOverriddenWithoutPin_thenPublishesWithOverrideKey() throws Exception {
         // Given / When
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -507,8 +527,9 @@ class IssuerHSMTest extends BaseTest {
                     Then publication still uses the stored override key and verification method.
                     Spec: Issuer StatusListOrchestrator.updateStatusList contract, persisted non-null field merge.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOverrideIsAbsentOrEmpty_thenPreservesStoredKey(final boolean emptyOverride)
             throws Exception {
         // Given
@@ -543,8 +564,9 @@ class IssuerHSMTest extends BaseTest {
                     Then the omitted fields retain their persisted values and publication verifies only with the alternate key.
                     Spec: Issuer StatusListOrchestrator.updateStatusList contract, persisted non-null field merge.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOnlyKeyPinIsProvided_thenRetainsStoredKeyAndVerificationMethod() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -579,8 +601,9 @@ class IssuerHSMTest extends BaseTest {
                     Deviation: the Business Issuer selects an HSM key absent from the token.
                     Spec: Issuer management ConfigurationOverride; atomic update invariant, exact HTTP error mapping Unknown.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOverrideKeyDoesNotExist_thenDoesNotPublishOrPersistInvalidKey() throws Exception {
         // Given
         final StatusList statusList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()
@@ -624,8 +647,9 @@ class IssuerHSMTest extends BaseTest {
                     Then each publication verifies only with its own list's key and advertises the matching kid.
                     Spec: Issuer management ConfigurationOverride, scope limited to the created entity.
                     """)
-    @Tag(ReportingTags.UCI_C2)
     @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_S1_CREATE_STATUS_LIST)
     void statusListUpdate_whenOneListRotates_thenAnotherListKeepsItsOwnKey() throws Exception {
         // Given
         final StatusList rotatedList = issuerManager.createStatusList(10000, 2, new ConfigurationOverride()

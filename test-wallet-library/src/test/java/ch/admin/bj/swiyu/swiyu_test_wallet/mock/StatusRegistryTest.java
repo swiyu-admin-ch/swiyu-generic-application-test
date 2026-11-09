@@ -189,4 +189,34 @@ class StatusRegistryTest {
 
         assertThat(registry.updatesFail()).isFalse();
     }
+
+    @Test
+    void statusListToken_whenExpiredFaultIsOn_thenOnlyItsDatesChangeAndResetRestoresValidity() throws Exception {
+        final String listId = id();
+        registry.onStatusListCreated(issuer.getSwiyuPartnerId(), listId);
+        final SignedJWT original = SignedJWT.parse(registry.statusListToken(listId).orElseThrow());
+
+        registry.enableExpiredToken();
+        final SignedJWT expired = SignedJWT.parse(registry.statusListToken(listId).orElseThrow());
+
+        assertThat(verifies(expired.serialize(), issuer))
+                .isTrue();
+        assertThat(expired.getHeader().toJSONObject())
+                .isEqualTo(original.getHeader().toJSONObject());
+        final var originalClaims = new java.util.LinkedHashMap<>(original.getJWTClaimsSet().getClaims());
+        final var expiredClaims = new java.util.LinkedHashMap<>(expired.getJWTClaimsSet().getClaims());
+        originalClaims.keySet().removeAll(java.util.Set.of("iat", "exp"));
+        expiredClaims.keySet().removeAll(java.util.Set.of("iat", "exp"));
+        assertThat(expiredClaims)
+                .isEqualTo(originalClaims);
+        assertThat(expired.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isBefore(Instant.now());
+        assertThat(expired.getJWTClaimsSet().getExpirationTime().toInstant())
+                .isEqualTo(expired.getJWTClaimsSet().getIssueTime().toInstant().plusSeconds(60));
+
+        registry.resetFaults();
+        assertThat(SignedJWT.parse(registry.statusListToken(listId).orElseThrow())
+                .getJWTClaimsSet().getExpirationTime().toInstant())
+                .isAfter(Instant.now());
+    }
 }
