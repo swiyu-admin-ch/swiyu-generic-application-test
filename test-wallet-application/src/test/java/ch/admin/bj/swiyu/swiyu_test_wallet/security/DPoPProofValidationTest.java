@@ -136,7 +136,7 @@ class DPoPProofValidationTest extends BaseTest {
         ApiErrorAssert.assertThat((HttpClientErrorException) exception)
                 .hasStatus(401)
                 .hasError("invalid_dpop_proof")
-                .hasErrorDescription("Access token mismatch. ath must be base64url-encoded SHA-256 hash of the ASCII encoding of the associated access token's value");
+                .hasErrorDescription("Malformed DPoP");
     }
 
     private enum DpopDeviation {
