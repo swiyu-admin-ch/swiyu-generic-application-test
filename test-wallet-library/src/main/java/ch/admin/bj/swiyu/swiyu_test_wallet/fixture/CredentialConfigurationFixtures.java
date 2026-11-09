@@ -18,9 +18,6 @@ public final class CredentialConfigurationFixtures {
     public static final String BOUND_IDENTITY_PROFILE_SD_JWT =
             "bound_identity_profile_sd_jwt";
 
-    public static final String UNBOUND_EXAMPLE_SD_JWT =
-            "unbound_example_sd_jwt";
-
     public static final String CREDENTIAL_REFRESH_DISABLED_EXAMPLE_SD_JWT =
             "credential_refresh_disabled_example_sd_jwt";
 
