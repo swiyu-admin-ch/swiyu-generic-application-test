@@ -68,7 +68,7 @@ import static org.mockserver.model.HttpRequest.request;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseVerifiers(VerifierVariant.AUDIT_DEFAULTS)
 @UseWallet(dpop = true, encryption = true, signedMetadata = false)
-@Tag(ReportingTags.UCV_O2)
+@Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
 class VerifierRequestedClaimsE2ETest extends BaseTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
