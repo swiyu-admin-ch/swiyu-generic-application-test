@@ -153,7 +153,7 @@ class RevocationFlowTest extends BaseTest {
         final UpdateCredentialStatusRequestType updateStatus = UpdateCredentialStatusRequestType.SUSPENDED;
 
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When - Issue credential
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId,
@@ -173,7 +173,7 @@ class RevocationFlowTest extends BaseTest {
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
             final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
+                    .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
@@ -183,7 +183,7 @@ class RevocationFlowTest extends BaseTest {
             final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
                             verificationDetails,
-                            List.of(batchEntry.getVerifiableCredential(index))
+                            List.of(batchEntry.createPresentationForSdJwtIndex(index, verificationDetails))
                     ),
                     verifierManager,
                     verification.getId()
@@ -198,12 +198,12 @@ class RevocationFlowTest extends BaseTest {
         for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE; i++) {
             final ManagementResponse verification = verifierManager.verificationRequest()
                     .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                    .withUniversityDCQL(false)
+                    .withUniversityDCQL()
                     .createManagementResponse();
             final RequestObject verificationDetails = wallet
                     .getVerificationRequestObject(verification.getVerificationDeeplink());
             verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
-            final String credential = batchEntry.getVerifiableCredential(i);
+            final String credential = batchEntry.createPresentationForSdJwtIndex(i, verificationDetails);
 
             final ManagementResponse result = assertWalletAndManagementRespondOk(
                     () -> wallet.respondToVerificationWithVpTokens(
@@ -239,7 +239,7 @@ class RevocationFlowTest extends BaseTest {
         cleanIssuerCallbacks();
         final String blockingTable = "swiyu_issuer_default.credential_management";
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
@@ -291,14 +291,14 @@ class RevocationFlowTest extends BaseTest {
         // Then - VC should still be valid
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
-                batchEntry.getVerifiableCredential(0));
+                batchEntry.createPresentationForSdJwtIndex(0, verificationDetails));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
@@ -327,7 +327,7 @@ class RevocationFlowTest extends BaseTest {
         // Given
         cleanIssuerCallbacks();
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         // When
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
@@ -386,14 +386,14 @@ class RevocationFlowTest extends BaseTest {
         // Then - VC should still be valid
         final ManagementResponse verification = verifierManager.verificationRequest()
                 .acceptedIssuerDid(issuerConfig.getIssuerDid())
-                .withUniversityDCQL(false)
+                .withUniversityDCQL()
                 .createManagementResponse();
         final RequestObject verificationDetails = wallet
                 .getVerificationRequestObject(verification.getVerificationDeeplink());
         verifierManager.verifyState(verification.getId(), VerificationStatus.PENDING);
 
         wallet.respondToVerification(verificationDetails,
-                batchEntry.getVerifiableCredential(0));
+                batchEntry.createPresentationForSdJwtIndex(0, verificationDetails));
 
         verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
     }
