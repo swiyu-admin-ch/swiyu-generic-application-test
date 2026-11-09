@@ -72,7 +72,7 @@ class SignedMetadataTest extends BaseTest {
     )
     void shouldSuccessfullyValidateSignedMetadata() {
         var walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         final SwiyuDeeplink swiyuDeeplink = new SwiyuDeeplink(deeplink);
@@ -207,7 +207,7 @@ class SignedMetadataTest extends BaseTest {
     void shouldSuccessfullyValidateUnsignedMetadataWithTenantId() {
         wallet.setSignedMetadataPreferred(false);
         var walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         walletEntry.receiveDeepLinkAndValidateIt(URI.create(deeplink));
@@ -254,7 +254,7 @@ class SignedMetadataTest extends BaseTest {
     )
     void verifierHasSignedMetadata_walletGetSignedMetadataOfNotFoundTenantId_thenRejected() {
         final WalletBatchEntry walletEntry = wallet.createWalletBatchEntry();
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final String deeplink = response.getOfferDeeplink();
 
         var offerDeeplink = new SwiyuDeeplink(deeplink);
@@ -306,7 +306,7 @@ class SignedMetadataTest extends BaseTest {
     }
 
     private URI createTenantSpecificWellKnownUri(String suffix) {
-        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("unbound_example_sd_jwt");
+        final CredentialWithDeeplinkResponse response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
         final SwiyuDeeplink deeplink = new SwiyuDeeplink(response.getOfferDeeplink());
         final URI issuerUri = wallet.getIssuerContext().getContextualizedUri(URI.create(deeplink.getCredentialIssuer()));
         return UriComponentsBuilder.fromUri(issuerUri)
