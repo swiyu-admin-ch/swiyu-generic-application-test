@@ -81,7 +81,7 @@ class KeycloakManagementAuthTest extends BaseTest {
 
         // When
         final CredentialWithDeeplinkResponse credential = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
                 CredentialSubjectFixtures.completeEmployeeProfile()
         );
 
@@ -197,7 +197,7 @@ class KeycloakManagementAuthTest extends BaseTest {
     void securedIssuerVerifierFlow_withKeycloakManagementAuth_thenWalletCanCompleteVerification() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
-                CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT,
+                CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT,
                 CredentialSubjectFixtures.completeEmployeeProfile()
         );
         final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
