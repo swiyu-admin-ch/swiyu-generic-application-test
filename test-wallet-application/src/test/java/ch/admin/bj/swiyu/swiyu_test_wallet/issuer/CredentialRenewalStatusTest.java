@@ -56,7 +56,7 @@ import static org.mockserver.model.JsonBody.json;
 @UseIssuers({IssuerVariant.RENEWAL_DEFAULT, IssuerVariant.RENEWAL_STRICT,
         IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL})
 @UseWallet(dpop = true, encryption = true, signedMetadata = true)
-@Tag(ReportingTags.UCI_I1)
+@Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
 @Tag(ReportingTags.EDGE_CASE)
 class CredentialRenewalStatusTest extends BaseTest {
 

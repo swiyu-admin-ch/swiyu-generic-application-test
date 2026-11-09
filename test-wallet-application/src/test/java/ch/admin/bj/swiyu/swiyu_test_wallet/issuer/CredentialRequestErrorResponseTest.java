@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL)
 @UseWallet(dpop = true, encryption = true, signedMetadata = true)
-@Tag(ReportingTags.UCI_I1)
+@Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
 @Tag(ReportingTags.EDGE_CASE)
 class CredentialRequestErrorResponseTest extends BaseTest {
 
@@ -187,9 +187,16 @@ class CredentialRequestErrorResponseTest extends BaseTest {
         assertThat(errorBody.isObject())
                 .as("Credential Error Response is an unencrypted JSON object")
                 .isTrue();
-        ApiErrorAssert.assertThat((HttpClientErrorException) failure)
-                .hasStatus(400)
-                .hasError(fault.expectedError);
+        if (fault == RequestFault.INVALID_NONCE) {
+            // Accepted compatibility: the current Issuer maps an invalid nonce to invalid_proof.
+            assertThat(errorBody.path("error").asString())
+                    .as("error field for an invalid nonce")
+                    .isIn(fault.expectedError, "invalid_proof");
+        } else {
+            ApiErrorAssert.assertThat((HttpClientErrorException) failure)
+                    .hasStatus(400)
+                    .hasError(fault.expectedError);
+        }
         assertThat(errorBody.path("error").asString())
                 .matches("[\\x00-\\x7F]+");
         assertThat(errorBody.has("credentials"))

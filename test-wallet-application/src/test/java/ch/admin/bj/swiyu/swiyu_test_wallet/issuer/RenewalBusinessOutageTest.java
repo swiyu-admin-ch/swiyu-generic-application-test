@@ -47,7 +47,7 @@ import static org.mockserver.model.JsonBody.json;
 @Import(CompleteEnvironmentTestConfiguration.class)
 @UseIssuers(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL)
 @UseWallet(dpop = true, encryption = true, signedMetadata = true)
-@Tag(ReportingTags.UCI_I1)
+@Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
 @Tag(ReportingTags.EDGE_CASE)
 class RenewalBusinessOutageTest extends BaseTest {
 

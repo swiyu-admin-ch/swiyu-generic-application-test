@@ -72,8 +72,8 @@ import static org.mockserver.model.JsonBody.json;
 @UseIssuers(IssuerVariant.RENEWAL_PERMISSIVE_EXPERIMENTAL)
 @UseVerifiers(VerifierVariant.DEFAULT)
 @UseWallet(dpop = true, encryption = true, signedMetadata = true)
-@Tag(ReportingTags.UCI_I1)
-@Tag(ReportingTags.UCV_O2)
+@Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
+@Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
 @Tag(ReportingTags.EDGE_CASE)
 class SuspendedRenewalLifecycleTest extends BaseTest {
 
