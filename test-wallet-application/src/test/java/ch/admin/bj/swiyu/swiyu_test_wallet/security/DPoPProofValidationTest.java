@@ -106,7 +106,6 @@ class DPoPProofValidationTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
-    @Disabled("Bug ticket : EIDOMNI-1463")
     void credentialRequest_whenDpopAthIsOfAnotherAccessToken_thenRejectedWithoutIssuance() {
         // Given
         final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialOffer(
@@ -137,7 +136,7 @@ class DPoPProofValidationTest extends BaseTest {
         ApiErrorAssert.assertThat((HttpClientErrorException) exception)
                 .hasStatus(401)
                 .hasError("invalid_dpop_proof")
-                .hasErrorDescription("Access token mismatch. ath must be base64url-encoded SHA-256 hash of the ASCII encoding of the associated access token's value");
+                .hasErrorDescription("Malformed DPoP");
     }
 
     private enum DpopDeviation {
