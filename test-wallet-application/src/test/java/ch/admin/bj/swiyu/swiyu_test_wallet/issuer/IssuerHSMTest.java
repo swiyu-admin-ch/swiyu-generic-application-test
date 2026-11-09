@@ -13,6 +13,7 @@ import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
 import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.HSMConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
@@ -21,6 +22,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.sdjwt.SdJwtBatchAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.SwiyuDeeplink;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.google.gson.JsonParser;
@@ -40,16 +42,22 @@ import org.mockserver.model.HttpRequest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.testcontainers.containers.Container;
+import org.testcontainers.utility.MountableFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.UUID;
 import java.net.URI;
 import java.util.regex.Pattern;
 
@@ -716,6 +724,118 @@ class IssuerHSMTest extends BaseTest {
 
         final String decodedBody = new String(Base64.getDecoder().decode(body), StandardCharsets.UTF_8);
         return SignedJWT.parse(decodedBody);
+    }
+
+    @Test
+    @XrayTest(key = "EIDOMNI-1558",
+            summary = "Credential Issuer retires tenant metadata before accessing a deleted HSM signing key",
+            description = """
+                    Given a dedicated SoftHSM alias and a tenant whose signed metadata verifies with that key.
+                    When one offer expires and its signing key is deleted from the test token.
+                    Then that tenant returns HTTP 410 without changing its management record.
+                    The active tenant still reports the missing key with HTTP 500 and identifies its tenant and alias.
+                    Deviation: only this test's dedicated signing alias is retired; default HSM keys remain available.
+                    Spec: EIDOMNI-1323 product policy; RFC 9110 section 15.5.11.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.TEST_HSM)
+    @Tag(ReportingTags.UCI_M1_PROVIDE_METADATA_RELATED_TO_VCS)
+    @Tag(ReportingTags.UCI_W1_EXPOSE_OPENID_WELL_KNOWN_ENDPOINTS)
+    void signedMetadata_whenTerminalTenantKeyIsDeleted_thenGoneBeforeKeyLookup() throws Exception {
+        // Given: import a dedicated alias so retiring it cannot affect the suite's default keys.
+        final String alias = "metadata-" + UUID.randomUUID();
+        final String keyStore = "/tmp/" + alias + ".p12";
+        final String pin = currentIssuer.imageConfig().getHsmUserPin();
+        issuerContainer.copyFileToContainer(MountableFile.forClasspathResource("softhsm/keys/02.p12"), keyStore);
+        try {
+            final var imported = executeHsmKeytool("-importkeystore", "-srckeystore", keyStore,
+                    "-srcstoretype", "PKCS12", "-srcstorepass", "changeit", "-srcalias", ROTATED_HSM_KEY_ID,
+                    "-destkeystore", "NONE", "-deststoretype", "PKCS11", "-deststorepass", pin,
+                    "-destalias", alias, "-noprompt");
+            assertThat(imported.getExitCode())
+                    .as("Dedicated HSM alias import: %s", imported.getStderr())
+                    .isZero();
+            final var request = new CreateCredentialOfferRequest()
+                    .metadataCredentialSupportedId(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT))
+                    .credentialSubjectData(CredentialSubjectFixtures.completeEmployeeProfile())
+                    .credentialMetadata(new CredentialOfferMetadataDto().deferred(false))
+                    .offerValiditySeconds(86400)
+                    .statusLists(List.of(issuerManager.getStatusList().getStatusRegistryUrl()))
+                    .configurationOverride(new ConfigurationOverride()
+                            .verificationMethod(issuerConfig.getIssuerAuthKeyId()).keyId(alias));
+            final var terminalOffer = issuerManager.createCredential(request);
+            final var activeOffer = issuerManager.createCredential(request);
+            final String terminalIssuer = new SwiyuDeeplink(terminalOffer.getOfferDeeplink()).getCredentialIssuer();
+            final String activeIssuer = new SwiyuDeeplink(activeOffer.getOfferDeeplink()).getCredentialIssuer();
+            final URI terminalMetadata = UriComponentsBuilder
+                    .fromUri(wallet.getIssuerContext().getContextualizedUri(URI.create(terminalIssuer)))
+                    .pathSegment(".well-known", "openid-credential-issuer").build().toUri();
+            final URI activeMetadata = UriComponentsBuilder
+                    .fromUri(wallet.getIssuerContext().getContextualizedUri(URI.create(activeIssuer)))
+                    .pathSegment(".well-known", "openid-credential-issuer").build().toUri();
+            final var beforeRetirement = restClient.get().uri(terminalMetadata)
+                    .header(HttpHeaders.ACCEPT, "application/jwt").retrieve().toEntity(String.class);
+            assertThat(beforeRetirement.getStatusCode().value())
+                    .isEqualTo(200);
+            final var metadata = SignedJWT.parse(beforeRetirement.getBody());
+            assertThat(isSignedByHsmKey(metadata, ROTATED_HSM_KEY_ID))
+                    .isTrue();
+            assertThat(isSignedByHsmKey(metadata, INITIAL_HSM_KEY_ID))
+                    .isFalse();
+            try (var update = connection.prepareStatement("UPDATE " + currentIssuer.imageConfig().getDbSchema()
+                    + ".credential_offer SET offer_expiration_timestamp = ? WHERE id = ? AND credential_management_id = ?")) {
+                update.setLong(1, Instant.now().minusSeconds(1).getEpochSecond());
+                update.setObject(2, terminalOffer.getOfferId());
+                update.setObject(3, terminalOffer.getManagementId());
+                assertThat(update.executeUpdate())
+                        .isEqualTo(1);
+            }
+            final var terminalManagement = issuerManager.getCredentialById(terminalOffer.getManagementId());
+            assertThat(issuerManager.getStatusById(terminalOffer.getManagementId()).getStatus())
+                    .isEqualTo(CredentialStatusType.EXPIRED);
+
+            // When: the provider no longer contains the tenant's previously usable key.
+            final var deleted = executeHsmKeytool("-delete", "-keystore", "NONE", "-storetype", "PKCS11",
+                    "-storepass", pin, "-alias", alias);
+            assertThat(deleted.getExitCode())
+                    .as("Dedicated HSM alias deletion: %s", deleted.getStderr())
+                    .isZero();
+
+            // Then: the terminal-state check takes precedence over signer creation.
+            for (int attempt = 0; attempt < 3; attempt++) {
+                final var gone = assertThrows(RestClientResponseException.class,
+                        () -> restClient.get().uri(terminalMetadata).header(HttpHeaders.ACCEPT, "application/jwt")
+                                .retrieve().toEntity(String.class));
+                assertThat(gone.getStatusCode().value())
+                        .isEqualTo(410);
+            }
+            assertThat(issuerManager.getCredentialById(terminalOffer.getManagementId()))
+                    .usingRecursiveComparison()
+                    .isEqualTo(terminalManagement);
+            // This active control accepts JSON errors so the missing-key diagnostics remain observable.
+            final var missingKey = assertThrows(HttpServerErrorException.class,
+                    () -> restClient.get().uri(activeMetadata).header(HttpHeaders.ACCEPT, "application/jwt, application/json")
+                            .retrieve().toEntity(String.class));
+            assertThat(missingKey.getStatusCode().value())
+                    .isEqualTo(500);
+            final String detail = JsonParser.parseString(missingKey.getResponseBodyAsString())
+                    .getAsJsonObject().get("detail").getAsString();
+            assertThat(detail)
+                    .contains(alias)
+                    .contains(activeIssuer.substring(activeIssuer.lastIndexOf('/') + 1))
+                    .doesNotContain("%s");
+        } finally {
+            executeHsmKeytool("-delete", "-keystore", "NONE", "-storetype", "PKCS11",
+                    "-storepass", pin, "-alias", alias);
+            issuerContainer.execInContainer("rm", "-f", keyStore);
+        }
+    }
+
+    private Container.ExecResult executeHsmKeytool(final String... options) throws IOException, InterruptedException {
+        final var command = new ArrayList<>(List.of("keytool", "-providerClass", "sun.security.pkcs11.SunPKCS11",
+                "-providerArg", HSMConfig.PKCS11_CFG));
+        command.addAll(List.of(options));
+        return issuerContainer.execInContainer(command.toArray(String[]::new));
     }
 
     private ECKey signingKeyFromDidLog(final String didLog, final String keyId) throws ParseException {
