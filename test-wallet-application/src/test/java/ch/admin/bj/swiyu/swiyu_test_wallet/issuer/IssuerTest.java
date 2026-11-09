@@ -34,7 +34,7 @@ import static org.junit.Assert.assertThrows;
 @UseIssuers({IssuerVariant.DEFAULT, IssuerVariant.SIGNED_METADATA})
 class IssuerTest extends BaseTest {
 
-    private static final String SUPPORTED_METADATA_ID = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+    private static final String SUPPORTED_METADATA_ID = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
     private static final String OVERRIDE_VCT_METADATA_URI =
             "https://example.com/credentials/vct/eidomni-1001-metadata.json";
     private static final String OVERRIDE_VCT_METADATA_URI_INTEGRITY =
@@ -181,7 +181,7 @@ class IssuerTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
-    void unboundNonDeferredCredential_whenIssued_thenContainsExpectedVctApplicationClaims() {
+    void boundNonDeferredCredential_whenIssued_thenContainsExpectedVctApplicationClaims() {
         final Map<String, Object> subjectClaims =
                 CredentialClaimsFixtures.createBaseProfile();
 
@@ -227,9 +227,9 @@ class IssuerTest extends BaseTest {
                     """)
     @Tag(ReportingTags.EDGE_CASE)
     @Tag(ReportingTags.UCI_I2_GET_AUTHORIZATION_FOR_ISSUING)
-    void unboundNonDeferredCredential_whenTokenRequestedAgainAfterIssuance_thenRequestIsRejected() {
+    void boundNonDeferredCredential_whenTokenRequestedAgainAfterIssuance_thenRequestIsRejected() {
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
-        final String supportedMetadataId = CredentialConfigurationFixtures.UNBOUND_EXAMPLE_SD_JWT;
+        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
 
         final CredentialWithDeeplinkResponse offer =
                 issuerManager.createCredentialOffer(supportedMetadataId, subjectClaims);
