@@ -160,6 +160,7 @@ public final class SdJwtCredential {
         private String issuerClaim;
         private boolean omitIssuerClaim;
         private JWK holderPublicKey;
+        private boolean omitHolderBinding;
         private boolean omitCredentialStatus;
         private Instant expirationInstant;
         private Instant notBeforeInstant;
@@ -204,6 +205,12 @@ public final class SdJwtCredential {
         /** Binds the credential to this key through {@code cnf.jwk} (RFC 9901 §4.1.2). */
         public Resign holderKey(final JWK holderPublicKey) {
             this.holderPublicKey = holderPublicKey;
+            return this;
+        }
+
+        /** Drops {@code cnf} to simulate an issuer issuing an unbound credential, keeping its signature valid. */
+        public Resign withoutHolderBinding() {
+            this.omitHolderBinding = true;
             return this;
         }
 
@@ -261,9 +268,7 @@ public final class SdJwtCredential {
             if (omitIssuerClaim) {
                 claims.claim("iss", null);
             }
-            if (holderPublicKey != null) {
-                claims.claim("cnf", Map.of("jwk", holderPublicKey.toPublicJWK().toJSONObject()));
-            }
+            applyHolderBinding(claims);
             if (omitCredentialStatus) {
                 claims.claim("status", null);
             }
@@ -272,6 +277,18 @@ public final class SdJwtCredential {
                 claims.claim("status", statusWithIndex(original.getJWTClaimsSet().getJSONObjectClaim("status")));
             }
             return claims;
+        }
+
+        private void applyHolderBinding(final JWTClaimsSet.Builder claims) {
+            if (holderPublicKey != null && omitHolderBinding) {
+                throw new IllegalStateException("holderKey(...) and withoutHolderBinding() contradict each other");
+            }
+            if (holderPublicKey != null) {
+                claims.claim("cnf", Map.of("jwk", holderPublicKey.toPublicJWK().toJSONObject()));
+            }
+            if (omitHolderBinding) {
+                claims.claim("cnf", null);
+            }
         }
 
         private void applyValidityClaims(final JWTClaimsSet.Builder claims) {
