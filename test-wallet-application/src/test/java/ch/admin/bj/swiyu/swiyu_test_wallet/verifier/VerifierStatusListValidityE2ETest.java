@@ -17,11 +17,13 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialSubjectFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletProfile;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
@@ -43,7 +45,7 @@ class VerifierStatusListValidityE2ETest extends BaseTest {
     @ParameterizedTest(name = "[{index}] reject {0}")
     @EnumSource(StatusListFailure.class)
     @XrayTest(
-            key = "EIDOMNI-1472",
+            key = "EIDOMNI-1562",
             summary = "Verifier fails a verification whose credential status cannot be established",
             description = """
                     Given a holder-bound credential with a status list reference and a pending DCQL verification.
@@ -108,6 +110,78 @@ class VerifierStatusListValidityE2ETest extends BaseTest {
         assertThat(failedVerification.getWalletResponse().getErrorCode())
                 .isEqualTo(failure.errorCode());
         assertThat(failedVerification.getWalletResponse().getCredentialSubjectData())
+                .isNullOrEmpty();
+        awaitOneVerifierCallback(callbacksBefore);
+        assertThat(awaitStableVerifierCallbacks())
+                .isEqualTo(callbacksBefore + 1);
+    }
+
+    @ParameterizedTest(name = "status index={0}")
+    @ValueSource(ints = {100_000, Integer.MAX_VALUE})
+    @XrayTest(
+            key = "EIDOMNI-1213",
+            summary = "Verifier rejects a credential with an out-of-bounds status index",
+            description = """
+                    Given a holder-bound credential referencing a fresh two-bit status list of 100000 entries.
+                    When the Wallet presents it after the Credential Issuer signs it again with status index
+                    100000, the first index outside the list, or Integer.MAX_VALUE, which could overflow the bit calculation.
+                    Then the Verifier returns HTTP 400 with unresolvable_status_list, persists FAILED without
+                    credential subject data and emits exactly one callback.
+                    Deviation: The Credential Issuer signs a status index outside the referenced list.
+                    Spec: Token Status List draft 20 §6.2 and §8.3.
+                    """
+    )
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_M3_RETRIEVE_VERIFICATION_RESULT)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
+    @Tag(ReportingTags.UCV_O2C_CHECK_VC_STATUS_IN_REGISTRY)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
+    void presentation_whenCredentialIssuerSignsOutOfBoundsStatusIndex_thenFailedWithOneCallback(final int statusIndex) {
+        // Given: a fresh list avoids cached status results; only the credential's status index changes.
+        wallet.setProfile(WalletProfile.swiss());
+        final var statusList = issuerManager.getStatusListApi().createStatusList(new StatusListCreate()
+                .maxLength(100000)
+                .config(new StatusListCreateConfig().bits(2)));
+        final var offer = issuerManager.createCredential(new CreateCredentialOfferRequest()
+                .metadataCredentialSupportedId(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT))
+                .credentialSubjectData(CredentialSubjectFixtures.completeEmployeeProfile())
+                .credentialMetadata(new CredentialOfferMetadataDto().deferred(false))
+                .offerValiditySeconds(600)
+                .statusLists(List.of(statusList.getStatusRegistryUrl())));
+        final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+        batchEntry.replaceIssuedCredential(0,
+                SdJwtCredential.parse(batchEntry.getVerifiableCredential(0)).resign()
+                        .signedWith(issuerConfig.getKeyPair())
+                        .withStatusIndex(statusIndex)
+                        .build()
+                        .serialize());
+
+        final var verification = verifierManager.verificationRequest()
+                .acceptedIssuerDid(issuerConfig.getIssuerDid())
+                .withDCQL()
+                .encrypted()
+                .createManagementResponse();
+        final RequestObject requestObject = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, requestObject);
+        final int callbacksBefore = awaitStableVerifierCallbacks();
+
+        // When
+        final HttpClientErrorException exception = assertThrows(HttpClientErrorException.class,
+                () -> wallet.respondToVerification(requestObject, presentation),
+                () -> "Verifier state after status index %d: %s".formatted(statusIndex,
+                        verifierManager.getVerificationById(verification.getId()).getState()));
+
+        // Then
+        ApiErrorAssert.assertThat(exception)
+                .hasStatus(400)
+                .hasError("invalid_transaction_data")
+                .hasDetail(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST.getValue())
+                .hasErrorCode(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST.getValue());
+        final var result = verifierManager.verifyState(verification.getId(), VerificationStatus.FAILED);
+        assertThat(result.getWalletResponse().getErrorCode())
+                .isEqualTo(VerificationErrorResponseCode.UNRESOLVABLE_STATUS_LIST);
+        assertThat(result.getWalletResponse().getCredentialSubjectData())
                 .isNullOrEmpty();
         awaitOneVerifierCallback(callbacksBefore);
         assertThat(awaitStableVerifierCallbacks())
