@@ -73,7 +73,6 @@ class IssuerWebhookFloodTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
     @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
-    @Disabled("Bug ticket : EIDOMNI-1400")
     void credentialRequest_whenWalletRepeatsInvalidProofAndCallbackIsUnavailable_thenQueueStaysBounded() {
         // Given: freeze the proof, while the Wallet still creates fresh DPoP and encrypted request envelopes.
         final var offer = issuerManager.createCredentialOffer(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
