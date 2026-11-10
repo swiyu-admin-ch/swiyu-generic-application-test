@@ -135,6 +135,11 @@ public class IssuerContainerConfig {
                     .waitingFor(Wait.forLogMessage(".*Started Application.*", 1).withStartupTimeout(STARTUP_TIMEOUT))
                     .dependsOn(dbContainer, mockServer);
 
+            if (issuerImageConfig.getEnableSuspendedRenewal() != null) {
+                containerBuilder.withEnv("ENABLE_SUSPENDED_RENEWAL",
+                        issuerImageConfig.getEnableSuspendedRenewal().toString());
+            }
+
             if (containerLogConfig.isIssuer()) {
                 containerBuilder.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("IssuerContainer")));
             }
