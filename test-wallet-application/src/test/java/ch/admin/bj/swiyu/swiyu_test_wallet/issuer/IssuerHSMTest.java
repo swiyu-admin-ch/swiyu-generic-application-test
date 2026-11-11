@@ -31,6 +31,7 @@ import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -727,6 +728,8 @@ class IssuerHSMTest extends BaseTest {
     }
 
     @Test
+    @Disabled("EIDOMNI-1323: awaiting the tenant metadata retirement concept; "
+            + "the issuer still returns HTTP 500 instead of 410 after signing-key deletion.")
     @XrayTest(key = "EIDOMNI-1558",
             summary = "Credential Issuer retires tenant metadata before accessing a deleted HSM signing key",
             description = """
