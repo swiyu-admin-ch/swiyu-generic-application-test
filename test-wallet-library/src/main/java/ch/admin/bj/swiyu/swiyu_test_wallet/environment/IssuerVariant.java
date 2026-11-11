@@ -14,6 +14,7 @@ public enum IssuerVariant {
     SIGNED_METADATA("signed_metadata", false, null, true, null, null),
     CACHED("cached", false, null, true, null, null),
     COMPLETE("complete", false, true, true, false, true),
+    OFFER_EXPIRATION("offer_expiration", false, true, true, false, true),
     ENCRYPTION("encryption", false, false, true, false, true),
     HSM("hsm", true, null, true, null, null),
     MANAGEMENT_KEYCLOAK("management_keycloak", false, null, false, false, null),
