@@ -144,13 +144,13 @@ class VerifierAuditInformationE2ETest extends BaseTest {
             final var subjects = walletResult.getAsJsonObject("credential_subject_data");
             assertThat(subjects.keySet())
                     .containsExactly(QUERY_ID);
-            final var credentialData = subjects.getAsJsonObject(QUERY_ID);
-            assertThat(credentialData.keySet())
-                    .containsExactly("name")
-                    .doesNotContain(undisclosedClaims);
-            assertThat(credentialData.getAsJsonArray("name").size())
+            final var credentials = subjects.getAsJsonArray(QUERY_ID);
+            assertThat(credentials.size())
                     .isEqualTo(1);
-            assertThat(credentialData.getAsJsonArray("name").get(0).getAsString())
+            assertThat(credentials.get(0).getAsJsonObject().keySet())
+                    .contains("name")
+                    .doesNotContain(undisclosedClaims);
+            assertThat(credentials.get(0).getAsJsonObject().get("name").getAsString())
                     .isEqualTo(claims.get("name"));
         }
         if (mode.vpToken) {

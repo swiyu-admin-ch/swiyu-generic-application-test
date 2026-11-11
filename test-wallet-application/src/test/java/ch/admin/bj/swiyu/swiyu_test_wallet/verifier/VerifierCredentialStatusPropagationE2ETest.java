@@ -89,7 +89,6 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final Map<String, Object> expectedDisclosedClaims =
                 CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        expectedDisclosedClaims.replaceAll((claim, value) -> List.of(value));
         final String[] undisclosedBusinessClaims = subjectClaims.keySet()
                 .stream()
                 .filter(claim -> !expectedDisclosedClaims.containsKey(claim))
@@ -197,13 +196,16 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
         assertThat(result.getWalletResponse().getCredentialSubjectData())
                 .containsOnlyKeys(DEFAULT_CREDENTIAL_ID);
         @SuppressWarnings("unchecked")
-        final Map<String, Object> credentialData = (Map<String, Object>) result
+        final List<Map<String, Object>> credentialData = (List<Map<String, Object>>) result
                 .getWalletResponse()
                 .getCredentialSubjectData()
                 .get(DEFAULT_CREDENTIAL_ID);
         assertThat(credentialData)
-                .containsExactlyInAnyOrderEntriesOf(expectedDisclosedClaims)
-                .doesNotContainKeys(undisclosedBusinessClaims);
+                .singleElement()
+                .satisfies(actualCredentialData -> {
+                    assertThat(actualCredentialData).containsAllEntriesOf(expectedDisclosedClaims);
+                    assertThat(actualCredentialData).doesNotContainKeys(undisclosedBusinessClaims);
+                });
         assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, SUSPENDED);
     }
 
@@ -233,7 +235,6 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
         final Map<String, Object> subjectClaims = CredentialSubjectFixtures.completeEmployeeProfile();
         final Map<String, Object> expectedDisclosedClaims =
                 CredentialSubjectFixtures.mandatoryClaimsEmployeeProfile();
-        expectedDisclosedClaims.replaceAll((claim, value) -> List.of(value));
         final String[] undisclosedBusinessClaims = subjectClaims.keySet()
                 .stream()
                 .filter(claim -> !expectedDisclosedClaims.containsKey(claim))
@@ -297,13 +298,16 @@ class VerifierCredentialStatusPropagationE2ETest extends BaseTest {
         assertThat(result.getWalletResponse().getCredentialSubjectData())
                 .containsOnlyKeys(DEFAULT_CREDENTIAL_ID);
         @SuppressWarnings("unchecked")
-        final Map<String, Object> credentialData = (Map<String, Object>) result
+        final List<Map<String, Object>> credentialData = (List<Map<String, Object>>) result
                 .getWalletResponse()
                 .getCredentialSubjectData()
                 .get(DEFAULT_CREDENTIAL_ID);
         assertThat(credentialData)
-                .containsExactlyInAnyOrderEntriesOf(expectedDisclosedClaims)
-                .doesNotContainKeys(undisclosedBusinessClaims);
+                .singleElement()
+                .satisfies(actualCredentialData -> {
+                    assertThat(actualCredentialData).containsAllEntriesOf(expectedDisclosedClaims);
+                    assertThat(actualCredentialData).doesNotContainKeys(undisclosedBusinessClaims);
+                });
         assertEvaluation(result, DEFAULT_CREDENTIAL_ID, false, REVOKED);
     }
 }

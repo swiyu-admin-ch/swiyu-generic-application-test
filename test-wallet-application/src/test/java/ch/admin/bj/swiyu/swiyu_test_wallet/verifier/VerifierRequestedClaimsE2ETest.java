@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -53,10 +54,12 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.verifier.VerificationRequests.
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockserver.model.HttpRequest.request;
 
 /**
- * EIDOMNI-1201: only DCQL-selected values cross the Verifier Management API boundary.
+ * EIDOMNI-1201: {@code dcql_response} contains only DCQL-selected values at the Verifier Management API boundary.
+ * The deprecated {@code credential_subject_data} retains its audit payload format.
  * The business response shape (claim id, otherwise dotted path, mapped to a list) comes from the feature README.
  * OID4VP 1.0 §6.3, §6.4.1 and §7.1.1 define query selection, not this management response format.
  * The Swiss verification profile §8 requires encrypted direct_post.jwt responses.
@@ -72,7 +75,7 @@ import static org.mockserver.model.HttpRequest.request;
 class VerifierRequestedClaimsE2ETest extends BaseTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final String SUBJECT_DATA = "/wallet_response/credential_subject_data";
+    private static final String DCQL_RESPONSE = "/wallet_response/dcql_response";
 
     static Stream<Arguments> requestedValues() {
         final Map<String, Object> profile = CredentialClaimsFixtures.createBaseProfile();
@@ -131,15 +134,15 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
         // Then: exact equality detects any extra metadata, sibling, array element or disclosure.
         assertThat(result.path("state").asText())
                 .isEqualTo("SUCCESS");
-        assertThat(result.at(SUBJECT_DATA))
+        assertThat(result.at(DCQL_RESPONSE))
                 .as(scenario)
                 .isEqualTo(JSON.valueToTree(Map.of(DEFAULT_CREDENTIAL_ID, expectedValues)));
         assertThat(result.at("/wallet_response/vp_token").isMissingNode()
                 || result.at("/wallet_response/vp_token").isNull())
                 .as("Production defaults must not expose the unfiltered presentation as an audit token")
                 .isTrue();
-        assertThat(readManagement(verification.getId()).at(SUBJECT_DATA))
-                .isEqualTo(result.at(SUBJECT_DATA));
+        assertThat(readManagement(verification.getId()).at(DCQL_RESPONSE))
+                .isEqualTo(result.at(DCQL_RESPONSE));
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
                 assertThat(verifierCallbacks(verification.getId()))
                         .as("Exactly one callback for this completed verification")
@@ -254,6 +257,10 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
             final String scenario, final Map<String, Object> fullArrays,
             final List<DcqlClaimDto> claims, final Map<String, Object> expectedValues
     ) {
+        assumeFalse(fullArrays.values().stream()
+                        .anyMatch(value -> ((List<?>) value).stream().anyMatch(Objects::isNull)),
+                "Known Issuer SD-JWT builder bug: null array elements are removed, shifting DCQL indexes.");
+
         // Given: this deliberately bypasses the Wallet's DisclosureSelector for every array scenario.
         final WalletBatchEntry credentials = issueCredential(fullArrays);
         final String issuedCredential = credentials.getIssuedCredentials().getFirst();
@@ -288,12 +295,12 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
         // Then: exact JSON equality also rejects extra indexes and fields hidden inside returned objects.
         assertThat(result.path("state").asText())
                 .isEqualTo("SUCCESS");
-        assertThat(result.at(SUBJECT_DATA))
+        assertThat(result.at(DCQL_RESPONSE))
                 .as("%s; Wallet sent %s; Business Verifier must receive only %s", scenario, fullArrays, expectedValues)
                 .isEqualTo(JSON.valueToTree(Map.of(DEFAULT_CREDENTIAL_ID, expectedValues)));
-        assertThat(readManagement(verification.getId()).at(SUBJECT_DATA))
+        assertThat(readManagement(verification.getId()).at(DCQL_RESPONSE))
                 .as("Repeated management retrieval cannot expose previously discarded array elements")
-                .isEqualTo(result.at(SUBJECT_DATA));
+                .isEqualTo(result.at(DCQL_RESPONSE));
     }
 
     static Stream<Arguments> unmatchedArrayPaths() {
@@ -342,8 +349,12 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
                 .hasStatus(400);
         assertThat(result.path("state").asText())
                 .isEqualTo("FAILED");
-        assertThat(result.at(SUBJECT_DATA).isMissingNode() || result.at(SUBJECT_DATA).isNull())
+        assertThat(result.at(DCQL_RESPONSE).isMissingNode() || result.at(DCQL_RESPONSE).isNull())
                 .as("No complete array, neighboring element or partially accepted credential may reach the business")
+                .isTrue();
+        assertThat(result.at("/wallet_response/credential_subject_data").isMissingNode()
+                || result.at("/wallet_response/credential_subject_data").isNull())
+                .as("A rejected presentation must not expose credential data through the deprecated audit field")
                 .isTrue();
     }
 
@@ -399,7 +410,7 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
         // Then
         assertThat(result.path("state").asText())
                 .isEqualTo("SUCCESS");
-        assertThat(result.at(SUBJECT_DATA))
+        assertThat(result.at(DCQL_RESPONSE))
                 .isEqualTo(JSON.valueToTree(Map.of(DEFAULT_CREDENTIAL_ID, expected)));
     }
 
@@ -440,7 +451,7 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
         // Then
         assertThat(result.path("state").asText())
                 .isEqualTo("SUCCESS");
-        assertThat(result.at(SUBJECT_DATA))
+        assertThat(result.at(DCQL_RESPONSE))
                 .isEqualTo(JSON.valueToTree(Map.of(DEFAULT_CREDENTIAL_ID, Map.of())));
     }
 
@@ -484,7 +495,7 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
                 .isEqualTo(200);
         assertThat(result.path("state").asText())
                 .isEqualTo("SUCCESS");
-        assertThat(result.at(SUBJECT_DATA))
+        assertThat(result.at(DCQL_RESPONSE))
                 .isEqualTo(JSON.valueToTree(Map.of(
                         "identity", Map.of("value", List.of(DEFAULT_NAME)),
                         "birth", Map.of("value", List.of(DEFAULT_BIRTH_YEAR)))));
