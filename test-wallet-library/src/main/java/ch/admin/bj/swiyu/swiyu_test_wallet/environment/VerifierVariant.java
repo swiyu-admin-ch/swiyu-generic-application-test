@@ -10,6 +10,7 @@ public enum VerifierVariant {
     AUDIT_EVALUATION_ONLY("audit_evaluation_only", false),
     NO_STATIC_DID("no_static_did", false),
     CACHED("cached", false),
+    STATUS_LIST_CACHED("status_list_cached", false),
     HSM("hsm", true),
     MANAGEMENT_KEYCLOAK("management_keycloak", false),
     SHORT_LIVED_REQUEST_OBJECT("short_lived_request_object", false),
@@ -52,6 +53,11 @@ public enum VerifierVariant {
                 config.setTrustStatementCacheTtlMillis(CACHED_TRUST_STATEMENT_CACHE_TTL_MILLIS);
             }
             case SHORT_LIVED_REQUEST_OBJECT -> config.setRequestObjectTtlSeconds(SHORT_LIVED_REQUEST_OBJECT_TTL_SECONDS);
+            case STATUS_LIST_CACHED -> {
+                // This product environment variable also controls the status-list cache capacity.
+                config.setTrustRegistryMaxCacheSize(CACHED_TRUST_REGISTRY_MAX_CACHE_SIZE);
+                config.setStatusListCacheTtlMillis(30_000);
+            }
             case REJECT_SUSPENDED -> config.setRejectSuspendedCredentials(true);
             case MULTI_SIGNING_KEYS -> config.setMultipleSigningKeys(true);
             default -> { }
@@ -88,6 +94,7 @@ public enum VerifierVariant {
         target.setTrustRegistryMaxCacheTtlSeconds(source.getTrustRegistryMaxCacheTtlSeconds());
         target.setJwkCacheTtlMillis(source.getJwkCacheTtlMillis());
         target.setTrustStatementCacheTtlMillis(source.getTrustStatementCacheTtlMillis());
+        target.setStatusListCacheTtlMillis(source.getStatusListCacheTtlMillis());
         target.setRequestObjectTtlSeconds(source.getRequestObjectTtlSeconds());
         target.setRejectSuspendedCredentials(source.isRejectSuspendedCredentials());
         target.setAuditVpTokenEnabled(source.getAuditVpTokenEnabled());

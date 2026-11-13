@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockserver.matchers.MatchType;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -28,6 +29,12 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices.VERIFIER_CALLBACK_PATH;
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
@@ -174,6 +181,93 @@ class VerifierClosedVerificationWebhookTest extends BaseTest {
                     assertThat(queuedCallbacks(open.verificationId()))
                             .isZero();
                 });
+    }
+
+    @ParameterizedTest(name = "second response is wallet error: {0}")
+    @ValueSource(booleans = {false, true})
+    @XrayTest(key = "EIDOMNI-1570",
+            summary = "Verifier completes concurrent responses to one verification only once with one callback",
+            description = """
+                    Given a pending verification and a valid holder-bound presentation.
+                    When the Wallet submits two presentations, or a presentation and an access_denied error, concurrently.
+                    Then exactly one response succeeds, the other returns HTTP 410, the stored result matches the winner,
+                    and exactly one business callback is delivered without a remaining queued event.
+                    Deviation: the Wallet submits competing responses to the same authorization request.
+                    Spec: OID4VP 1.0 §8.5 Error Response and §8.6 VP Token Validation;
+                    single completion, terminal-state immutability and one callback are project invariants.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
+    @Tag(ReportingTags.UCV_O2E_TRIGGER_WEBHOOK_CALLBACK)
+    void verification_whenWalletResponsesRace_thenOnlyWinnerDeterminesResultAndOneCallback(
+            final boolean secondResponseIsError
+    ) throws Exception {
+        // Given
+        final OpenVerification open = openVerification();
+        final CyclicBarrier start = new CyclicBarrier(2);
+        final List<ResponseAttempt> attempts;
+
+        // When
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            final var presentation = executor.submit(() -> respondAfterBarrier(open, false, start));
+            final var competing = executor.submit(() -> respondAfterBarrier(open, secondResponseIsError, start));
+            attempts = List.of(presentation.get(20, TimeUnit.SECONDS), competing.get(20, TimeUnit.SECONDS));
+        }
+
+        // Then
+        assertThat(attempts)
+                .extracting(ResponseAttempt::status)
+                .containsExactlyInAnyOrder(200, 410);
+        final ResponseAttempt winner = attempts.stream().filter(attempt -> attempt.status() == 200).findFirst().orElseThrow();
+        final ManagementResponse closed = verifierManager.getVerificationById(open.verificationId());
+        assertThat(closed.getState())
+                .isEqualTo(winner.walletError() ? VerificationStatus.FAILED : VerificationStatus.SUCCESS);
+        if (winner.walletError()) {
+            assertThat(closed.getWalletResponse().getCredentialSubjectData())
+                    .isNullOrEmpty();
+        } else {
+            assertThat(closed.getWalletResponse().getCredentialSubjectData())
+                    .isNotEmpty();
+        }
+        await()
+                .atMost(CALLBACK_TIMEOUT)
+                .untilAsserted(() -> assertThat(deliveredCallbacks(open.verificationId()))
+                        .isEqualTo(1));
+        final var replay = assertThrows(HttpClientErrorException.class,
+                () -> wallet.respondToVerification(open.requestObject(), open.validPresentation()));
+        ApiErrorAssert.assertThat(replay)
+                .hasStatus(410);
+        await()
+                .during(CALLBACK_OBSERVATION)
+                .atMost(CALLBACK_TIMEOUT)
+                .untilAsserted(() -> {
+                    assertThat(verifierManager.getVerificationById(open.verificationId()))
+                            .usingRecursiveComparison()
+                            .isEqualTo(closed);
+                    assertThat(deliveredCallbacks(open.verificationId()))
+                            .isEqualTo(1);
+                    assertThat(queuedCallbacks(open.verificationId()))
+                            .isZero();
+                });
+    }
+
+    private ResponseAttempt respondAfterBarrier(final OpenVerification open, final boolean walletError,
+                                               final CyclicBarrier start)
+            throws InterruptedException, BrokenBarrierException, TimeoutException {
+        start.await(5, TimeUnit.SECONDS);
+        try {
+            if (walletError) {
+                wallet.respondToVerificationWithError(open.requestObject(), "access_denied", "user declined");
+            } else {
+                wallet.respondToVerification(open.requestObject(), open.validPresentation());
+            }
+            return new ResponseAttempt(walletError, 200);
+        } catch (HttpClientErrorException rejection) {
+            return new ResponseAttempt(walletError, rejection.getStatusCode().value());
+        }
+    }
+
+    private record ResponseAttempt(boolean walletError, int status) {
     }
 
     private OpenVerification openVerification() {
