@@ -8,6 +8,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
+import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
+import org.springframework.web.client.HttpClientErrorException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -110,29 +114,41 @@ class RandomizedIndexTest extends BaseTest {
 
         issuerManager.createStatusList(statusListLength, 2);
 
+        final List<BatchResult> batches = new ArrayList<>();
         try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
-            Callable<Void> batchJob = () -> {
+            Callable<BatchResult> batchJob = () -> {
                 CredentialWithDeeplinkResponse response =
                         issuerManager.createCredentialOffer("bound_example_sd_jwt");
-                wallet.collectOffer(toUri(response.getOfferDeeplink()));
-                return null;
+                final var entry = newWallet().collectOffer(toUri(response.getOfferDeeplink()));
+                return new BatchResult(response.getManagementId(), List.copyOf(entry.getIssuedCredentials()), null);
             };
 
-            List<Callable<Void>> jobs = new ArrayList<>();
+            List<Callable<BatchResult>> jobs = new ArrayList<>();
             for (int i = 0; i < batchCount; i++) {
                 jobs.add(batchJob);
             }
 
-            pool.invokeAll(jobs);
-            pool.shutdown();
-            pool.awaitTermination(60, TimeUnit.SECONDS);
+            for (var result : pool.invokeAll(jobs, 60, TimeUnit.SECONDS)) {
+                batches.add(result.get());
+            }
         }
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", batchCount * batchSize, batchCount, batchSize)
-                .hasSize(batchCount * batchSize);
+                .hasSize(batchCount * batchSize)
+                .doesNotHaveDuplicates();
+
+        for (final BatchResult batch : batches) {
+            assertThat(batch.credentials())
+                    .hasSize(batchSize);
+            assertThat(batch.credentials().stream().map(this::statusReference).toList())
+                    .as("Every returned credential must reference an index allocated to its own management entry")
+                    .containsExactlyInAnyOrderElementsOf(statusReferencesFromDb(batch.managementId()));
+        }
+        assertThat(batches.stream().flatMap(batch -> batch.credentials().stream()).map(this::statusReference).toList())
+                .doesNotHaveDuplicates();
 
         assertThat(areSequential(allIndexes))
                 .as("Indexes across all batches must not be sequential when issued concurrently")
@@ -162,33 +178,90 @@ class RandomizedIndexTest extends BaseTest {
         final int statusListLength = batchSize * batchCount - 1; // Set capacity just below total needed for all batches
 
         final int expectedBatchCountEntered = batchCount - 1;
-        final int expectedEntries = expectedBatchCountEntered * batchCount;
+        final int expectedEntries = expectedBatchCountEntered * batchSize;
 
         issuerManager.createStatusList(statusListLength, 2);
 
+        final List<BatchResult> batches = new ArrayList<>();
         try (ExecutorService pool = Executors.newFixedThreadPool(batchCount)) {
-            Callable<Void> batchJob = () -> {
-                CredentialWithDeeplinkResponse response =
-                        issuerManager.createCredentialOffer("bound_example_sd_jwt");
-                wallet.collectOffer(toUri(response.getOfferDeeplink()));
-                return null;
+            Callable<BatchResult> batchJob = () -> {
+                final CredentialWithDeeplinkResponse response;
+                try {
+                    response = issuerManager.createCredentialOffer("bound_example_sd_jwt");
+                } catch (HttpClientErrorException rejection) {
+                    return new BatchResult(null, List.of(), rejection);
+                }
+                final var entry = newWallet().collectOffer(toUri(response.getOfferDeeplink()));
+                return new BatchResult(response.getManagementId(), List.copyOf(entry.getIssuedCredentials()), null);
             };
 
-            List<Callable<Void>> jobs = new ArrayList<>();
+            List<Callable<BatchResult>> jobs = new ArrayList<>();
             for (int i = 0; i < batchCount; i++) {
                 jobs.add(batchJob);
             }
 
-            pool.invokeAll(jobs);
-            pool.shutdown();
-            pool.awaitTermination(60, TimeUnit.SECONDS);
+            for (var result : pool.invokeAll(jobs, 60, TimeUnit.SECONDS)) {
+                batches.add(result.get());
+            }
         }
 
         List<Integer> allIndexes = getUsedIndexesFromDb();
 
         assertThat(allIndexes)
                 .as("Expected %s total credentials (%s batches × %s each)", expectedEntries, batchCount, batchSize)
-                .hasSize(expectedEntries);
+                .hasSize(expectedEntries)
+                .doesNotHaveDuplicates();
+        assertThat(batches.stream().filter(batch -> batch.rejection() != null).toList())
+                .singleElement()
+                .satisfies(batch -> {
+                    ApiErrorAssert.assertThat(batch.rejection())
+                            .hasStatus(400);
+                    assertThat(batch.rejection().getResponseBodyAsString())
+                            .contains("Too few status indexes remain in status list");
+                });
+        final var issuedBatches = batches.stream().filter(batch -> batch.rejection() == null).toList();
+        assertThat(issuedBatches)
+                .hasSize(expectedBatchCountEntered);
+        for (final BatchResult batch : issuedBatches) {
+            assertThat(batch.credentials())
+                    .hasSize(batchSize);
+            assertThat(batch.credentials().stream().map(this::statusReference).toList())
+                    .containsExactlyInAnyOrderElementsOf(statusReferencesFromDb(batch.managementId()));
+        }
+        assertThat(issuedBatches.stream().flatMap(batch -> batch.credentials().stream()).map(this::statusReference).toList())
+                .hasSize(expectedEntries)
+                .doesNotHaveDuplicates();
+    }
+
+    private StatusReference statusReference(final String credential) {
+        final var reference = JwtSupport.decodePayloadToJsonNode(credential.split("~", 2)[0])
+                .path("status").path("status_list");
+        return new StatusReference(reference.path("uri").asString(), reference.path("idx").asInt());
+    }
+
+    private List<StatusReference> statusReferencesFromDb(final UUID managementId) throws SQLException {
+        final List<StatusReference> references = new ArrayList<>();
+        final String schema = issuerImageConfig.getDbSchema();
+        try (var query = connection.prepareStatement("""
+                SELECT sl.uri, cos.index FROM %s.credential_offer_status cos
+                JOIN %s.status_list sl ON sl.id = cos.status_list_id
+                JOIN %s.credential_offer co ON co.id = cos.credential_offer_id
+                WHERE co.credential_management_id = ?
+                """.formatted(schema, schema, schema))) {
+            query.setObject(1, managementId);
+            try (var result = query.executeQuery()) {
+                while (result.next()) {
+                    references.add(new StatusReference(result.getString(1), result.getInt(2)));
+                }
+            }
+        }
+        return references;
+    }
+
+    private record StatusReference(String uri, int index) {
+    }
+
+    private record BatchResult(UUID managementId, List<String> credentials, HttpClientErrorException rejection) {
     }
 
     private List<Integer> getUsedIndexesFromDb() throws SQLException {

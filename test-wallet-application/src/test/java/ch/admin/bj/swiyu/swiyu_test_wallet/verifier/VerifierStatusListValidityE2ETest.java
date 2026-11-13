@@ -119,7 +119,7 @@ class VerifierStatusListValidityE2ETest extends BaseTest {
     @ParameterizedTest(name = "status index={0}")
     @ValueSource(ints = {100_000, Integer.MAX_VALUE})
     @XrayTest(
-            key = "EIDOMNI-1213",
+            key = "EIDOMNI-1573",
             summary = "Verifier rejects a credential with an out-of-bounds status index",
             description = """
                     Given a holder-bound credential referencing a fresh two-bit status list of 100000 entries.

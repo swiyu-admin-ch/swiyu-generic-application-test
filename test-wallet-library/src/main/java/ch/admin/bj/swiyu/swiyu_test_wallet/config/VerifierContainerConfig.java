@@ -105,7 +105,7 @@ public class VerifierContainerConfig {
                     .withEnv("SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE", DATASOURCE_MINIMUM_IDLE)
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
-                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")
+                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", String.valueOf(verifierImageConfig.getStatusListCacheTtlMillis()))
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")

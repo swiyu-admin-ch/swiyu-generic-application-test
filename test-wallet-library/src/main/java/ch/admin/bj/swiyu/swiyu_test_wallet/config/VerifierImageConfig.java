@@ -26,6 +26,7 @@ public class VerifierImageConfig {
     private long trustRegistryMaxCacheTtlSeconds;
     private long jwkCacheTtlMillis;
     private long trustStatementCacheTtlMillis;
+    private long statusListCacheTtlMillis;
     private int requestObjectTtlSeconds;
     private boolean rejectSuspendedCredentials;
 
