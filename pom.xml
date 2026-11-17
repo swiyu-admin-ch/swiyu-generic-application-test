@@ -25,7 +25,7 @@
         <jackson-databind-nullable.version>0.2.13</jackson-databind-nullable.version>
         <java-json-canonicalization.version>1.1</java-json-canonicalization.version>
         <didtoolbox.version>2.3.0</didtoolbox.version>
-        <bouncycastle.version>1.86</bouncycastle.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
         <mockserver.version>9.2.0</mockserver.version>
         <postgresql.version>42.7.14</postgresql.version>
         <xray-junit.version>1.1.0</xray-junit.version>
