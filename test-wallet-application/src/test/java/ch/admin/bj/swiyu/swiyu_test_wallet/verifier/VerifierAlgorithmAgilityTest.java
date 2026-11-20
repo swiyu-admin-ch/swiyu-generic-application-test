@@ -1,6 +1,8 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.verifier;
 
 import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
+import ch.admin.bj.swiyu.gen.issuer.model.CreateCredentialOfferRequest;
+import ch.admin.bj.swiyu.gen.issuer.model.CredentialOfferMetadataDto;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.ManagementResponse;
 import ch.admin.bj.swiyu.gen.verifier.model.RequestObject;
@@ -9,8 +11,15 @@ import ch.admin.bj.swiyu.gen.verifier.model.VerificationStatus;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
 import ch.admin.bj.swiyu.swiyu_test_wallet.CompleteEnvironmentTestConfiguration;
 import ch.admin.bj.swiyu.swiyu_test_wallet.config.ImageTags;
+import ch.admin.bj.swiyu.swiyu_test_wallet.config.IssuerImageConfig;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerHandle;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerRuntimeFactory;
+import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.identity.DidLogUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.identity.KeyUtil;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.CredentialOffer;
+import ch.admin.bj.swiyu.swiyu_test_wallet.issuer.IssuerConfig;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
@@ -20,17 +29,20 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.KeyBindingJwt;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.crypto.Ed25519Verifier;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.OctetKeyPair;
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.SignedJWT;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -38,6 +50,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.JsonNode;
 
 import java.net.URI;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.text.ParseException;
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +70,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class VerifierAlgorithmAgilityTest extends BaseTest {
 
     private static final List<String> EXPAND_PHASE_ALGORITHMS = List.of("ES256", "Ed25519");
+
+    @Autowired
+    private IssuerRuntimeFactory issuerRuntimeFactory;
 
     @Test
     @XrayTest(
@@ -95,35 +112,45 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     @Tag(ReportingTags.HAPPY_PATH)
     @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
-    @EnabledIfSystemProperty(
-            named = "didresolver.version",
-            matches = "2\\.9\\.0",
-            disabledReason = "Requires a verifier image with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
-    )
     void verification_whenIssuerSdJwtUsesEd25519_thenSucceeds() throws Exception {
-        final WalletBatchEntry batchEntry = issueBoundCredential();
-        final Ed25519Issuer edIssuer = createEd25519Issuer();
-        final String ed25519Credential = resignCredentialWithEd25519Issuer(
-                batchEntry.getVerifiableCredential(0),
-                edIssuer
-        );
-        replaceIssuedCredential(batchEntry, ed25519Credential);
+        // Given
+        final KeyPair signingKey = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
+        final OctetKeyPair publicKey = new OctetKeyPair.Builder(Curve.Ed25519, Base64URL.encode(
+                SubjectPublicKeyInfo.getInstance(signingKey.getPublic().getEncoded())
+                        .getPublicKeyData().getBytes()
+        )).build();
+        final IssuerHandle defaultIssuer = issuer(IssuerVariant.DEFAULT);
+        final IssuerHandle ed25519Issuer = startEd25519Issuer(signingKey, publicKey);
+        try (var container = ed25519Issuer.container()) {
+            useIssuer(ed25519Issuer);
+            final CredentialWithDeeplinkResponse offer = issuerManager.createCredential(new CreateCredentialOfferRequest()
+                    .metadataCredentialSupportedId(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT))
+                    .credentialSubjectData(CredentialOffer.defaultSubjectData())
+                    .credentialMetadata(new CredentialOfferMetadataDto().deferred(false)));
+            final WalletBatchEntry batchEntry = wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+            final SignedJWT issuedJwt = issuerJwt(batchEntry.getVerifiableCredential(0));
+            assertThat(issuedJwt.getHeader().getAlgorithm())
+                    .as("Algorithm of the SD-JWT issued by the Credential Issuer")
+                    .isEqualTo(JWSAlgorithm.Ed25519);
+            assertThat(issuedJwt.getHeader().getKeyID())
+                    .isEqualTo(issuerConfig.getIssuerAssertKeyId());
+            assertThat(issuedJwt.verify(new Ed25519Verifier(publicKey)))
+                    .isTrue();
 
-        final ManagementResponse verification = createVerification(edIssuer.did());
-        final RequestObject requestObject = wallet.getVerificationRequestObject(
-                verification.getVerificationDeeplink()
-        );
-        final String presentation = batchEntry.createPresentationForSdJwtIndex(0, requestObject);
+            // When
+            final ManagementResponse verification = createVerification(issuerConfig.getIssuerDid());
+            final RequestObject requestObject = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+            final String presentation = batchEntry.createPresentationForSdJwtIndex(0, requestObject);
+            assertThat(keyBindingJwt(presentation).getHeader().getAlgorithm())
+                    .as("Holder key binding algorithm")
+                    .isEqualTo(JWSAlgorithm.ES256);
+            wallet.respondToVerification(requestObject, presentation);
 
-        assertThat(issuerJwt(ed25519Credential).getHeader().getAlgorithm())
-                .isEqualTo(JWSAlgorithm.Ed25519);
-        assertThat(keyBindingJwt(presentation).getHeader().getAlgorithm())
-                .as("Hardware-bound holder key remains P-256/ES256")
-                .isEqualTo(JWSAlgorithm.ES256);
-
-        wallet.respondToVerification(requestObject, presentation);
-
-        verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+            // Then
+            verifierManager.verifyState(verification.getId(), VerificationStatus.SUCCESS);
+        } finally {
+            useIssuer(defaultIssuer);
+        }
     }
 
     @Test
@@ -184,11 +211,6 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     @Tag(ReportingTags.EDGE_CASE)
     @Tag(ReportingTags.UCV_O2_SUBMIT_VERIFICATION_PRESENTATION)
     @Tag(ReportingTags.UCV_O2A_VERIFY_PRESENTATION_SUBMISSION_AND_SD_JWT_CREDENTIAL)
-    @EnabledIfSystemProperty(
-            named = "didresolver.version",
-            matches = "2\\.9\\.0",
-            disabledReason = "Requires a verifier image with didresolver 2.9.0; enable with -Ddidresolver.version=2.9.0."
-    )
     void verification_whenEd25519SignatureIsInvalid_thenStrictlyRejected(
             final Ed25519SignatureTarget signatureTarget
     ) throws Exception {
@@ -210,8 +232,8 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                 VerificationStatus.FAILED
         );
         assertThat(failed.getWalletResponse().getErrorDescription())
-                .as("The failure must come from signature verification, not from an unsupported alg allowlist")
-                .contains(signatureTarget.signatureFailureMessage());
+                .as("Management error description for the rejected %s", signatureTarget)
+                .isIn(signatureTarget.errorDescriptions());
     }
 
     private InvalidPresentationScenario invalidPresentation(
@@ -252,6 +274,36 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
                 CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT
         );
         return wallet.collectOffer(toUri(offer.getOfferDeeplink()));
+    }
+
+    private IssuerHandle startEd25519Issuer(final KeyPair signingKey, final OctetKeyPair publicKey) {
+        final URI registryEntry = URI.create("https://%s/api/v1/did/%s".formatted(
+                MockServices.MOCKSERVER_HOST, UUID.randomUUID()));
+        final KeyPair statusKey = KeyUtil.generateEC256KeyPair();
+        final String didLog = DidLogUtil.createDidLog(KeyUtil.createJWKFromKeyPair(statusKey), publicKey, registryEntry);
+        final String did = DidLogUtil.getDidFromDidLog(didLog);
+        final IssuerConfig config = IssuerConfig.builder()
+                .issuerRegistryEntry(registryEntry.toString())
+                .issuerDid(did)
+                .issuerDidLog(didLog)
+                .swiyuPartnerId(UUID.randomUUID().toString())
+                .mockServerUri("http://" + MockServices.MOCKSERVER_HOST)
+                .issuerAssertKeyId(did + "#assert-key-01")
+                .issuerAssertKeyPemString(KeyUtil.getPrivateKeyPem(signingKey))
+                .issuerAuthKeyId(did + "#auth-key-01")
+                .issuerAuthKeyPemString(KeyUtil.getPrivateKeyPem(statusKey))
+                .keyPair(signingKey)
+                .build();
+        final IssuerImageConfig imageConfig = IssuerVariant.DEFAULT.imageConfig(issuerImageConfig);
+        imageConfig.setSurname("ed25519_" + UUID.randomUUID().toString().substring(0, 8));
+        return issuerRuntimeFactory.start(new IssuerRuntimeFactory.StartRequest(
+                IssuerVariant.DEFAULT,
+                config,
+                imageConfig,
+                imageConfig.getBaseImage() + ":" + imageConfig.getImageTag(),
+                null,
+                null
+        ));
     }
 
     private ManagementResponse createVerification(final String acceptedIssuerDid) {
@@ -372,30 +424,32 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
     private enum Ed25519SignatureTarget {
         ISSUER_SD_JWT(
                 VerificationErrorResponseCode.MALFORMED_CREDENTIAL,
-                "Failed to extract information from JWT token"
+                "Failed to extract information from JWT token",
+                "SD-JWT claims are not valid"
         ),
         KEY_BINDING_JWT(
                 VerificationErrorResponseCode.HOLDER_BINDING_MISMATCH,
-                "Holder Binding provided does not match the one in the credential"
+                "Holder Binding provided does not match the one in the credential",
+                "Key binding JWT is invalid"
         );
 
         private final VerificationErrorResponseCode expectedErrorCode;
-        private final String expectedSignatureFailureMessage;
+        private final List<String> expectedErrorDescriptions;
 
         Ed25519SignatureTarget(
                 final VerificationErrorResponseCode expectedErrorCode,
-                final String expectedSignatureFailureMessage
+                final String... expectedErrorDescriptions
         ) {
             this.expectedErrorCode = expectedErrorCode;
-            this.expectedSignatureFailureMessage = expectedSignatureFailureMessage;
+            this.expectedErrorDescriptions = List.of(expectedErrorDescriptions);
         }
 
         VerificationErrorResponseCode errorCode() {
             return expectedErrorCode;
         }
 
-        String signatureFailureMessage() {
-            return expectedSignatureFailureMessage;
+        List<String> errorDescriptions() {
+            return expectedErrorDescriptions;
         }
     }
 
