@@ -12,9 +12,9 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.environment.IssuerVariant;
 import ch.admin.bj.swiyu.swiyu_test_wallet.environment.UseIssuers;
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtures;
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
+import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.api_error.ApiErrorAssert;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
@@ -25,13 +25,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.time.Duration;
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.spy;
 
 @Slf4j
 @SpringBootTest
@@ -161,13 +161,16 @@ class IssuerCallbacksTest extends BaseTest {
 
     @Test
     @XrayTest(
-            key = "EIDOMNI-773",
-            summary = "ISSUANCE_ERROR callback triggered on key binding validation failure",
+            key = "EIDOMNI-XXX",
+            summary = "Credential Issuer rejects an invalid jwt key proof without publishing an issuance error callback",
             description = """
-                    This test validates that the issuer triggers an ISSUANCE_ERROR webhook callback when a credential issuance fails due to a key binding error.
-                    
-                    The wallet intentionally sends invalid proofs signed with incorrect keys during the credential collection process.
-                    The issuer must reject the request and return an HTTP 400 error.
+                    Given a bound Credential Offer and its access token.
+                    When the Wallet sends a jwt key proof for a different Credential Issuer.
+                    Then the Credential Issuer returns HTTP 400 invalid_proof, leaves the offer in progress,
+                    and delivers only the IN_PROGRESS callback from the token exchange.
+                    Deviation: the jwt key proof aud differs from the Credential Issuer Identifier.
+                    Spec: OID4VCI 1.0 §8.3.1 and Appendix F.1.
+                    Regression: EIDOMNI-1394 defines the callback behavior.
                     """)
     @Tag(ReportingTags.EDGE_CASE)
     @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
@@ -175,56 +178,49 @@ class IssuerCallbacksTest extends BaseTest {
     @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
     @DisableIfImageTag(
             issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "The fix is not available yet"
+            reason = "The issuer images predate the removal of KEY_BINDING_ERROR callbacks (EIDOMNI-1394)."
     )
-    void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {
-
-        wallet.setUseDPoP(true);
-        cleanIssuerCallbacks();
+    void credentialRequest_whenKeyProofAudienceIsWrong_thenRejectsWithoutIssuanceErrorCallback() {
         // Given
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
+        wallet.setUseDPoP(true);
+        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialWithSignedJwt(
+                jwtKey, keyId, CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT);
+        final WalletBatchEntry entry = wallet.prepareOffer(toUri(offer.getOfferDeeplink()));
+        entry.setProofsFromJwt(List.of(JwtProof.builder()
+                .withAudience("https://another-credential-issuer.example")
+                .cNonce(entry.getCNonce())
+                .publicJwk(entry.getHolderPublicKeys().getFirst())
+                .keyPair(entry.getHolderKeyPairs().getFirst())
+                .attestationAuthority(wallet.getMockAttestationAuthority())
+                .build()));
 
         // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialWithSignedJwt(jwtKey, keyId,
-                supportedMetadataId);
-        final WalletBatchEntry entry = spy(wallet.createWalletBatchEntry());
-
-        // When - Send too much proofs to the issuer
-        doAnswer(invocation -> {
-            final java.util.List<JwtProof> invalidProofs = new java.util.ArrayList<>();
-            for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE + 1; i++) {
-                invalidProofs.add(new JwtProof(
-                        entry.getIssuerMetadata().getCredentialIssuer(),
-                        wallet.collectCNonce(entry),
-                        entry.getProofPublicJwk(),
-                        ECCryptoSupport.generateECKeyPair(),
-                        null
-                ));
-            }
-            entry.setProofsFromJwt(invalidProofs);
-            return null;
-        }).when(entry).createProofs();
-
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.collectOffer(entry, toUri(offer.getOfferDeeplink()))
+        final HttpClientErrorException rejection = assertThrows(
+                HttpClientErrorException.class, () -> wallet.postCredentialRequest(entry)
         );
 
-        assertThat(errorCode(ex)).isEqualTo(400);
-
-        awaitStableIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasSizeEventually(2)
-                .hasLastCallbacksInOrder(List.of(
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.IN_PROGRESS.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
-                                .event("KEY_BINDING_ERROR")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER)
-                ));
+        // Then
+        ApiErrorAssert.assertThat(rejection)
+                .hasStatus(400)
+                .hasError("invalid_proof");
+        assertThat(entry.getIssuedCredentials())
+                .isEmpty();
+        assertThat(issuerManager.getCredentialOfferById(offer.getManagementId(), offer.getOfferId()).getStatus())
+                .isEqualTo(CredentialStatusType.IN_PROGRESS);
+        await()
+                .during(Duration.ofSeconds(1))
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> assertThat(issuerCallbacks().stream()
+                        .filter(callback -> offer.getOfferId().equals(callback.getSubjectId()))
+                        .toList())
+                        .singleElement()
+                        .satisfies(callback -> {
+                            assertThat(callback.getEventType())
+                                    .isEqualTo(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED);
+                            assertThat(callback.getEvent())
+                                    .isEqualTo(CredentialStatusType.IN_PROGRESS.getValue());
+                            assertThat(callback.getEventTrigger())
+                                    .isEqualTo(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER);
+                        }));
     }
 }

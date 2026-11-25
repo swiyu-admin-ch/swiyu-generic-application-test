@@ -121,7 +121,8 @@ class VerifierAlgorithmAgilityTest extends BaseTest {
         )).build();
         final IssuerHandle defaultIssuer = issuer(IssuerVariant.DEFAULT);
         final IssuerHandle ed25519Issuer = startEd25519Issuer(signingKey, publicKey);
-        try (var container = ed25519Issuer.container()) {
+        final var container = ed25519Issuer.container();
+        try (container) {
             useIssuer(ed25519Issuer);
             final CredentialWithDeeplinkResponse offer = issuerManager.createCredential(new CreateCredentialOfferRequest()
                     .metadataCredentialSupportedId(List.of(CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT))
