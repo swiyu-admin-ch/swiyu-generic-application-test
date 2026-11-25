@@ -18,6 +18,7 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.util.JwtSupport;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.UseWallet;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.artefact.SdJwtCredential;
+import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto.Sha256Base64Url;
 import com.nimbusds.jose.util.Base64URL;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -301,6 +302,60 @@ class VerifierRequestedClaimsE2ETest extends BaseTest {
         assertThat(readManagement(verification.getId()).at(DCQL_RESPONSE))
                 .as("Repeated management retrieval cannot expose previously discarded array elements")
                 .isEqualTo(result.at(DCQL_RESPONSE));
+    }
+
+    @Test
+    @XrayTest(
+            key = "EIDOMNI-1635",
+            summary = "Business Verifier receives the requested array element when the Wallet discloses only that element",
+            description = """
+                    Given an SD-JWT VC with three selectively disclosable array elements and a DCQL request for index 1.
+                    When the Wallet discloses the array claim and only its second element in an encrypted presentation.
+                    Then the Verifier succeeds and the Management API returns only the value at index 1, including on a repeated read.
+                    Spec: RFC 9901 §4.2.4.2 and §7.1; OID4VP 1.0 §6.4.1 and §7.1.1.
+                    Regression: EIDOMNI-1497.
+                    """)
+    @Tag(ReportingTags.EDGE_CASE)
+    void businessVerifier_whenWalletDisclosesOnlySecondArrayElement_thenReturnsOnlyThatValue() {
+        // Given
+        final WalletBatchEntry credentials = issueCredential(Map.of("favorite_numbers", List.of(10, 20, 30)));
+        final ManagementResponse verification = createVerification(List.of(claim("second_number", "favorite_numbers", 1)));
+        final RequestObject request = wallet.getVerificationRequestObject(verification.getVerificationDeeplink());
+        final String presentation = credentials.createSelectiveDisclosurePresentationForSdJwtIndex(0, request);
+        final SdJwtCredential sentCredential = SdJwtCredential.parse(presentation);
+        final List<JsonNode> disclosures = sentCredential.disclosures().stream()
+                .map(disclosure -> JSON.readTree(new Base64URL(disclosure).decodeToString()))
+                .toList();
+        final List<String> disclosedDigests = sentCredential.disclosures().stream()
+                .map(Sha256Base64Url::ofUsAscii)
+                .toList();
+        assertThat(disclosures)
+                .as("The Wallet sends only the array claim and its second element")
+                .hasSize(2)
+                .anySatisfy(disclosure -> {
+                    assertThat(disclosure.size()).isEqualTo(3);
+                    assertThat(disclosure.path(1).asText()).isEqualTo("favorite_numbers");
+                    final JsonNode array = disclosure.path(2);
+                    assertThat(array.isArray()).isTrue();
+                    assertThat(array.size()).isEqualTo(3);
+                    assertThat(array.path(0).path("...").asText()).isNotBlank().isNotIn(disclosedDigests);
+                    assertThat(array.path(1).path("...").asText()).isIn(disclosedDigests);
+                    assertThat(array.path(2).path("...").asText()).isNotBlank().isNotIn(disclosedDigests);
+                })
+                .anySatisfy(disclosure -> {
+                    assertThat(disclosure.size()).isEqualTo(2);
+                    assertThat(disclosure.path(1)).isEqualTo(JSON.valueToTree(20));
+                });
+
+        // When
+        wallet.respondToVerification(request, presentation);
+        final JsonNode result = readManagement(verification.getId());
+
+        // Then
+        assertThat(result.path("state").asText()).isEqualTo("SUCCESS");
+        assertThat(result.at(DCQL_RESPONSE))
+                .isEqualTo(JSON.valueToTree(Map.of(DEFAULT_CREDENTIAL_ID, Map.of("second_number", List.of(20)))));
+        assertThat(readManagement(verification.getId()).at(DCQL_RESPONSE)).isEqualTo(result.at(DCQL_RESPONSE));
     }
 
     static Stream<Arguments> unmatchedArrayPaths() {
