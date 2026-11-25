@@ -73,6 +73,9 @@ public final class IssuerRuntimeFactory {
         mockServices.registerIssuer(request.config());
         final GenericContainer<?> container = createContainer(request, managementAuthConfig);
 
+        if (variant == IssuerVariant.OFFER_EXPIRATION) {
+            container.withEnv("CREDENTIAL_OFFER_EXPIRATION_INTERVAL", "PT1S");
+        }
         if (variant == IssuerVariant.RENEWAL_API_KEY || variant == IssuerVariant.RENEWAL_WEBHOOK_ONLY) {
             container.withEnv("WEBHOOK_API_KEY_HEADER", RenewalApiKeyFixtures.WEBHOOK_HEADER)
                     .withEnv("WEBHOOK_API_KEY_VALUE", RenewalApiKeyFixtures.WEBHOOK_VALUE);

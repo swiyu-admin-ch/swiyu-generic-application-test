@@ -1,7 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.config;
 
 import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.TestConstants;
-import ch.admin.bj.swiyu.swiyu_test_wallet.mock.MockServices;
 import lombok.experimental.UtilityClass;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -22,10 +21,6 @@ import static ch.admin.bj.swiyu.swiyu_test_wallet.util.ContainerUtil.getResource
 @UtilityClass
 public class VerifierContainerConfig {
 
-    private static final String MOCKSERVER_HTTPS_URL = "https://" + MockServices.MOCKSERVER_HOST;
-    private static final String MOCKSERVER_HTTP_URL = "http://" + MockServices.MOCKSERVER_HOST;
-    private static final String MOCKSERVER_URL_REWRITE_MAPPING =
-            "{\"%s\":\"%s\"}".formatted(MOCKSERVER_HTTPS_URL, MOCKSERVER_HTTP_URL);
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
     private static final String DATASOURCE_MAXIMUM_POOL_SIZE = "5";
     private static final String DATASOURCE_MINIMUM_IDLE = "1";
@@ -82,7 +77,6 @@ public class VerifierContainerConfig {
                     .withEnv("APPLICATION_ACCEPTED_REGISTRY_HOSTS_0", "mockserver")
                     .withEnv("APPLICATION_ACCEPTED_STATUS_LIST_HOSTS_0", "mockserver")
                     .withEnv("APPLICATION_CLIENT_ID_PREFIX", "decentralized_identifier")
-                    .withEnv("URL_REWRITE_MAPPING", MOCKSERVER_URL_REWRITE_MAPPING)
                     .withEnv("SWIYU_TRUST_REGISTRY_API_URL", config.getMockServerUri())
                     .withEnv("SWIYU_TRUST_REGISTRY_MAX_CACHE_SIZE",
                             String.valueOf(verifierImageConfig.getTrustRegistryMaxCacheSize()))
@@ -105,7 +99,7 @@ public class VerifierContainerConfig {
                     .withEnv("SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE", DATASOURCE_MINIMUM_IDLE)
                     .withEnv("WEBHOOK_CALLBACK_URI", URI.create(config.getMockServerUri()).resolve(VERIFIER_CALLBACK_PATH).toString())
                     .withEnv("WEBHOOK_INTERVAL", "100")
-                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", "0")
+                    .withEnv("STATUS_LIST_CACHE_TTL_MILLI", String.valueOf(verifierImageConfig.getStatusListCacheTtlMillis()))
                     .withNetwork(network)
                     .withNetworkAliases(verifierImageConfig.getNetworkAlias())
                     .withExtraHost("host.docker.internal", "host-gateway")

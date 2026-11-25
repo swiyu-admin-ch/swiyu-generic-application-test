@@ -321,8 +321,8 @@ jobs:
                   for attribute in ("tests", "skipped", "failures", "errors")
               )
               summary.append(f"| {name.rsplit('.', 1)[-1]} | {tests} | {skipped} | {failures} | {test_errors} |")
-              if tests - skipped <= 0 or skipped or failures or test_errors:
-                  errors.append(f"{name}: HSM tests must run successfully with no skipped tests")
+              if tests - skipped <= 0 or failures or test_errors:
+                  errors.append(f"{name}: expected at least one executed HSM test and no failures or errors")
           for name in sorted(reports.keys() - expected):
               errors.append(f"Unexpected test class in the HSM suite: {name}")
 

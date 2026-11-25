@@ -24,6 +24,7 @@ public class IssuerImageConfig {
     private boolean enableHsm;
     private boolean multipleSigningKeys;
     private boolean allowRefreshTokenRotation = true;
+    private Boolean enableSuspendedRenewal;
     private long trustRegistryMaxCacheSize;
     private long trustRegistryMaxCacheTtlSeconds;
     private long trustRegistryClockSkewBufferSeconds = 60;
