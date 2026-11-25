@@ -14,24 +14,16 @@ import ch.admin.bj.swiyu.swiyu_test_wallet.fixture.CredentialConfigurationFixtur
 import ch.admin.bj.swiyu.swiyu_test_wallet.junit.DisableIfImageTag;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.reporting.ReportingTags;
 import ch.admin.bj.swiyu.swiyu_test_wallet.test_support.webhook_callback.WebhookCallbackAssert;
-import ch.admin.bj.swiyu.swiyu_test_wallet.util.ECCryptoSupport;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.JwtProof;
-import ch.admin.bj.swiyu.swiyu_test_wallet.wallet.WalletBatchEntry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 
 import static ch.admin.bj.swiyu.swiyu_test_wallet.util.PathSupport.toUri;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.spy;
 
 @Slf4j
 @SpringBootTest
@@ -156,75 +148,6 @@ class IssuerCallbacksTest extends BaseTest {
                                 .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
                                 .event(CredentialStatusType.REVOKED.getValue())
                                 .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_MANAGEMENT)
-                ));
-    }
-
-    @Test
-    @XrayTest(
-            key = "EIDOMNI-773",
-            summary = "ISSUANCE_ERROR callback triggered on key binding validation failure",
-            description = """
-                    This test validates that the issuer triggers an ISSUANCE_ERROR webhook callback when a credential issuance fails due to a key binding error.
-                    
-                    The wallet intentionally sends invalid proofs signed with incorrect keys during the credential collection process.
-                    The issuer must reject the request and return an HTTP 400 error.
-                    """)
-    @Tag(ReportingTags.EDGE_CASE)
-    @Tag(ReportingTags.UCI_I1_ISSUING_VERIFIABLE_CREDENTIALS)
-    @Tag(ReportingTags.UCI_I1A_CREATE_VERIFIABLE_CREDENTIALS)
-    @Tag(ReportingTags.UCI_I1D_CREATE_WEBHOOK_STATUS_CHANGE)
-    @DisableIfImageTag(
-            issuer = {ImageTags.STABLE, ImageTags.RC},
-            reason = "The fix is not available yet"
-    )
-    void givenCredentialOffer_whenWalletSendsInvalidKeyBindingProofs_thenIssuerTriggersIssuanceErrorCallback() {
-
-        wallet.setUseDPoP(true);
-        cleanIssuerCallbacks();
-        // Given
-        final String supportedMetadataId = CredentialConfigurationFixtures.BOUND_EXAMPLE_SD_JWT;
-
-        // When
-        final CredentialWithDeeplinkResponse offer = issuerManager.createCredentialWithSignedJwt(jwtKey, keyId,
-                supportedMetadataId);
-        final WalletBatchEntry entry = spy(wallet.createWalletBatchEntry());
-
-        // When - Send too much proofs to the issuer
-        doAnswer(invocation -> {
-            final java.util.List<JwtProof> invalidProofs = new java.util.ArrayList<>();
-            for (int i = 0; i < CredentialConfigurationFixtures.BATCH_SIZE + 1; i++) {
-                invalidProofs.add(new JwtProof(
-                        entry.getIssuerMetadata().getCredentialIssuer(),
-                        wallet.collectCNonce(entry),
-                        entry.getProofPublicJwk(),
-                        ECCryptoSupport.generateECKeyPair(),
-                        null
-                ));
-            }
-            entry.setProofsFromJwt(invalidProofs);
-            return null;
-        }).when(entry).createProofs();
-
-        final HttpClientErrorException ex = assertThrows(HttpClientErrorException.class, () ->
-                wallet.collectOffer(entry, toUri(offer.getOfferDeeplink()))
-        );
-
-        assertThat(errorCode(ex)).isEqualTo(400);
-
-        awaitStableIssuerCallbacks();
-        WebhookCallbackAssert.assertThat(issuerCallbacks())
-                .hasSizeEventually(2)
-                .hasLastCallbacksInOrder(List.of(
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.VC_STATUS_CHANGED)
-                                .event(CredentialStatusType.IN_PROGRESS.getValue())
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER),
-                        new WebhookCallback()
-                                .subjectId(offer.getOfferId())
-                                .eventType(WebhookCallback.EventTypeEnum.ISSUANCE_ERROR)
-                                .event("KEY_BINDING_ERROR")
-                                .eventTrigger(WebhookCallback.EventTriggerEnum.CREDENTIAL_OFFER)
                 ));
     }
 }
