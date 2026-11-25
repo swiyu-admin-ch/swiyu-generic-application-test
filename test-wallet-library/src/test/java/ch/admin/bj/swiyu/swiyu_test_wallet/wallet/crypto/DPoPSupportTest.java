@@ -110,7 +110,7 @@ class DPoPSupportTest {
 
     @Test
     void proof_whenCheckedByTheDpopValidatorsOfTheLibrary_thenIsAccepted() throws Exception {
-        final SignedJWT proof = DpopJwtValidator.parse(DPoPSupport.createDpopProofForToken(
+        final SignedJWT proof = SignedJWT.parse(DPoPSupport.createDpopProofForToken(
                 TOKEN_URI.toString(), NONCE, keyPair, publicJwk, ACCESS_TOKEN));
 
         assertThatCode(() -> {
@@ -127,7 +127,7 @@ class DPoPSupportTest {
 
     @Test
     void libraryReference_whenTheUrlDiffers_thenRejects() throws Exception {
-        final SignedJWT proof = DpopJwtValidator.parse(DPoPSupport.createDpopProofForToken(
+        final SignedJWT proof = SignedJWT.parse(DPoPSupport.createDpopProofForToken(
                 TOKEN_URI.toString(), NONCE, keyPair, publicJwk));
         final URI other = URI.create("https://issuer.example.com/oid4vci/api/credential");
 

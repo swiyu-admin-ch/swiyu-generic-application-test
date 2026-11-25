@@ -4,6 +4,7 @@ import app.getxray.xray.junit.customjunitxml.annotations.XrayTest;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialStatusType;
 import ch.admin.bj.swiyu.gen.issuer.model.CredentialWithDeeplinkResponse;
 import ch.admin.bj.swiyu.gen.issuer.model.UpdateCredentialStatusRequestType;
+import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import ch.admin.bj.swiyu.jweutil.JweUtilException;
 import ch.admin.bj.swiyu.swiyu_test_wallet.BaseTest;
@@ -520,7 +521,7 @@ class IssuerPayloadEncryptionTest extends BaseTest {
         assertThat(wrongKey).as("Wrong decryption key must differ from the key used in the request").isNotEqualTo(originalKey);
 
         final JweUtilException ex = assertThrows(JweUtilException.class,
-                () -> JweUtil.decrypt(batchEntry.getCredentialResponse().getRawBody(), wrongKey));
+                () -> JweUtil.decrypt(batchEntry.getCredentialResponse().getRawBody(), wrongKey, JweDecryptionLimits.defaults()));
         assertThat(ex)
                 .hasMessageContaining("AES/GCM/NoPadding decryption failed: Tag mismatch");
         assertThat(ex.getCause())

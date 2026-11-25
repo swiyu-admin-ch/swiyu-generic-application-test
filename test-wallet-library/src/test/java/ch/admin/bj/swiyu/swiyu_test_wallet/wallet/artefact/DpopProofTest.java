@@ -57,7 +57,7 @@ class DpopProofTest {
 
     /** The names of the requirements the proof does not satisfy, for a request to {@link #REQUEST_URI}. */
     private static Set<String> violations(final String proof) throws ParseException {
-        final SignedJWT jwt = DpopJwtValidator.parse(proof);
+        final SignedJWT jwt = SignedJWT.parse(proof);
         final Set<String> violated = new LinkedHashSet<>();
         check(violated, "mandatory claims", () -> DpopJwtValidator.validateMandatoryClaims(jwt.getHeader(), jwt.getJWTClaimsSet()));
         check(violated, "typ", () -> DpopJwtValidator.validateTyp(jwt.getHeader()));

@@ -1,5 +1,6 @@
 package ch.admin.bj.swiyu.swiyu_test_wallet.wallet.crypto;
 
+import ch.admin.bj.swiyu.jweutil.JweDecryptionLimits;
 import ch.admin.bj.swiyu.jweutil.JweUtil;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEObject;
@@ -52,7 +53,7 @@ class WalletJweTest {
         assertThat(jwe.getPayload().toString())
                 .as("independent decryption with Nimbus")
                 .isEqualTo(PAYLOAD);
-        assertThat(JweUtil.decrypt(compact, verifierKey))
+        assertThat(JweUtil.decrypt(compact, verifierKey, JweDecryptionLimits.defaults()))
                 .as("reference: the library the Verifier decrypts with")
                 .isEqualTo(PAYLOAD);
     }
